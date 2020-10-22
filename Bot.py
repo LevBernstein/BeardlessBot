@@ -581,7 +581,7 @@ async def on_message(text):
         await text.channel.send(random.choice(answers))
     if text.content.startswith("!source"):
         end = "Most facts taken from https://www.thefactsite.com/1000-interesting-facts/."
-        await text.channel.send(end)   
+        await text.channel.send(end)
     if text.content.startswith("!link") or text.content.startswith("!add") or text.content.startswith("!join"):
         end = "Want to add this bot to your server? Click https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot"
         await text.channel.send(end)
