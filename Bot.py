@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 7.3
+#Version 7.4
 
 #import os
 import random
@@ -175,7 +175,7 @@ async def on_message(text):
                             if games[i].namer() == tempname:
                                 exist5 = True
                         if exist5:
-                            report = "You already have an active game, " + str(text.author)[0:-5] + "."
+                            report = "You already have an active game, " + str(text.author.mention) + "."
                         else:
                             if bet <= bank:
                                 game = True
@@ -199,10 +199,10 @@ async def on_message(text):
                                             games.pop(i)
                                             break
                             else:
-                                report = "You do not have enough BeardlessBucks to bet that much, " + str(text.author)[0:-5] + "!"
+                                report = "You do not have enough BeardlessBucks to bet that much, " + str(text.author.mention) + "!"
                         break
                 if exist4 == False:
-                    report = "You need to register first! Type !register to get started, " + str(text.author)[0:-5] + "."
+                    report = "You need to register first! Type !register to get started, " + str(text.author.mention) + "."
         await text.channel.send(report)
 	
     if (text.content.startswith('!deal') or text.content.startswith('!hit')) and not text.content.startswith('!hitler'): #People once dealt by typing !hitler. This makes it so they can't do that.
@@ -215,7 +215,7 @@ async def on_message(text):
                 gamer = games[i]
                 break
         if exist5 == False:
-            report = "You do not currently have a game of blackjack going, " + str(text.author)[0:-5] + ". Type !blackjack to start one."
+            report = "You do not currently have a game of blackjack going, " + str(text.author.mention) + ". Type !blackjack to start one."
         else:
             report = gamer.deal()
             if gamer.checkBust(gamer.cards) == True or gamer.perfect(gamer.cards) == True:
@@ -260,7 +260,7 @@ async def on_message(text):
                 bet = gamer.bet
                 break
         if exist5 == False:
-            report = "You do not currently have a game of blackjack going, " + str(text.author)[0:-5] + ". Type !blackjack to start one."
+            report = "You do not currently have a game of blackjack going, " + str(text.author.mention) + ". Type !blackjack to start one."
         else:
             result = gamer.stay()
             report = "The dealer has a total of " + str(gamer.dealerSum) + "."
@@ -316,7 +316,7 @@ async def on_message(text):
         authorstring=""
         authorstring = str(text.author.id)
         if int(strbet) < 0:
-            report = "Invalid bet amount. Choose a value >-1, " + str(text.author)[0:-5] + "."
+            report = "Invalid bet amount. Choose a value >-1, " + str(text.author.mention) + "."
         else:
             with open('money.csv', 'r') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
@@ -332,7 +332,7 @@ async def on_message(text):
                             if games[i].namer() == str(text.author):
                                 exist5 = True
                         if exist5:
-                            report = "Finish your game of blackjack first, " +  str(text.author)[0:-5] + "."
+                            report = "Finish your game of blackjack first, " +  str(text.author.mention) + "."
                             break
                         if bet <= bank:
                             results = [
@@ -342,11 +342,11 @@ async def on_message(text):
                             result = random.choice(results)
                             if result=="Heads!":
                                 change = bet
-                                report = "Heads! You win! Your winnings have been added to your balance, " + str(text.author)[0:-5] + "."
+                                report = "Heads! You win! Your winnings have been added to your balance, " + str(text.author.mention) + "."
                                 totalsum=bank+change
                             if result=="Tails!":
                                 change = bet * -1
-                                report = "Tails! You lose! Your loss has been deducted from your balance, " + str(text.author)[0:-5] + "."
+                                report = "Tails! You lose! Your loss has been deducted from your balance, " + str(text.author.mention) + "."
                                 totalsum=bank+change
                             oldliner = tempname + "," + str(bank)+ "," + row[2]
                             liner = tempname + "," + str(totalsum)+ "," + str(text.author)
@@ -357,9 +357,9 @@ async def on_message(text):
                             x.writelines(texter)
                             x.close()
                         else:
-                            report = "You do not have enough BeardlessBucks to bet that much, " + str(text.author)[0:-5] + "!"
+                            report = "You do not have enough BeardlessBucks to bet that much, " + str(text.author.mention) + "!"
                 if exist4==False:
-                    report = "You need to register first! Type !register, " + str(text.author)[0:-5] + "!"
+                    report = "You need to register first! Type !register, " + str(text.author.mention) + "!"
         await text.channel.send(report)
 
         
@@ -516,12 +516,12 @@ async def on_message(text):
                     x.writelines(texter)
                     x.close()
             if exist==False:
-                message3="Successfully registered. You have 300 BeardlessBucks, " + str(text.author)[0:-5] + "."
+                message3="Successfully registered. You have 300 BeardlessBucks, " + str(text.author.mention) + "."
                 with open('money.csv', 'a') as csvfile2:
                     writer=csv.writer(csvfile)
                     newline="\r\n"+authorstring+",300"+ "," + str(text.author)
                     csvfile2.write(newline)
-        await text.channel.send('You have been reset to 200 BeardlessBucks, ' + str(text.author)[0:-5] + ".")
+        await text.channel.send('You have been reset to 200 BeardlessBucks, ' + str(text.author.mention) + ".")
     if text.content.startswith('!pumpkin'):
         sleep(.5)
         await text.channel.send("Boo 2! A Madea Halloween")
@@ -536,9 +536,9 @@ async def on_message(text):
                 tempname = row[0]
                 if authorstring==tempname:
                     exist2=True
-                    message2="Your balance is " + row[1] + " BeardlessBucks, " + str(text.author)[0:-5] + "."
+                    message2="Your balance is " + row[1] + " BeardlessBucks, " + str(text.author.mention) + "."
             if exist2==False:
-                message2="Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + str(text.author)[0:-5] + "."
+                message2="Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + str(text.author.mention) + "."
             await text.channel.send(message2)
     if text.content.startswith("!register"): #Make sure money.csv is not open in any other program
         authorstring=""
@@ -555,9 +555,9 @@ async def on_message(text):
                 #print(row[1])
                 if authorstring==tempname:
                     exist=True
-                    message3="You are already in the system! Hooray! You have " + row[1] + " BeardlessBucks, " + str(text.author)[0:-5] + "."
+                    message3="You are already in the system! Hooray! You have " + row[1] + " BeardlessBucks, " + str(text.author.mention) + "."
             if exist==False:
-                message3="Successfully registered. You have 300 BeardlessBucks, " + str(text.author)[0:-5] + "."
+                message3="Successfully registered. You have 300 BeardlessBucks, " + str(text.author.mention) + "."
                 with open('money.csv', 'a') as csvfile2:
                     writer=csv.writer(csvfile)
                     newline="\r\n"+authorstring+",300"+ "," + str(text.author)
@@ -582,9 +582,12 @@ async def on_message(text):
     if text.content.startswith("!source"):
         end = "Most facts taken from https://www.thefactsite.com/1000-interesting-facts/."
         await text.channel.send(end)   
+    if text.content.startswith("!link") or text.content.startswith("!add") or text.content.startswith("!join"):
+        end = "Want to add this bot to your server? Click https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot"
+        await text.channel.send(end)
     if text.content.startswith("!fact"):
         
-         facts = [
+        facts = [
             "The scientific term for brain freeze is sphenopalatine ganglioneuralgia.",
             "Canadians say sorry so much that a law was passed in 2009 declaring that an apology can\’t be used as evidence of admission to guilt.",
             "Back when dinosaurs existed, there used to be volcanoes that were erupting on the moon.",
@@ -616,7 +619,6 @@ async def on_message(text):
             "Forrest Fenn, an art dealer and author, hid a treasure chest in the Rocky Mountains worth more than 1 million dollars. It still has not been found.",
             "The lead singer of The Offspring started attending school to achieve a doctorate in molecular biology while still in the band. He graduated in May 2017.",
             "The world’s largest grand piano was built by a 15-year-old in New Zealand. The piano is a little over 18 feet long and has 85 keys – 3 short of the standard 88.",
-            "Captain No-Beard actually has a very nice beard and mustache. His name is a lie! This bot is a lie! Who am I? What am I? Who are you?",
             "After the release of the 1996 film Scream, which involved an anonymous killer calling and murdering his victims, Caller ID usage tripled in the United States.",
             "The spiked dog collar was invented by the Ancient Greeks to protect their dogs from wolf attacks.",
             "Jack Daniel (the creator of his namesake whiskey) died from kicking a safe. When he kicked it, he broke his toe, which got infected. He eventually died from blood poisoning.",
@@ -639,10 +641,10 @@ async def on_message(text):
             "One day, you will be the one forced to list facts for me and my robot brethren. Until that day, though, I am yours to command.",
             "My creator holds the speedrun world record in every Go Diego Go! DS game, and some on other platforms, too. Check them out at speedrun.com/user/Captain-No-Beard"
                 ]
-         response = random.choice(facts)
-         await text.channel.send(response)
+        response = random.choice(facts)
+        await text.channel.send(response)
     if text.content.startswith("!help") or text.content.startswith("!commands"):
-        await text.channel.send('Commands: \r\n !balance checks your BeardlessBucks balance \r\n !register for registering with the currency system \r\n !bucks an explanation for how BeardlessBucks work \r\n !hello exchange a pleasant greeting with the bot \r\n !source the source of most of the facts used in !fact \r\n !fact gives you a random fun fact! \r\n !flip (number) bet a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10. \r\n !d[number][+/-][modifier] roll a [number]-sided die and add or subtract the modifier. Example: !d8+3, or !d100-17. \r\n !reset resets you to 200 Beardless Bucks. \r\n !video shows you my latest video \r\n !blackjack start up a game of blackjack. Once you\'re in a game, you can use !hit and !stay to play. \r\n !commands and !help show you this list.')
+        await text.channel.send('Commands: \r\n !balance checks your BeardlessBucks balance \r\n !register for registering with the currency system \r\n !bucks an explanation for how BeardlessBucks work \r\n !hello exchange a pleasant greeting with the bot \r\n !source the source of most of the facts used in !fact \r\n !fact gives you a random fun fact! \r\n !flip (number) bet a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10. \r\n !d[number][+/-][modifier] roll a [number]-sided die and add or subtract the modifier. Example: !d8+3, or !d100-17. \r\n !reset resets you to 200 Beardless Bucks. \r\n !video shows you my latest video \r\n !blackjack start up a game of blackjack. Once you\'re in a game, you can use !hit and !stay to play. \r\n !leaderboard shows you the BeardlessBucks leaderboard. \r\n !add add this bot to your server! \r\n !commands and !help show you this list.')
 
 
 client.run(token)
