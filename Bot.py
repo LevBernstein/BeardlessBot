@@ -1,5 +1,6 @@
-#Bot.py
-#Version 7.0
+#Beardless Bot
+#Author: Lev Bernstein
+#Version 7.2
 
 #import os
 import random
@@ -12,7 +13,7 @@ import operator
 from collections import OrderedDict
 
 game = False
-f = open("token.txt", "r") #in token.txt, just put your own discord api token
+f = open("token.txt", "r") #in token.txt, just put in your own discord api token
 token = f.readline()
 #print(token)
 
@@ -53,7 +54,7 @@ class Instance:
             return False
     
     def deal(self):
-        if self.dealt() == 1:
+        if self.dealt() == 1: #As you can see by the available values, this is not true Blackjack; the odds are different.
             vals = [
                 2,
                 3,
