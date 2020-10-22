@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 7.2
+#Version 7.3
 
 #import os
 import random
@@ -186,7 +186,7 @@ async def on_message(text):
                                     if x.checkBust(x.cards):
                                         bet = bet * -1
                                     totalsum = bank + bet
-                                    oldliner = str(text.author.id) + "," + str(bank) + "," + str(text.author)
+                                    oldliner = str(text.author.id) + "," + str(bank) + "," + row[2]
                                     liner = str(text.author.id) + "," + str(totalsum)+ "," + str(text.author)
                                     texter = open("money.csv", "r")
                                     texter = ''.join([i for i in texter]) \
@@ -198,12 +198,11 @@ async def on_message(text):
                                         if games[i].namer() == tempname:
                                             games.pop(i)
                                             break
-                            
                             else:
-                                    report = "You do not have enough BeardlessBucks to bet that much, " + str(text.author)[0:-5] + "!"
-                                    if exist4 == False:
-                                        report = "You need to register first! Type !register to get started, " + str(text.author)[0:-5] + "."
+                                report = "You do not have enough BeardlessBucks to bet that much, " + str(text.author)[0:-5] + "!"
                         break
+                if exist4 == False:
+                    report = "You need to register first! Type !register to get started, " + str(text.author)[0:-5] + "."
         await text.channel.send(report)
 	
     if (text.content.startswith('!deal') or text.content.startswith('!hit')) and not text.content.startswith('!hitler'): #People once dealt by typing !hitler. This makes it so they can't do that.
@@ -234,7 +233,7 @@ async def on_message(text):
                             exist4=True
                             bank = int(row[1])
                             totalsum = bank + bet
-                            oldliner = str(text.author.id)+ "," + str(bank)+ "," + str(text.author)
+                            oldliner = str(text.author.id)+ "," + str(bank)+ "," + row[2]
                             liner = str(text.author.id) + "," + str(totalsum)+ "," + str(text.author)
                             texter = open("money.csv", "r")
                             texter = ''.join([i for i in texter]) \
@@ -285,7 +284,7 @@ async def on_message(text):
                         exist4=True
                         bank = int(row[1])
                         totalsum = bank + bet
-                        oldliner = str(text.author.id) + "," + str(bank)+ "," + str(text.author)
+                        oldliner = str(text.author.id) + "," + str(bank)+ "," + row[2]
                         liner = str(text.author.id) + "," + str(totalsum)+ "," + str(text.author)
                         texter = open("money.csv", "r")
                         texter = ''.join([i for i in texter]) \
@@ -349,7 +348,7 @@ async def on_message(text):
                                 change = bet * -1
                                 report = "Tails! You lose! Your loss has been deducted from your balance, " + str(text.author)[0:-5] + "."
                                 totalsum=bank+change
-                            oldliner = tempname + "," + str(bank)+ "," + str(text.author)
+                            oldliner = tempname + "," + str(bank)+ "," + row[2]
                             liner = tempname + "," + str(totalsum)+ "," + str(text.author)
                             texter = open("money.csv", "r")
                             texter = ''.join([i for i in texter]) \
@@ -385,7 +384,7 @@ async def on_message(text):
                                 print("Valid color")
                                 if  20000 <= bank:
                                     print("Valid money")
-                                    oldliner = tempname + "," + str(bank)+ "," + str(text.author)
+                                    oldliner = tempname + "," + str(bank)+ "," + row[2]
                                     liner = tempname + "," + str(bank - 20000)+ "," + str(text.author)
                                     texter = open("money.csv", "r")
                                     texter = ''.join([i for i in texter]) \
@@ -508,7 +507,7 @@ async def on_message(text):
                 if authorstring==tempname:
                     exist=True
                     bank = int(row[1])
-                    oldliner = tempname + "," + str(bank)+ "," + str(text.author)
+                    oldliner = tempname + "," + str(bank)+ "," + row[2]
                     liner = tempname + "," + str(200)+ "," + str(text.author)
                     texter = open("money.csv", "r")
                     texter = ''.join([i for i in texter]) \
@@ -643,7 +642,7 @@ async def on_message(text):
          response = random.choice(facts)
          await text.channel.send(response)
     if text.content.startswith("!help") or text.content.startswith("!commands"):
-        await text.channel.send('Commands: \r\n !balance checks your BeardlessBucks balance \r\n !register for registering with the currency system \r\n !bucks an explanation for how BeardlessBucks work \r\n !fart funny haha fart \r\n !hello exchange a pleasant greeting with the bot \r\n !source the source of most of the facts used in !fact \r\n !fact gives you a random fun fact! \r\n !flip (number) bet a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10. \r\n !d[number][+/-][modifier] roll a [number]-sided die and add or subtract the modifier. Example: !d8+3, or !d100-17. \r\n !reset resets you to 200 Beardless Bucks. \r\n !video shows you my latest video \r\n !blackjack start up a game of blackjack. Once you\'re in a game, you can use !hit and !stay to play. \r\n !commands and !help show you this list.')
+        await text.channel.send('Commands: \r\n !balance checks your BeardlessBucks balance \r\n !register for registering with the currency system \r\n !bucks an explanation for how BeardlessBucks work \r\n !hello exchange a pleasant greeting with the bot \r\n !source the source of most of the facts used in !fact \r\n !fact gives you a random fun fact! \r\n !flip (number) bet a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10. \r\n !d[number][+/-][modifier] roll a [number]-sided die and add or subtract the modifier. Example: !d8+3, or !d100-17. \r\n !reset resets you to 200 Beardless Bucks. \r\n !video shows you my latest video \r\n !blackjack start up a game of blackjack. Once you\'re in a game, you can use !hit and !stay to play. \r\n !commands and !help show you this list.')
 
 
 client.run(token)
