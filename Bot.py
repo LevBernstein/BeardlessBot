@@ -140,7 +140,7 @@ client = discord.Client()
 @client.event
 async def on_ready():
     await client.change_presence(activity=discord.Game(name='try !blackjack and !flip'))
-    print("Bot version 6 online!")
+    print("Bot version 7 online!")
 
     
 @client.event
@@ -156,7 +156,7 @@ async def on_message(text):
             strbet = 10
         bet = int(strbet)
         print(bet)
-        authorstring = str(text.author.id)
+        authorstring = str(text.author)
         if int(strbet) < 0:
             report = "Invalid bet amount. Choose a value >-1."
         else:
@@ -164,10 +164,15 @@ async def on_message(text):
                 reader = csv.reader(csvfile, delimiter=',')
                 line=0
                 exist4=False
+                print("Flag 1")
                 for row in reader:
-                    tempname = row[0]
-                    if authorstring == tempname:
+                    print("st" + row[0] + "en")
+                    print("st" + str(text.author.id) + "en")
+                    print(str(text.author.id) == row[0])
+                    if str(text.author.id) == row[0]:
+                        print("Flag 2")
                         exist4=True
+                        tempname=row[2]
                         bank = int(row[1])
                         exist5 = False
                         for i in range(len(games)):
@@ -177,6 +182,7 @@ async def on_message(text):
                             report = "You already have an active game, " + str(text.author)[0:-5] + "."
                         else:
                             if bet <= bank:
+                                print("Flag 3")
                                 game = True
                                 x = Instance(tempname, bet)
                                 games.append(x)
@@ -185,8 +191,8 @@ async def on_message(text):
                                     if x.checkBust(x.cards):
                                         bet = bet * -1
                                     totalsum = bank + bet
-                                    oldliner = tempname + "," + str(bank)
-                                    liner = tempname + "," + str(totalsum)
+                                    oldliner = tempname + "," + str(bank) + "," + str(text.author)
+                                    liner = tempname + "," + str(totalsum)+ "," + str(text.author)
                                     texter = open("money.csv", "r")
                                     texter = ''.join([i for i in texter]) \
                                            .replace(oldliner, liner)
@@ -205,9 +211,9 @@ async def on_message(text):
                         break
         await text.channel.send(report)
 	
-    if (text.content.startswith('!deal') or text.content.startswith('!hit')) and not text.content.startswith('!hitler'):
-        report = "meme"
-        authorstring = str(text.author.id)
+    if (text.content.startswith('!deal') or text.content.startswith('!hit')) and not text.content.startswith('!hitler'): #People once dealt by typing !hitler. This makes it so they can't do that.
+        report = "error"
+        authorstring = str(text.author)
         exist5 = False
         for i in range(len(games)):
             if games[i].namer() == authorstring:
@@ -229,12 +235,12 @@ async def on_message(text):
                     exist4=False
                     for row in reader:
                         tempname = row[0]
-                        if authorstring==tempname:
+                        if str(text.author.id) == row[0]:
                             exist4=True
                             bank = int(row[1])
                             totalsum = bank + bet
-                            oldliner = tempname + "," + str(bank)
-                            liner = tempname + "," + str(totalsum)
+                            oldliner = tempname + "," + str(bank)+ "," + str(text.author)
+                            liner = tempname + "," + str(totalsum)+ "," + str(text.author)
                             texter = open("money.csv", "r")
                             texter = ''.join([i for i in texter]) \
                                    .replace(oldliner, liner)
@@ -251,7 +257,7 @@ async def on_message(text):
 
     if text.content.startswith('!stay') or text.content.startswith('!stand'):
         report = ""
-        authorstring = str(text.author.id)
+        authorstring = str(text.author)
         exist5 = False
         for i in range(len(games)):
             if games[i].namer() == authorstring:
@@ -280,12 +286,12 @@ async def on_message(text):
                 exist4=False
                 for row in reader:
                     tempname = row[0]
-                    if authorstring == tempname:
+                    if str(text.author.id) == tempname:
                         exist4=True
                         bank = int(row[1])
                         totalsum = bank + bet
-                        oldliner = tempname + "," + str(bank)
-                        liner = tempname + "," + str(totalsum)
+                        oldliner = tempname + "," + str(bank)+ "," + str(text.author)
+                        liner = tempname + "," + str(totalsum)+ "," + str(text.author)
                         texter = open("money.csv", "r")
                         texter = ''.join([i for i in texter]) \
                                .replace(oldliner, liner)
@@ -348,8 +354,8 @@ async def on_message(text):
                                 change = bet * -1
                                 report = "Tails! You lose! Your loss has been deducted from your balance, " + str(text.author)[0:-5] + "."
                                 totalsum=bank+change
-                            oldliner = tempname + "," + str(bank)
-                            liner = tempname + "," + str(totalsum)
+                            oldliner = tempname + "," + str(bank)+ "," + str(text.author)
+                            liner = tempname + "," + str(totalsum)+ "," + str(text.author)
                             texter = open("money.csv", "r")
                             texter = ''.join([i for i in texter]) \
                                    .replace(oldliner, liner)
@@ -384,8 +390,8 @@ async def on_message(text):
                                 print("Valid color")
                                 if  20000 <= bank:
                                     print("Valid money")
-                                    oldliner = tempname + "," + str(bank)
-                                    liner = tempname + "," + str(bank - 20000)
+                                    oldliner = tempname + "," + str(bank)+ "," + str(text.author)
+                                    liner = tempname + "," + str(bank - 20000)+ "," + str(text.author)
                                     texter = open("money.csv", "r")
                                     texter = ''.join([i for i in texter]) \
                                            .replace(oldliner, liner)
@@ -420,7 +426,7 @@ async def on_message(text):
                 bank = int(row[1])
                 if bank != 0:
                     storedVals.append(bank)
-                    name = row[0]
+                    name = row[2]
                     storedNames.append(name)
         for i in range(len(storedVals)):
             diction[storedNames[i]] = storedVals[i]
@@ -507,8 +513,8 @@ async def on_message(text):
                 if authorstring==tempname:
                     exist=True
                     bank = int(row[1])
-                    oldliner = tempname + "," + str(bank)
-                    liner = tempname + "," + str(200)
+                    oldliner = tempname + "," + str(bank)+ "," + str(text.author)
+                    liner = tempname + "," + str(200)+ "," + str(text.author)
                     texter = open("money.csv", "r")
                     texter = ''.join([i for i in texter]) \
                            .replace(oldliner, liner)
@@ -519,7 +525,7 @@ async def on_message(text):
                 message3="Successfully registered. You have 300 BeardlessBucks, " + str(text.author)[0:-5] + "."
                 with open('money.csv', 'a') as csvfile2:
                     writer=csv.writer(csvfile)
-                    newline="\r\n"+authorstring+",300"
+                    newline="\r\n"+authorstring+",300"+ "," + str(text.author)
                     csvfile2.write(newline)
         await text.channel.send('You have been reset to 200 BeardlessBucks, ' + str(text.author)[0:-5] + ".")
     if text.content.startswith('!pumpkin'):
@@ -560,7 +566,7 @@ async def on_message(text):
                 message3="Successfully registered. You have 300 BeardlessBucks, " + str(text.author)[0:-5] + "."
                 with open('money.csv', 'a') as csvfile2:
                     writer=csv.writer(csvfile)
-                    newline="\r\n"+authorstring+",300"
+                    newline="\r\n"+authorstring+",300"+ "," + str(text.author)
                     csvfile2.write(newline)
             await text.channel.send(message3)
     if text.content.startswith("!bucks"):
