@@ -4,6 +4,20 @@ A Discord bot supporting gambling (coin flips and blackjack), a currency system,
 
 Originally created for use in eggsoup's discord server. 
 
+## Installation
+
+Simply clone the repository. You will need to make your own token.txt; this should contain your
+Discord API token.
+
+Alternatively, if you just want to add the bot to your own Discord server while I host it, you
+can simply click this link: https://discord.com/api/oauth2/authorize?, client_id=654133911558946837&permissions=8&scope=bot
+
+### Dependencies:
+
+* discord.py. To install, run "python3 -m pip install -U discord.py"
+
+
+
 
 
     This program is free software: you can redistribute it and/or modify
