@@ -164,13 +164,8 @@ async def on_message(text):
                 reader = csv.reader(csvfile, delimiter=',')
                 line=0
                 exist4=False
-                print("Flag 1")
                 for row in reader:
-                    print("st" + row[0] + "en")
-                    print("st" + str(text.author.id) + "en")
-                    print(str(text.author.id) == row[0])
                     if str(text.author.id) == row[0]:
-                        print("Flag 2")
                         exist4=True
                         tempname=row[2]
                         bank = int(row[1])
@@ -182,7 +177,6 @@ async def on_message(text):
                             report = "You already have an active game, " + str(text.author)[0:-5] + "."
                         else:
                             if bet <= bank:
-                                print("Flag 3")
                                 game = True
                                 x = Instance(tempname, bet)
                                 games.append(x)
@@ -191,8 +185,8 @@ async def on_message(text):
                                     if x.checkBust(x.cards):
                                         bet = bet * -1
                                     totalsum = bank + bet
-                                    oldliner = tempname + "," + str(bank) + "," + str(text.author)
-                                    liner = tempname + "," + str(totalsum)+ "," + str(text.author)
+                                    oldliner = str(text.author.id) + "," + str(bank) + "," + str(text.author)
+                                    liner = str(text.author.id) + "," + str(totalsum)+ "," + str(text.author)
                                     texter = open("money.csv", "r")
                                     texter = ''.join([i for i in texter]) \
                                            .replace(oldliner, liner)
@@ -234,13 +228,13 @@ async def on_message(text):
                     line=0
                     exist4=False
                     for row in reader:
-                        tempname = row[0]
+                        tempname = str(text.author)
                         if str(text.author.id) == row[0]:
                             exist4=True
                             bank = int(row[1])
                             totalsum = bank + bet
-                            oldliner = tempname + "," + str(bank)+ "," + str(text.author)
-                            liner = tempname + "," + str(totalsum)+ "," + str(text.author)
+                            oldliner = str(text.author.id)+ "," + str(bank)+ "," + str(text.author)
+                            liner = str(text.author.id) + "," + str(totalsum)+ "," + str(text.author)
                             texter = open("money.csv", "r")
                             texter = ''.join([i for i in texter]) \
                                    .replace(oldliner, liner)
@@ -290,8 +284,8 @@ async def on_message(text):
                         exist4=True
                         bank = int(row[1])
                         totalsum = bank + bet
-                        oldliner = tempname + "," + str(bank)+ "," + str(text.author)
-                        liner = tempname + "," + str(totalsum)+ "," + str(text.author)
+                        oldliner = str(text.author.id) + "," + str(bank)+ "," + str(text.author)
+                        liner = str(text.author.id) + "," + str(totalsum)+ "," + str(text.author)
                         texter = open("money.csv", "r")
                         texter = ''.join([i for i in texter]) \
                                .replace(oldliner, liner)
@@ -299,12 +293,12 @@ async def on_message(text):
                         x.writelines(texter)
                         x.close()
                         for i in range(len(games)):
-                            if games[i].namer() == tempname:
+                            if games[i].namer() == str(text.author):
                                 games.pop(i)
                                 break
                         break
             for i in range(len(games)):
-                if games[i].namer() == tempname:
+                if games[i].namer() == str(text.author.id):
                     games.pop(i)
                     break
         await text.channel.send(report)
@@ -335,7 +329,7 @@ async def on_message(text):
                         bank = int(row[1])
                         exist5 = False
                         for i in range(len(games)):
-                            if games[i].namer() == tempname:
+                            if games[i].namer() == str(text.author):
                                 exist5 = True
                         if exist5:
                             report = "Finish your game of blackjack first, " +  str(text.author)[0:-5] + "."
