@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 7.4
+#Version 7.5.5
 
 #import os
 import random
@@ -447,7 +447,7 @@ async def on_message(text):
         print(finalString)
         await text.channel.send(finalString)
 
-    if text.content.startswith('!d') and ((text.content.split('!d',1)[1])[0]).isnumeric(): #The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
+    if text.content.startswith('!d') and ((text.content.split('!d',1)[1])[0]).isnumeric() and len(text.content) < 12: #The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
         report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
         command = text.content.split('!d',1)[1]
         print(command[0])
@@ -480,10 +480,11 @@ async def on_message(text):
                 elif (command[1]=="+" or command[1] == "-"):
                     report = random.randint(1,8) + modifier*int(command[2:])
             if command[0] == "1" and command[1] == "0":
-                isTen = True
                 if len(command)==2:
+                    isTen = True
                     report = random.randint(1,10)
                 elif (command[2]=="+" or command[2] == "-"):
+                    isTen = True
                     report = random.randint(1,10) + modifier*int(command[3:])
             if command[0] == "1" and command[1] == "2":
                 if len(command)==2:
