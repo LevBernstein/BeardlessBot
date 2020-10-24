@@ -54,6 +54,41 @@ class Instance:
             return False
     
     def deal(self):
+        if self.summer(self.cards) <11:
+            vals = [
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                10,
+                10,
+                10,
+                11
+                ]
+            card3 = random.choice(vals)
+        if self.summer(self.cards) >=11:
+            vals = [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                10,
+                10,
+                10,
+                ]
+            card3 = random.choice(vals)
+        """"    
         if self.dealt() == 1: #As you can see by the available values, this is not true Blackjack; the odds are different.
             vals = [
                 2,
@@ -89,6 +124,7 @@ class Instance:
                 ]
             card3 = random.choice(vals)
             #card3 = random.randint(11,11)
+        """
         #print(card3)
         self.cards.append(card3)
         self.count +=1
