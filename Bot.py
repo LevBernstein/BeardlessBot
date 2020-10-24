@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 7.5.5
+#Version 7.5.6
 
 #import os
 import random
@@ -650,7 +650,8 @@ async def on_message(text):
             "Cannon used to have a 0-to-death with only 5 dodge frames on dex stance sidra, though it was DI'able, so there's no point. It's dlight cd reverse slight dlight dair slight sair recovery.",
             "The music video for Seal's \"Kiss From A Rose\" features a ton of Batman characters for some reason.",
             "One day, you will be the one forced to list facts for me and my robot brethren. Until that day, though, I am yours to command.",
-            "My creator holds the speedrun world record in every Go Diego Go! DS game, and some on other platforms, too. Check them out at speedrun.com/user/Captain-No-Beard"
+            "My creator holds the speedrun world record in every Go Diego Go! DS game, and some on other platforms, too. Check them out at speedrun.com/user/Captain-No-Beard",
+            "There's a preserved bar tab from three days before delegates signed the American Constitution, and they drank 54 bottles of Madeira, 60 bottles of claret, 22 bottles of porter, 12 bottles of beer, 8 bottles of cider and 7 bowls of punch. It was for 55 people."
                 ]
         response = random.choice(facts)
         await text.channel.send(response)
