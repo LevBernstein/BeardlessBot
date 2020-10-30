@@ -442,7 +442,7 @@ async def on_message(text):
     if text.content.startswith('!song') or text.content.startswith('!playlist'):
         linker = ' Here\'s my playlist (discord will only show the first hundred songs): https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg'
         await text.channel.send(linker)
-    if text.content.startswith('!leaderboard'):
+    if text.content.startswith('!leaderboard'): #This is incredibly memory inefficient. It's not a concern now, but if money.csv becomes sufficiently large, this code will require a rewrite. I doubt that will happen.
         storedVals = []
         storedNames = []
         finalList = []
@@ -683,7 +683,6 @@ async def on_message(text):
             "An estimated 50% of all gold ever mined on Earth came from a single plateau in South Africa: Witwatersrand.",
             "75% of the world’s diet is produced from just 12 plant and five different animal species.",
             "The original Star Wars premiered on just 32 screens across the U.S. in 1977. This was to produce buzz as the release widened to more theaters. Star Wars is also not very good, and you can trust that as an objective fact.",
-            "Cannon used to have a 0-to-death with only 5 dodge frames on dex stance sidra, though it was DI'able, so there's no point. It's dlight cd reverse slight dlight dair slight sair recovery.",
             "The music video for Seal's \"Kiss From A Rose\" features a ton of Batman characters for some reason.",
             "One day, you will be the one forced to list facts for me and my robot brethren. Until that day, though, I am yours to command.",
             "My creator holds the speedrun world record in every Go Diego Go! DS game, and some on other platforms, too. Check them out at speedrun.com/user/Captain-No-Beard",
