@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 7.5.6
+#Version 7.6.0
 
 #import os
 import random
@@ -54,7 +54,7 @@ class Instance:
             return False
     
     def deal(self):
-        if self.summer(self.cards) <11:
+        if self.summer(self.cards) <11: #this is a basic implementation of Aces being 1 or 11; if 11 would not cause you to bust, it chooses that.
             vals = [
                 2,
                 3,
@@ -191,10 +191,15 @@ async def on_message(text):
             #print(strbet)
         else:
             strbet = 10
-        bet = int(strbet)
+        allBet = False
+        if strbet == "all":
+            allBet = True
+            bet = 0
+        else:
+            bet = int(strbet)
         print(bet)
         authorstring = str(text.author)
-        if int(strbet) < 0:
+        if allBet == False and int(strbet) < 0:
             report = "Invalid bet amount. Choose a value >-1."
         else:
             with open('money.csv', 'r') as csvfile:
@@ -206,6 +211,8 @@ async def on_message(text):
                         exist4=True
                         tempname=row[2]
                         bank = int(row[1])
+                        if allBet:
+                            bet = bank
                         exist5 = False
                         for i in range(len(games)):
                             if games[i].namer() == tempname:
@@ -343,15 +350,20 @@ async def on_message(text):
         print(text.author)
         change=0
         totalSum=0
+        allBet = False
         if len(text.content)>5:
             strbet = text.content.split('!flip ',1)[1]
         else:
             strbet = 10
-        bet = int(strbet)
+        if strbet == "all":
+            allBet = True
+            bet = 0
+        else:
+            bet = int(strbet)
         print(bet)
         authorstring=""
         authorstring = str(text.author.id)
-        if int(strbet) < 0:
+        if allBet == False and int(strbet) < 0:
             report = "Invalid bet amount. Choose a value >-1, " + str(text.author.mention) + "."
         else:
             with open('money.csv', 'r') as csvfile:
@@ -363,6 +375,8 @@ async def on_message(text):
                     if authorstring == tempname:
                         exist4=True
                         bank = int(row[1])
+                        if allBet:
+                            bet = bank
                         exist5 = False
                         for i in range(len(games)):
                             if games[i].namer() == str(text.author):
