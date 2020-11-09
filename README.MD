@@ -12,11 +12,11 @@ this should contain your Discord API token.
 
 Alternatively, if you just want to add the bot to your own Discord 
 server while I host it, you can simply click this link: 
-discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot
+https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot
 
 ### Dependencies:
 
-* Python 3. To install, visit python.org/downloads/ and follow the instructions for your OS.
+* Python 3. To install, visit https://python.org/downloads/ and follow the instructions for your OS.
 
 * Discord.py. To install, run "python3 -m pip install -U discord.py"
 
