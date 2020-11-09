@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 7.6.0
+#Version 7.6.1
 
 #import os
 import random
@@ -646,8 +646,23 @@ async def on_message(text):
     if text.content.startswith("!link") or text.content.startswith("!add") or text.content.startswith("!join"):
         end = "Want to add this bot to your server? Click https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot"
         await text.channel.send(end)
+    if text.content.startswith("!weapon"):
+        weapons = [
+            "Sword",
+            "Spear",
+            "Orb",
+            "Cannon",
+            "Hammer",
+            "Scythe",
+            "Greatsword",
+            "Bow",
+            "Gauntlets",
+            "Katars",
+            "Blasters",
+            "Axe"]
+        weapon = "Your weapon is " + random.choice(weapons) + "."
+        await text.channel.send(weapon)
     if text.content.startswith("!fact"):
-        
         facts = [
             "The scientific term for brain freeze is sphenopalatine ganglioneuralgia.",
             "Canadians say sorry so much that a law was passed in 2009 declaring that an apology can\’t be used as evidence of admission to guilt.",
