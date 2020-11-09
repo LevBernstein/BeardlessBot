@@ -662,6 +662,33 @@ async def on_message(text):
             "Axe"]
         weapon = "Your weapon is " + random.choice(weapons) + "."
         await text.channel.send(weapon)
+    if text.content.startswith("!legend"):
+        legends = [
+            "Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako"]
+        legend = "Your legend is " + random.choice(legends) + "."
+        await text.channel.send(legend)
+    if text.content.startswith("!random"):
+        ran = "Invalid random."
+        if text.content.startswith("!random legend") or text.content.startswith("!randomlegend"):
+            legends = [
+            "Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako"]
+            ran = "Your legend is " + random.choice(legends) + "."
+        if text.content.startswith("!random weapon") or text.content.startswith("!randomweapon"):
+            weapons = [
+            "Sword",
+            "Spear",
+            "Orb",
+            "Cannon",
+            "Hammer",
+            "Scythe",
+            "Greatsword",
+            "Bow",
+            "Gauntlets",
+            "Katars",
+            "Blasters",
+            "Axe"]
+            ran = "Your weapon is " + random.choice(weapons) + "."
+        await text.channel.send(ran)
     if text.content.startswith("!fact"):
         facts = [
             "The scientific term for brain freeze is sphenopalatine ganglioneuralgia.",
