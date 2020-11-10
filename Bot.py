@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.1.0
+#Version 8.1.1
 
 #import os
 import random
@@ -415,19 +415,21 @@ async def on_message(text):
                                 if (content3=="red" or content4=="red"):
                                     role = get(text.guild.roles, name = 'special red')
                                 await text.author.add_roles(role)
-                                report = "Color purchased successfully."
+                                report = "Color purchased successfully, " + str(text.author.mention) + "!"
                             else:
-                                report = "Not enough Beardess Bucks. You need 50000 to buy a special color."
+                                report = "Not enough Beardess Bucks. You need 50000 to buy a special color, " + str(text.author.mention) + "."
                         else:
-                            report = "Invalid color. Choose blue, red, orange, or pink."
+                            report = "Invalid color. Choose blue, red, orange, or pink, " + str(text.author.mention) + "."
         await text.channel.send(report)
 
     if text.channel.name == "welcome-and-rules": #In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
         print(text.channel.name)
-        if text.content.startswith('?agree'):
+        if text.content.startswith('?agree') or text.content.startswith('agree') or text.content.startswith('!agree'):
             print(str(text.author) + " agreed")
             role = get(text.guild.roles, name = 'member')
             await text.author.add_roles(role)
+            newjoiners = client.get_channel(676568391670169660) #This is the ID of the welcome-and-rules channel in eggsoup's server. I will need to find a more portable solution in the future.
+            await newjoiners.send(str(text.author.mention) + " just agreed to the rules.")
         await text.delete()
    
     if text.content.startswith('!video'):
