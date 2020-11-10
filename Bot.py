@@ -88,43 +88,6 @@ class Instance:
                 10,
                 ]
             card3 = random.choice(vals)
-        """"    
-        if self.dealt() == 1: #As you can see by the available values, this is not true Blackjack; the odds are different.
-            vals = [
-                2,
-                3,
-                4,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                10,
-                10,
-                10,
-                ]
-            card3 = random.choice(vals)
-            #card3 = random.randint(10,10)
-        else:
-            vals = [
-                2,
-                3,
-                4,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                10,
-                10,
-                10,
-                11
-                ]
-            card3 = random.choice(vals)
-            #card3 = random.randint(11,11)
-        """
         #print(card3)
         self.cards.append(card3)
         self.count +=1
@@ -413,7 +376,7 @@ async def on_message(text):
         await text.channel.send(report)
 
         
-    """ Deprecated until I find something to do with it
+        # Deprecated until I find something to do with it
         if text.content.startswith('!buy'):
             authorstring = str(text.author.id)
             with open('money.csv', 'r') as csvfile:
@@ -426,16 +389,15 @@ async def on_message(text):
                     exist4=False
                     for row in reader:
                         tempname = row[0]
-                        #Here, instead of just doing authorstring==tempname, I do all this logic. The reason for this is that discord names have some weird property that makes directly comparing them to text unreliable. So, this mess.
                         if authorstring==tempname:
                             exist4=True
                             bank = int(row[1])
                             if  (content3=="blue" or content3 == "red" or content3 == "orange" or content3 == "pink" or content4=="blue" or content4 == "red" or content4 == "orange" or content4 == "pink"):
                                 print("Valid color")
-                                if  20000 <= bank:
+                                if  100000 <= bank:
                                     print("Valid money")
                                     oldliner = tempname + "," + str(bank)+ "," + row[2]
-                                    liner = tempname + "," + str(bank - 20000)+ "," + str(text.author)
+                                    liner = tempname + "," + str(bank - 100000)+ "," + str(text.author)
                                     texter = open("money.csv", "r")
                                     texter = ''.join([i for i in texter]) \
                                            .replace(oldliner, liner)
@@ -448,7 +410,7 @@ async def on_message(text):
                             else:
                                 report = "Invalid color. Choose blue, red, orange, or pink."
             await text.channel.send(report)
-    """
+    
 
     if text.content.startswith('!video'):
         report = 'My creator made a new video! Check it out at https://www.youtube.com/watch?v=6Q9mVtVG2zw'
