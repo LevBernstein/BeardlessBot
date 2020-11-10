@@ -7,6 +7,7 @@ import random
 import discord
 import csv
 from discord.ext import commands
+from discord.utils import get
 from time import sleep
 import random as random
 import operator
@@ -374,42 +375,44 @@ async def on_message(text):
                 if exist4==False:
                     report = "You need to register first! Type !register, " + str(text.author.mention) + "!"
         await text.channel.send(report)
-
         
-        # Deprecated until I find something to do with it
-        if text.content.startswith('!buy'):
-            authorstring = str(text.author.id)
-            with open('money.csv', 'r') as csvfile:
-                    content3 = (text.content)[5:]
-                    print(content3)
-                    content4 = (text.content)[6:]
-                    print(content4)
-                    reader = csv.reader(csvfile, delimiter=',')
-                    line=0
-                    exist4=False
-                    for row in reader:
-                        tempname = row[0]
-                        if authorstring==tempname:
-                            exist4=True
-                            bank = int(row[1])
-                            if  (content3=="blue" or content3 == "red" or content3 == "orange" or content3 == "pink" or content4=="blue" or content4 == "red" or content4 == "orange" or content4 == "pink"):
-                                print("Valid color")
-                                if  100000 <= bank:
-                                    print("Valid money")
-                                    oldliner = tempname + "," + str(bank)+ "," + row[2]
-                                    liner = tempname + "," + str(bank - 100000)+ "," + str(text.author)
-                                    texter = open("money.csv", "r")
-                                    texter = ''.join([i for i in texter]) \
-                                           .replace(oldliner, liner)
-                                    x = open("money.csv", "w")
-                                    x.writelines(texter)
-                                    x.close()
-                                    report = "Color purchased successfully."
-                                else:
-                                    report = "Not enough Beardess Bucks. You need 20000 to buy a special color."
+    # Deprecated until I find something to do with it
+    if text.content.startswith('!buy'): #Requires roles named special blue, special pink, special orange, and special red.
+        print("Running buy...")
+        authorstring = str(text.author.id)
+        with open('money.csv', 'r') as csvfile:
+                content3 = (text.content)[5:]
+                print(content3)
+                content4 = (text.content)[6:]
+                print(content4)
+                reader = csv.reader(csvfile, delimiter=',')
+                line=0
+                exist4=False
+                for row in reader:
+                    tempname = row[0]
+                    if authorstring==tempname:
+                        exist4=True
+                        bank = int(row[1])
+                        if  (content3=="blue" or content3 == "red" or content3 == "orange" or content3 == "pink" or content4=="blue" or content4 == "red" or content4 == "orange" or content4 == "pink"):
+                            print("Valid color")
+                            if  100000 <= bank:
+                                print("Valid money")
+                                oldliner = tempname + "," + str(bank)+ "," + row[2]
+                                liner = tempname + "," + str(bank - 100000)+ "," + str(text.author)
+                                texter = open("money.csv", "r")
+                                texter = ''.join([i for i in texter]) \
+                                        .replace(oldliner, liner)
+                                x = open("money.csv", "w")
+                                x.writelines(texter)
+                                x.close()
+                                role = get(text.guild.roles, id='751585893281955860')
+                                await text.author.add_roles(role)
+                                report = "Color purchased successfully."
                             else:
-                                report = "Invalid color. Choose blue, red, orange, or pink."
-            await text.channel.send(report)
+                                report = "Not enough Beardess Bucks. You need 20000 to buy a special color."
+                        else:
+                            report = "Invalid color. Choose blue, red, orange, or pink."
+        await text.channel.send(report)
     
 
     if text.content.startswith('!video'):
