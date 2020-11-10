@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.0.0
+#Version 8.0.1
 
 #import os
 import random
@@ -395,10 +395,10 @@ async def on_message(text):
                         bank = int(row[1])
                         if  (content3=="blue" or content3 == "red" or content3 == "orange" or content3 == "pink" or content4=="blue" or content4 == "red" or content4 == "orange" or content4 == "pink"):
                             print("Valid color")
-                            if  100000 <= bank:
+                            if  50000 <= bank:
                                 print("Valid money")
                                 oldliner = tempname + "," + str(bank)+ "," + row[2]
-                                liner = tempname + "," + str(bank - 100000)+ "," + str(text.author)
+                                liner = tempname + "," + str(bank - 50000)+ "," + str(text.author)
                                 texter = open("money.csv", "r")
                                 texter = ''.join([i for i in texter]) \
                                         .replace(oldliner, liner)
@@ -416,7 +416,7 @@ async def on_message(text):
                                 await text.author.add_roles(role)
                                 report = "Color purchased successfully."
                             else:
-                                report = "Not enough Beardess Bucks. You need 20000 to buy a special color."
+                                report = "Not enough Beardess Bucks. You need 50000 to buy a special color."
                         else:
                             report = "Invalid color. Choose blue, red, orange, or pink."
         await text.channel.send(report)
