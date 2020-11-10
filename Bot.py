@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 7.6.2
+#Version 8.0.0
 
 #import os
 import random
@@ -405,7 +405,14 @@ async def on_message(text):
                                 x = open("money.csv", "w")
                                 x.writelines(texter)
                                 x.close()
-                                role = get(text.guild.roles, name = 'special pink')
+                                if (content3=="blue" or content4=="blue"):
+                                    role = get(text.guild.roles, name = 'special blue')
+                                if (content3=="pink" or content4=="pink"):
+                                    role = get(text.guild.roles, name = 'special pink')
+                                if (content3=="orange" or content4=="orange"):
+                                    role = get(text.guild.roles, name = 'special orange')
+                                if (content3=="red" or content4=="red"):
+                                    role = get(text.guild.roles, name = 'special red')
                                 await text.author.add_roles(role)
                                 report = "Color purchased successfully."
                             else:
@@ -712,7 +719,7 @@ async def on_message(text):
         response = random.choice(facts)
         await text.channel.send(response)
     if text.content.startswith("!help") or text.content.startswith("!commands"):
-        await text.channel.send('Commands: \r\n !balance checks your BeardlessBucks balance \r\n !register for registering with the currency system \r\n !bucks an explanation for how BeardlessBucks work \r\n !hello exchange a pleasant greeting with the bot \r\n !source the source of most of the facts used in !fact \r\n !fact gives you a random fun fact! \r\n !flip (number) bet a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10. \r\n !d[number][+/-][modifier] roll a [number]-sided die and add or subtract the modifier. Example: !d8+3, or !d100-17. \r\n !reset resets you to 200 Beardless Bucks. \r\n !video shows you my latest video \r\n !blackjack start up a game of blackjack. Once you\'re in a game, you can use !hit and !stay to play. \r\n !leaderboard shows you the BeardlessBucks leaderboard. \r\n !add add this bot to your server! \r\n !random [legend/weapon] randomly chooses a Brawlhalla legend or weapon for you \r\n !commands and !help show you this list.')
+        await text.channel.send('Commands: \r\n !balance checks your BeardlessBucks balance \r\n !register for registering with the currency system \r\n !bucks an explanation for how BeardlessBucks work \r\n !hello exchange a pleasant greeting with the bot \r\n !source the source of most of the facts used in !fact \r\n !fact gives you a random fun fact! \r\n !flip (number) bet a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10. \r\n !d[number][+/-][modifier] roll a [number]-sided die and add or subtract the modifier. Example: !d8+3, or !d100-17. \r\n !reset resets you to 200 Beardless Bucks. \r\n !video shows you my latest video \r\n !blackjack start up a game of blackjack. Once you\'re in a game, you can use !hit and !stay to play. \r\n !leaderboard shows you the BeardlessBucks leaderboard. \r\n !add add this bot to your server! \r\n !random [legend/weapon] randomly chooses a Brawlhalla legend or weapon for you. \r\n !buy [red/blue/pink/orange] will take away 100000 Beardless Bucks from your account and grant you a special color role. \r\n !commands and !help show you this list.')
 
 
 client.run(token)
