@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.0.2
+#Version 8.1.0
 
 #import os
 import random
@@ -146,6 +146,7 @@ async def on_ready():
     
 @client.event
 async def on_message(text):
+    #print(text.channel.name)
     report=""
     text.content=text.content.lower()
     if text.content.startswith('!blackjack'):
@@ -421,9 +422,17 @@ async def on_message(text):
                             report = "Invalid color. Choose blue, red, orange, or pink."
         await text.channel.send(report)
 
+    if text.channel.name == "welcome-and-rules": #In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
+        print(text.channel.name)
+        if text.content.startswith('?agree'):
+            print(str(text.author) + " agreed")
+            role = get(text.guild.roles, name = 'member')
+            await text.author.add_roles(role)
+        await text.delete()
+   
     if text.content.startswith('!video'):
-        report = 'My creator made a new video! Check it out at https://www.youtube.com/watch?v=6Q9mVtVG2zw'
-        await text.channel.send(report)
+       report = 'My creator made a new video! Check it out at https://www.youtube.com/watch?v=6Q9mVtVG2zw'
+       await text.channel.send(report)
     if text.content.startswith('!song') or text.content.startswith('!playlist'):
         linker = ' Here\'s my playlist (discord will only show the first hundred songs): https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg'
         await text.channel.send(linker)
