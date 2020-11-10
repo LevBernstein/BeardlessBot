@@ -405,7 +405,7 @@ async def on_message(text):
                                 x = open("money.csv", "w")
                                 x.writelines(texter)
                                 x.close()
-                                role = get(text.guild.roles, id='751585893281955860')
+                                role = get(text.guild.roles, name = 'special pink')
                                 await text.author.add_roles(role)
                                 report = "Color purchased successfully."
                             else:
