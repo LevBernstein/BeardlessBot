@@ -423,7 +423,7 @@ async def on_message(text):
         await text.channel.send(report)
 
     if text.channel.name == "welcome-and-rules": #In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
-        print(text.channel.name)
+        #print(text.channel.name)
         if text.content.startswith('?agree') or text.content.startswith('agree') or text.content.startswith('!agree'):
             print(str(text.author) + " agreed")
             role = get(text.guild.roles, name = 'member')
@@ -432,6 +432,20 @@ async def on_message(text):
             await newjoiners.send(str(text.author.mention) + " just agreed to the rules.")
         await text.delete()
    
+    if text.content.startswith('-mute '):
+        perm1 = get(text.guild.roles, name = 'secret mod')
+        perm2 = get(text.guild.roles, name = 'poop master')
+        if perm1 in text.author.roles or perm2 in text.author.roles:
+           print('JEFFJEFF')
+        '''
+        target = (text.content)[6:]
+        print(str(target))
+        print(target)
+        role = get(text.guild.roles, name = 'Muted')
+        newtarg = client.message.server.get_member(target)
+        await newtarg.add_roles(role)
+        '''
+    
     if text.content.startswith('!video'):
        report = 'My creator made a new video! Check it out at https://www.youtube.com/watch?v=6Q9mVtVG2zw'
        await text.channel.send(report)
