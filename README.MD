@@ -14,7 +14,7 @@ Alternatively, if you just want to add the bot to your own Discord
 server while I host it, you can simply click this link: 
 https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot
 
-### Dependencies:
+### Dependencies
 
 * Python 3. To install, visit https://python.org/downloads/ and follow the instructions for your OS.
 
