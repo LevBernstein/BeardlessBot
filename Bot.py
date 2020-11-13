@@ -139,9 +139,6 @@ games = [] #Stores the active instances of blacjack. An array might not be the m
 #use on a relatively small scale, this is not an issue.
 
 
-def userCon(user: discord.User):
-    return user.id
-
 client = discord.Client()
 class DiscordClass(client):
     
@@ -153,7 +150,9 @@ class DiscordClass(client):
     @client.event
     async def on_ready():
         await client.change_presence(activity=discord.Game(name='try !blackjack and !flip'))
-        print("Bot version 7 online!")
+        print("Bot version 8 online!")
+        intents = discord.Intents.default()
+        intents.members = True
 
         
     @client.event
@@ -444,17 +443,16 @@ class DiscordClass(client):
                 await newjoiners.send(str(text.author.mention) + " just agreed to the rules.")
             await text.delete()
     
-        if text.content.startswith('-mute '):
+        if text.content.startswith('-mute ') or text.content.startswith('!mute '):
             perm1 = get(text.guild.roles, name = 'secret mod')
             perm2 = get(text.guild.roles, name = 'poop master')
-            if perm1 in text.author.roles or perm2 in text.author.roles:
+            if perm1 in text.author.roles or perm2 in text.author.roles or text.author.guild_permissions.administrator:
                 target = (text.content)[9:-1] #strips the user ID from the mention
                 print(target)
                 role = get(text.guild.roles, name = 'Muted')
-                newtarg = text.guild.get_member(str(target))
-                #newtarg = userCon(target)
+                newtarg = await text.guild.fetch_member(str(target))
                 await newtarg.add_roles(role)
-                #await text.author.add_roles(role)
+                await text.channel.send("Muted " + str(newtarg.mention) + ".")
             else:
                 await text.channel.send("You do not have permission to use this command!")
         
@@ -755,7 +753,7 @@ class DiscordClass(client):
             response = random.choice(facts)
             await text.channel.send(response)
         if text.content.startswith("!help") or text.content.startswith("!commands"):
-            await text.channel.send('Commands: \r\n !balance checks your BeardlessBucks balance \r\n !register for registering with the currency system \r\n !bucks an explanation for how BeardlessBucks work \r\n !hello exchange a pleasant greeting with the bot \r\n !source the source of most of the facts used in !fact \r\n !fact gives you a random fun fact! \r\n !flip [number] bet a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10. \r\n !d[number][+/-][modifier] roll a [number]-sided die and add or subtract the modifier. Example: !d8+3, or !d100-17. \r\n !reset resets you to 200 Beardless Bucks. \r\n !video shows you my latest video \r\n !blackjack start up a game of blackjack. Once you\'re in a game, you can use !hit and !stay to play. \r\n !leaderboard shows you the BeardlessBucks leaderboard. \r\n !add add this bot to your server! \r\n !random [legend/weapon] randomly chooses a Brawlhalla legend or weapon for you. \r\n !buy [red/blue/pink/orange] will take away 100000 Beardless Bucks from your account and grant you a special color role. \r\n !commands and !help show you this list.')
+            await text.channel.send('Commands: \r\n !balance checks your BeardlessBucks balance \r\n !register for registering with the currency system \r\n !bucks an explanation for how BeardlessBucks work \r\n !hello exchange a pleasant greeting with the bot \r\n !source the source of most of the facts used in !fact \r\n !fact gives you a random fun fact! \r\n !flip [number] bet a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10. \r\n !d[number][+/-][modifier] roll a [number]-sided die and add or subtract the modifier. Example: !d8+3, or !d100-17. \r\n !reset resets you to 200 Beardless Bucks. \r\n !video shows you my latest video \r\n !blackjack start up a game of blackjack. Once you\'re in a game, you can use !hit and !stay to play. \r\n !leaderboard shows you the BeardlessBucks leaderboard. \r\n !add add this bot to your server! \r\n !random [legend/weapon] randomly chooses a Brawlhalla legend or weapon for you. \r\n !buy [red/blue/pink/orange] will take away 50000 Beardless Bucks from your account and grant you a special color role. \r\n !commands and !help show you this list.')
 
 
     client.run(token)
