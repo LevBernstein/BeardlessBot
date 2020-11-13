@@ -9,7 +9,7 @@ Originally created for use in eggsoup's discord server.
 
 1. Download the repository.
 
-2. Create a file called "token.txt" that contains your Discord API token.
+2. Create a file named "token.txt" that contains your Discord API token.
 
 3. Place token.txt in the same folder as Bot.py.
 
