@@ -7,8 +7,11 @@ Originally created for use in eggsoup's discord server.
 
 ## Installation
 
-Simply download the repository. You will need to make your own token.txt; 
-this should contain your Discord API token.
+1. Download the repository.
+
+2. Create a file called "token.txt" that contains your Discord API token.
+
+3. Place token.txt in the same folder as Bot.py.
 
 Alternatively, if you just want to add the bot to your own Discord 
 server while I host it, you can simply click this link: 
