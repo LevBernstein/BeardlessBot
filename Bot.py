@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.0
+#Version 8.2.1
 
 #import os
 import random
@@ -469,7 +469,8 @@ class DiscordClass(client):
             diction = {}
             diction2 = {}
             names = []
-            finalString = ""
+            #finalString = ""
+            emb = discord.Embed(title="BeardlessBucks Leaderboard", description="", color=0xfff994)
             with open('money.csv') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
                 for row in reader:
@@ -499,9 +500,11 @@ class DiscordClass(client):
             for i in range(len(names)):
                 print(names[i])
             for i in range(10):
-                finalString += (str(i+1) + ". " + names[9-i] + ": " + str(sortedDict[names[9-i]]) + " ")
-            print(finalString)
-            await text.channel.send(finalString)
+                emb.add_field(name= (str(i+1) + ". " + names[9-i]), value= str(sortedDict[names[9-i]]), inline=False)
+                #finalString += (str(i+1) + ". " + names[9-i] + ": " + str(sortedDict[names[9-i]]) + " ")
+            #print(finalString)
+            #await text.channel.send(finalString)
+            await text.channel.send(embed=emb)
 
         if text.content.startswith('!reddit'):
             await text.channel.send("https://www.reddit.com/r/eggsoup/")
@@ -756,7 +759,25 @@ class DiscordClass(client):
             response = random.choice(facts)
             await text.channel.send(response)
         if text.content.startswith("!help") or text.content.startswith("!commands"):
-            await text.channel.send('Commands: \r\n !balance checks your BeardlessBucks balance \r\n !register for registering with the currency system \r\n !bucks an explanation for how BeardlessBucks work \r\n !hello exchange a pleasant greeting with the bot \r\n !source the source of most of the facts used in !fact \r\n !fact gives you a random fun fact! \r\n !flip [number] bet a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10. \r\n !d[number][+/-][modifier] roll a [number]-sided die and add or subtract the modifier. Example: !d8+3, or !d100-17. \r\n !reset resets you to 200 Beardless Bucks. \r\n !video shows you my latest video \r\n !blackjack start up a game of blackjack. Once you\'re in a game, you can use !hit and !stay to play. \r\n !leaderboard shows you the BeardlessBucks leaderboard. \r\n !add add this bot to your server! \r\n !random [legend/weapon] randomly chooses a Brawlhalla legend or weapon for you. \r\n !buy [red/blue/pink/orange] will take away 50000 Beardless Bucks from your account and grant you a special color role. \r\n !commands and !help show you this list.')
+            emb = discord.Embed(title="Beardless Bot Commands", description="", color=0xfff994)
+            emb.add_field(name= "!register", value= "Registers you with the currency system.", inline=True)
+            emb.add_field(name= "!balance", value= "Checks your BeardlessBucks balance.", inline=True)
+            emb.add_field(name= "!bucks", value= "Shows you an explanation for how BeardlessBucks work.", inline=True)
+            emb.add_field(name= "!hello", value= "Exchanges a pleasant greeting with the bot.", inline=True)
+            emb.add_field(name= "!fact", value= "Gives you a random fun fact.", inline=True)
+            emb.add_field(name= "!source", value= "Shows you the source of most facts usedin !fact.", inline=True)
+            emb.add_field(name= "!flip [number]", value= "Bets a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10.", inline=True)
+            emb.add_field(name= "!d[number][+/-][modifier]", value= "Rolls a [number]-sided die and adds or subtracts the modifier. Example: !d8+3, or !d100-17.", inline=True)
+            emb.add_field(name= "!reset", value= "Resets you to 200 BeardlessBucks.", inline=True)
+            emb.add_field(name= "!video", value= "Shows you my latest YouTube video.", inline=True)
+            emb.add_field(name= "!blackjack [number]", value= "Starts up a game of blackjack. Once you're in a game, you can use !hit and !stay to play.", inline=True)
+            emb.add_field(name= "!leaderboard", value= "Shows you the BeardlessBucks leaderboard.", inline=True)
+            emb.add_field(name= "!add", value= "Gives you a link to add this bot to your server.", inline=True)
+            emb.add_field(name= "!random [legend/weapon]", value= "Randomly selects a Brawlhalla legend or weapon for you.", inline=True)
+            emb.add_field(name= "!buy [red/blue/pink/orange]", value= "Takes away 50000 BeardlessBucks from your account and grants you a special color role.", inline=True)
+            emb.add_field(name= "!commands", value= "Shows you this list.", inline=True)
+            await text.channel.send(embed=emb)
+            #await text.channel.send('Commands: \r\n !balance checks your BeardlessBucks balance \r\n !register for registering with the currency system \r\n !bucks an explanation for how BeardlessBucks work \r\n !hello exchange a pleasant greeting with the bot \r\n !source the source of most of the facts used in !fact \r\n !fact gives you a random fun fact! \r\n !flip [number] bet a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10. \r\n !d[number][+/-][modifier] roll a [number]-sided die and add or subtract the modifier. Example: !d8+3, or !d100-17. \r\n !reset resets you to 200 BeardlessBucks. \r\n !video shows you my latest video \r\n !blackjack start up a game of blackjack. Once you\'re in a game, you can use !hit and !stay to play. \r\n !leaderboard shows you the BeardlessBucks leaderboard. \r\n !add add this bot to your server! \r\n !random [legend/weapon] randomly chooses a Brawlhalla legend or weapon for you. \r\n !buy [red/blue/pink/orange] will take away 50000 BeardlessBucks from your account and grant you a special color role. \r\n !commands and !help show you this list.')
 
 
     client.run(token)
