@@ -409,14 +409,6 @@ class DiscordClass(client):
                                 print("Valid color")
                                 if  50000 <= bank:
                                     print("Valid money")
-                                    oldliner = tempname + "," + str(bank)+ "," + row[2]
-                                    liner = tempname + "," + str(bank - 50000)+ "," + str(text.author)
-                                    texter = open("money.csv", "r")
-                                    texter = ''.join([i for i in texter]) \
-                                            .replace(oldliner, liner)
-                                    x = open("money.csv", "w")
-                                    x.writelines(texter)
-                                    x.close()
                                     if (content3=="blue" or content4=="blue"):
                                         role = get(text.guild.roles, name = 'special blue')
                                     if (content3=="pink" or content4=="pink"):
@@ -425,6 +417,14 @@ class DiscordClass(client):
                                         role = get(text.guild.roles, name = 'special orange')
                                     if (content3=="red" or content4=="red"):
                                         role = get(text.guild.roles, name = 'special red')
+                                    oldliner = tempname + "," + str(bank)+ "," + row[2]
+                                    liner = tempname + "," + str(bank - 50000)+ "," + str(text.author)
+                                    texter = open("money.csv", "r")
+                                    texter = ''.join([i for i in texter]) \
+                                            .replace(oldliner, liner)
+                                    x = open("money.csv", "w")
+                                    x.writelines(texter)
+                                    x.close()
                                     await text.author.add_roles(role)
                                     report = "Color purchased successfully, " + str(text.author.mention) + "!"
                                 else:
@@ -503,6 +503,9 @@ class DiscordClass(client):
             print(finalString)
             await text.channel.send(finalString)
 
+        if text.content.startswith('!reddit'):
+            await text.channel.send("https://www.reddit.com/r/eggsoup/")
+        
         if text.content.startswith('!d') and ((text.content.split('!d',1)[1])[0]).isnumeric() and len(text.content) < 12: #The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
             report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
             command = text.content.split('!d',1)[1]
