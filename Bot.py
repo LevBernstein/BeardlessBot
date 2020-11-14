@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.1
+#Version 8.2.2
 
 #import os
 import random
@@ -500,7 +500,7 @@ class DiscordClass(client):
             for i in range(len(names)):
                 print(names[i])
             for i in range(10):
-                emb.add_field(name= (str(i+1) + ". " + names[9-i]), value= str(sortedDict[names[9-i]]), inline=False)
+                emb.add_field(name= (str(i+1) + ". " + names[9-i]), value= str(sortedDict[names[9-i]]), inline=True)
                 #finalString += (str(i+1) + ". " + names[9-i] + ": " + str(sortedDict[names[9-i]]) + " ")
             #print(finalString)
             #await text.channel.send(finalString)
