@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.2
+#Version 8.2.3
 
 #import os
 import random
@@ -157,7 +157,6 @@ class DiscordClass(client):
         
     @client.event
     async def on_message(text):
-        #print(text.channel.name)
         report=""
         text.content=text.content.lower()
         if text.content.startswith('!blackjack'):
@@ -224,7 +223,7 @@ class DiscordClass(client):
                         report = "You need to register first! Type !register to get started, " + str(text.author.mention) + "."
             await text.channel.send(report)
         
-        if (text.content.startswith('!deal') or text.content.startswith('!hit')) and not text.content.startswith('!hitler'): #People once dealt by typing !hitler. This makes it so they can't do that.
+        if (text.content.startswith('!deal') or text.content.startswith('!hit')) and not text.content.startswith('!hitler'): # People once dealt by typing !hitler. This makes it so they can't do that.
             report = "error"
             authorstring = str(text.author)
             exist5 = False
@@ -336,7 +335,6 @@ class DiscordClass(client):
                 bet = 0
             else:
                 bet = int(strbet)
-            print(bet)
             authorstring=""
             authorstring = str(text.author.id)
             if allBet == False and int(strbet) < 0:
@@ -353,6 +351,7 @@ class DiscordClass(client):
                             bank = int(row[1])
                             if allBet:
                                 bet = bank
+                            print(bet)
                             exist5 = False
                             for i in range(len(games)):
                                 if games[i].namer() == str(text.author):
@@ -360,11 +359,11 @@ class DiscordClass(client):
                             if exist5:
                                 report = "Finish your game of blackjack first, " +  str(text.author.mention) + "."
                                 break
-                            if bet <= bank:
+                            if bet <= bank: # As of 4 PM ET on November 14th, 2020, there have been ~17235 flips that got tails and ~17284 flips that got heads in the eggsoup server. This is 50/50. Stop complaining.
                                 results = [
-                        "Heads!", 
-                        "Tails!"
-                        ]
+                                "Heads!", 
+                                "Tails!"
+                                ]
                                 result = random.choice(results)
                                 if result=="Heads!":
                                     change = bet
@@ -388,7 +387,6 @@ class DiscordClass(client):
                         report = "You need to register first! Type !register, " + str(text.author.mention) + "!"
             await text.channel.send(report)
             
-        # Deprecated until I find something to do with it
         if text.content.startswith('!buy'): #Requires roles named special blue, special pink, special orange, and special red.
             print("Running buy...")
             authorstring = str(text.author.id)
@@ -483,9 +481,6 @@ class DiscordClass(client):
                 diction[storedNames[i]] = storedVals[i]
             for x,y in diction.items():
                 diction2[x[:-5]] = y
-        # for x, y in diction2.items():
-            #   print(x, y)
-            sortedDiction2 = sorted(diction2.items(), key = operator.itemgetter(1))
             sortedDict = OrderedDict(sorted(diction2.items(), key = operator.itemgetter(1)))
             print(sortedDict)
             while len(sortedDict) > 10:
@@ -501,9 +496,6 @@ class DiscordClass(client):
                 print(names[i])
             for i in range(10):
                 emb.add_field(name= (str(i+1) + ". " + names[9-i]), value= str(sortedDict[names[9-i]]), inline=True)
-                #finalString += (str(i+1) + ". " + names[9-i] + ": " + str(sortedDict[names[9-i]]) + " ")
-            #print(finalString)
-            #await text.channel.send(finalString)
             await text.channel.send(embed=emb)
 
         if text.content.startswith('!reddit'):
@@ -514,11 +506,11 @@ class DiscordClass(client):
             command = text.content.split('!d',1)[1]
             print(command[0])
             print(command)
-            isTen = False #Because !d10 and !d100 share their first two characters after the split, I was getting errors whenever I ran !d10 without a modifier.
-            #This boolean takes care of those errors. The problem arises because both the conditions for rolling a d10 and 2/3 of the conditions for rolling a d100
-            #would be met whenever the bot tried to roll a d10; then, when checking if command[2]=="0", I would get an array index out of bounds error, as the
-            #length of the command is actually only 2, not 3. However, with the boolean isTen earlier in the line, now it will never check to see if command has that
-            #third slot.
+            isTen = False # Because !d10 and !d100 share their first two characters after the split, I was getting errors whenever I ran !d10 without a modifier.
+            # This boolean takes care of those errors. The problem arises because both the conditions for rolling a d10 and 2/3 of the conditions for rolling a d100
+            # would be met whenever the bot tried to roll a d10; then, when checking if command[2]=="0", I would get an array index out of bounds error, as the
+            # length of the command is actually only 2, not 3. However, with the boolean isTen earlier in the line, now it will never check to see if command has that
+            # third slot.
             if "-" in command:
                 modifier = -1
             else:
@@ -658,34 +650,13 @@ class DiscordClass(client):
         if text.content.startswith("!link") or text.content.startswith("!add") or text.content.startswith("!join"):
             end = "Want to add this bot to your server? Click https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot"
             await text.channel.send(end)
-        if text.content.startswith("!weapon"):
-            weapons = [
-                "Sword",
-                "Spear",
-                "Orb",
-                "Cannon",
-                "Hammer",
-                "Scythe",
-                "Greatsword",
-                "Bow",
-                "Gauntlets",
-                "Katars",
-                "Blasters",
-                "Axe"]
-            weapon = "Your weapon is " + random.choice(weapons) + "."
-            await text.channel.send(weapon)
-        if text.content.startswith("!legend"):
-            legends = [
-                "Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako"]
-            legend = "Your legend is " + random.choice(legends) + "."
-            await text.channel.send(legend)
-        if text.content.startswith("!random"):
+        if text.content.startswith("!random") or text.content.startswith("!weapon") or text.content.startswith("!legend"):
             ran = "Invalid random."
-            if text.content.startswith("!random legend") or text.content.startswith("!randomlegend"):
+            if text.content.startswith("!random legend") or text.content.startswith("!randomlegend") or text.content.startswith("!legend"):
                 legends = [
                 "Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako"]
                 ran = "Your legend is " + random.choice(legends) + "."
-            if text.content.startswith("!random weapon") or text.content.startswith("!randomweapon"):
+            if text.content.startswith("!random weapon") or text.content.startswith("!randomweapon") or text.content.startswith("!weapon") :
                 weapons = [
                 "Sword",
                 "Spear",
@@ -701,7 +672,7 @@ class DiscordClass(client):
                 "Axe"]
                 ran = "Your weapon is " + random.choice(weapons) + "."
             await text.channel.send(ran)
-        if text.content.startswith("!fact"):
+        if text.content.startswith("!fact"): # TODO switch to screenscraping to get facts
             facts = [
                 "The scientific term for brain freeze is sphenopalatine ganglioneuralgia.",
                 "Canadians say sorry so much that a law was passed in 2009 declaring that an apology can\’t be used as evidence of admission to guilt.",
@@ -763,21 +734,20 @@ class DiscordClass(client):
             emb.add_field(name= "!register", value= "Registers you with the currency system.", inline=True)
             emb.add_field(name= "!balance", value= "Checks your BeardlessBucks balance.", inline=True)
             emb.add_field(name= "!bucks", value= "Shows you an explanation for how BeardlessBucks work.", inline=True)
-            emb.add_field(name= "!hello", value= "Exchanges a pleasant greeting with the bot.", inline=True)
+            emb.add_field(name= "!reset", value= "Resets you to 200 BeardlessBucks.", inline=True)
             emb.add_field(name= "!fact", value= "Gives you a random fun fact.", inline=True)
             emb.add_field(name= "!source", value= "Shows you the source of most facts usedin !fact.", inline=True)
             emb.add_field(name= "!flip [number]", value= "Bets a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10.", inline=True)
             emb.add_field(name= "!d[number][+/-][modifier]", value= "Rolls a [number]-sided die and adds or subtracts the modifier. Example: !d8+3, or !d100-17.", inline=True)
-            emb.add_field(name= "!reset", value= "Resets you to 200 BeardlessBucks.", inline=True)
-            emb.add_field(name= "!video", value= "Shows you my latest YouTube video.", inline=True)
-            emb.add_field(name= "!blackjack [number]", value= "Starts up a game of blackjack. Once you're in a game, you can use !hit and !stay to play.", inline=True)
-            emb.add_field(name= "!leaderboard", value= "Shows you the BeardlessBucks leaderboard.", inline=True)
-            emb.add_field(name= "!add", value= "Gives you a link to add this bot to your server.", inline=True)
-            emb.add_field(name= "!random [legend/weapon]", value= "Randomly selects a Brawlhalla legend or weapon for you.", inline=True)
             emb.add_field(name= "!buy [red/blue/pink/orange]", value= "Takes away 50000 BeardlessBucks from your account and grants you a special color role.", inline=True)
+            emb.add_field(name= "!random [legend/weapon]", value= "Randomly selects a Brawlhalla legend or weapon for you.", inline=True)
+            emb.add_field(name= "!leaderboard", value= "Shows you the BeardlessBucks leaderboard.", inline=True)
+            emb.add_field(name= "!blackjack [number]", value= "Starts up a game of blackjack. Once you're in a game, you can use !hit and !stay to play.", inline=True)
+            emb.add_field(name= "!hello", value= "Exchanges a pleasant greeting with the bot.", inline=True)
+            emb.add_field(name= "!video", value= "Shows you my latest YouTube video.", inline=True)
+            emb.add_field(name= "!add", value= "Gives you a link to add this bot to your server.", inline=True)
             emb.add_field(name= "!commands", value= "Shows you this list.", inline=True)
             await text.channel.send(embed=emb)
-            #await text.channel.send('Commands: \r\n !balance checks your BeardlessBucks balance \r\n !register for registering with the currency system \r\n !bucks an explanation for how BeardlessBucks work \r\n !hello exchange a pleasant greeting with the bot \r\n !source the source of most of the facts used in !fact \r\n !fact gives you a random fun fact! \r\n !flip [number] bet a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10. \r\n !d[number][+/-][modifier] roll a [number]-sided die and add or subtract the modifier. Example: !d8+3, or !d100-17. \r\n !reset resets you to 200 BeardlessBucks. \r\n !video shows you my latest video \r\n !blackjack start up a game of blackjack. Once you\'re in a game, you can use !hit and !stay to play. \r\n !leaderboard shows you the BeardlessBucks leaderboard. \r\n !add add this bot to your server! \r\n !random [legend/weapon] randomly chooses a Brawlhalla legend or weapon for you. \r\n !buy [red/blue/pink/orange] will take away 50000 BeardlessBucks from your account and grant you a special color role. \r\n !commands and !help show you this list.')
 
 
     client.run(token)
