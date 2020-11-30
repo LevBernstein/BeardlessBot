@@ -193,7 +193,7 @@ class DiscordClass(client):
                                 if games[i].namer() == tempname:
                                     exist5 = True
                             if exist5:
-                                report = "You already have an active game, " + str(text.author.mention) + "."
+                                report = "You already have an active game, " + text.author.mention + "."
                             else:
                                 if bet <= bank:
                                     game = True
@@ -217,10 +217,10 @@ class DiscordClass(client):
                                                 games.pop(i)
                                                 break
                                 else:
-                                    report = "You do not have enough BeardlessBucks to bet that much, " + str(text.author.mention) + "!"
+                                    report = "You do not have enough BeardlessBucks to bet that much, " + text.author.mention + "!"
                             break
                     if exist4 == False:
-                        report = "You need to register first! Type !register to get started, " + str(text.author.mention) + "."
+                        report = "You need to register first! Type !register to get started, " + text.author.mention + "."
             await text.channel.send(report)
         
         if (text.content.startswith('!deal') or text.content.startswith('!hit')) and not text.content.startswith('!hitler'): # People once dealt by typing !hitler. This makes it so they can't do that.
@@ -233,7 +233,7 @@ class DiscordClass(client):
                     gamer = games[i]
                     break
             if exist5 == False:
-                report = "You do not currently have a game of blackjack going, " + str(text.author.mention) + ". Type !blackjack to start one."
+                report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
             else:
                 report = gamer.deal()
                 if gamer.checkBust(gamer.cards) == True or gamer.perfect(gamer.cards) == True:
@@ -278,7 +278,7 @@ class DiscordClass(client):
                     bet = gamer.bet
                     break
             if exist5 == False:
-                report = "You do not currently have a game of blackjack going, " + str(text.author.mention) + ". Type !blackjack to start one."
+                report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
             else:
                 result = gamer.stay()
                 report = "The dealer has a total of " + str(gamer.dealerSum) + "."
@@ -338,7 +338,7 @@ class DiscordClass(client):
             authorstring=""
             authorstring = str(text.author.id)
             if allBet == False and int(strbet) < 0:
-                report = "Invalid bet amount. Choose a value >-1, " + str(text.author.mention) + "."
+                report = "Invalid bet amount. Choose a value >-1, " + text.author.mention + "."
             else:
                 with open('money.csv', 'r') as csvfile:
                     reader = csv.reader(csvfile, delimiter=',')
@@ -357,7 +357,7 @@ class DiscordClass(client):
                                 if games[i].namer() == str(text.author):
                                     exist5 = True
                             if exist5:
-                                report = "Finish your game of blackjack first, " +  str(text.author.mention) + "."
+                                report = "Finish your game of blackjack first, " +  text.author.mention + "."
                                 break
                             if bet <= bank: # As of 4 PM ET on November 14th, 2020, there have been ~17235 flips that got tails and ~17284 flips that got heads in the eggsoup server. This is 50/50. Stop complaining.
                                 results = [
@@ -367,11 +367,11 @@ class DiscordClass(client):
                                 result = random.choice(results)
                                 if result=="Heads!":
                                     change = bet
-                                    report = "Heads! You win! Your winnings have been added to your balance, " + str(text.author.mention) + "."
+                                    report = "Heads! You win! Your winnings have been added to your balance, " + text.author.mention + "."
                                     totalsum=bank+change
                                 if result=="Tails!":
                                     change = bet * -1
-                                    report = "Tails! You lose! Your loss has been deducted from your balance, " + str(text.author.mention) + "."
+                                    report = "Tails! You lose! Your loss has been deducted from your balance, " + text.author.mention + "."
                                     totalsum=bank+change
                                 oldliner = tempname + "," + str(bank)+ "," + row[2]
                                 liner = tempname + "," + str(totalsum)+ "," + str(text.author)
@@ -382,9 +382,9 @@ class DiscordClass(client):
                                 x.writelines(texter)
                                 x.close()
                             else:
-                                report = "You do not have enough BeardlessBucks to bet that much, " + str(text.author.mention) + "!"
+                                report = "You do not have enough BeardlessBucks to bet that much, " + text.author.mention + "!"
                     if exist4==False:
-                        report = "You need to register first! Type !register, " + str(text.author.mention) + "!"
+                        report = "You need to register first! Type !register, " + text.author.mention + "!"
             await text.channel.send(report)
             
         if text.content.startswith('!buy'): #Requires roles named special blue, special pink, special orange, and special red.
@@ -424,11 +424,11 @@ class DiscordClass(client):
                                     x.writelines(texter)
                                     x.close()
                                     await text.author.add_roles(role)
-                                    report = "Color purchased successfully, " + str(text.author.mention) + "!"
+                                    report = "Color purchased successfully, " + text.author.mention + "!"
                                 else:
-                                    report = "Not enough Beardess Bucks. You need 50000 to buy a special color, " + str(text.author.mention) + "."
+                                    report = "Not enough Beardess Bucks. You need 50000 to buy a special color, " + text.author.mention + "."
                             else:
-                                report = "Invalid color. Choose blue, red, orange, or pink, " + str(text.author.mention) + "."
+                                report = "Invalid color. Choose blue, red, orange, or pink, " + text.author.mention + "."
             await text.channel.send(report)
 
         if text.channel.name == "welcome-and-rules": #In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
@@ -438,7 +438,7 @@ class DiscordClass(client):
                 role = get(text.guild.roles, name = 'member')
                 await text.author.add_roles(role)
                 newjoiners = client.get_channel(676568391670169660) #This is the ID of the welcome-and-rules channel in eggsoup's server. I will need to find a more portable solution in the future.
-                await newjoiners.send(str(text.author.mention) + " just agreed to the rules.")
+                await newjoiners.send(text.author.mention + " just agreed to the rules.")
             await text.delete()
     
         if text.content.startswith('-mute ') or text.content.startswith('!mute '):
@@ -455,7 +455,7 @@ class DiscordClass(client):
                 await text.channel.send("You do not have permission to use this command!")
         
         if text.content.startswith('!video'):
-            report = 'My creator made a new video! Check it out at https://www.youtube.com/watch?v=6Q9mVtVG2zw'
+            report = 'My creator made a new video! Check it out at https://youtu.be/-4FzBLS-UVI'
             await text.channel.send(report)
         if text.content.startswith('!song') or text.content.startswith('!playlist'):
             linker = ' Here\'s my playlist (discord will only show the first hundred songs): https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg'
@@ -581,12 +581,12 @@ class DiscordClass(client):
                         x.writelines(texter)
                         x.close()
                 if exist==False:
-                    message3="Successfully registered. You have 300 BeardlessBucks, " + str(text.author.mention) + "."
+                    message3="Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                     with open('money.csv', 'a') as csvfile2:
                         writer=csv.writer(csvfile)
                         newline="\r\n"+authorstring+",300"+ "," + str(text.author)
                         csvfile2.write(newline)
-            await text.channel.send('You have been reset to 200 BeardlessBucks, ' + str(text.author.mention) + ".")
+            await text.channel.send('You have been reset to 200 BeardlessBucks, ' + text.author.mention + ".")
         if text.content.startswith('!pumpkin'):
             sleep(.5)
             await text.channel.send("Boo 2! A Madea Halloween")
@@ -601,9 +601,9 @@ class DiscordClass(client):
                     tempname = row[0]
                     if authorstring==tempname:
                         exist2=True
-                        message2="Your balance is " + row[1] + " BeardlessBucks, " + str(text.author.mention) + "."
+                        message2="Your balance is " + row[1] + " BeardlessBucks, " + text.author.mention + "."
                 if exist2==False:
-                    message2="Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + str(text.author.mention) + "."
+                    message2="Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "."
                 await text.channel.send(message2)
         if text.content.startswith("!register"): #Make sure money.csv is not open in any other program
             authorstring=""
@@ -620,9 +620,9 @@ class DiscordClass(client):
                     #print(row[1])
                     if authorstring==tempname:
                         exist=True
-                        message3="You are already in the system! Hooray! You have " + row[1] + " BeardlessBucks, " + str(text.author.mention) + "."
+                        message3="You are already in the system! Hooray! You have " + row[1] + " BeardlessBucks, " + text.author.mention + "."
                 if exist==False:
-                    message3="Successfully registered. You have 300 BeardlessBucks, " + str(text.author.mention) + "."
+                    message3="Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                     with open('money.csv', 'a') as csvfile2:
                         writer=csv.writer(csvfile)
                         newline="\r\n"+authorstring+",300"+ "," + str(text.author)
