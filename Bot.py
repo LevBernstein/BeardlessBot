@@ -225,9 +225,7 @@ class DiscordClass(client):
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
                             report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                else:
-                    report = "Please only use the spar command in #looking-for-spar, " + text.author.mention + "."
-                await text.channel.send(report)
+                    await text.channel.send(report)
                 
         if text.content.startswith('!blackjack'):
             print(text.author.id)
