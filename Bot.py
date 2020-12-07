@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.10
+#Version 8.2.11
 
 #import os
 import random
@@ -436,11 +436,16 @@ class DiscordClass(client):
         
         if text.content.startswith('?av ben'):
             await text.delete()
-       
-       if text.content.startswith('-mute ') or text.content.startswith('!mute '):
+        
+        if text.content.startswith('-mute ') or text.content.startswith('!mute '):
             if text.author.guild_permissions.manage_messages:
-                target = (text.content)[9:-1] #strips the user ID from the mention
-                print(target)
+                print("Original message: " + text.content)
+                target = text.content.split('@', 1)[1]
+                if target.startswith('!'):
+                    target = target[1:]
+                target = target[:-1]
+                print("Author: " + str(text.author.id))
+                print("Target: " + target)
                 role = get(text.guild.roles, name = 'Muted')
                 newtarg = await text.guild.fetch_member(str(target))
                 await newtarg.add_roles(role)
@@ -450,8 +455,13 @@ class DiscordClass(client):
         
         if text.content.startswith('-unmute ') or text.content.startswith('!unmute '):
             if text.author.guild_permissions.manage_messages:
-                target = (text.content)[11:-1] #strips the user ID from the mention
-                print(target)
+                print("Original message: " + text.content)
+                target = text.content.split('@', 1)[1]
+                if target.startswith('!'):
+                    target = target[1:]
+                target = target[:-1]
+                print("Author: " + str(text.author.id))
+                print("Target: " + target)
                 role = get(text.guild.roles, name = 'Muted')
                 newtarg = await text.guild.fetch_member(str(target))
                 await newtarg.remove_roles(role)
