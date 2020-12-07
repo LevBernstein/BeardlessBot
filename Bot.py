@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.7
+#Version 8.2.8
 
 #import os
 import random
@@ -137,13 +137,13 @@ class Instance:
         
 games = [] #Stores the active instances of blacjack. An array might not be the most efficient place to store these, but because this bot sees
 #use on a relatively small scale, this is not an issue.
-usePing = 0;
-uswPing = 0;
-euPing = 0;
-seaPing = 0;
-ausPing = 0;
-jpnPing = 0;
-brzPing = 0;
+usePing = 0
+uswPing = 0
+euPing = 0
+seaPing = 0
+ausPing = 0
+jpnPing = 0
+brzPing = 0
 
 client = discord.Client()
 class DiscordClass(client):
@@ -164,11 +164,20 @@ class DiscordClass(client):
     async def on_message(text):
         report=""
         text.content=text.content.lower()
-        if text.guild.id == 442403231864324119:
+        if text.guild.id == 442403231864324119: #Commands only used in eggsoup's Discord server.
+            if text.channel.name == 'welcome-and-rules': #In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
+                #print(text.channel.name)
+                if text.content.startswith('?agree') or text.content.startswith('agree') or text.content.startswith('!agree'):
+                    print(str(text.author) + " agreed")
+                    role = get(text.guild.roles, name = 'member')
+                    await text.author.add_roles(role)
+                    newjoiners = client.get_channel(676568391670169660) #This is the ID of the welcome-and-rules channel in eggsoup's server. I will need to find a more portable solution in the future.
+                    await newjoiners.send(text.author.mention + " just agreed to the rules.")
+                await text.delete()
             if text.content.startswith('!spar'):
-                if text.channel.id == 605083979737071616:
+                if text.channel.id == 605083979737071616: #This is the "looking-for-spar" chanel in eggsoup's Discord server.
                     cooldown = 7200
-                    report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN."
+                    report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help."
                     if 'us-e' in text.content or 'use' in text.content:
                         global usePing
                         if time() - usePing > cooldown:
@@ -500,16 +509,6 @@ class DiscordClass(client):
                             else:
                                 report = "Invalid color. Choose blue, red, orange, or pink, " + text.author.mention + "."
             await text.channel.send(report)
-
-        if text.channel.name == 'welcome-and-rules': #In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
-            #print(text.channel.name)
-            if text.content.startswith('?agree') or text.content.startswith('agree') or text.content.startswith('!agree'):
-                print(str(text.author) + " agreed")
-                role = get(text.guild.roles, name = 'member')
-                await text.author.add_roles(role)
-                newjoiners = client.get_channel(676568391670169660) #This is the ID of the welcome-and-rules channel in eggsoup's server. I will need to find a more portable solution in the future.
-                await newjoiners.send(text.author.mention + " just agreed to the rules.")
-            await text.delete()
         
         if text.content.startswith('?av ben'):
             sleep(.1)
