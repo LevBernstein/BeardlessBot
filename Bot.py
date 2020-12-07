@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.9
+#Version 8.2.10
 
 #import os
 import random
@@ -16,7 +16,6 @@ from collections import OrderedDict
 game = False
 f = open("token.txt", "r") #in token.txt, just put in your own discord api token
 token = f.readline()
-#print(token)
 
 
 #Blackjack class. New instance is made for each game of Blackjack and is kept around until the player finishes the game.
@@ -137,6 +136,7 @@ class Instance:
         
 games = [] #Stores the active instances of blacjack. An array might not be the most efficient place to store these, but because this bot sees
 #use on a relatively small scale, this is not an issue.
+#These ping ints are for keeping track of pings in eggsoup's Discord server.
 usePing = 0
 uswPing = 0
 euPing = 0
@@ -147,7 +147,6 @@ brzPing = 0
 
 client = discord.Client()
 class DiscordClass(client):
-    
     def __init__(self):
         super().__init__(intents.members())
         super().__init__(chunk_guilds_at_startup = True)
@@ -164,80 +163,6 @@ class DiscordClass(client):
     async def on_message(text):
         report=""
         text.content=text.content.lower()
-        if text.guild.id == 442403231864324119: #Commands only used in eggsoup's Discord server.
-            if text.channel.name == 'welcome-and-rules': #In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
-                #print(text.channel.name)
-                if text.content.startswith('?agree') or text.content.startswith('agree') or text.content.startswith('!agree'):
-                    print(str(text.author) + " agreed")
-                    role = get(text.guild.roles, name = 'member')
-                    await text.author.add_roles(role)
-                    newjoiners = client.get_channel(676568391670169660) #This is the ID of the welcome-and-rules channel in eggsoup's server. I will need to find a more portable solution in the future.
-                    await newjoiners.send(text.author.mention + " just agreed to the rules.")
-                await text.delete()
-            if text.content.startswith('!spar'):
-                if text.channel.id == 605083979737071616: #This is the "looking-for-spar" chanel in eggsoup's Discord server.
-                    cooldown = 7200
-                    report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help."
-                    if 'us-e' in text.content or 'use' in text.content:
-                        global usePing
-                        if time() - usePing > cooldown:
-                            usePing = time()
-                            role = get(text.guild.roles, name = 'US-E')
-                            report = role.mention + " come spar " + text.author.mention + "!"
-                        else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                    elif 'us-w' in text.content or 'usw' in text.content:
-                        global uswPing
-                        if time() - uswPing > cooldown:
-                            uswPing = time()
-                            role = get(text.guild.roles, name = 'US-W')
-                            report = role.mention + " come spar " + text.author.mention + "!"
-                        else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                    elif 'jpn' in text.content:
-                        global jpnPing
-                        if time() - jpnPing > cooldown:
-                            jpnPing = time()
-                            role = get(text.guild.roles, name = 'JPN')
-                            report = role.mention + " come spar " + text.author.mention + "!"
-                        else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                    elif 'brz' in text.content:
-                        global brzPing
-                        if time() - brzPing > cooldown:
-                            brzPing = time()
-                            role = get(text.guild.roles, name = 'BRZ')
-                            report = role.mention + " come spar " + text.author.mention + "!"
-                        else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                    elif 'sea' in text.content:
-                        global seaPing
-                        if time() - seaPing > cooldown:
-                            seaPing = time()
-                            role = get(text.guild.roles, name = 'SEA')
-                            report = role.mention + " come spar " + text.author.mention + "!"
-                        else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                    elif 'aus' in text.content:
-                        global ausPing
-                        if time() - ausPing > cooldown:
-                            ausPing = time()
-                            role = get(text.guild.roles, name = 'AUS')
-                            report = role.mention + " come spar " + text.author.mention + "!"
-                        else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                    elif 'eu' in text.content:
-                        global euPing
-                        if time() - euPing > cooldown:
-                            euPing = time()
-                            role = get(text.guild.roles, name = 'EU')
-                            report = role.mention + " come spar " + text.author.mention + "!"
-                        else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                else:
-                    report = "Please only use !spar in #looking for spar, " + text.author.mention + "."
-                await text.channel.send(report)
-                
         if text.content.startswith('!blackjack'):
             print(text.author.id)
             if len(str(text.content))>10:
@@ -343,7 +268,6 @@ class DiscordClass(client):
                                         games.pop(i)
                                         break
                                 break
-            
             await text.channel.send(report)
 
         if text.content.startswith('!stay') or text.content.startswith('!stand'):
@@ -465,7 +389,7 @@ class DiscordClass(client):
                     if exist4==False:
                         report = "You need to register first! Type !register, " + text.author.mention + "!"
             await text.channel.send(report)
-            
+        
         if text.content.startswith('!buy'): #Requires roles named special blue, special pink, special orange, and special red.
             print("Running buy...")
             authorstring = str(text.author.id)
@@ -511,10 +435,9 @@ class DiscordClass(client):
             await text.channel.send(report)
         
         if text.content.startswith('?av ben'):
-            sleep(.1)
             await text.delete()
-        
-        if text.content.startswith('-mute ') or text.content.startswith('!mute '):
+       
+       if text.content.startswith('-mute ') or text.content.startswith('!mute '):
             if text.author.guild_permissions.manage_messages:
                 target = (text.content)[9:-1] #strips the user ID from the mention
                 print(target)
@@ -539,9 +462,11 @@ class DiscordClass(client):
         if text.content.startswith('!video'):
             report = 'My creator made a new video! Check it out at https://youtu.be/-4FzBLS-UVI'
             await text.channel.send(report)
+        
         if text.content.startswith('!song') or text.content.startswith('!playlist'):
             linker = ' Here\'s my playlist (discord will only show the first hundred songs): https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg'
             await text.channel.send(linker)
+        
         if text.content.startswith('!leaderboard'): #This is incredibly memory inefficient. It's not a concern now, but if money.csv becomes sufficiently large, this code will require a rewrite. I doubt that will happen.
             storedVals = []
             storedNames = []
@@ -579,9 +504,6 @@ class DiscordClass(client):
             for i in range(10):
                 emb.add_field(name= (str(i+1) + ". " + names[9-i]), value= str(sortedDict[names[9-i]]), inline=True)
             await text.channel.send(embed=emb)
-
-        if text.content.startswith('!reddit'):
-            await text.channel.send("https://www.reddit.com/r/eggsoup/")
         
         if text.content.startswith('!d') and ((text.content.split('!d',1)[1])[0]).isnumeric() and len(text.content) < 12: #The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
             report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
@@ -669,9 +591,7 @@ class DiscordClass(client):
                         newline="\r\n"+authorstring+",300"+ "," + str(text.author)
                         csvfile2.write(newline)
             await text.channel.send('You have been reset to 200 BeardlessBucks, ' + text.author.mention + ".")
-        if text.content.startswith('!pumpkin'):
-            sleep(.5)
-            await text.channel.send("Boo 2! A Madea Halloween")
+        
         if text.content.startswith("!balance"):
             authorstring=""
             authorstring = str(text.author.id)
@@ -687,6 +607,7 @@ class DiscordClass(client):
                 if exist2==False:
                     message2="Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "."
                 await text.channel.send(message2)
+        
         if text.content.startswith("!register"): #Make sure money.csv is not open in any other program
             authorstring=""
             authorstring = str(text.author.id)
@@ -710,9 +631,11 @@ class DiscordClass(client):
                         newline="\r\n"+authorstring+",300"+ "," + str(text.author)
                         csvfile2.write(newline)
                 await text.channel.send(message3)
+        
         if text.content.startswith("!bucks"):
             buckmessage = "BeardlessBucks are this bot's special currency. You can earn them by playing games. First, do !register to get yourself started with a balance."
             await text.channel.send(buckmessage)
+        
         if text.content.startswith("!hello"):
             answers = [
                 "How ya doin?",
@@ -726,12 +649,15 @@ class DiscordClass(client):
                 ]
             print(text.author)
             await text.channel.send(random.choice(answers))
+        
         if text.content.startswith("!source"):
             end = "Most facts taken from https://www.thefactsite.com/1000-interesting-facts/."
             await text.channel.send(end)
+        
         if text.content.startswith("!link") or text.content.startswith("!add") or text.content.startswith("!join"):
             end = "Want to add this bot to your server? Click https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot"
             await text.channel.send(end)
+        
         if text.content.startswith("!random") or text.content.startswith("!weapon") or text.content.startswith("!legend"):
             ran = "Invalid random."
             if text.content.startswith("!random legend") or text.content.startswith("!randomlegend") or text.content.startswith("!legend"):
@@ -754,6 +680,7 @@ class DiscordClass(client):
                 "Axe"]
                 ran = "Your weapon is " + random.choice(weapons) + "."
             await text.channel.send(ran)
+        
         if text.content.startswith("!fact"): # TODO switch to screenscraping to get facts
             facts = [
                 "The scientific term for brain freeze is sphenopalatine ganglioneuralgia.",
@@ -811,6 +738,7 @@ class DiscordClass(client):
                     ]
             response = random.choice(facts)
             await text.channel.send(response)
+        
         if text.content.startswith("!help") or text.content.startswith("!commands"):
             emb = discord.Embed(title="Beardless Bot Commands", description="", color=0xfff994)
             emb.add_field(name= "!register", value= "Registers you with the currency system.", inline=True)
@@ -830,6 +758,85 @@ class DiscordClass(client):
             emb.add_field(name= "!add", value= "Gives you a link to add this bot to your server.", inline=True)
             emb.add_field(name= "!commands", value= "Shows you this list.", inline=True)
             await text.channel.send(embed=emb)
-
+        
+        if text.guild.id == 442403231864324119: #Commands only used in eggsoup's Discord server.
+            """if text.content.startswith('!pumpkin'):
+                sleep(.5)
+                await text.channel.send("Boo 2! A Madea Halloween")"""
+            if text.content.startswith('!reddit'):
+                await text.channel.send("https://www.reddit.com/r/eggsoup/")
+            if text.channel.name == 'welcome-and-rules': #In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
+                #print(text.channel.name)
+                if text.content.startswith('?agree') or text.content.startswith('agree') or text.content.startswith('!agree'):
+                    print(str(text.author) + " agreed")
+                    role = get(text.guild.roles, name = 'member')
+                    await text.author.add_roles(role)
+                    newjoiners = client.get_channel(676568391670169660) #This is the ID of the welcome-and-rules channel in eggsoup's server. I will need to find a more portable solution in the future.
+                    await newjoiners.send(text.author.mention + " just agreed to the rules.")
+                await text.delete()
+            if text.content.startswith('!spar'):
+                if text.channel.id == 605083979737071616: #This is the "looking-for-spar" chanel in eggsoup's Discord server.
+                    cooldown = 7200
+                    report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help."
+                    if 'us-e' in text.content or 'use' in text.content:
+                        global usePing
+                        if time() - usePing > cooldown:
+                            usePing = time()
+                            role = get(text.guild.roles, name = 'US-E')
+                            report = role.mention + " come spar " + text.author.mention + "!"
+                        else:
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                    elif 'us-w' in text.content or 'usw' in text.content:
+                        global uswPing
+                        if time() - uswPing > cooldown:
+                            uswPing = time()
+                            role = get(text.guild.roles, name = 'US-W')
+                            report = role.mention + " come spar " + text.author.mention + "!"
+                        else:
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                    elif 'jpn' in text.content:
+                        global jpnPing
+                        if time() - jpnPing > cooldown:
+                            jpnPing = time()
+                            role = get(text.guild.roles, name = 'JPN')
+                            report = role.mention + " come spar " + text.author.mention + "!"
+                        else:
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                    elif 'brz' in text.content:
+                        global brzPing
+                        if time() - brzPing > cooldown:
+                            brzPing = time()
+                            role = get(text.guild.roles, name = 'BRZ')
+                            report = role.mention + " come spar " + text.author.mention + "!"
+                        else:
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                    elif 'sea' in text.content:
+                        global seaPing
+                        if time() - seaPing > cooldown:
+                            seaPing = time()
+                            role = get(text.guild.roles, name = 'SEA')
+                            report = role.mention + " come spar " + text.author.mention + "!"
+                        else:
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                    elif 'aus' in text.content:
+                        global ausPing
+                        if time() - ausPing > cooldown:
+                            ausPing = time()
+                            role = get(text.guild.roles, name = 'AUS')
+                            report = role.mention + " come spar " + text.author.mention + "!"
+                        else:
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                    elif 'eu' in text.content:
+                        global euPing
+                        if time() - euPing > cooldown:
+                            euPing = time()
+                            role = get(text.guild.roles, name = 'EU')
+                            report = role.mention + " come spar " + text.author.mention + "!"
+                        else:
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                else:
+                    report = "Please only use !spar in #looking for spar, " + text.author.mention + "."
+                await text.channel.send(report)
+                
 
     client.run(token)
