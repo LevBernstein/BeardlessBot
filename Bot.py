@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.8
+#Version 8.2.9
 
 #import os
 import random
@@ -515,15 +515,24 @@ class DiscordClass(client):
             await text.delete()
         
         if text.content.startswith('-mute ') or text.content.startswith('!mute '):
-            perm1 = get(text.guild.roles, name = 'secret mod')
-            perm2 = get(text.guild.roles, name = 'poop master')
-            if perm1 in text.author.roles or perm2 in text.author.roles or text.author.guild_permissions.administrator:
+            if text.author.guild_permissions.manage_messages:
                 target = (text.content)[9:-1] #strips the user ID from the mention
                 print(target)
                 role = get(text.guild.roles, name = 'Muted')
                 newtarg = await text.guild.fetch_member(str(target))
                 await newtarg.add_roles(role)
                 await text.channel.send("Muted " + str(newtarg.mention) + ".")
+            else:
+                await text.channel.send("You do not have permission to use this command!")
+        
+        if text.content.startswith('-unmute ') or text.content.startswith('!unmute '):
+            if text.author.guild_permissions.manage_messages:
+                target = (text.content)[11:-1] #strips the user ID from the mention
+                print(target)
+                role = get(text.guild.roles, name = 'Muted')
+                newtarg = await text.guild.fetch_member(str(target))
+                await newtarg.remove_roles(role)
+                await text.channel.send("Unmuted " + str(newtarg.mention) + ".")
             else:
                 await text.channel.send("You do not have permission to use this command!")
         
