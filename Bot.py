@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.5
+#Version 8.2.7
 
 #import os
 import random
@@ -165,8 +165,8 @@ class DiscordClass(client):
         report=""
         text.content=text.content.lower()
         if text.guild.id == 442403231864324119:
-            if text.channel.id == 605083979737071616:
-                if text.content.startswith('!spar'):
+            if text.content.startswith('!spar'):
+                if text.channel.id == 605083979737071616:
                     cooldown = 7200
                     report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN."
                     if 'us-e' in text.content or 'use' in text.content:
@@ -225,7 +225,9 @@ class DiscordClass(client):
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
                             report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                    await text.channel.send(report)
+                else:
+                    report = "Please only use !spar in #looking for spar, " + text.author.mention + "."
+                await text.channel.send(report)
                 
         if text.content.startswith('!blackjack'):
             print(text.author.id)
