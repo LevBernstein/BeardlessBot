@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.4
+#Version 8.2.5
 
 #import os
 import random
@@ -164,66 +164,69 @@ class DiscordClass(client):
     async def on_message(text):
         report=""
         text.content=text.content.lower()
-        if text.guild.id == 442403231864324119 or text.guild.id == 654403690287071233:
-            if text.content.startswith('!spar'):
-                cooldown = 7200
-                report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN."
-                if 'us-e' in text.content or 'use' in text.content:
-                    global usePing
-                    if time() - usePing > cooldown:
-                        usePing = time()
-                        role = get(text.guild.roles, name = 'US-E')
-                        report = role.mention + " come spar " + text.author.mention + "!"
-                    else:
-                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                elif 'us-w' in text.content or 'usw' in text.content:
-                    global uswPing
-                    if time() - uswPing > cooldown:
-                        uswPing = time()
-                        role = get(text.guild.roles, name = 'US-W')
-                        report = role.mention + " come spar " + text.author.mention + "!"
-                    else:
-                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                elif 'jpn' in text.content:
-                    global jpnPing
-                    if time() - jpnPing > cooldown:
-                        jpnPing = time()
-                        role = get(text.guild.roles, name = 'JPN')
-                        report = role.mention + " come spar " + text.author.mention + "!"
-                    else:
-                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                elif 'brz' in text.content:
-                    global brzPing
-                    if time() - brzPing > cooldown:
-                        brzPing = time()
-                        role = get(text.guild.roles, name = 'BRZ')
-                        report = role.mention + " come spar " + text.author.mention + "!"
-                    else:
-                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                elif 'sea' in text.content:
-                    global seaPing
-                    if time() - seaPing > cooldown:
-                        seaPing = time()
-                        role = get(text.guild.roles, name = 'SEA')
-                        report = role.mention + " come spar " + text.author.mention + "!"
-                    else:
-                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                elif 'aus' in text.content:
-                    global ausPing
-                    if time() - ausPing > cooldown:
-                        ausPing = time()
-                        role = get(text.guild.roles, name = 'AUS')
-                        report = role.mention + " come spar " + text.author.mention + "!"
-                    else:
-                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
-                elif 'eu' in text.content:
-                    global euPing
-                    if time() - euPing > cooldown:
-                        euPing = time()
-                        role = get(text.guild.roles, name = 'EU')
-                        report = role.mention + " come spar " + text.author.mention + "!"
-                    else:
-                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+        if text.guild.id == 442403231864324119:
+            if text.channel.id == 605083979737071616:
+                if text.content.startswith('!spar'):
+                    cooldown = 7200
+                    report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN."
+                    if 'us-e' in text.content or 'use' in text.content:
+                        global usePing
+                        if time() - usePing > cooldown:
+                            usePing = time()
+                            role = get(text.guild.roles, name = 'US-E')
+                            report = role.mention + " come spar " + text.author.mention + "!"
+                        else:
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                    elif 'us-w' in text.content or 'usw' in text.content:
+                        global uswPing
+                        if time() - uswPing > cooldown:
+                            uswPing = time()
+                            role = get(text.guild.roles, name = 'US-W')
+                            report = role.mention + " come spar " + text.author.mention + "!"
+                        else:
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                    elif 'jpn' in text.content:
+                        global jpnPing
+                        if time() - jpnPing > cooldown:
+                            jpnPing = time()
+                            role = get(text.guild.roles, name = 'JPN')
+                            report = role.mention + " come spar " + text.author.mention + "!"
+                        else:
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                    elif 'brz' in text.content:
+                        global brzPing
+                        if time() - brzPing > cooldown:
+                            brzPing = time()
+                            role = get(text.guild.roles, name = 'BRZ')
+                            report = role.mention + " come spar " + text.author.mention + "!"
+                        else:
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                    elif 'sea' in text.content:
+                        global seaPing
+                        if time() - seaPing > cooldown:
+                            seaPing = time()
+                            role = get(text.guild.roles, name = 'SEA')
+                            report = role.mention + " come spar " + text.author.mention + "!"
+                        else:
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                    elif 'aus' in text.content:
+                        global ausPing
+                        if time() - ausPing > cooldown:
+                            ausPing = time()
+                            role = get(text.guild.roles, name = 'AUS')
+                            report = role.mention + " come spar " + text.author.mention + "!"
+                        else:
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                    elif 'eu' in text.content:
+                        global euPing
+                        if time() - euPing > cooldown:
+                            euPing = time()
+                            role = get(text.guild.roles, name = 'EU')
+                            report = role.mention + " come spar " + text.author.mention + "!"
+                        else:
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                else:
+                    report = "Please only use the spar command in #looking-for-spar, " + text.author.mention + "."
                 await text.channel.send(report)
                 
         if text.content.startswith('!blackjack'):
