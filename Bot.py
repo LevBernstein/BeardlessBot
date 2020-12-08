@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.11
+#Version 8.2.12
 
 #import os
 import random
@@ -444,12 +444,15 @@ class DiscordClass(client):
                 if target.startswith('!'):
                     target = target[1:]
                 target = target[:-1]
-                print("Author: " + str(text.author.id))
-                print("Target: " + target)
-                role = get(text.guild.roles, name = 'Muted')
-                newtarg = await text.guild.fetch_member(str(target))
-                await newtarg.add_roles(role)
-                await text.channel.send("Muted " + str(newtarg.mention) + ".")
+                if target == "654133911558946837":
+                    await text.channel.send("I am too powerful to be muted. Stop trying.")
+                else:
+                    print("Author: " + str(text.author.id))
+                    print("Target: " + target)
+                    role = get(text.guild.roles, name = 'Muted')
+                    newtarg = await text.guild.fetch_member(str(target))
+                    await newtarg.add_roles(role)
+                    await text.channel.send("Muted " + str(newtarg.mention) + ".")
             else:
                 await text.channel.send("You do not have permission to use this command!")
         
