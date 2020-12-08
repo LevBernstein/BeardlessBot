@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.12
+#Version 8.2.13
 
 #import os
 import random
@@ -798,7 +798,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'US-E')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged" + str((time() - usePing)/3600) + " hours ago."
                     elif 'us-w' in text.content or 'usw' in text.content:
                         global uswPing
                         if time() - uswPing > cooldown:
@@ -806,7 +806,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'US-W')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged" + str((time() - usePing)/3600) + " hours ago."
                     elif 'jpn' in text.content:
                         global jpnPing
                         if time() - jpnPing > cooldown:
@@ -814,7 +814,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'JPN')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged" + str((time() - usePing)/3600) + " hours ago."
                     elif 'brz' in text.content:
                         global brzPing
                         if time() - brzPing > cooldown:
@@ -822,7 +822,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'BRZ')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged" + str((time() - usePing)/3600) + " hours ago."
                     elif 'sea' in text.content:
                         global seaPing
                         if time() - seaPing > cooldown:
@@ -830,7 +830,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'SEA')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged" + str((time() - usePing)/3600) + " hours ago."
                     elif 'aus' in text.content:
                         global ausPing
                         if time() - ausPing > cooldown:
@@ -838,7 +838,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'AUS')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + "."
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged" + str((time() - usePing)/3600) + " hours ago."
                     elif 'eu' in text.content:
                         global euPing
                         if time() - euPing > cooldown:
