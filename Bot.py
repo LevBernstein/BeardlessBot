@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.14
+#Version 8.2.15
 
 #import os
 import random
@@ -798,7 +798,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'US-E')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged " + str((time() - usePing)/3600) + " hours ago."
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged " + str((time() - usePing)/3600)[:3] + " hours ago."
                     elif 'us-w' in text.content or 'usw' in text.content:
                         global uswPing
                         if time() - uswPing > cooldown:
@@ -846,7 +846,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'EU')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged" + str((time() - euPing)/3600) + " hours ago."
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged" + str((time() - euPing)/3600)[:3] + " hours ago."
                 else:
                     report = "Please only use !spar in #looking for spar, " + text.author.mention + "."
                 await text.channel.send(report)
