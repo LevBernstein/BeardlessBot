@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.15
+#Version 8.2.16
 
 #import os
 import random
@@ -10,6 +10,7 @@ from discord.ext import commands
 from discord.utils import get
 from time import sleep, time, gmtime
 import random as random
+from math import floor
 import operator
 from collections import OrderedDict
 
@@ -791,6 +792,7 @@ class DiscordClass(client):
                 if text.channel.id == 605083979737071616: #This is the "looking-for-spar" chanel in eggsoup's Discord server.
                     cooldown = 7200
                     report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help."
+                    tooRecent = None
                     if 'us-e' in text.content or 'use' in text.content:
                         global usePing
                         if time() - usePing > cooldown:
@@ -798,7 +800,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'US-E')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged " + str((time() - usePing)/3600)[:3] + " hours ago."
+                            tooRecent = usePing
                     elif 'us-w' in text.content or 'usw' in text.content:
                         global uswPing
                         if time() - uswPing > cooldown:
@@ -806,7 +808,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'US-W')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged " + str((time() - uswPing)/3600)[:3] + " hours ago."
+                            tooRecent = uswPing
                     elif 'jpn' in text.content:
                         global jpnPing
                         if time() - jpnPing > cooldown:
@@ -814,7 +816,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'JPN')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged " + str((time() - jpnPing)/3600)[:3] + " hours ago."
+                            tooRecent = jpnPing
                     elif 'brz' in text.content:
                         global brzPing
                         if time() - brzPing > cooldown:
@@ -822,7 +824,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'BRZ')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged " + str((time() - brzPing)/3600)[:3] + " hours ago."
+                            tooRecent = brzPing
                     elif 'sea' in text.content:
                         global seaPing
                         if time() - seaPing > cooldown:
@@ -830,7 +832,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'SEA')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged " + str((time() - seaPing)/3600)[:3] + " hours ago."
+                            tooRecent = seaPing
                     elif 'aus' in text.content:
                         global ausPing
                         if time() - ausPing > cooldown:
@@ -838,7 +840,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'AUS')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged " + str((time() - ausPing)/3600)[:3] + " hours ago."
+                            tooRecent = ausPing
                     elif 'eu' in text.content:
                         global euPing
                         if time() - euPing > cooldown:
@@ -846,7 +848,15 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'EU')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged" + str((time() - euPing)/3600)[:3] + " hours ago."
+                            tooRecent = usePing
+                    if tooRecent != None:
+                        minutes = (time() - tooRecent)/60 #minutes since pinged
+                        hours = 0
+                        while minutes > 59:
+                            hours += 1
+                            minutes -= 60
+                        minutes = floor(minutes)
+                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged " + str(hours) + " hour(s) and " + str(minutes) + " minutes() ago."
                 else:
                     report = "Please only use !spar in #looking for spar, " + text.author.mention + "."
                 await text.channel.send(report)
