@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.16
+#Version 8.2.17
 
 #import os
 import random
@@ -848,7 +848,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'EU')
                             report = role.mention + " come spar " + text.author.mention + "!"
                         else:
-                            tooRecent = usePing
+                            tooRecent = euPing
                     if tooRecent != None:
                         minutes = (time() - tooRecent)/60 #minutes since pinged
                         hours = 0
