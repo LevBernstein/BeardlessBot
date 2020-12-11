@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.2.17
+#Version 8.3.0
 
 #import os
 import random
@@ -13,6 +13,7 @@ import random as random
 from math import floor
 import operator
 from collections import OrderedDict
+import asyncio
 
 game = False
 f = open("token.txt", "r") #in token.txt, just put in your own discord api token
@@ -159,7 +160,7 @@ class DiscordClass(client):
         print("Bot version 8 online!")
         intents = discord.Intents.default()
         intents.members = True
-        
+    
     @client.event
     async def on_message(text):
         report=""
@@ -441,10 +442,13 @@ class DiscordClass(client):
         if text.content.startswith('-mute ') or text.content.startswith('!mute '):
             if text.author.guild_permissions.manage_messages:
                 print("Original message: " + text.content)
+                print("Channel: " + str(text.channel))
+                print("Guild: " + str(text.guild))
                 target = text.content.split('@', 1)[1]
+                duration = "0"
                 if target.startswith('!'):
                     target = target[1:]
-                target = target[:-1]
+                target, duration = target.split('>', 1)
                 if target == "654133911558946837":
                     await text.channel.send("I am too powerful to be muted. Stop trying.")
                 else:
@@ -454,6 +458,26 @@ class DiscordClass(client):
                     newtarg = await text.guild.fetch_member(str(target))
                     await newtarg.add_roles(role)
                     await text.channel.send("Muted " + str(newtarg.mention) + ".")
+                    mTime = 0.0
+                    print("Duration: " + duration)
+                    print("Shorter duration: " + duration[1:])
+                    if 'h' in duration:
+                        duration = duration[1:]
+                        duration, brick = duration.split('h', 1)
+                        mTime = float(duration) * 3600.0
+                    elif 'm' in duration:
+                        duration = duration[1:]
+                        duration, brick = duration.split('m', 1)
+                        mTime = float(duration) * 60.0
+                    elif 's' in duration:
+                        duration = duration[1:]
+                        duration, brick = duration.split('s', 1)
+                        mTime = float(duration)
+                    if mTime != 0.0:
+                        print(mTime)
+                        await asyncio.sleep(mTime)
+                        await newtarg.remove_roles(role)
+                        print("Unmuted " + text.author.name)
             else:
                 await text.channel.send("You do not have permission to use this command!")
         
@@ -789,7 +813,7 @@ class DiscordClass(client):
                     await newjoiners.send(text.author.mention + " just agreed to the rules.")
                 await text.delete()
             if text.content.startswith('!spar'):
-                if text.channel.id == 605083979737071616: #This is the "looking-for-spar" chanel in eggsoup's Discord server.
+                if text.channel.id == 605083979737071616: #This is the "looking-for-spar" channel in eggsoup's Discord server.
                     cooldown = 7200
                     report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help."
                     tooRecent = None
@@ -799,6 +823,7 @@ class DiscordClass(client):
                             usePing = time()
                             role = get(text.guild.roles, name = 'US-E')
                             report = role.mention + " come spar " + text.author.mention + "!"
+                            tooRecent = None
                         else:
                             tooRecent = usePing
                     elif 'us-w' in text.content or 'usw' in text.content:
@@ -807,6 +832,7 @@ class DiscordClass(client):
                             uswPing = time()
                             role = get(text.guild.roles, name = 'US-W')
                             report = role.mention + " come spar " + text.author.mention + "!"
+                            tooRecent = None
                         else:
                             tooRecent = uswPing
                     elif 'jpn' in text.content:
@@ -815,6 +841,7 @@ class DiscordClass(client):
                             jpnPing = time()
                             role = get(text.guild.roles, name = 'JPN')
                             report = role.mention + " come spar " + text.author.mention + "!"
+                            tooRecent = None
                         else:
                             tooRecent = jpnPing
                     elif 'brz' in text.content:
@@ -823,6 +850,7 @@ class DiscordClass(client):
                             brzPing = time()
                             role = get(text.guild.roles, name = 'BRZ')
                             report = role.mention + " come spar " + text.author.mention + "!"
+                            tooRecent = None
                         else:
                             tooRecent = brzPing
                     elif 'sea' in text.content:
@@ -831,6 +859,7 @@ class DiscordClass(client):
                             seaPing = time()
                             role = get(text.guild.roles, name = 'SEA')
                             report = role.mention + " come spar " + text.author.mention + "!"
+                            tooRecent = None
                         else:
                             tooRecent = seaPing
                     elif 'aus' in text.content:
@@ -839,6 +868,7 @@ class DiscordClass(client):
                             ausPing = time()
                             role = get(text.guild.roles, name = 'AUS')
                             report = role.mention + " come spar " + text.author.mention + "!"
+                            tooRecent = None
                         else:
                             tooRecent = ausPing
                     elif 'eu' in text.content:
@@ -847,6 +877,7 @@ class DiscordClass(client):
                             euPing = time()
                             role = get(text.guild.roles, name = 'EU')
                             report = role.mention + " come spar " + text.author.mention + "!"
+                            tooRecent = None
                         else:
                             tooRecent = euPing
                     if tooRecent != None:
