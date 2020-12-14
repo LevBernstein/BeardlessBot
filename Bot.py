@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.3.0
+#Version 8.3.1
 
 #import os
 import random
@@ -887,7 +887,7 @@ class DiscordClass(client):
                             hours += 1
                             minutes -= 60
                         minutes = floor(minutes)
-                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged " + str(hours) + " hour(s) and " + str(minutes) + " minutes() ago."
+                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged " + str(hours) + " hour(s) and " + str(minutes) + " minute(s) ago."
                 else:
                     report = "Please only use !spar in #looking for spar, " + text.author.mention + "."
                 await text.channel.send(report)
