@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.3.1
+#Version 8.3.2
 
 #import os
 import random
@@ -786,11 +786,11 @@ class DiscordClass(client):
             emb.add_field(name= "!fact", value= "Gives you a random fun fact.", inline=True)
             emb.add_field(name= "!source", value= "Shows you the source of most facts usedin !fact.", inline=True)
             emb.add_field(name= "!flip [number]", value= "Bets a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10.", inline=True)
-            emb.add_field(name= "!d[number][+/-][modifier]", value= "Rolls a [number]-sided die and adds or subtracts the modifier. Example: !d8+3, or !d100-17.", inline=True)
-            emb.add_field(name= "!buy [red/blue/pink/orange]", value= "Takes away 50000 BeardlessBucks from your account and grants you a special color role.", inline=True)
-            emb.add_field(name= "!random [legend/weapon]", value= "Randomly selects a Brawlhalla legend or weapon for you.", inline=True)
-            emb.add_field(name= "!leaderboard", value= "Shows you the BeardlessBucks leaderboard.", inline=True)
             emb.add_field(name= "!blackjack [number]", value= "Starts up a game of blackjack. Once you're in a game, you can use !hit and !stay to play.", inline=True)
+            emb.add_field(name= "!buy [red/blue/pink/orange]", value= "Takes away 50000 BeardlessBucks from your account and grants you a special color role.", inline=True)
+            emb.add_field(name= "!leaderboard", value= "Shows you the BeardlessBucks leaderboard.", inline=True)
+            emb.add_field(name= "!d[number][+/-][modifier]", value= "Rolls a [number]-sided die and adds or subtracts the modifier. Example: !d8+3, or !d100-17.", inline=True)
+            emb.add_field(name= "!random [legend/weapon]", value= "Randomly selects a Brawlhalla legend or weapon for you.", inline=True)
             emb.add_field(name= "!hello", value= "Exchanges a pleasant greeting with the bot.", inline=True)
             emb.add_field(name= "!video", value= "Shows you my latest YouTube video.", inline=True)
             emb.add_field(name= "!add", value= "Gives you a link to add this bot to your server.", inline=True)
@@ -822,8 +822,6 @@ class DiscordClass(client):
                         if time() - usePing > cooldown:
                             usePing = time()
                             role = get(text.guild.roles, name = 'US-E')
-                            report = role.mention + " come spar " + text.author.mention + "!"
-                            tooRecent = None
                         else:
                             tooRecent = usePing
                     elif 'us-w' in text.content or 'usw' in text.content:
@@ -831,8 +829,6 @@ class DiscordClass(client):
                         if time() - uswPing > cooldown:
                             uswPing = time()
                             role = get(text.guild.roles, name = 'US-W')
-                            report = role.mention + " come spar " + text.author.mention + "!"
-                            tooRecent = None
                         else:
                             tooRecent = uswPing
                     elif 'jpn' in text.content:
@@ -840,8 +836,6 @@ class DiscordClass(client):
                         if time() - jpnPing > cooldown:
                             jpnPing = time()
                             role = get(text.guild.roles, name = 'JPN')
-                            report = role.mention + " come spar " + text.author.mention + "!"
-                            tooRecent = None
                         else:
                             tooRecent = jpnPing
                     elif 'brz' in text.content:
@@ -849,8 +843,6 @@ class DiscordClass(client):
                         if time() - brzPing > cooldown:
                             brzPing = time()
                             role = get(text.guild.roles, name = 'BRZ')
-                            report = role.mention + " come spar " + text.author.mention + "!"
-                            tooRecent = None
                         else:
                             tooRecent = brzPing
                     elif 'sea' in text.content:
@@ -858,8 +850,6 @@ class DiscordClass(client):
                         if time() - seaPing > cooldown:
                             seaPing = time()
                             role = get(text.guild.roles, name = 'SEA')
-                            report = role.mention + " come spar " + text.author.mention + "!"
-                            tooRecent = None
                         else:
                             tooRecent = seaPing
                     elif 'aus' in text.content:
@@ -867,8 +857,6 @@ class DiscordClass(client):
                         if time() - ausPing > cooldown:
                             ausPing = time()
                             role = get(text.guild.roles, name = 'AUS')
-                            report = role.mention + " come spar " + text.author.mention + "!"
-                            tooRecent = None
                         else:
                             tooRecent = ausPing
                     elif 'eu' in text.content:
@@ -876,18 +864,18 @@ class DiscordClass(client):
                         if time() - euPing > cooldown:
                             euPing = time()
                             role = get(text.guild.roles, name = 'EU')
-                            report = role.mention + " come spar " + text.author.mention + "!"
-                            tooRecent = None
                         else:
                             tooRecent = euPing
-                    if tooRecent != None:
-                        minutes = (time() - tooRecent)/60 #minutes since pinged
+                    if tooRecent == None:
+                        report = role.mention + " come spar " + text.author.mention + "!"
+                    else:
+                        minutes = 120 - ((time() - tooRecent)/60) #minutes since pinged
                         hours = 0
+                        minutes = floor(minutes)
                         while minutes > 59:
                             hours += 1
                             minutes -= 60
-                        minutes = floor(minutes)
-                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". This region was last pinged " + str(hours) + " hour(s) and " + str(minutes) + " minute(s) ago."
+                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". You can ping again in " + str(hours) + " hour(s) and " + str(minutes) + " minute(s)."
                 else:
                     report = "Please only use !spar in #looking for spar, " + text.author.mention + "."
                 await text.channel.send(report)
