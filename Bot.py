@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.3.2
+#Version 8.3.3
 
 #import os
 import random
@@ -869,13 +869,18 @@ class DiscordClass(client):
                     if tooRecent == None:
                         report = role.mention + " come spar " + text.author.mention + "!"
                     else:
-                        minutes = 120 - ((time() - tooRecent)/60) #minutes since pinged
-                        hours = 0
-                        minutes = floor(minutes)
-                        while minutes > 59:
-                            hours += 1
-                            minutes -= 60
-                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". You can ping again in " + str(hours) + " hour(s) and " + str(minutes) + " minute(s)."
+                        seconds = 7200 - (time() - tooRecent)
+                        minutes = floor(seconds/60)
+                        seconds = floor(seconds % 60)
+                        hours = floor(minutes/60)
+                        minutes = minutes % 60
+                        #minutes = 120 - ((time() - tooRecent)/60) #minutes since pinged
+                        #hours = 0
+                        #minutes = floor(minutes)
+                        #while minutes > 59:
+                            #hours += 1
+                            #minutes -= 60
+                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". You can ping again in " + str(hours) + " hour(s), " + str(minutes) + " minute(s) and " + str(seconds) + " second(s)."
                 else:
                     report = "Please only use !spar in #looking for spar, " + text.author.mention + "."
                 await text.channel.send(report)
