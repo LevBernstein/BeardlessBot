@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.3.12
+#Version 8.3.13
 
 import random
 import discord
@@ -269,13 +269,9 @@ class DiscordClass(client):
                                 x = open("money.csv", "w")
                                 x.writelines(texter)
                                 x.close()
-                                for i in range(len(games)):
-                                    if games[i].namer() == str(text.author):
-                                        games.pop(i)
-                                        break
                                 break
                 for i in range(len(games)):
-                    if games[i].namer() == str(text.author.id):
+                    if games[i].namer() == str(text.author):
                         games.pop(i)
                         break
             await text.channel.send(report)
