@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.3.7
+#Version 8.3.8
 
 #import os
 import random
@@ -796,7 +796,7 @@ class DiscordClass(client):
                 if text.channel.id == 605083979737071616: #This is the "looking-for-spar" channel in eggsoup's Discord server.
                     cooldown = 7200
                     report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help."
-                    tooRecent = False
+                    tooRecent = None
                     found = False
                     if 'us-e' in text.content or 'use' in text.content:
                         found = True
@@ -805,7 +805,7 @@ class DiscordClass(client):
                             usePing = time()
                             role = get(text.guild.roles, name = 'US-E')
                         else:
-                            tooRecent = True
+                            tooRecent = usePing
                     elif 'us-w' in text.content or 'usw' in text.content:
                         found = True
                         global uswPing
@@ -813,7 +813,7 @@ class DiscordClass(client):
                             uswPing = time()
                             role = get(text.guild.roles, name = 'US-W')
                         else:
-                            tooRecent = True
+                            tooRecent = uswPing
                     elif 'jpn' in text.content:
                         found = True
                         global jpnPing
@@ -821,7 +821,7 @@ class DiscordClass(client):
                             jpnPing = time()
                             role = get(text.guild.roles, name = 'JPN')
                         else:
-                            tooRecent = True
+                            tooRecent = jpnPing
                     elif 'brz' in text.content:
                         found = True
                         global brzPing
@@ -829,7 +829,7 @@ class DiscordClass(client):
                             brzPing = time()
                             role = get(text.guild.roles, name = 'BRZ')
                         else:
-                            tooRecent = True
+                            tooRecent = brzPing
                     elif 'sea' in text.content:
                         found = True
                         global seaPing
@@ -837,7 +837,7 @@ class DiscordClass(client):
                             seaPing = time()
                             role = get(text.guild.roles, name = 'SEA')
                         else:
-                            tooRecent = True
+                            tooRecent = seaPing
                     elif 'aus' in text.content:
                         found = True
                         global ausPing
@@ -845,7 +845,7 @@ class DiscordClass(client):
                             ausPing = time()
                             role = get(text.guild.roles, name = 'AUS')
                         else:
-                            tooRecent = True
+                            tooRecent = ausPing
                     elif 'eu' in text.content:
                         found = True
                         global euPing
@@ -853,8 +853,8 @@ class DiscordClass(client):
                             euPing = time()
                             role = get(text.guild.roles, name = 'EU')
                         else:
-                            tooRecent = True
-                    if not tooRecent:
+                            tooRecent = euPing
+                    if tooRecent != None:
                         report = role.mention + " come spar " + text.author.mention + "!"
                     elif found:
                         seconds = 7200 - (time() - tooRecent)
