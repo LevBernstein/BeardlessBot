@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.3.13
+#Version 8.3.14
 
 import random
 import discord
@@ -242,15 +242,15 @@ class DiscordClass(client):
                 result = gamer.stay()
                 report = "The dealer has a total of " + str(gamer.dealerSum) + "."
                 if result == -3:
-                    report += " That's closer to 21 than your sum of " + str(gamer.summer(gamer.cards)) + ". You lose."
+                    report += " That's closer to 21 than your sum of " + str(gamer.summer(gamer.cards)) + ". You lose. Your loss has been deducted from your balance."
                     bet *= -1
                 if result == 0:
                     report += " That ties your sum of " + str(gamer.summer(gamer.cards)) + ". Your money has been returned."
                     bet = 0
                 if result == 3:
-                    report += " You're closer to 21 with a sum of " + str(gamer.summer(gamer.cards)) + ". You win!"
+                    report += " You're closer to 21 with a sum of " + str(gamer.summer(gamer.cards)) + ". You win!  Your winnings have been added to your balance."
                 if result == 4:
-                    report += " You have a sum of " + str(gamer.summer(gamer.cards)) + ". The dealer busts. You win!"
+                    report += " You have a sum of " + str(gamer.summer(gamer.cards)) + ". The dealer busts. You win!  Your winnings have been added to your balance."
                 if bet != 0:
                     with open('money.csv', 'r') as csvfile:
                         reader = csv.reader(csvfile, delimiter=',')
@@ -270,6 +270,8 @@ class DiscordClass(client):
                                 x.writelines(texter)
                                 x.close()
                                 break
+                elif result != 0 or (result == 0 and bet == 0):
+                    report += " However, you bet nothing, so your balance has not changed."
                 for i in range(len(games)):
                     if games[i].namer() == str(text.author):
                         games.pop(i)
