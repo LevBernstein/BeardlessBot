@@ -1,8 +1,7 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.3.8
+#Version 8.3.9
 
-#import os
 import random
 import discord
 import csv
@@ -37,7 +36,7 @@ class Instance:
         self.message = self.deal()
         self.message = self.deal()
         self.State = True
-        print(self.message)
+        #print(self.message)
         #print(self.toString())
 
     def summer(self, cardSet):
@@ -49,12 +48,10 @@ class Instance:
     def perfect(self, cardSet):
         if self.summer(cardSet) == 21:
             return True
-        else:
-            return False
+        return False
     
     def deal(self):
-        if self.summer(self.cards) <11: #this is a basic implementation of Aces being 1 or 11; if 11 would not cause you to bust, it chooses that.
-            vals = [
+        vals = [
                 2,
                 3,
                 4,
@@ -69,27 +66,10 @@ class Instance:
                 10,
                 11
                 ]
-        else:
-            vals = [
-                1,
-                2,
-                3,
-                4,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                10,
-                10,
-                10,
-                ]
         card3 = random.choice(vals)
         #print(card3)
         self.cards.append(card3)
-        #print(len(self.cards))
-        if card3 == 1 or card3 == 11:
+        if card3 == 11:
             self.message = "You were dealt an Ace, bringing your total to " + str(self.summer(self.cards)) + ". " 
         elif card3 == 8:
             self.message = "You were dealt an " + str(card3) + ", bringing your total to " + str(self.summer(self.cards)) + ". "
@@ -125,8 +105,7 @@ class Instance:
     def checkBust(self, cardSet):
         if self.summer(cardSet) > 21:
             return True
-        else:
-            return False
+        return False
 
     def namer(self):
         return str(self.user)
@@ -140,6 +119,7 @@ class Instance:
             return 4
         if self.summer(self.cards) < self.dealerSum:
             return -3
+        return -1
         
 games = [] #Stores the active instances of blacjack. An array might not be the most efficient place to store these, but because this bot sees
 #use on a relatively small scale, this is not an issue.
@@ -168,7 +148,7 @@ class DiscordClass(client):
     
     @client.event
     async def on_message(text):
-        report=""
+        report = "You need to register first! Type !register to get started, " + text.author.mention + "."
         text.content=text.content.lower()
         if text.content.startswith('!blackjack') or text.content.startswith('!bj'):
             print(text.author.id)
@@ -188,15 +168,13 @@ class DiscordClass(client):
             print(bet)
             authorstring = str(text.author)
             if allBet == False and int(strbet) < 0:
-                report = "Invalid bet amount. Choose a value >-1."
+                report = "Invalid bet. Choose a value greater than or equal to 0."
             else:
                 with open('money.csv', 'r') as csvfile:
                     reader = csv.reader(csvfile, delimiter=',')
                     line=0
-                    exist4=False
                     for row in reader:
                         if str(text.author.id) == row[0]:
-                            exist4=True
                             tempname=row[2]
                             bank = int(row[1])
                             if allBet:
@@ -232,12 +210,10 @@ class DiscordClass(client):
                                 else:
                                     report = "You do not have enough BeardlessBucks to bet that much, " + text.author.mention + "!"
                             break
-                    if exist4 == False:
-                        report = "You need to register first! Type !register to get started, " + text.author.mention + "."
             await text.channel.send(report)
         
-        if (text.content.startswith('!deal') or text.content.startswith('!hit')) and not text.content.startswith('!hitler'): # People once dealt by typing !hitler. This makes it so they can't do that.
-            report = "error"
+        if text.content.startswith('!deal') or text.content.equals('!hit'):
+            report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
             authorstring = str(text.author)
             exist5 = False
             for i in range(len(games)):
@@ -245,9 +221,7 @@ class DiscordClass(client):
                     exist5 = True
                     gamer = games[i]
                     break
-            if exist5 == False:
-                report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
-            else:
+            if exist5:
                 report = gamer.deal()
                 if gamer.checkBust(gamer.cards) == True or gamer.perfect(gamer.cards) == True:
                     if gamer.checkBust(gamer.cards) == True:
@@ -280,7 +254,7 @@ class DiscordClass(client):
             await text.channel.send(report)
 
         if text.content.startswith('!stay') or text.content.startswith('!stand'):
-            report = ""
+            report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
             authorstring = str(text.author)
             exist5 = False
             for i in range(len(games)):
@@ -289,9 +263,7 @@ class DiscordClass(client):
                     gamer = games[i]
                     bet = gamer.bet
                     break
-            if exist5 == False:
-                report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
-            else:
+            if exist5:
                 result = gamer.stay()
                 report = "The dealer has a total of " + str(gamer.dealerSum) + "."
                 if result == -3:
@@ -798,23 +770,7 @@ class DiscordClass(client):
                     report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help."
                     tooRecent = None
                     found = False
-                    if 'us-e' in text.content or 'use' in text.content:
-                        found = True
-                        global usePing
-                        if time() - usePing > cooldown:
-                            usePing = time()
-                            role = get(text.guild.roles, name = 'US-E')
-                        else:
-                            tooRecent = usePing
-                    elif 'us-w' in text.content or 'usw' in text.content:
-                        found = True
-                        global uswPing
-                        if time() - uswPing > cooldown:
-                            uswPing = time()
-                            role = get(text.guild.roles, name = 'US-W')
-                        else:
-                            tooRecent = uswPing
-                    elif 'jpn' in text.content:
+                    if 'jpn' in text.content:
                         found = True
                         global jpnPing
                         if time() - jpnPing > cooldown:
@@ -830,6 +786,22 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'BRZ')
                         else:
                             tooRecent = brzPing
+                    elif 'us-w' in text.content or 'usw' in text.content:
+                        found = True
+                        global uswPing
+                        if time() - uswPing > cooldown:
+                            uswPing = time()
+                            role = get(text.guild.roles, name = 'US-W')
+                        else:
+                            tooRecent = uswPing
+                    elif 'us-e' in text.content or 'use' in text.content:
+                        found = True
+                        global usePing
+                        if time() - usePing > cooldown:
+                            usePing = time()
+                            role = get(text.guild.roles, name = 'US-E')
+                        else:
+                            tooRecent = usePing
                     elif 'sea' in text.content:
                         found = True
                         global seaPing
@@ -854,7 +826,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'EU')
                         else:
                             tooRecent = euPing
-                    if tooRecent != None:
+                    if tooRecent is not None:
                         report = role.mention + " come spar " + text.author.mention + "!"
                     elif found:
                         seconds = 7200 - (time() - tooRecent)
