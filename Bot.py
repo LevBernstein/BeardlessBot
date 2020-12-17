@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.3.4
+#Version 8.3.5
 
 #import os
 import random
@@ -25,7 +25,7 @@ token = f.readline()
 class Instance:
     def __init__(self, user, bet):
         #self.cards = cards
-        self.user = user
+        self.user = user # TODO: Replace str user with a Member object
         self.bet = bet
         self.cards = []
         self.dealerSum = 0
@@ -73,8 +73,7 @@ class Instance:
                 10,
                 11
                 ]
-            card3 = random.choice(vals)
-        if self.summer(self.cards) >=11:
+        else:
             vals = [
                 1,
                 2,
@@ -90,15 +89,26 @@ class Instance:
                 10,
                 10,
                 ]
-            card3 = random.choice(vals)
+        card3 = random.choice(vals)
         #print(card3)
         self.cards.append(card3)
         self.count +=1
         #print(len(self.cards))
-        if card3 == 8 or card3 == 11:
-            self.message = "You were dealt an " + str(card3) + ", bringing your total to " + str(self.summer(self.cards)) + ". " + self.toString() + " The dealer is showing " + str(self.dealerUp) + ", with one card face down."
+        if card3 == 1 or card3 == 11:
+            self.message = "You were dealt an Ace, bringing your total to " + str(self.summer(self.cards)) + ". " 
+        elif card3 == 8:
+            self.message = "You were dealt an " + str(card3) + ", bringing your total to " + str(self.summer(self.cards)) + ". "
+        elif card3 == 10:
+            self.message = "You were dealt a " + random.choice(["10", "Jack", "Queen", "King"]) + ", bringing your total to " + str(self.summer(self.cards)) + ". "
         else:
-            self.message = "You were dealt a " + str(card3) + ", bringing your total to " + str(self.summer(self.cards)) + ". " + self.toString() + " The dealer is showing " + str(self.dealerUp) + ", with one card face down."
+            self.message = "You were dealt a " + str(card3) + ", bringing your total to " + str(self.summer(self.cards)) + ". "
+        if 11 in self.cards and self.checkBust(self.cards):
+            for i in range(len(self.cards)):
+                if self.cards[i] == 11:
+                    self.cards[i] = 1
+                    break
+            self.message += "Because you would have busted, your Ace has been changed from an 11 to 1 . Your new total is " + str(self.summer(self.cards)) + ". "
+        self.message += self.toString() + " The dealer is showing " + str(self.dealerUp) + ", with one card face down."
         if self.checkBust(self.cards):
             self.message += " You busted. Game over, " + self.user[0:-5] + "."
             self.state = False
@@ -340,7 +350,6 @@ class DiscordClass(client):
                 bet = 0
             else:
                 bet = int(strbet)
-            authorstring=""
             authorstring = str(text.author.id)
             if allBet == False and int(strbet) < 0:
                 report = "Invalid bet amount. Choose a value >-1, " + text.author.mention + "."
@@ -365,16 +374,13 @@ class DiscordClass(client):
                                 report = "Finish your game of blackjack first, " +  text.author.mention + "."
                                 break
                             if bet <= bank: # As of 4 PM ET on November 14th, 2020, there have been ~17235 flips that got tails and ~17284 flips that got heads in the eggsoup server. This is 50/50. Stop complaining.
-                                results = [
-                                "Heads!", 
-                                "Tails!"
-                                ]
+                                results = [1, 0]
                                 result = random.choice(results)
-                                if result=="Heads!":
+                                if result==1:
                                     change = bet
                                     report = "Heads! You win! Your winnings have been added to your balance, " + text.author.mention + "."
                                     totalsum=bank+change
-                                if result=="Tails!":
+                                else:
                                     change = bet * -1
                                     report = "Tails! You lose! Your loss has been deducted from your balance, " + text.author.mention + "."
                                     totalsum=bank+change
@@ -388,6 +394,7 @@ class DiscordClass(client):
                                 x.close()
                             else:
                                 report = "You do not have enough BeardlessBucks to bet that much, " + text.author.mention + "!"
+                            break
                     if exist4==False:
                         report = "You need to register first! Type !register, " + text.author.mention + "!"
             await text.channel.send(report)
@@ -396,44 +403,45 @@ class DiscordClass(client):
             print("Running buy...")
             authorstring = str(text.author.id)
             with open('money.csv', 'r') as csvfile:
-                    content3 = (text.content)[5:]
-                    print(content3)
-                    content4 = (text.content)[6:]
-                    print(content4)
-                    reader = csv.reader(csvfile, delimiter=',')
-                    line=0
-                    exist4=False
-                    for row in reader:
-                        tempname = row[0]
-                        if authorstring==tempname:
-                            exist4=True
-                            bank = int(row[1])
-                            if  (content3=="blue" or content3 == "red" or content3 == "orange" or content3 == "pink" or content4=="blue" or content4 == "red" or content4 == "orange" or content4 == "pink"):
-                                print("Valid color")
-                                if  50000 <= bank:
-                                    print("Valid money")
-                                    if (content3=="blue" or content4=="blue"):
-                                        role = get(text.guild.roles, name = 'special blue')
-                                    if (content3=="pink" or content4=="pink"):
-                                        role = get(text.guild.roles, name = 'special pink')
-                                    if (content3=="orange" or content4=="orange"):
-                                        role = get(text.guild.roles, name = 'special orange')
-                                    if (content3=="red" or content4=="red"):
-                                        role = get(text.guild.roles, name = 'special red')
-                                    oldliner = tempname + "," + str(bank)+ "," + row[2]
-                                    liner = tempname + "," + str(bank - 50000)+ "," + str(text.author)
-                                    texter = open("money.csv", "r")
-                                    texter = ''.join([i for i in texter]) \
-                                            .replace(oldliner, liner)
-                                    x = open("money.csv", "w")
-                                    x.writelines(texter)
-                                    x.close()
-                                    await text.author.add_roles(role)
-                                    report = "Color purchased successfully, " + text.author.mention + "!"
-                                else:
-                                    report = "Not enough Beardess Bucks. You need 50000 to buy a special color, " + text.author.mention + "."
+                content3 = (text.content)[5:]
+                print(content3)
+                content4 = (text.content)[6:]
+                print(content4)
+                reader = csv.reader(csvfile, delimiter=',')
+                line=0
+                exist4=False
+                for row in reader:
+                    tempname = row[0]
+                    if authorstring==tempname:
+                        exist4=True
+                        bank = int(row[1])
+                        if  (content3=="blue" or content3 == "red" or content3 == "orange" or content3 == "pink" or content4=="blue" or content4 == "red" or content4 == "orange" or content4 == "pink"):
+                            print("Valid color")
+                            if  50000 <= bank:
+                                print("Valid money")
+                                if (content3=="blue" or content4=="blue"):
+                                    role = get(text.guild.roles, name = 'special blue')
+                                if (content3=="pink" or content4=="pink"):
+                                    role = get(text.guild.roles, name = 'special pink')
+                                if (content3=="orange" or content4=="orange"):
+                                    role = get(text.guild.roles, name = 'special orange')
+                                if (content3=="red" or content4=="red"):
+                                    role = get(text.guild.roles, name = 'special red')
+                                oldliner = tempname + "," + str(bank)+ "," + row[2]
+                                liner = tempname + "," + str(bank - 50000)+ "," + str(text.author)
+                                texter = open("money.csv", "r")
+                                texter = ''.join([i for i in texter]) \
+                                        .replace(oldliner, liner)
+                                x = open("money.csv", "w")
+                                x.writelines(texter)
+                                x.close()
+                                await text.author.add_roles(role)
+                                report = "Color purchased successfully, " + text.author.mention + "!"
                             else:
-                                report = "Invalid color. Choose blue, red, orange, or pink, " + text.author.mention + "."
+                                report = "Not enough Beardess Bucks. You need 50000 to buy a special color, " + text.author.mention + "."
+                        else:
+                            report = "Invalid color. Choose blue, red, orange, or pink, " + text.author.mention + "."
+                        break
             await text.channel.send(report)
         
         if text.content.startswith('?av ben'):
@@ -458,9 +466,7 @@ class DiscordClass(client):
                     newtarg = await text.guild.fetch_member(str(target))
                     await newtarg.add_roles(role)
                     await text.channel.send("Muted " + str(newtarg.mention) + ".")
-                    mTime = 0.0
-                    print("Duration: " + duration)
-                    print("Shorter duration: " + duration[1:])
+                    mTime = 0.0 # Autounmute:
                     if 'h' in duration:
                         duration = duration[1:]
                         duration, brick = duration.split('h', 1)
@@ -505,7 +511,7 @@ class DiscordClass(client):
             linker = ' Here\'s my playlist (discord will only show the first hundred songs): https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg'
             await text.channel.send(linker)
         
-        if text.content.startswith('!leaderboard'): #This is incredibly memory inefficient. It's not a concern now, but if money.csv becomes sufficiently large, this code will require a rewrite. I doubt that will happen.
+        if text.content.startswith('!leaderboard'): #This is incredibly memory inefficient. It's not a concern now, but if money.csv becomes sufficiently large, this code will require a rewrite.
             storedVals = []
             storedNames = []
             finalList = []
@@ -675,17 +681,7 @@ class DiscordClass(client):
             await text.channel.send(buckmessage)
         
         if text.content.startswith("!hello"):
-            answers = [
-                "How ya doin?",
-                "Yo!",
-                "What's cookin?",
-                "Hello!",
-                "Ahoy!",
-                "Hi!",
-                "What's up?",
-                "Hey!"
-                ]
-            print(text.author)
+            answers = ["How ya doin?", "Yo!", "What's cookin?", "Hello!", "Ahoy!", "Hi!", "What's up?","Hey!"]
             await text.channel.send(random.choice(answers))
         
         if text.content.startswith("!source"):
@@ -703,19 +699,7 @@ class DiscordClass(client):
                 "Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako"]
                 ran = "Your legend is " + random.choice(legends) + "."
             if text.content.startswith("!random weapon") or text.content.startswith("!randomweapon") or text.content.startswith("!weapon") :
-                weapons = [
-                "Sword",
-                "Spear",
-                "Orb",
-                "Cannon",
-                "Hammer",
-                "Scythe",
-                "Greatsword",
-                "Bow",
-                "Gauntlets",
-                "Katars",
-                "Blasters",
-                "Axe"]
+                weapons = [ "Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"]
                 ran = "Your weapon is " + random.choice(weapons) + "."
             await text.channel.send(ran)
         
@@ -774,8 +758,7 @@ class DiscordClass(client):
                 "My creator holds the speedrun world record in every Go Diego Go! DS game, and some on other platforms, too. Check them out at speedrun.com/user/Captain-No-Beard",
                 "There's a preserved bar tab from three days before delegates signed the American Constitution, and they drank 54 bottles of Madeira, 60 bottles of claret, 22 bottles of porter, 12 bottles of beer, 8 bottles of cider and 7 bowls of punch. It was for 55 people."
                     ]
-            response = random.choice(facts)
-            await text.channel.send(response)
+            await text.channel.send(random.choice(facts))
         
         if text.content.startswith("!help") or text.content.startswith("!commands"):
             emb = discord.Embed(title="Beardless Bot Commands", description="", color=0xfff994)
@@ -798,14 +781,14 @@ class DiscordClass(client):
             await text.channel.send(embed=emb)
         
         if text.guild.id == 442403231864324119: #Commands only used in eggsoup's Discord server.
-            """if text.content.startswith('!pumpkin'):
+            """if text.content.startswith('!pumpkin'): # DEPRECATED
                 sleep(.5)
                 await text.channel.send("Boo 2! A Madea Halloween")"""
             if text.content.startswith('!reddit'):
                 await text.channel.send("https://www.reddit.com/r/eggsoup/")
             if text.channel.name == 'welcome-and-rules': #In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
                 #print(text.channel.name)
-                if text.content.startswith('?agree') or text.content.startswith('agree') or text.content.startswith('!agree'):
+                if 'agree' in text.content:
                     print(str(text.author) + " agreed")
                     role = get(text.guild.roles, name = 'member')
                     await text.author.add_roles(role)
