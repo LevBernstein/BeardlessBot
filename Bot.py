@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.3.5
+#Version 8.3.7
 
 #import os
 import random
@@ -33,7 +33,6 @@ class Instance:
         self.dealerSum += self.dealerUp
         while self.dealerSum <17:
             self.dealerSum += random.randint(2,10)
-        self.count = 0
         self.message = ""
         self.message = self.deal()
         self.message = self.deal()
@@ -46,9 +45,6 @@ class Instance:
         for i in range(len(cardSet)):
             total += cardSet[i]
         return total
-
-    def dealt(self):
-        return self.count
 
     def perfect(self, cardSet):
         if self.summer(cardSet) == 21:
@@ -92,7 +88,6 @@ class Instance:
         card3 = random.choice(vals)
         #print(card3)
         self.cards.append(card3)
-        self.count +=1
         #print(len(self.cards))
         if card3 == 1 or card3 == 11:
             self.message = "You were dealt an Ace, bringing your total to " + str(self.summer(self.cards)) + ". " 
@@ -175,13 +170,15 @@ class DiscordClass(client):
     async def on_message(text):
         report=""
         text.content=text.content.lower()
-        if text.content.startswith('!blackjack'):
+        if text.content.startswith('!blackjack') or text.content.startswith('!bj'):
             print(text.author.id)
-            if len(str(text.content))>10:
+            strbet = '10'
+            if text.content.startswith('!blackjack') and len(str(text.content)) > 11:
                 strbet = text.content.split('!blackjack ',1)[1]
                 #print(strbet)
-            else:
-                strbet = 10
+            if text.content.startswith('!bj') and len(str(text.content)) > 4:
+                strbet = text.content.split('!bj ',1)[1]
+                #print(strbet)
             allBet = False
             if strbet == "all":
                 allBet = True
@@ -483,7 +480,7 @@ class DiscordClass(client):
                         print(mTime)
                         await asyncio.sleep(mTime)
                         await newtarg.remove_roles(role)
-                        print("Unmuted " + text.author.name)
+                        print("Unmuted " + newtarg.name)
             else:
                 await text.channel.send("You do not have permission to use this command!")
         
