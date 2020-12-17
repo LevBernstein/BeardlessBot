@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.3.9
+#Version 8.3.10
 
 import random
 import discord
@@ -20,21 +20,20 @@ token = f.readline()
 
 
 #Blackjack class. New instance is made for each game of Blackjack and is kept around until the player finishes the game.
-#An active instance prevents the creation of a new instance.
+#An active instance for a given user prevents the creation of a new instance.
 class Instance:
     def __init__(self, user, bet):
         #self.cards = cards
         self.user = user # TODO: Replace str user with a Member object
         self.bet = bet
         self.cards = []
-        self.dealerSum = 0
         self.dealerUp = random.randint(2,11)
-        self.dealerSum += self.dealerUp
+        self.dealerSum = self.dealerUp
         while self.dealerSum <17:
-            self.dealerSum += random.randint(2,10)
-        self.message = ""
+            self.dealerSum += random.randint(1,10)
         self.message = self.deal()
         self.message = self.deal()
+        self.vals = [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11]
         self.State = True
         #print(self.message)
         #print(self.toString())
@@ -51,22 +50,8 @@ class Instance:
         return False
     
     def deal(self):
-        vals = [
-                2,
-                3,
-                4,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                10,
-                10,
-                10,
-                11
-                ]
-        card3 = random.choice(vals)
+        
+        card3 = random.choice(self.vals)
         #print(card3)
         self.cards.append(card3)
         if card3 == 11:
@@ -119,7 +104,7 @@ class Instance:
             return 4
         if self.summer(self.cards) < self.dealerSum:
             return -3
-        return -1
+        return -1 # Error
         
 games = [] #Stores the active instances of blacjack. An array might not be the most efficient place to store these, but because this bot sees
 #use on a relatively small scale, this is not an issue.
@@ -172,7 +157,6 @@ class DiscordClass(client):
             else:
                 with open('money.csv', 'r') as csvfile:
                     reader = csv.reader(csvfile, delimiter=',')
-                    line=0
                     for row in reader:
                         if str(text.author.id) == row[0]:
                             tempname=row[2]
@@ -212,7 +196,7 @@ class DiscordClass(client):
                             break
             await text.channel.send(report)
         
-        if text.content.startswith('!deal') or text.content.equals('!hit'):
+        if text.content.startswith('!deal') or text.content == '!hit':
             report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
             authorstring = str(text.author)
             exist5 = False
@@ -230,7 +214,6 @@ class DiscordClass(client):
                         bet = gamer.bet
                     with open('money.csv', 'r') as csvfile:
                         reader = csv.reader(csvfile, delimiter=',')
-                        line=0
                         exist4=False
                         for row in reader:
                             tempname = str(text.author)
@@ -264,6 +247,7 @@ class DiscordClass(client):
                     bet = gamer.bet
                     break
             if exist5:
+                neutral = False
                 result = gamer.stay()
                 report = "The dealer has a total of " + str(gamer.dealerSum) + "."
                 if result == -3:
@@ -276,29 +260,29 @@ class DiscordClass(client):
                     report += " You're closer to 21 with a sum of " + str(gamer.summer(gamer.cards)) + ". You win!"
                 if result == 4:
                     report += " You have a sum of " + str(gamer.summer(gamer.cards)) + ". The dealer busts. You win!"
-                with open('money.csv', 'r') as csvfile:
-                    reader = csv.reader(csvfile, delimiter=',')
-                    line=0
-                    exist4=False
-                    for row in reader:
-                        tempname = row[0]
-                        if str(text.author.id) == tempname:
-                            exist4=True
-                            bank = int(row[1])
-                            totalsum = bank + bet
-                            oldliner = str(text.author.id) + "," + str(bank)+ "," + row[2]
-                            liner = str(text.author.id) + "," + str(totalsum)+ "," + str(text.author)
-                            texter = open("money.csv", "r")
-                            texter = ''.join([i for i in texter]) \
-                                .replace(oldliner, liner)
-                            x = open("money.csv", "w")
-                            x.writelines(texter)
-                            x.close()
-                            for i in range(len(games)):
-                                if games[i].namer() == str(text.author):
-                                    games.pop(i)
-                                    break
-                            break
+                if bet != 0:
+                    with open('money.csv', 'r') as csvfile:
+                        reader = csv.reader(csvfile, delimiter=',')
+                        exist4=False
+                        for row in reader:
+                            tempname = row[0]
+                            if str(text.author.id) == tempname:
+                                exist4=True
+                                bank = int(row[1])
+                                totalsum = bank + bet
+                                oldliner = str(text.author.id) + "," + str(bank)+ "," + row[2]
+                                liner = str(text.author.id) + "," + str(totalsum)+ "," + str(text.author)
+                                texter = open("money.csv", "r")
+                                texter = ''.join([i for i in texter]) \
+                                    .replace(oldliner, liner)
+                                x = open("money.csv", "w")
+                                x.writelines(texter)
+                                x.close()
+                                for i in range(len(games)):
+                                    if games[i].namer() == str(text.author):
+                                        games.pop(i)
+                                        break
+                                break
                 for i in range(len(games)):
                     if games[i].namer() == str(text.author.id):
                         games.pop(i)
@@ -307,8 +291,6 @@ class DiscordClass(client):
             
         if text.content.startswith('!flip'):
             print(text.author)
-            change=0
-            totalSum=0
             allBet = False
             if len(text.content)>5:
                 strbet = text.content.split('!flip ',1)[1]
@@ -325,7 +307,6 @@ class DiscordClass(client):
             else:
                 with open('money.csv', 'r') as csvfile:
                     reader = csv.reader(csvfile, delimiter=',')
-                    line=0
                     exist4=False
                     for row in reader:
                         tempname = row[0]
@@ -353,14 +334,17 @@ class DiscordClass(client):
                                     change = bet * -1
                                     report = "Tails! You lose! Your loss has been deducted from your balance, " + text.author.mention + "."
                                     totalsum=bank+change
-                                oldliner = tempname + "," + str(bank)+ "," + row[2]
-                                liner = tempname + "," + str(totalsum)+ "," + str(text.author)
-                                texter = open("money.csv", "r")
-                                texter = ''.join([i for i in texter]) \
-                                    .replace(oldliner, liner)
-                                x = open("money.csv", "w")
-                                x.writelines(texter)
-                                x.close()
+                                if change == 0:
+                                    report += " Or rather, it would have been, if you had actually bet anything."
+                                else:
+                                    oldliner = tempname + "," + str(bank)+ "," + row[2]
+                                    liner = tempname + "," + str(totalsum)+ "," + str(text.author)
+                                    texter = open("money.csv", "r")
+                                    texter = ''.join([i for i in texter]) \
+                                        .replace(oldliner, liner)
+                                    x = open("money.csv", "w")
+                                    x.writelines(texter)
+                                    x.close()
                             else:
                                 report = "You do not have enough BeardlessBucks to bet that much, " + text.author.mention + "!"
                             break
@@ -377,7 +361,6 @@ class DiscordClass(client):
                 content4 = (text.content)[6:]
                 print(content4)
                 reader = csv.reader(csvfile, delimiter=',')
-                line=0
                 exist4=False
                 for row in reader:
                     tempname = row[0]
@@ -487,7 +470,6 @@ class DiscordClass(client):
             diction = {}
             diction2 = {}
             names = []
-            #finalString = ""
             emb = discord.Embed(title="BeardlessBucks Leaderboard", description="", color=0xfff994)
             with open('money.csv') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
@@ -509,7 +491,6 @@ class DiscordClass(client):
                         sortedDict.pop(x)
                     break
             print(sortedDict)
-            counter = 0
             for x, y in sortedDict.items():
                 names.append(x)
             for i in range(len(names)):
@@ -575,11 +556,9 @@ class DiscordClass(client):
             await text.channel.send(report)
 
         if text.content.startswith('!reset'):
-            authorstring=""
             authorstring = str(text.author.id)
             with open('money.csv') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
-                line=0
                 exist=False
                 for row in reader:
                     #print(text.author)
@@ -606,11 +585,9 @@ class DiscordClass(client):
             await text.channel.send('You have been reset to 200 BeardlessBucks, ' + text.author.mention + ".")
         
         if text.content.startswith("!balance"):
-            authorstring=""
             authorstring = str(text.author.id)
             with open('money.csv') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
-                line=0
                 exist2=False
                 for row in reader:
                     tempname = row[0]
@@ -622,12 +599,10 @@ class DiscordClass(client):
                 await text.channel.send(message2)
         
         if text.content.startswith("!register"): #Make sure money.csv is not open in any other program
-            authorstring=""
             authorstring = str(text.author.id)
             print(authorstring)
             with open('money.csv') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
-                line=0
                 exist=False
                 for row in reader:
                     #print(text.author)
