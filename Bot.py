@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.3.10
+#Version 8.3.12
 
 import random
 import discord
@@ -23,7 +23,6 @@ token = f.readline()
 #An active instance for a given user prevents the creation of a new instance.
 class Instance:
     def __init__(self, user, bet):
-        #self.cards = cards
         self.user = user # TODO: Replace str user with a Member object
         self.bet = bet
         self.cards = []
@@ -31,12 +30,10 @@ class Instance:
         self.dealerSum = self.dealerUp
         while self.dealerSum <17:
             self.dealerSum += random.randint(1,10)
-        self.message = self.deal()
-        self.message = self.deal()
         self.vals = [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11]
+        self.message = self.deal()
+        self.message = self.deal()
         self.State = True
-        #print(self.message)
-        #print(self.toString())
 
     def summer(self, cardSet):
         total = 0
@@ -50,7 +47,6 @@ class Instance:
         return False
     
     def deal(self):
-        
         card3 = random.choice(self.vals)
         #print(card3)
         self.cards.append(card3)
@@ -82,7 +78,6 @@ class Instance:
     def toString(self):
         stringer = "Your cards are "
         for i in range(len(self.cards)):
-            #print(self.cards[i])
             stringer += str(self.cards[i]) + ", "
         stringer = stringer[0:-2] + "."
         return stringer
@@ -136,21 +131,17 @@ class DiscordClass(client):
         report = "You need to register first! Type !register to get started, " + text.author.mention + "."
         text.content=text.content.lower()
         if text.content.startswith('!blackjack') or text.content.startswith('!bj'):
-            print(text.author.id)
             strbet = '10'
             if text.content.startswith('!blackjack') and len(str(text.content)) > 11:
                 strbet = text.content.split('!blackjack ',1)[1]
-                #print(strbet)
             if text.content.startswith('!bj') and len(str(text.content)) > 4:
                 strbet = text.content.split('!bj ',1)[1]
-                #print(strbet)
             allBet = False
             if strbet == "all":
                 allBet = True
                 bet = 0
             else:
                 bet = int(strbet)
-            print(bet)
             authorstring = str(text.author)
             if allBet == False and int(strbet) < 0:
                 report = "Invalid bet. Choose a value greater than or equal to 0."
@@ -252,7 +243,7 @@ class DiscordClass(client):
                 report = "The dealer has a total of " + str(gamer.dealerSum) + "."
                 if result == -3:
                     report += " That's closer to 21 than your sum of " + str(gamer.summer(gamer.cards)) + ". You lose."
-                    bet = bet * -1
+                    bet *= -1
                 if result == 0:
                     report += " That ties your sum of " + str(gamer.summer(gamer.cards)) + ". Your money has been returned."
                     bet = 0
@@ -290,9 +281,9 @@ class DiscordClass(client):
             await text.channel.send(report)
             
         if text.content.startswith('!flip'):
-            print(text.author)
+            print(text.author.name + ": " + text.content)
             allBet = False
-            if len(text.content)>5:
+            if len(text.content) > 5:
                 strbet = text.content.split('!flip ',1)[1]
             else:
                 strbet = 10
@@ -315,7 +306,6 @@ class DiscordClass(client):
                             bank = int(row[1])
                             if allBet:
                                 bet = bank
-                            print(bet)
                             exist5 = False
                             for i in range(len(games)):
                                 if games[i].namer() == str(text.author):
@@ -335,7 +325,7 @@ class DiscordClass(client):
                                     report = "Tails! You lose! Your loss has been deducted from your balance, " + text.author.mention + "."
                                     totalsum=bank+change
                                 if change == 0:
-                                    report += " Or rather, it would have been, if you had actually bet anything."
+                                    report += " However, you bet nothing, so your balance will not change."
                                 else:
                                     oldliner = tempname + "," + str(bank)+ "," + row[2]
                                     liner = tempname + "," + str(totalsum)+ "," + str(text.author)
@@ -368,9 +358,9 @@ class DiscordClass(client):
                         exist4=True
                         bank = int(row[1])
                         if  (content3=="blue" or content3 == "red" or content3 == "orange" or content3 == "pink" or content4=="blue" or content4 == "red" or content4 == "orange" or content4 == "pink"):
-                            print("Valid color")
+                            #print("Valid color")
                             if  50000 <= bank:
-                                print("Valid money")
+                                #print("Valid money")
                                 if (content3=="blue" or content4=="blue"):
                                     role = get(text.guild.roles, name = 'special blue')
                                 if (content3=="pink" or content4=="pink"):
@@ -401,19 +391,16 @@ class DiscordClass(client):
         
         if text.content.startswith('-mute ') or text.content.startswith('!mute '):
             if text.author.guild_permissions.manage_messages:
-                print("Original message: " + text.content)
-                print("Channel: " + str(text.channel))
-                print("Guild: " + str(text.guild))
+                #print("Original message: " + text.content + " in Channel: " + str(text.channel) + " in Server: " + str(text.guild))
                 target = text.content.split('@', 1)[1]
                 duration = "0"
-                if target.startswith('!'):
+                if target.startswith('!'): # Resolves a discrepancy between mobile and desktop Discord
                     target = target[1:]
                 target, duration = target.split('>', 1)
                 if target == "654133911558946837":
                     await text.channel.send("I am too powerful to be muted. Stop trying.")
                 else:
-                    print("Author: " + str(text.author.id))
-                    print("Target: " + target)
+                    print("Author: " + str(text.author.id) + " muting target: " + target)
                     role = get(text.guild.roles, name = 'Muted')
                     newtarg = await text.guild.fetch_member(str(target))
                     await newtarg.add_roles(role)
