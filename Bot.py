@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.3.14
+#Version 8.3.15
 
 import random
 import discord
@@ -755,8 +755,11 @@ class DiscordClass(client):
                         else:
                             tooRecent = uswPing
                     elif 'us-e' in text.content or 'use' in text.content:
+                        print('us-e')
                         found = True
                         global usePing
+                        print(time() - usePing)
+                        print(cooldown)
                         if time() - usePing > cooldown:
                             usePing = time()
                             role = get(text.guild.roles, name = 'US-E')
@@ -786,7 +789,7 @@ class DiscordClass(client):
                             role = get(text.guild.roles, name = 'EU')
                         else:
                             tooRecent = euPing
-                    if tooRecent is not None:
+                    if tooRecent == None and found:
                         report = role.mention + " come spar " + text.author.mention + "!"
                     elif found:
                         seconds = 7200 - (time() - tooRecent)
