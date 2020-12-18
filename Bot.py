@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.3.15
+#Version 8.3.16
 
 import random
 import discord
@@ -251,7 +251,7 @@ class DiscordClass(client):
                     report += " You're closer to 21 with a sum of " + str(gamer.summer(gamer.cards)) + ". You win!  Your winnings have been added to your balance."
                 if result == 4:
                     report += " You have a sum of " + str(gamer.summer(gamer.cards)) + ". The dealer busts. You win!  Your winnings have been added to your balance."
-                if bet != 0:
+                if result != 0 and bet != 0:
                     with open('money.csv', 'r') as csvfile:
                         reader = csv.reader(csvfile, delimiter=',')
                         exist4=False
