@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.3.16
+#Version 8.4.0
 
 import random
 import discord
@@ -101,9 +101,9 @@ class Instance:
             return -3
         return -1 # Error
         
-games = [] #Stores the active instances of blacjack. An array might not be the most efficient place to store these, but because this bot sees
-#use on a relatively small scale, this is not an issue.
-#These ping ints are for keeping track of pings in eggsoup's Discord server.
+games = [] # Stores the active instances of blacjack. An array might not be the most efficient place to store these, but because this bot sees
+# use on a relatively small scale, this is not an issue.
+# These ping ints are for keeping track of pings in eggsoup's Discord server.
 usePing = 0
 uswPing = 0
 euPing = 0
@@ -114,17 +114,35 @@ brzPing = 0
 
 client = discord.Client()
 class DiscordClass(client):
+    
+    intents = discord.Intents()
+    intents.members = True
+    '''
     def __init__(self):
         super().__init__(intents.members())
         super().__init__(chunk_guilds_at_startup = True)
         super().__init__(fetch_all_members=True)
-    
+    '''
+   
     @client.event
     async def on_ready():
         await client.change_presence(activity=discord.Game(name='try !blackjack and !flip'))
         print("Bot version 8 online!")
         intents = discord.Intents.default()
         intents.members = True
+    
+    @client.event 
+    async def on_member_join(member): # Currently inactive.
+        print(member.guild.id)
+        if member.guild.id == 442403231864324119:
+            channel = await member.create_dm()
+            emb = discord.Embed(title="Welcome to the eggsoup Discord server!", description="", color=0xfff994)
+            emb.add_field(name= "_ _", value= "Hello! In order to gain access to the server, read through the rules in #welcome-and-rules and follow the instructions. If you have read the rules *completely* and followed all the instructions but you still have not been granted access to the server, please send a message to Captain No-Beard#7511. *This message was sent automatically. I am a robot. If you have any questions, please message Captain No-Beard#7511.*", inline=False)
+            await channel.send(embed=emb)
+            print("DM'd " + member.name)
+            cap = await text.guild.fetch_member("196354892208537600")
+            channel = await cap.create_dm()
+            await channel.send(embed=emb)
     
     @client.event
     async def on_message(text):
@@ -186,6 +204,7 @@ class DiscordClass(client):
                                     report = "You do not have enough BeardlessBucks to bet that much, " + text.author.mention + "!"
                             break
             await text.channel.send(report)
+            return
         
         if text.content.startswith('!deal') or text.content == '!hit':
             report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
@@ -226,6 +245,7 @@ class DiscordClass(client):
                                         break
                                 break
             await text.channel.send(report)
+            return
 
         if text.content.startswith('!stay') or text.content.startswith('!stand'):
             report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
@@ -277,6 +297,7 @@ class DiscordClass(client):
                         games.pop(i)
                         break
             await text.channel.send(report)
+            return
             
         if text.content.startswith('!flip'):
             print(text.author.name + ": " + text.content)
@@ -339,6 +360,7 @@ class DiscordClass(client):
                     if exist4==False:
                         report = "You need to register first! Type !register, " + text.author.mention + "!"
             await text.channel.send(report)
+            return
         
         if text.content.startswith('!buy'): #Requires roles named special blue, special pink, special orange, and special red.
             print("Running buy...")
@@ -383,9 +405,11 @@ class DiscordClass(client):
                             report = "Invalid color. Choose blue, red, orange, or pink, " + text.author.mention + "."
                         break
             await text.channel.send(report)
+            return
         
         if text.content.startswith('?av ben'):
             await text.delete()
+            return
         
         if text.content.startswith('-mute ') or text.content.startswith('!mute '):
             if text.author.guild_permissions.manage_messages:
@@ -423,6 +447,7 @@ class DiscordClass(client):
                         print("Unmuted " + newtarg.name)
             else:
                 await text.channel.send("You do not have permission to use this command!")
+            return
         
         if text.content.startswith('-unmute ') or text.content.startswith('!unmute '):
             if text.author.guild_permissions.manage_messages:
@@ -439,14 +464,17 @@ class DiscordClass(client):
                 await text.channel.send("Unmuted " + str(newtarg.mention) + ".")
             else:
                 await text.channel.send("You do not have permission to use this command!")
+            return
         
         if text.content.startswith('!video'):
             report = 'My creator made a new video! Check it out at https://youtu.be/-4FzBLS-UVI'
             await text.channel.send(report)
+            return
         
         if text.content.startswith('!song') or text.content.startswith('!playlist'):
             linker = ' Here\'s my playlist (discord will only show the first hundred songs): https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg'
             await text.channel.send(linker)
+            return
         
         if text.content.startswith('!leaderboard'): #This is incredibly memory inefficient. It's not a concern now, but if money.csv becomes sufficiently large, this code will require a rewrite.
             storedVals = []
@@ -483,6 +511,7 @@ class DiscordClass(client):
             for i in range(10):
                 emb.add_field(name= (str(i+1) + ". " + names[9-i]), value= str(sortedDict[names[9-i]]), inline=True)
             await text.channel.send(embed=emb)
+            return
         
         if text.content.startswith('!d') and ((text.content.split('!d',1)[1])[0]).isnumeric() and len(text.content) < 12: #The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
             report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
@@ -539,6 +568,7 @@ class DiscordClass(client):
                     elif (command[3]=="+" or command[3] == "-"):
                         report = random.randint(1,100) + modifier*int(command[4:])
             await text.channel.send(report)
+            return
 
         if text.content.startswith('!reset'):
             authorstring = str(text.author.id)
@@ -568,20 +598,20 @@ class DiscordClass(client):
                         newline="\r\n"+authorstring+",300"+ "," + str(text.author)
                         csvfile2.write(newline)
             await text.channel.send('You have been reset to 200 BeardlessBucks, ' + text.author.mention + ".")
+            return
         
         if text.content.startswith("!balance"):
+            message2="Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "."
             authorstring = str(text.author.id)
             with open('money.csv') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
-                exist2=False
                 for row in reader:
                     tempname = row[0]
                     if authorstring==tempname:
-                        exist2=True
                         message2="Your balance is " + row[1] + " BeardlessBucks, " + text.author.mention + "."
-                if exist2==False:
-                    message2="Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "."
-                await text.channel.send(message2)
+                        break
+            await text.channel.send(message2)
+            return
         
         if text.content.startswith("!register"): #Make sure money.csv is not open in any other program
             authorstring = str(text.author.id)
@@ -604,22 +634,27 @@ class DiscordClass(client):
                         newline="\r\n"+authorstring+",300"+ "," + str(text.author)
                         csvfile2.write(newline)
                 await text.channel.send(message3)
+                return
         
         if text.content.startswith("!bucks"):
             buckmessage = "BeardlessBucks are this bot's special currency. You can earn them by playing games. First, do !register to get yourself started with a balance."
             await text.channel.send(buckmessage)
+            return
         
         if text.content.startswith("!hello"):
             answers = ["How ya doin?", "Yo!", "What's cookin?", "Hello!", "Ahoy!", "Hi!", "What's up?","Hey!"]
             await text.channel.send(random.choice(answers))
+            return
         
         if text.content.startswith("!source"):
             end = "Most facts taken from https://www.thefactsite.com/1000-interesting-facts/."
             await text.channel.send(end)
+            return
         
         if text.content.startswith("!link") or text.content.startswith("!add") or text.content.startswith("!join"):
             end = "Want to add this bot to your server? Click https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot"
             await text.channel.send(end)
+            return
         
         if text.content.startswith("!random") or text.content.startswith("!weapon") or text.content.startswith("!legend"):
             ran = "Invalid random."
@@ -631,6 +666,7 @@ class DiscordClass(client):
                 weapons = [ "Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"]
                 ran = "Your weapon is " + random.choice(weapons) + "."
             await text.channel.send(ran)
+            return
         
         if text.content.startswith("!fact"): # TODO switch to screenscraping to get facts
             facts = [
@@ -688,6 +724,7 @@ class DiscordClass(client):
                 "There's a preserved bar tab from three days before delegates signed the American Constitution, and they drank 54 bottles of Madeira, 60 bottles of claret, 22 bottles of porter, 12 bottles of beer, 8 bottles of cider and 7 bowls of punch. It was for 55 people."
                     ]
             await text.channel.send(random.choice(facts))
+            return
         
         if text.content.startswith("!help") or text.content.startswith("!commands"):
             emb = discord.Embed(title="Beardless Bot Commands", description="", color=0xfff994)
@@ -708,6 +745,7 @@ class DiscordClass(client):
             emb.add_field(name= "!add", value= "Gives you a link to add this bot to your server.", inline=True)
             emb.add_field(name= "!commands", value= "Shows you this list.", inline=True)
             await text.channel.send(embed=emb)
+            return
         
         if text.guild.id == 442403231864324119: #Commands only used in eggsoup's Discord server.
             """if text.content.startswith('!pumpkin'): # DEPRECATED
@@ -715,6 +753,8 @@ class DiscordClass(client):
                 await text.channel.send("Boo 2! A Madea Halloween")"""
             if text.content.startswith('!reddit'):
                 await text.channel.send("https://www.reddit.com/r/eggsoup/")
+                return
+            
             if text.channel.name == 'welcome-and-rules': #In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
                 #print(text.channel.name)
                 if 'agree' in text.content:
@@ -724,6 +764,8 @@ class DiscordClass(client):
                     newjoiners = client.get_channel(676568391670169660) #This is the ID of the welcome-and-rules channel in eggsoup's server. I will need to find a more portable solution in the future.
                     await newjoiners.send(text.author.mention + " just agreed to the rules.")
                 await text.delete()
+                return
+            
             if text.content.startswith('!spar'):
                 if text.channel.id == 605083979737071616: #This is the "looking-for-spar" channel in eggsoup's Discord server.
                     cooldown = 7200
@@ -801,6 +843,6 @@ class DiscordClass(client):
                 else:
                     report = "Please only use !spar in #looking for spar, " + text.author.mention + "."
                 await text.channel.send(report)
-                
+                return                
 
     client.run(token)
