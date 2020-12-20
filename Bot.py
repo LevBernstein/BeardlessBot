@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.4.0
+#Version 8.4.1
 
 import random
 import discord
@@ -136,19 +136,24 @@ class DiscordClass(client):
         print(member.guild.id)
         if member.guild.id == 442403231864324119:
             channel = await member.create_dm()
-            emb = discord.Embed(title="Welcome to the eggsoup Discord server!", description="", color=0xfff994)
+            emb = discord.Embed(title="Welcome to the eggsoup Discord server, " + member.name + "!", description="", color=0xfff994)
             emb.add_field(name= "_ _", value= "Hello! In order to gain access to the server, read through the rules in #welcome-and-rules and follow the instructions. If you have read the rules *completely* and followed all the instructions but you still have not been granted access to the server, please send a message to Captain No-Beard#7511. *This message was sent automatically. I am a robot. If you have any questions, please message Captain No-Beard#7511.*", inline=False)
             await channel.send(embed=emb)
             print("DM'd " + member.name)
-            cap = await text.guild.fetch_member("196354892208537600")
-            channel = await cap.create_dm()
-            await channel.send(embed=emb)
     
     @client.event
     async def on_message(text):
-        report = "You need to register first! Type !register to get started, " + text.author.mention + "."
         text.content=text.content.lower()
+        if text.content.startswith('!welcome'):
+            channel = await text.author.create_dm()
+            emb = discord.Embed(title="Welcome to the eggsoup Discord server, " + text.author.name + "!", description="", color=0xfff994)
+            emb.add_field(name= "_ _", value= "Hello! In order to gain access to the server, read through the rules in #welcome-and-rules and follow the instructions. If you have read the rules *completely* and followed all the instructions but you still have not been granted access to the server, please send a message to Captain No-Beard#7511. *This message was sent automatically. I am a robot. If you have any questions, please message Captain No-Beard#7511.*", inline=False)
+            await channel.send(embed=emb)
+            print("DM'd " + text.author.name)
+            return
+        
         if text.content.startswith('!blackjack') or text.content.startswith('!bj'):
+            report = "You need to register first! Type !register to get started, " + text.author.mention + "."
             strbet = '10'
             if text.content.startswith('!blackjack') and len(str(text.content)) > 11:
                 strbet = text.content.split('!blackjack ',1)[1]
