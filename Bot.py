@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.4.1
+#Version 8.4.2
 
 import random
 import discord
@@ -581,10 +581,7 @@ class DiscordClass(client):
                 reader = csv.reader(csvfile, delimiter=',')
                 exist=False
                 for row in reader:
-                    #print(text.author)
                     tempname = row[0]
-                    #print(tempname)
-                    #print(row[1])
                     if authorstring==tempname:
                         exist=True
                         bank = int(row[1])
@@ -620,15 +617,11 @@ class DiscordClass(client):
         
         if text.content.startswith("!register"): #Make sure money.csv is not open in any other program
             authorstring = str(text.author.id)
-            print(authorstring)
             with open('money.csv') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
                 exist=False
                 for row in reader:
-                    #print(text.author)
                     tempname = row[0]
-                    #print(tempname)
-                    #print(row[1])
                     if authorstring==tempname:
                         exist=True
                         message3="You are already in the system! Hooray! You have " + row[1] + " BeardlessBucks, " + text.author.mention + "."
@@ -756,8 +749,18 @@ class DiscordClass(client):
             """if text.content.startswith('!pumpkin'): # DEPRECATED
                 sleep(.5)
                 await text.channel.send("Boo 2! A Madea Halloween")"""
+            
+            if text.author.id == 281856272494493706:
+                if "<@" in text.content:
+                    await text.channel.send("Remember to only ping once, Mattion")
+            
             if text.content.startswith('!reddit'):
                 await text.channel.send("https://www.reddit.com/r/eggsoup/")
+                return
+            
+            if text.content.startswith('!mee6'):
+                mee6 = await text.guild.fetch_member("159985870458322944")
+                await text.channel.send('Silence ' + mee6.mention)
                 return
             
             if text.channel.name == 'welcome-and-rules': #In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
@@ -844,7 +847,16 @@ class DiscordClass(client):
                         seconds = floor(seconds % 60)
                         hours = floor(minutes/60)
                         minutes = minutes % 60
-                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". You can ping again in " + str(hours) + " hour(s), " + str(minutes) + " minute(s) and " + str(seconds) + " second(s)."
+                        hourString = " hours, "
+                        minuteString = " minutes, "
+                        secondString = " seconds."
+                        if hours == 1:
+                            hourString = " hour, "  
+                        if minutes == 1:
+                            minuteString = " minute, "
+                        if seconds == 1:
+                            secondString = " second."
+                        report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". You can ping again in " + str(hours) + hourString + str(minutes) + minuteString + "and " + str(seconds) + secondString
                 else:
                     report = "Please only use !spar in #looking for spar, " + text.author.mention + "."
                 await text.channel.send(report)
