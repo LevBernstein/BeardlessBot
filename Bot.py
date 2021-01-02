@@ -750,8 +750,6 @@ class DiscordClass(client):
                 sleep(.5)
                 await text.channel.send("Boo 2! A Madea Halloween")"""
             
-            bannedWords = ('coco', 'c0c0', 'c o c o', 'c.o.c.o')'
-            
             if text.author.id == 281856272494493706:
                 if "<@" in text.content:
                     await text.channel.send("Remember to only ping once, Mattion")
