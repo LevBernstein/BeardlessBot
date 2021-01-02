@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.4.2
+#Version 8.4.3
 
 import random
 import discord
@@ -749,6 +749,13 @@ class DiscordClass(client):
             """if text.content.startswith('!pumpkin'): # DEPRECATED
                 sleep(.5)
                 await text.channel.send("Boo 2! A Madea Halloween")"""
+            
+            if 'coco' in text.content:
+                role = get(text.guild.roles, name = 'Muted')
+                await text.author.add_roles(role)
+                await text.channel.send("Muted " + str(text.author.mention) + " for one minute.")
+                await asyncio.sleep(60.0)
+                await text.author.remove_roles(role)
             
             if text.author.id == 281856272494493706:
                 if "<@" in text.content:
