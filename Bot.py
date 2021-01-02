@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.4.3
+#Version 8.4.4
 
 import random
 import discord
@@ -750,12 +750,7 @@ class DiscordClass(client):
                 sleep(.5)
                 await text.channel.send("Boo 2! A Madea Halloween")"""
             
-            if 'coco' in text.content:
-                role = get(text.guild.roles, name = 'Muted')
-                await text.author.add_roles(role)
-                await text.channel.send("Muted " + str(text.author.mention) + " for one minute.")
-                await asyncio.sleep(60.0)
-                await text.author.remove_roles(role)
+            bannedWords = ('coco', 'c0c0', 'c o c o', 'c.o.c.o')'
             
             if text.author.id == 281856272494493706:
                 if "<@" in text.content:
