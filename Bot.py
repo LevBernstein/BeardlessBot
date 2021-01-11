@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.4.4
+#Version 8.4.6
 
 import random
 import discord
@@ -745,6 +745,11 @@ class DiscordClass(client):
             await text.channel.send(embed=emb)
             return
         
+        if text.guild.id == 797140390993068035: #Commands only used in Jetspec's Discord server.
+            if text.content.startswith('!file'):
+                jet = await text.guild.fetch_member("579316676642996266")
+                await text.channel.send(jet.mention)
+        
         if text.guild.id == 442403231864324119: #Commands only used in eggsoup's Discord server.
             """if text.content.startswith('!pumpkin'): # DEPRECATED
                 sleep(.5)
@@ -763,7 +768,7 @@ class DiscordClass(client):
                 await text.channel.send('Silence ' + mee6.mention)
                 return
             
-            if text.channel.name == 'welcome-and-rules': #In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
+            '''if text.channel.name == 'welcome-and-rules': #In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
                 #print(text.channel.name)
                 if 'agree' in text.content:
                     print(str(text.author) + " agreed")
@@ -772,7 +777,7 @@ class DiscordClass(client):
                     newjoiners = client.get_channel(676568391670169660) #This is the ID of the welcome-and-rules channel in eggsoup's server. I will need to find a more portable solution in the future.
                     await newjoiners.send(text.author.mention + " just agreed to the rules.")
                 await text.delete()
-                return
+                return'''# DEPRECATED
             
             if text.content.startswith('!spar'):
                 if text.channel.id == 605083979737071616: #This is the "looking-for-spar" channel in eggsoup's Discord server.
