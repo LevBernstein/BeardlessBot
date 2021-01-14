@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.4.6
+#Version 8.4.7
 
 import random
 import discord
@@ -130,6 +130,10 @@ class DiscordClass(client):
         print("Bot version 8 online!")
         intents = discord.Intents.default()
         intents.members = True
+        g = open("bbprof.png", "rb")
+        pic = g.read()
+        await client.user.edit(avatar=pic)
+        print("Avatar live!")
     
     @client.event 
     async def on_member_join(member): # Currently inactive.
