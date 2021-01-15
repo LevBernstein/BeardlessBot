@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.4.7
+#Version 8.4.8
 
 import random
 import discord
@@ -749,7 +749,7 @@ class DiscordClass(client):
             await text.channel.send(embed=emb)
             return
         
-        if text.guild.id == 797140390993068035: #Commands only used in Jetspec's Discord server.
+        if text.guild.id == 797140390993068035: # Commands only used in Jetspec's Discord server.
             if text.content.startswith('!file'):
                 jet = await text.guild.fetch_member("579316676642996266")
                 await text.channel.send(jet.mention)
@@ -758,10 +758,6 @@ class DiscordClass(client):
             """if text.content.startswith('!pumpkin'): # DEPRECATED
                 sleep(.5)
                 await text.channel.send("Boo 2! A Madea Halloween")"""
-            
-            if text.author.id == 281856272494493706:
-                if "<@" in text.content:
-                    await text.channel.send("Remember to only ping once, Mattion")
             
             if text.content.startswith('!reddit'):
                 await text.channel.send("https://www.reddit.com/r/eggsoup/")
