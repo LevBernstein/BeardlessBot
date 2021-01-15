@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.4.8
+#Version 8.4.10
 
 import random
 import discord
@@ -299,7 +299,7 @@ class DiscordClass(client):
                                 x.writelines(texter)
                                 x.close()
                                 break
-                elif result != 0 or (result == 0 and bet == 0):
+                elif (result != 0 and bet == 0) or (result == 0 and bet == 0):
                     report += " However, you bet nothing, so your balance has not changed."
                 for i in range(len(games)):
                     if games[i].namer() == str(text.author):
@@ -485,7 +485,7 @@ class DiscordClass(client):
             await text.channel.send(linker)
             return
         
-        if text.content.startswith('!leaderboard'): #This is incredibly memory inefficient. It's not a concern now, but if money.csv becomes sufficiently large, this code will require a rewrite.
+        if text.content.startswith('!leaderboard') or text.content.startswith('!lb'): #This is incredibly memory inefficient. It's not a concern now, but if money.csv becomes sufficiently large, this code will require a rewrite.
             storedVals = []
             storedNames = []
             finalList = []
@@ -662,7 +662,7 @@ class DiscordClass(client):
             ran = "Invalid random."
             if text.content.startswith("!random legend") or text.content.startswith("!randomlegend") or text.content.startswith("!legend"):
                 legends = [
-                "Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako"]
+                "Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako", "Magyar"]
                 ran = "Your legend is " + random.choice(legends) + "."
             if text.content.startswith("!random weapon") or text.content.startswith("!randomweapon") or text.content.startswith("!weapon") :
                 weapons = [ "Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"]
