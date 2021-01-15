@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.4.10
+#Version 8.4.11
 
 import random
 import discord
@@ -260,6 +260,7 @@ class DiscordClass(client):
             report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
             authorstring = str(text.author)
             exist5 = False
+            bet = 1
             for i in range(len(games)):
                 if games[i].namer() == authorstring:
                     exist5 = True
@@ -271,15 +272,20 @@ class DiscordClass(client):
                 result = gamer.stay()
                 report = "The dealer has a total of " + str(gamer.dealerSum) + "."
                 if result == -3:
-                    report += " That's closer to 21 than your sum of " + str(gamer.summer(gamer.cards)) + ". You lose. Your loss has been deducted from your balance."
+                    report += " That's closer to 21 than your sum of " + str(gamer.summer(gamer.cards)) + ". You lose."
                     bet *= -1
+                    if bet != 0:
+                        report +=  " Your loss has been deducted from your balance."
                 if result == 0:
-                    report += " That ties your sum of " + str(gamer.summer(gamer.cards)) + ". Your money has been returned."
-                    bet = 0
+                    report += " That ties your sum of " + str(gamer.summer(gamer.cards)) + "."
+                    if bet != 0:
+                         report += " Your money has been returned."
                 if result == 3:
-                    report += " You're closer to 21 with a sum of " + str(gamer.summer(gamer.cards)) + ". You win!  Your winnings have been added to your balance."
+                    report += " You're closer to 21 with a sum of " + str(gamer.summer(gamer.cards)) + "."
                 if result == 4:
-                    report += " You have a sum of " + str(gamer.summer(gamer.cards)) + ". The dealer busts. You win!  Your winnings have been added to your balance."
+                    report += " You have a sum of " + str(gamer.summer(gamer.cards)) + ". The dealer busts."
+                if (result == 3 or result == 4) and bet != 0:
+                    report += " You win! Your winnings have been added to your balance."
                 if result != 0 and bet != 0:
                     with open('money.csv', 'r') as csvfile:
                         reader = csv.reader(csvfile, delimiter=',')
@@ -299,8 +305,12 @@ class DiscordClass(client):
                                 x.writelines(texter)
                                 x.close()
                                 break
-                elif (result != 0 and bet == 0) or (result == 0 and bet == 0):
-                    report += " However, you bet nothing, so your balance has not changed."
+                elif bet == 0:
+                    if result == 0:
+                        report += " Y"
+                    else:
+                        report += " However, y"
+                    report += "ou bet nothing, so your balance has not changed."
                 for i in range(len(games)):
                     if games[i].namer() == str(text.author):
                         games.pop(i)
@@ -341,7 +351,7 @@ class DiscordClass(client):
                             if exist5:
                                 report = "Finish your game of blackjack first, " +  text.author.mention + "."
                                 break
-                            if bet <= bank: # As of 4 PM ET on November 14th, 2020, there have been ~17235 flips that got tails and ~17284 flips that got heads in the eggsoup server. This is 50/50. Stop complaining.
+                            if bet <= bank: # As of 3:30 PM ET on January 15th, 2021, there have been 31516 flips that got heads and 31424 flips that got tails in the eggsoup server. This is 50/50. Stop complaining.
                                 results = [1, 0]
                                 result = random.choice(results)
                                 if result==1:
