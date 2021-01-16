@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.4.11
+#Version 8.4.12
 
 import random
 import discord
@@ -66,20 +66,20 @@ class Instance:
             self.message += "Because you would have busted, your Ace has been changed from an 11 to 1 . Your new total is " + str(self.summer(self.cards)) + ". "
         self.message += self.toString() + " The dealer is showing " + str(self.dealerUp) + ", with one card face down."
         if self.checkBust(self.cards):
-            self.message += " You busted. Game over, " + self.user[0:-5] + "."
+            self.message += " You busted. Game over, " + self.user.mention + "."
             self.state = False
         elif self.perfect(self.cards):
-            self.message += "You hit 21! You win, " + self.user[0:-5] + "!"
+            self.message += "You hit 21! You win, " + self.user.mention + "!"
             self.state = False
         else:
-            self.message += " Type !hit to deal another card to yourself, or !stay to stop at your current total, " + self.user[0:-5] + "."
+            self.message += " Type !hit to deal another card to yourself, or !stay to stop at your current total, " + self.user.mention+ "."
         return self.message
 
     def toString(self):
         stringer = "Your cards are "
         for i in range(len(self.cards)):
             stringer += str(self.cards[i]) + ", "
-        stringer = stringer[0:-2] + "."
+        stringer = stringer[0:-2] + "." # Remove the last comma and space, replace with a period
         return stringer
 
     def checkBust(self, cardSet):
@@ -88,7 +88,7 @@ class Instance:
         return False
 
     def namer(self):
-        return str(self.user)
+        return self.user
     
     def stay(self):
         if self.summer(self.cards) > self.dealerSum:
@@ -101,8 +101,8 @@ class Instance:
             return -3
         return -1 # Error
         
-games = [] # Stores the active instances of blacjack. An array might not be the most efficient place to store these, but because this bot sees
-# use on a relatively small scale, this is not an issue.
+games = [] # Stores the active instances of blacjack. An array might not be the most efficient place to store these, 
+# but because this bot sees use on a relatively small scale, this is not an issue.
 # These ping ints are for keeping track of pings in eggsoup's Discord server.
 usePing = 0
 uswPing = 0
@@ -177,20 +177,20 @@ class DiscordClass(client):
                     reader = csv.reader(csvfile, delimiter=',')
                     for row in reader:
                         if str(text.author.id) == row[0]:
-                            tempname=row[2]
+                            #tempname=row[2]
                             bank = int(row[1])
                             if allBet:
                                 bet = bank
                             exist5 = False
                             for i in range(len(games)):
-                                if games[i].namer() == tempname:
+                                if games[i].namer() == text.author:
                                     exist5 = True
                             if exist5:
                                 report = "You already have an active game, " + text.author.mention + "."
                             else:
                                 if bet <= bank:
                                     game = True
-                                    x = Instance(tempname, bet)
+                                    x = Instance(text.author, bet)
                                     games.append(x)
                                     report = x.message
                                     if x.checkBust(x.cards) or x.perfect(x.cards):
@@ -206,7 +206,7 @@ class DiscordClass(client):
                                         x.writelines(texter)
                                         x.close()
                                         for i in range(len(games)):
-                                            if games[i].namer() == tempname:
+                                            if games[i].namer() == text.author:
                                                 games.pop(i)
                                                 break
                                 else:
@@ -220,7 +220,7 @@ class DiscordClass(client):
             authorstring = str(text.author)
             exist5 = False
             for i in range(len(games)):
-                if games[i].namer() == authorstring:
+                if games[i].namer() == text.author:
                     exist5 = True
                     gamer = games[i]
                     break
@@ -249,7 +249,7 @@ class DiscordClass(client):
                                 x.writelines(texter)
                                 x.close()
                                 for i in range(len(games)):
-                                    if games[i].namer() == tempname:
+                                    if games[i].namer() == text.author:
                                         games.pop(i)
                                         break
                                 break
@@ -262,7 +262,7 @@ class DiscordClass(client):
             exist5 = False
             bet = 1
             for i in range(len(games)):
-                if games[i].namer() == authorstring:
+                if games[i].namer() == text.author:
                     exist5 = True
                     gamer = games[i]
                     bet = gamer.bet
@@ -272,27 +272,26 @@ class DiscordClass(client):
                 result = gamer.stay()
                 report = "The dealer has a total of " + str(gamer.dealerSum) + "."
                 if result == -3:
-                    report += " That's closer to 21 than your sum of " + str(gamer.summer(gamer.cards)) + ". You lose."
+                    report += " That's closer to 21 than your sum of " + str(gamer.summer(gamer.cards)) + ". You lose"
                     bet *= -1
                     if bet != 0:
-                        report +=  " Your loss has been deducted from your balance."
+                        report +=  ". Your loss has been deducted from your balance"
                 if result == 0:
-                    report += " That ties your sum of " + str(gamer.summer(gamer.cards)) + "."
+                    report += " That ties your sum of " + str(gamer.summer(gamer.cards))
                     if bet != 0:
-                         report += " Your money has been returned."
+                         report += ". Your money has been returned"
                 if result == 3:
-                    report += " You're closer to 21 with a sum of " + str(gamer.summer(gamer.cards)) + "."
+                    report += " You're closer to 21 with a sum of " + str(gamer.summer(gamer.cards))
                 if result == 4:
-                    report += " You have a sum of " + str(gamer.summer(gamer.cards)) + ". The dealer busts."
+                    report += " You have a sum of " + str(gamer.summer(gamer.cards)) + ". The dealer busts"
                 if (result == 3 or result == 4) and bet != 0:
-                    report += " You win! Your winnings have been added to your balance."
+                    report += ". You win! Your winnings have been added to your balance"
                 if result != 0 and bet != 0:
                     with open('money.csv', 'r') as csvfile:
                         reader = csv.reader(csvfile, delimiter=',')
                         exist4=False
                         for row in reader:
-                            tempname = row[0]
-                            if str(text.author.id) == tempname:
+                            if str(text.author.id) == row[0]:
                                 exist4=True
                                 bank = int(row[1])
                                 totalsum = bank + bet
@@ -307,12 +306,13 @@ class DiscordClass(client):
                                 break
                 elif bet == 0:
                     if result == 0:
-                        report += " Y"
+                        report += ". Y"
                     else:
-                        report += " However, y"
-                    report += "ou bet nothing, so your balance has not changed."
+                        report += ". However, y"
+                    report += "ou bet nothing, so your balance has not changed"
+                report += ", " + text.author.mention + "."
                 for i in range(len(games)):
-                    if games[i].namer() == str(text.author):
+                    if games[i].namer() == text.author:
                         games.pop(i)
                         break
             await text.channel.send(report)
