@@ -790,6 +790,7 @@ class DiscordClass(client):
             emb.add_field(name= "!hello", value= "Exchanges a pleasant greeting with the bot.", inline=True)
             emb.add_field(name= "!video", value= "Shows you my latest YouTube video.", inline=True)
             emb.add_field(name= "!add", value= "Gives you a link to add this bot to your server.", inline=True)
+            emb.add_field(name= "!av", value= "Display a user's avatar. Write just !av if you want to see your own avatar.", inline=True)
             emb.add_field(name= "!commands", value= "Shows you this list.", inline=True)
             await text.channel.send(embed=emb)
             return
@@ -799,7 +800,7 @@ class DiscordClass(client):
                 jet = await text.guild.fetch_member("579316676642996266")
                 await text.channel.send(jet.mention)
         
-        if text.guild.id == 442403231864324119: #Commands only used in eggsoup's Discord server.
+        if text.guild.id == 442403231864324119: # Commands only used in eggsoup's Discord server.
             """if text.content.startswith('!pumpkin'): # DEPRECATED
                 sleep(.5)
                 await text.channel.send("Boo 2! A Madea Halloween")"""
@@ -813,13 +814,13 @@ class DiscordClass(client):
                 await text.channel.send('Silence ' + mee6.mention)
                 return
             
-            '''if text.channel.name == 'welcome-and-rules': #In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
+            '''if text.channel.name == 'welcome-and-rules': # In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
                 #print(text.channel.name)
                 if 'agree' in text.content:
                     print(str(text.author) + " agreed")
                     role = get(text.guild.roles, name = 'member')
                     await text.author.add_roles(role)
-                    newjoiners = client.get_channel(676568391670169660) #This is the ID of the welcome-and-rules channel in eggsoup's server. I will need to find a more portable solution in the future.
+                    newjoiners = client.get_channel(676568391670169660) # This is the ID of the welcome-and-rules channel in eggsoup's server. I will need to find a more portable solution in the future.
                     await newjoiners.send(text.author.mention + " just agreed to the rules.")
                 await text.delete()
                 return'''# DEPRECATED
@@ -833,7 +834,7 @@ class DiscordClass(client):
                 return'''# DEPRECATED
             
             if text.content.startswith('!spar'):
-                if text.channel.id == 605083979737071616: #This is the "looking-for-spar" channel in eggsoup's Discord server.
+                if text.channel.id == 605083979737071616: # This is the "looking-for-spar" channel in eggsoup's Discord server.
                     cooldown = 7200
                     report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help."
                     tooRecent = None
