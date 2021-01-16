@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.4.13
+#Version 8.4.14
 
 import random
 import discord
@@ -15,15 +15,15 @@ from collections import OrderedDict
 import asyncio
 
 game = False
-f = open("token.txt", "r") #in token.txt, just put in your own discord api token
+f = open("token.txt", "r") # In token.txt, just put in your own discord api token
 token = f.readline()
 
 
 #Blackjack class. New instance is made for each game of Blackjack and is kept around until the player finishes the game.
-#An active instance for a given user prevents the creation of a new instance.
+#An active instance for a given user prevents the creation of a new instance. Instances are server-agnostic.
 class Instance:
     def __init__(self, user, bet):
-        self.user = user # TODO: Replace str user with a Member object
+        self.user = user
         self.bet = bet
         self.cards = []
         self.dealerUp = random.randint(2,11)
@@ -420,7 +420,7 @@ class DiscordClass(client):
             await text.channel.send(report)
             return
         
-        if text.content.startswith('?av ben') or text.content.startswith('!av ben'):
+        if text.content.startswith('?av ben') or text.content.startswith('!av ben') or text.content.startswith('!av <@441423641394020354>'):
             await text.delete()
             return
         
