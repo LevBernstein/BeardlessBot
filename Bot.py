@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.4.14
+#Version 8.4.15
 
 import random
 import discord
@@ -148,9 +148,10 @@ class DiscordClass(client):
     @client.event
     async def on_message(text):
         text.content=text.content.lower()
-        
-        
         if text.content.startswith('!blackjack') or text.content.startswith('!bj'):
+            if ',' in text.author.name:
+                text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
+                return
             report = "You need to register first! Type !register to get started, " + text.author.mention + "."
             strbet = '10'
             if text.content.startswith('!blackjack') and len(str(text.content)) > 11:
@@ -210,6 +211,9 @@ class DiscordClass(client):
             return
         
         if text.content.startswith('!deal') or text.content == '!hit':
+            if ',' in text.author.name:
+                text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
+                return
             report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
             authorstring = str(text.author)
             exist5 = False
@@ -251,6 +255,9 @@ class DiscordClass(client):
             return
 
         if text.content.startswith('!stay') or text.content.startswith('!stand'):
+            if ',' in text.author.name:
+                text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
+                return
             report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
             authorstring = str(text.author)
             exist5 = False
@@ -313,6 +320,9 @@ class DiscordClass(client):
             return
             
         if text.content.startswith('!flip'):
+            if ',' in text.author.name:
+                text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
+                return
             print(text.author.name + ": " + text.content)
             allBet = False
             if len(text.content) > 5:
@@ -376,6 +386,9 @@ class DiscordClass(client):
             return
         
         if text.content.startswith('!buy'): #Requires roles named special blue, special pink, special orange, and special red.
+            if ',' in text.author.name:
+                text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
+                return
             print("Running buy...")
             authorstring = str(text.author.id)
             with open('money.csv', 'r') as csvfile:
@@ -600,6 +613,9 @@ class DiscordClass(client):
             return
 
         if text.content.startswith('!reset'):
+            if ',' in text.author.name:
+                text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
+                return
             authorstring = str(text.author.id)
             with open('money.csv') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
@@ -627,6 +643,9 @@ class DiscordClass(client):
             return
         
         if text.content.startswith("!balance"):
+            if ',' in text.author.name:
+                text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
+                return
             message2="Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "."
             authorstring = str(text.author.id)
             with open('money.csv') as csvfile:
@@ -640,6 +659,9 @@ class DiscordClass(client):
             return
         
         if text.content.startswith("!register"): # Make sure money.csv is not open in any other program
+            if ',' in text.author.name:
+                text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
+                return
             authorstring = str(text.author.id)
             with open('money.csv') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
