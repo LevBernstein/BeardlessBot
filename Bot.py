@@ -1,6 +1,6 @@
-#Beardless Bot
-#Author: Lev Bernstein
-#Version 8.4.15
+# Beardless Bot
+# Author: Lev Bernstein
+# Version: 8.4.16
 
 import random
 import discord
@@ -19,8 +19,8 @@ f = open("token.txt", "r") # In token.txt, just put in your own discord api toke
 token = f.readline()
 
 
-#Blackjack class. New instance is made for each game of Blackjack and is kept around until the player finishes the game.
-#An active instance for a given user prevents the creation of a new instance. Instances are server-agnostic.
+# Blackjack class. New instance is made for each game of Blackjack and is kept around until the player finishes the game.
+# An active instance for a given user prevents the creation of a new instance. Instances are server-agnostic.
 class Instance:
     def __init__(self, user, bet):
         self.user = user
@@ -385,7 +385,7 @@ class DiscordClass(client):
             await text.channel.send(report)
             return
         
-        if text.content.startswith('!buy'): #Requires roles named special blue, special pink, special orange, and special red.
+        if text.content.startswith('!buy'): # Requires roles named special blue, special pink, special orange, and special red.
             if ',' in text.author.name:
                 text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                 return
@@ -518,7 +518,7 @@ class DiscordClass(client):
             await text.channel.send(linker)
             return
         
-        if text.content.startswith('!leaderboard') or text.content.startswith('!lb'): #This is incredibly memory inefficient. It's not a concern now, but if money.csv becomes sufficiently large, this code will require a rewrite.
+        if text.content.startswith('!leaderboard') or text.content.startswith('!lb'): # This is incredibly memory inefficient. It's not a concern now, but if money.csv becomes sufficiently large, this code will require a rewrite.
             storedVals = []
             storedNames = []
             finalList = []
@@ -540,6 +540,9 @@ class DiscordClass(client):
                 diction2[x[:-5]] = y
             sortedDict = OrderedDict(sorted(diction2.items(), key = operator.itemgetter(1)))
             print(sortedDict)
+            limit = 10
+            if len(sortedDict) < 10:
+                limit = len(names)
             while len(sortedDict) > 10:
                 for x, y in sortedDict.items():
                     if len(sortedDict) > 10:
@@ -550,8 +553,8 @@ class DiscordClass(client):
                 names.append(x)
             for i in range(len(names)):
                 print(names[i])
-            for i in range(10):
-                emb.add_field(name= (str(i+1) + ". " + names[9-i]), value= str(sortedDict[names[9-i]]), inline=True)
+            for i in range(limit):
+                emb.add_field(name= (str(i+1) + ". " + names[(limit-1)-i]), value= str(sortedDict[names[(limit-1)-i]]), inline=True)
             await text.channel.send(embed=emb)
             return
         
