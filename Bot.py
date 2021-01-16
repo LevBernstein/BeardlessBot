@@ -1,6 +1,6 @@
 #Beardless Bot
 #Author: Lev Bernstein
-#Version 8.4.12
+#Version 8.4.13
 
 import random
 import discord
@@ -148,13 +148,7 @@ class DiscordClass(client):
     @client.event
     async def on_message(text):
         text.content=text.content.lower()
-        if text.content.startswith('!welcome'):
-            channel = await text.author.create_dm()
-            emb = discord.Embed(title="Welcome to the eggsoup Discord server, " + text.author.name + "!", description="", color=0xfff994)
-            emb.add_field(name= "_ _", value= "Hello! In order to gain access to the server, read through the rules in #welcome-and-rules and follow the instructions. If you have read the rules *completely* and followed all the instructions but you still have not been granted access to the server, please send a message to Captain No-Beard#7511. *This message was sent automatically. I am a robot. If you have any questions, please message Captain No-Beard#7511.*", inline=False)
-            await channel.send(embed=emb)
-            print("DM'd " + text.author.name)
-            return
+        
         
         if text.content.startswith('!blackjack') or text.content.startswith('!bj'):
             report = "You need to register first! Type !register to get started, " + text.author.mention + "."
@@ -426,10 +420,26 @@ class DiscordClass(client):
             await text.channel.send(report)
             return
         
-        if text.content.startswith('?av ben'):
+        if text.content.startswith('?av ben') or text.content.startswith('!av ben'):
             await text.delete()
             return
         
+        if text.content.startswith('!av'):
+            bar = 4
+            if text.content.startswith('!avatar'):
+                bar = 8
+            newtarg = text.author
+            if len(text.content) > bar:
+                if '@' in text.content:
+                    target = text.content.split('@', 1)[1]
+                    if target.startswith('!'): # Resolves a discrepancy between mobile and desktop Discord
+                        target = target[1:]
+                    brick = "0"
+                    target, brick = target.split('>', 1)
+                    newtarg = await text.guild.fetch_member(str(target))
+            report = newtarg.avatar_url
+            await text.channel.send(report)
+            
         if text.content.startswith('-mute ') or text.content.startswith('!mute '):
             if text.author.guild_permissions.manage_messages:
                 #print("Original message: " + text.content + " in Channel: " + str(text.channel) + " in Server: " + str(text.guild))
@@ -438,7 +448,7 @@ class DiscordClass(client):
                 if target.startswith('!'): # Resolves a discrepancy between mobile and desktop Discord
                     target = target[1:]
                 target, duration = target.split('>', 1)
-                if target == "654133911558946837":
+                if target == "654133911558946837": # If user tries to mute Beardless Bot:
                     await text.channel.send("I am too powerful to be muted. Stop trying.")
                 else:
                     print("Author: " + str(text.author.id) + " muting target: " + target)
@@ -532,7 +542,7 @@ class DiscordClass(client):
             await text.channel.send(embed=emb)
             return
         
-        if text.content.startswith('!d') and ((text.content.split('!d',1)[1])[0]).isnumeric() and len(text.content) < 12: #The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
+        if text.content.startswith('!d') and ((text.content.split('!d',1)[1])[0]).isnumeric() and len(text.content) < 12: # The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
             report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
             command = text.content.split('!d',1)[1]
             print(command[0])
@@ -629,7 +639,7 @@ class DiscordClass(client):
             await text.channel.send(message2)
             return
         
-        if text.content.startswith("!register"): #Make sure money.csv is not open in any other program
+        if text.content.startswith("!register"): # Make sure money.csv is not open in any other program
             authorstring = str(text.author.id)
             with open('money.csv') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
@@ -787,6 +797,14 @@ class DiscordClass(client):
                     newjoiners = client.get_channel(676568391670169660) #This is the ID of the welcome-and-rules channel in eggsoup's server. I will need to find a more portable solution in the future.
                     await newjoiners.send(text.author.mention + " just agreed to the rules.")
                 await text.delete()
+                return'''# DEPRECATED
+            
+            '''if text.content.startswith('!welcome'):
+                channel = await text.author.create_dm()
+                emb = discord.Embed(title="Welcome to the eggsoup Discord server, " + text.author.name + "!", description="", color=0xfff994)
+                emb.add_field(name= "_ _", value= "Hello! In order to gain access to the server, read through the rules in #welcome-and-rules and follow the instructions. If you have read the rules *completely* and followed all the instructions but you still have not been granted access to the server, please send a message to Captain No-Beard#7511. *This message was sent automatically. I am a robot. If you have any questions, please message Captain No-Beard#7511.*", inline=False)
+                await channel.send(embed=emb)
+                print("DM'd " + text.author.name)
                 return'''# DEPRECATED
             
             if text.content.startswith('!spar'):
