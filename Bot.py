@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.0
+# Version: 8.5.1
 
 import random
 import discord
@@ -13,7 +13,6 @@ from math import floor
 import operator
 from collections import OrderedDict
 import asyncio
-from cogwatch import Watcher
 
 game = False
 f = open("token.txt", "r") # In token.txt, just put in your own discord api token
