@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.4.18
+# Version: 8.5.0
 
 import random
 import discord
@@ -13,6 +13,7 @@ from math import floor
 import operator
 from collections import OrderedDict
 import asyncio
+from cogwatch import Watcher
 
 game = False
 f = open("token.txt", "r") # In token.txt, just put in your own discord api token
@@ -126,14 +127,21 @@ class DiscordClass(client):
    
     @client.event
     async def on_ready():
-        await client.change_presence(activity=discord.Game(name='try !blackjack and !flip'))
-        print("Bot version 8 online!")
+        print("Beardless Bot online!")
+        try:
+            await client.change_presence(activity=discord.Game(name='try !blackjack and !flip'))
+            print("Status updated!")
+        except discord.HTTPException:
+            print("Failed to update status!")
         intents = discord.Intents.default()
         intents.members = True
         g = open("bbprof.png", "rb")
         pic = g.read()
-        await client.user.edit(avatar=pic)
-        print("Avatar live!")
+        try:
+            await client.user.edit(avatar=pic)
+            print("Avatar live!")
+        except discord.HTTPException:
+            print("Avatar failed to update!")
     
     """
     @client.event 
