@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.4.16
+# Version: 8.4.18
 
 import random
 import discord
@@ -118,7 +118,7 @@ class DiscordClass(client):
     intents = discord.Intents()
     intents.members = True
     '''
-    def __init__(self):
+    def __init__(self): # Leads to error on killing process
         super().__init__(intents.members())
         super().__init__(chunk_guilds_at_startup = True)
         super().__init__(fetch_all_members=True)
@@ -135,6 +135,7 @@ class DiscordClass(client):
         await client.user.edit(avatar=pic)
         print("Avatar live!")
     
+    """
     @client.event 
     async def on_member_join(member): # Currently inactive.
         print(member.guild.id)
@@ -144,6 +145,7 @@ class DiscordClass(client):
             emb.add_field(name= "_ _", value= "Hello! In order to gain access to the server, read through the rules in #welcome-and-rules and follow the instructions. If you have read the rules *completely* and followed all the instructions but you still have not been granted access to the server, please send a message to Captain No-Beard#7511. *This message was sent automatically. I am a robot. If you have any questions, please message Captain No-Beard#7511.*", inline=False)
             await channel.send(embed=emb)
             print("DM'd " + member.name)
+    """ # DEPRECATED
     
     @client.event
     async def on_message(text):
@@ -645,7 +647,7 @@ class DiscordClass(client):
             await text.channel.send('You have been reset to 200 BeardlessBucks, ' + text.author.mention + ".")
             return
         
-        if text.content.startswith("!balance"):
+        if text.content.startswith("!balance") or text.content == ("!bal"):
             if ',' in text.author.name:
                 text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                 return
@@ -761,7 +763,7 @@ class DiscordClass(client):
                 "An 11-year-old girl proposed the name for the dwarf planet Pluto after the Roman god of the Underworld.",
                 "The voice actor of SpongeBob and the voice actor of Karen, Plankton’s computer wife, have been married since 1995.",
                 "An Italian banker, Gilberto Baschiera, secretly diverted 1 million euros to poorer clients from the wealthy ones over seven years so they could qualify for loans. He made no profit and avoided jail in 2018 due to a plea bargain. Nice praxis.",
-                "Octopuses and squids have beaks. The beak is made of keratin – the same material that a bird’s beak, and your fingernails are made of. Not my fingernails, though; I'm a robot. I don't even have fingers.",
+                "Octopuses and squids have beaks. The beak is made of keratin – the same material that a bird’s beak and your fingernails are made of. Not my fingernails, though; I'm a robot. I don't even have fingers.",
                 "An estimated 50% of all gold ever mined on Earth came from a single plateau in South Africa: Witwatersrand.",
                 "75% of the world’s diet is produced from just 12 plant and five different animal species.",
                 "The original Star Wars premiered on just 32 screens across the U.S. in 1977. This was to produce buzz as the release widened to more theaters. Star Wars is also not very good, and you can trust that as an objective fact.",
