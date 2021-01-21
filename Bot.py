@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.1
+# Version: 8.5.2
 
 import random
 import discord
@@ -117,12 +117,6 @@ class DiscordClass(client):
     
     intents = discord.Intents()
     intents.members = True
-    '''
-    def __init__(self): # Leads to error on killing process
-        super().__init__(intents.members())
-        super().__init__(chunk_guilds_at_startup = True)
-        super().__init__(fetch_all_members=True)
-    '''
    
     @client.event
     async def on_ready():
@@ -141,18 +135,6 @@ class DiscordClass(client):
             print("Avatar live!")
         except discord.HTTPException:
             print("Avatar failed to update!")
-    
-    """
-    @client.event 
-    async def on_member_join(member): # Currently inactive.
-        print(member.guild.id)
-        if member.guild.id == 442403231864324119:
-            channel = await member.create_dm()
-            emb = discord.Embed(title="Welcome to the eggsoup Discord server, " + member.name + "!", description="", color=0xfff994)
-            emb.add_field(name= "_ _", value= "Hello! In order to gain access to the server, read through the rules in #welcome-and-rules and follow the instructions. If you have read the rules *completely* and followed all the instructions but you still have not been granted access to the server, please send a message to Captain No-Beard#7511. *This message was sent automatically. I am a robot. If you have any questions, please message Captain No-Beard#7511.*", inline=False)
-            await channel.send(embed=emb)
-            print("DM'd " + member.name)
-    """ # DEPRECATED
     
     @client.event
     async def on_message(text):
@@ -464,7 +446,6 @@ class DiscordClass(client):
             
         if text.content.startswith('-mute ') or text.content.startswith('!mute '):
             if text.author.guild_permissions.manage_messages:
-                #print("Original message: " + text.content + " in Channel: " + str(text.channel) + " in Server: " + str(text.guild))
                 target = text.content.split('@', 1)[1]
                 duration = "0"
                 if target.startswith('!'): # Resolves a discrepancy between mobile and desktop Discord
@@ -810,10 +791,6 @@ class DiscordClass(client):
                 await text.channel.send(jet.mention)
         
         if text.guild.id == 442403231864324119: # Commands only used in eggsoup's Discord server.
-            """if text.content.startswith('!pumpkin'): # DEPRECATED
-                sleep(.5)
-                await text.channel.send("Boo 2! A Madea Halloween")"""
-            
             if text.content.startswith('!reddit'):
                 await text.channel.send("https://www.reddit.com/r/eggsoup/")
                 return
@@ -822,26 +799,7 @@ class DiscordClass(client):
                 mee6 = await text.guild.fetch_member("159985870458322944")
                 await text.channel.send('Silence ' + mee6.mention)
                 return
-            
-            '''if text.channel.name == 'welcome-and-rules': # In eggsoup's Discord server, which this bot was made for originally, users need to type ?agree in the welcome-and-rules channel in order to gain server access.
-                #print(text.channel.name)
-                if 'agree' in text.content:
-                    print(str(text.author) + " agreed")
-                    role = get(text.guild.roles, name = 'member')
-                    await text.author.add_roles(role)
-                    newjoiners = client.get_channel(676568391670169660) # This is the ID of the welcome-and-rules channel in eggsoup's server. I will need to find a more portable solution in the future.
-                    await newjoiners.send(text.author.mention + " just agreed to the rules.")
-                await text.delete()
-                return'''# DEPRECATED
-            
-            '''if text.content.startswith('!welcome'):
-                channel = await text.author.create_dm()
-                emb = discord.Embed(title="Welcome to the eggsoup Discord server, " + text.author.name + "!", description="", color=0xfff994)
-                emb.add_field(name= "_ _", value= "Hello! In order to gain access to the server, read through the rules in #welcome-and-rules and follow the instructions. If you have read the rules *completely* and followed all the instructions but you still have not been granted access to the server, please send a message to Captain No-Beard#7511. *This message was sent automatically. I am a robot. If you have any questions, please message Captain No-Beard#7511.*", inline=False)
-                await channel.send(embed=emb)
-                print("DM'd " + text.author.name)
-                return'''# DEPRECATED
-            
+
             if text.content.startswith('!spar'):
                 if text.channel.id == 605083979737071616: # This is the "looking-for-spar" channel in eggsoup's Discord server.
                     cooldown = 7200
