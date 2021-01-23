@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.2
+# Version: 8.5.4
 
 import random
 import discord
@@ -69,7 +69,7 @@ class Instance:
             self.message += " You busted. Game over, " + self.user.mention + "."
             self.state = False
         elif self.perfect(self.cards):
-            self.message += "You hit 21! You win, " + self.user.mention + "!"
+            self.message += " You hit 21! You win, " + self.user.mention + "!"
             self.state = False
         else:
             self.message += " Type !hit to deal another card to yourself, or !stay to stop at your current total, " + self.user.mention+ "."
@@ -139,31 +139,41 @@ class DiscordClass(client):
     @client.event
     async def on_message(text):
         text.content=text.content.lower()
-        if text.content.startswith('!blackjack') or text.content.startswith('!bj'):
+        if text.content.startswith('!bj') or text.content.startswith('!bl'):
             if ',' in text.author.name:
                 text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                 return
             report = "You need to register first! Type !register to get started, " + text.author.mention + "."
-            strbet = '10'
+            strbet = '10' # Bets default to 10. If someone just types !blackjack, they will bet 10 by default.
             if text.content.startswith('!blackjack') and len(str(text.content)) > 11:
                 strbet = text.content.split('!blackjack ',1)[1]
-            if text.content.startswith('!bj') and len(str(text.content)) > 4:
+            elif text.content.startswith('!bl ') and len(str(text.content)) > 4:
+                strbet = text.content.split('!bl ',1)[1]
+            elif text.content == '!bl':
+                pass
+            elif text.content.startswith('!bl'):
+                # This way, other bots' commands that start with !bl won't trigger blackjack.
+                return
+            elif text.content.startswith('!bj') and len(str(text.content)) > 4:
                 strbet = text.content.split('!bj ',1)[1]
             allBet = False
             if strbet == "all":
                 allBet = True
                 bet = 0
             else:
-                bet = int(strbet)
+                try:
+                    bet = int(strbet)
+                except:
+                    bet = 10
+                    print("Failed to cast bet to int!")
             authorstring = str(text.author)
-            if allBet == False and int(strbet) < 0:
+            if allBet == False and bet < 0: # Check if !allBet first to avoid attempting to cast "all" to int
                 report = "Invalid bet. Choose a value greater than or equal to 0."
             else:
                 with open('money.csv', 'r') as csvfile:
                     reader = csv.reader(csvfile, delimiter=',')
                     for row in reader:
                         if str(text.author.id) == row[0]:
-                            #tempname=row[2]
                             bank = int(row[1])
                             if allBet:
                                 bet = bank
@@ -191,6 +201,7 @@ class DiscordClass(client):
                                         x = open("money.csv", "w")
                                         x.writelines(texter)
                                         x.close()
+                                        texter.close()
                                         for i in range(len(games)):
                                             if games[i].namer() == text.author:
                                                 games.pop(i)
@@ -237,6 +248,7 @@ class DiscordClass(client):
                                 x = open("money.csv", "w")
                                 x.writelines(texter)
                                 x.close()
+                                texter.close()
                                 for i in range(len(games)):
                                     if games[i].namer() == text.author:
                                         games.pop(i)
@@ -295,6 +307,7 @@ class DiscordClass(client):
                                 x = open("money.csv", "w")
                                 x.writelines(texter)
                                 x.close()
+                                texter.close()
                                 break
                 elif bet == 0:
                     if result == 0:
@@ -324,7 +337,11 @@ class DiscordClass(client):
                 allBet = True
                 bet = 0
             else:
-                bet = int(strbet)
+                try:
+                    bet = int(strbet)
+                except:
+                    bet = 10
+                    print("Failed to cast bet to int!")
             authorstring = str(text.author.id)
             if allBet == False and int(strbet) < 0:
                 report = "Invalid bet amount. Choose a value >-1, " + text.author.mention + "."
@@ -346,7 +363,7 @@ class DiscordClass(client):
                             if exist5:
                                 report = "Finish your game of blackjack first, " +  text.author.mention + "."
                                 break
-                            if bet <= bank: # As of 3:30 PM ET on January 15th, 2021, there have been 31516 flips that got heads and 31424 flips that got tails in the eggsoup server. This is 50/50. Stop complaining.
+                            if bet <= bank: # As of 11 AM ET on January 22nd, 2021, there have been 31765 flips that got heads and 31664 flips that got tails in the eggsoup server. This is 50/50. Stop complaining.
                                 results = [1, 0]
                                 result = random.choice(results)
                                 if result==1:
@@ -368,6 +385,7 @@ class DiscordClass(client):
                                     x = open("money.csv", "w")
                                     x.writelines(texter)
                                     x.close()
+                                    texter.close()
                             else:
                                 report = "You do not have enough BeardlessBucks to bet that much, " + text.author.mention + "!"
                             break
@@ -414,6 +432,7 @@ class DiscordClass(client):
                                 x = open("money.csv", "w")
                                 x.writelines(texter)
                                 x.close()
+                                texter.close()
                                 await text.author.add_roles(role)
                                 report = "Color purchased successfully, " + text.author.mention + "!"
                             else:
@@ -520,7 +539,7 @@ class DiscordClass(client):
                 reader = csv.reader(csvfile, delimiter=',')
                 for row in reader:
                     bank = int(row[1])
-                    if bank != 0:
+                    if bank != 0: # Don't bother displaying in the leaderboard people with 0 BeardlessBucks
                         storedVals.append(bank)
                         name = row[2]
                         storedNames.append(name)
@@ -626,6 +645,7 @@ class DiscordClass(client):
                         x = open("money.csv", "w")
                         x.writelines(texter)
                         x.close()
+                        texter.close()
                 if exist==False:
                     message3="Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                     with open('money.csv', 'a') as csvfile2:
