@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.7
+# Version: 8.5.8
 
 import random
 import discord
@@ -441,7 +441,7 @@ class DiscordClass(client):
             bar = 4
             if text.content.startswith('!avatar'):
                 bar = 8
-            newtarg = text.author
+            report = text.author.avatar_url
             if len(text.content) > bar:
                 if '@' in text.content:
                     target = text.content.split('@', 1)[1]
@@ -449,8 +449,12 @@ class DiscordClass(client):
                         target = target[1:]
                     brick = "0"
                     target, brick = target.split('>', 1)
-                    newtarg = await text.guild.fetch_member(str(target))
-            report = newtarg.avatar_url
+                    try:
+                        newtarg = await text.guild.fetch_member(str(target))
+                        report = newtarg.avatar_url
+                    except discord.NotFound as err:
+                        report = "Error code 10007: Discord Member not found!"
+                        print(err)
             await text.channel.send(report)
             
         if text.content.startswith('-mute ') or text.content.startswith('!mute '):
