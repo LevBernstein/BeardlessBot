@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.5
+# Version: 8.5.6
 
 import random
 import discord
@@ -200,7 +200,6 @@ class DiscordClass(client):
                                             .replace(oldliner, liner)
                                         with open("money.csv", "w") as phil:
                                             phil.writelines(texter)
-                                        texter.close()
                                         for i in range(len(games)):
                                             if games[i].namer() == text.author:
                                                 games.pop(i)
@@ -246,7 +245,6 @@ class DiscordClass(client):
                                     .replace(oldliner, liner)
                                 with open("money.csv", "w") as x:
                                     x.writelines(texter)
-                                texter.close()
                                 for i in range(len(games)):
                                     if games[i].namer() == text.author:
                                         games.pop(i)
@@ -304,7 +302,6 @@ class DiscordClass(client):
                                     .replace(oldliner, liner)
                                 with open("money.csv", "w") as x:
                                     x.writelines(texter)
-                                texter.close()
                                 break
                 elif bet == 0:
                     if result == 0:
@@ -381,7 +378,6 @@ class DiscordClass(client):
                                         .replace(oldliner, liner)
                                     with open("money.csv", "w") as x:
                                         x.writelines(texter)
-                                    texter.close()
                             else:
                                 report = "You do not have enough BeardlessBucks to bet that much, " + text.author.mention + "!"
                             break
@@ -427,7 +423,6 @@ class DiscordClass(client):
                                         .replace(oldliner, liner)
                                 with open("money.csv", "w") as x:
                                     x.writelines(texter)
-                                texter.close()
                                 await text.author.add_roles(role)
                                 report = "Color purchased successfully, " + text.author.mention + "!"
                             else:
@@ -639,7 +634,6 @@ class DiscordClass(client):
                             .replace(oldliner, liner)
                         with open("money.csv", "w") as x:
                             x.writelines(texter)
-                        texter.close()
                 if exist==False:
                     message3="Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                     with open('money.csv', 'a') as csvfile2:
