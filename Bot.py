@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.6
+# Version: 8.5.7
 
 import random
 import discord
@@ -801,6 +801,10 @@ class DiscordClass(client):
         if text.guild.id == 442403231864324119: # Commands only used in eggsoup's Discord server.
             if text.content.startswith('!reddit'):
                 await text.channel.send("https://www.reddit.com/r/eggsoup/")
+                return
+            
+            if text.content.startswith('!guide'):
+                await text.channel.send("https://www.youtube.com/watch?v=nH0TOoJIU80")
                 return
             
             if text.content.startswith('!mee6'):
