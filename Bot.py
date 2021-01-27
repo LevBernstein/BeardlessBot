@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.9
+# Version: 8.5.10
 
 import random
 import discord
@@ -128,13 +128,13 @@ class DiscordClass(client):
             print("Failed to update status!")
         intents = discord.Intents.default()
         intents.members = True
-        g = open("bbprof.png", "rb")
-        pic = g.read()
-        try:
-            await client.user.edit(avatar=pic)
-            print("Avatar live!")
-        except discord.HTTPException:
-            print("Avatar failed to update!")
+        with open("prof.png", "rb") as g:
+            pic = g.read()
+            try:
+                await client.user.edit(avatar=pic)
+                print("Avatar live!")
+            except discord.HTTPException:
+                print("Avatar failed to update!")
     
     @client.event
     async def on_message(text):
@@ -815,7 +815,11 @@ class DiscordClass(client):
                 mee6 = await text.guild.fetch_member("159985870458322944")
                 await text.channel.send('Silence ' + mee6.mention)
                 return
-
+            
+            if text.channel.id == 605083979737071616:
+                if text.content.startswith('!pins') or text.content.startswith('!rules'):
+                    await text.channel.send('https://cdn.discordapp.com/attachments/696148344291983361/804097714114658314/lfsrules.png')
+            
             if text.content.startswith('!spar'):
                 if text.channel.id == 605083979737071616: # This is the "looking-for-spar" channel in eggsoup's Discord server.
                     cooldown = 7200
