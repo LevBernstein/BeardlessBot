@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.8
+# Version: 8.5.9
 
 import random
 import discord
@@ -705,13 +705,13 @@ class DiscordClass(client):
             await text.channel.send(end)
             return
         
-        if text.content.startswith("!random") or text.content.startswith("!weapon") or text.content.startswith("!legend"):
+        if text.content.startswith("!random"):
             ran = "Invalid random."
-            if text.content.startswith("!random legend") or text.content.startswith("!randomlegend") or text.content.startswith("!legend"):
+            if "legend" in text.content:
                 legends = [
                 "Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako", "Magyar"]
                 ran = "Your legend is " + random.choice(legends) + "."
-            if text.content.startswith("!random weapon") or text.content.startswith("!randomweapon") or text.content.startswith("!weapon") :
+            if "weapon" in text.content:
                 weapons = [ "Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"]
                 ran = "Your weapon is " + random.choice(weapons) + "."
             await text.channel.send(ran)
