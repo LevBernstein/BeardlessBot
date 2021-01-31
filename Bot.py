@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.10
+# Version: 8.5.12
 
 import random
 import discord
@@ -690,7 +690,7 @@ class DiscordClass(client):
             await text.channel.send(buckmessage)
             return
         
-        if text.content.startswith("!hello"):
+        if text.content.startswith("!hello") or text.content == "!hi":
             answers = ["How ya doin?", "Yo!", "What's cookin?", "Hello!", "Ahoy!", "Hi!", "What's up?","Hey!"]
             await text.channel.send(random.choice(answers))
             return
@@ -706,15 +706,21 @@ class DiscordClass(client):
             return
         
         if text.content.startswith("!random"):
-            ran = "Invalid random."
+            message = "Invalid random."
             if "legend" in text.content:
                 legends = [
                 "Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako", "Magyar"]
-                ran = "Your legend is " + random.choice(legends) + "."
-            if "weapon" in text.content:
+                ran = random.choice(legends)
+                message = "Your legend is " + ran + "."
+                try:
+                    gerard = await text.guild.fetch_member("193041297538285568") # Checks to see if the Gerard bot is in this server
+                    message += " Type \"!legend " + ran + "\" to learn more about this legend."
+                except:
+                    pass
+            elif "weapon" in text.content:
                 weapons = [ "Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"]
-                ran = "Your weapon is " + random.choice(weapons) + "."
-            await text.channel.send(ran)
+                message = "Your weapon is " + random.choice(weapons) + "."
+            await text.channel.send(message)
             return
         
         if text.content.startswith("!fact"): # TODO switch to screenscraping to get facts
@@ -907,5 +913,9 @@ class DiscordClass(client):
                     report = "Please only use !spar in #looking for spar, " + text.author.mention + "."
                 await text.channel.send(report)
                 return                
-
+        
+        if text.guild.id == 781025281590165555: # Commands for the Day Care Discord server.
+            if 'twitter.com/year_progress' in text.content:
+                await text.delete()
+    
     client.run(token)
