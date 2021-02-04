@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.12
+# Version: 8.5.13
 
 import random
 import discord
@@ -825,6 +825,11 @@ class DiscordClass(client):
             if text.channel.id == 605083979737071616:
                 if text.content.startswith('!pins') or text.content.startswith('!rules'):
                     await text.channel.send('https://cdn.discordapp.com/attachments/696148344291983361/804097714114658314/lfsrules.png')
+            
+            if text.content.startswith('!warn') and text.channel.id != 705098150423167059 and len(text.content) > 6:
+                emb = discord.Embed(title="Infraction Logged.", description="", color=0xfff994)
+                emb.add_field(name= "Mods can view the infraction details in #infractions", value= "_ _", inline=True)
+                await text.channel.send(embed=emb)
             
             if text.content.startswith('!spar'):
                 if text.channel.id == 605083979737071616: # This is the "looking-for-spar" channel in eggsoup's Discord server.
