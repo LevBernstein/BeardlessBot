@@ -917,5 +917,8 @@ class DiscordClass(client):
         if text.guild.id == 781025281590165555: # Commands for the Day Care Discord server.
             if 'twitter.com/year_progress' in text.content:
                 await text.delete()
+            
+            if text.content.startswith('?luke'):
+                await text.channel.send("I'm michael hutchence")
     
     client.run(token)
