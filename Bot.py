@@ -1,13 +1,13 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.14
+# Version: 8.5.15
 
 import random
 import discord
 import csv
 from discord.ext import commands
 from discord.utils import get
-from time import sleep, time, gmtime
+from time import time, gmtime
 import random as random
 from math import floor
 import operator
@@ -15,8 +15,9 @@ from collections import OrderedDict
 import asyncio
 
 game = False
-f = open("token.txt", "r") # In token.txt, just put in your own discord api token
-token = f.readline()
+token = ""
+with open("token.txt", "r") as f: # In token.txt, just put in your own discord api token
+    token = f.readline()
 
 
 # Blackjack class. New instance is made for each game of Blackjack and is kept around until the player finishes the game.
@@ -931,12 +932,6 @@ class DiscordClass(client):
             if text.content.startswith('?apoorva'):
                 await asyncio.sleep(.1)
                 await text.channel.send("Hi apoorva :)")
-                return
-            
-            if text.author.bot == False:
-                if text.content[-1] == "r" and text.content[-2] == "e":
-                    words = text.content.split(" ")
-                    await text.channel.send(words[len(words) - 1] + "? I hardly know er!")
                 return
     
     client.run(token)
