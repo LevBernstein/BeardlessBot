@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.13
+# Version: 8.5.14
 
 import random
 import discord
@@ -828,7 +828,7 @@ class DiscordClass(client):
             
             if text.content.startswith('!warn') and text.channel.id != 705098150423167059 and len(text.content) > 6:
                 emb = discord.Embed(title="Infraction Logged.", description="", color=0xfff994)
-                emb.add_field(name= "Mods can view the infraction details in #infractions", value= "_ _", inline=True)
+                emb.add_field(name= "_ _", value= "Mods can view the infraction details in #infractions.", inline=True)
                 await text.channel.send(embed=emb)
             
             if text.content.startswith('!spar'):
@@ -922,8 +922,21 @@ class DiscordClass(client):
         if text.guild.id == 781025281590165555: # Commands for the Day Care Discord server.
             if 'twitter.com/year_progress' in text.content:
                 await text.delete()
+                return
             
             if text.content.startswith('?luke'):
                 await text.channel.send("I'm michael hutchence")
+                return
+            
+            if text.content.startswith('?apoorva'):
+                await asyncio.sleep(.1)
+                await text.channel.send("Hi apoorva :)")
+                return
+            
+            if text.author.bot == False:
+                if text.content[-1] == "r" and text.content[-2] == "e":
+                    words = text.content.split(" ")
+                    await text.channel.send(words[len(words) - 1] + "? I hardly know er!")
+                return
     
     client.run(token)
