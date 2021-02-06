@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.15
+# Version: 8.5.16
 
 import random
 import discord
@@ -13,12 +13,16 @@ from math import floor
 import operator
 from collections import OrderedDict
 import asyncio
+from sys import exit
 
 game = False
 token = ""
-with open("token.txt", "r") as f: # In token.txt, just put in your own discord api token
-    token = f.readline()
-
+try:
+    with open("token.txt", "r") as f: # in token.txt, paste in your own Discord API token
+        token = f.readline()
+except:
+    print("Error! Could not read token.txt!")
+    exit(-1)
 
 # Blackjack class. New instance is made for each game of Blackjack and is kept around until the player finishes the game.
 # An active instance for a given user prevents the creation of a new instance. Instances are server-agnostic.
