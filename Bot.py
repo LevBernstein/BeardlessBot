@@ -13,7 +13,7 @@ from math import floor
 import operator
 from collections import OrderedDict
 import asyncio
-from sys import exit
+from sys import exit as sysExit
 
 game = False
 token = ""
@@ -22,7 +22,7 @@ try:
         token = f.readline()
 except:
     print("Error! Could not read token.txt!")
-    exit(-1)
+    sysExit(-1)
 
 # Blackjack class. New instance is made for each game of Blackjack and is kept around until the player finishes the game.
 # An active instance for a given user prevents the creation of a new instance. Instances are server-agnostic.
