@@ -1,19 +1,21 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.16
+# Version: 8.5.17
 
-import random
-import discord
+# Default modules:
+import asyncio
 import csv
+from collections import OrderedDict
+from math import floor
+from operator import itemgetter
+from random import choice, randint
+from sys import exit as sysExit
+from time import time
+
+# Installed modules:
+import discord
 from discord.ext import commands
 from discord.utils import get
-from time import time, gmtime
-import random as random
-from math import floor
-import operator
-from collections import OrderedDict
-import asyncio
-from sys import exit as sysExit
 
 game = False
 token = ""
@@ -31,10 +33,10 @@ class Instance:
         self.user = user
         self.bet = bet
         self.cards = []
-        self.dealerUp = random.randint(2,11)
+        self.dealerUp = randint(2,11)
         self.dealerSum = self.dealerUp
         while self.dealerSum <17:
-            self.dealerSum += random.randint(1,10)
+            self.dealerSum += randint(1,10)
         self.vals = [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11]
         self.message = self.deal()
         self.message = self.deal()
@@ -52,7 +54,7 @@ class Instance:
         return False
     
     def deal(self):
-        card3 = random.choice(self.vals)
+        card3 = choice(self.vals)
         #print(card3)
         self.cards.append(card3)
         if card3 == 11:
@@ -60,7 +62,7 @@ class Instance:
         elif card3 == 8:
             self.message = "You were dealt an " + str(card3) + ", bringing your total to " + str(self.summer(self.cards)) + ". "
         elif card3 == 10:
-            self.message = "You were dealt a " + random.choice(["10", "Jack", "Queen", "King"]) + ", bringing your total to " + str(self.summer(self.cards)) + ". "
+            self.message = "You were dealt a " + choice(["10", "Jack", "Queen", "King"]) + ", bringing your total to " + str(self.summer(self.cards)) + ". "
         else:
             self.message = "You were dealt a " + str(card3) + ", bringing your total to " + str(self.summer(self.cards)) + ". "
         if 11 in self.cards and self.checkBust(self.cards):
@@ -364,7 +366,7 @@ class DiscordClass(client):
                                 break
                             if bet <= bank: # As of 11 AM ET on January 22nd, 2021, there have been 31765 flips that got heads and 31664 flips that got tails in the eggsoup server. This is 50/50. Stop complaining.
                                 results = [1, 0]
-                                result = random.choice(results)
+                                result = choice(results)
                                 if result==1:
                                     change = bet
                                     report = "Heads! You win! Your winnings have been added to your balance, " + text.author.mention + "."
@@ -546,7 +548,7 @@ class DiscordClass(client):
                 diction[storedNames[i]] = storedVals[i]
             for x,y in diction.items():
                 diction2[x[:-5]] = y
-            sortedDict = OrderedDict(sorted(diction2.items(), key = operator.itemgetter(1)))
+            sortedDict = OrderedDict(sorted(diction2.items(), key = itemgetter(1)))
             print(sortedDict)
             limit = 10
             if len(sortedDict) < 10:
@@ -585,41 +587,41 @@ class DiscordClass(client):
             else:
                 if command[0] == "4":
                     if len(command)==1:
-                        report = random.randint(1,4)
+                        report = randint(1,4)
                     elif (command[1]=="+" or command[1] == "-"):
-                        report = random.randint(1,4) + modifier*int(command[2:])
+                        report = randint(1,4) + modifier*int(command[2:])
                 if command[0] == "6":
                     if len(command)==1:
-                        report = random.randint(1,6)
+                        report = randint(1,6)
                     elif (command[1]=="+" or command[1] == "-"):
-                        report = random.randint(1,6) + modifier*int(command[2:])
+                        report = randint(1,6) + modifier*int(command[2:])
                 if command[0] == "8":
                     if len(command)==1:
-                        report = random.randint(1,8)
+                        report = randint(1,8)
                     elif (command[1]=="+" or command[1] == "-"):
-                        report = random.randint(1,8) + modifier*int(command[2:])
+                        report = randint(1,8) + modifier*int(command[2:])
                 if command[0] == "1" and command[1] == "0":
                     if len(command)==2:
                         isTen = True
-                        report = random.randint(1,10)
+                        report = randint(1,10)
                     elif (command[2]=="+" or command[2] == "-"):
                         isTen = True
-                        report = random.randint(1,10) + modifier*int(command[3:])
+                        report = randint(1,10) + modifier*int(command[3:])
                 if command[0] == "1" and command[1] == "2":
                     if len(command)==2:
-                        report = random.randint(1,12)
+                        report = randint(1,12)
                     elif (command[2]=="+" or command[2] == "-"):
-                        report = random.randint(1,12) + modifier*int(command[3:])
+                        report = randint(1,12) + modifier*int(command[3:])
                 if command[0] == "2" and command[1] == "0":
                     if len(command)==2:
-                        report = random.randint(1,20)
+                        report = randint(1,20)
                     elif (command[2]=="+" or command[2] == "-") :
-                        report = random.randint(1,20) + modifier*int(command[3:])
+                        report = randint(1,20) + modifier*int(command[3:])
                 if isTen == False and command[0] == "1" and command[1] == "0" and command[2] == "0":
                     if len(command)==3:
-                        report = random.randint(1,100)
+                        report = randint(1,100)
                     elif (command[3]=="+" or command[3] == "-"):
-                        report = random.randint(1,100) + modifier*int(command[4:])
+                        report = randint(1,100) + modifier*int(command[4:])
             await text.channel.send(report)
             return
 
@@ -697,7 +699,7 @@ class DiscordClass(client):
         
         if text.content.startswith("!hello") or text.content == "!hi":
             answers = ["How ya doin?", "Yo!", "What's cookin?", "Hello!", "Ahoy!", "Hi!", "What's up?","Hey!"]
-            await text.channel.send(random.choice(answers))
+            await text.channel.send(choice(answers))
             return
         
         if text.content.startswith("!source"):
@@ -715,7 +717,7 @@ class DiscordClass(client):
             if "legend" in text.content:
                 legends = [
                 "Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako", "Magyar"]
-                ran = random.choice(legends)
+                ran = choice(legends)
                 message = "Your legend is " + ran + "."
                 try:
                     gerard = await text.guild.fetch_member("193041297538285568") # Checks to see if the Gerard bot is in this server
@@ -724,7 +726,7 @@ class DiscordClass(client):
                     pass
             elif "weapon" in text.content:
                 weapons = [ "Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"]
-                message = "Your weapon is " + random.choice(weapons) + "."
+                message = "Your weapon is " + choice(weapons) + "."
             await text.channel.send(message)
             return
         
@@ -783,7 +785,7 @@ class DiscordClass(client):
                 "My creator holds the speedrun world record in every Go Diego Go! DS game, and some on other platforms, too. Check them out at speedrun.com/user/Captain-No-Beard",
                 "There's a preserved bar tab from three days before delegates signed the American Constitution, and they drank 54 bottles of Madeira, 60 bottles of claret, 22 bottles of porter, 12 bottles of beer, 8 bottles of cider and 7 bowls of punch. It was for 55 people."
                     ]
-            await text.channel.send(random.choice(facts))
+            await text.channel.send(choice(facts))
             return
         
         if text.content.startswith("!help") or text.content.startswith("!commands"):
@@ -932,10 +934,5 @@ class DiscordClass(client):
             if text.content.startswith('?luke'):
                 await text.channel.send("I'm michael hutchence")
                 return
-            
-            if text.content.startswith('?apoorva'):
-                await asyncio.sleep(.1)
-                await text.channel.send("Hi apoorva :)")
-                return
-    
+
     client.run(token)
