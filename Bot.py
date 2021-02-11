@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.17
+# Version: 8.5.18
 
 # Default modules:
 import asyncio
@@ -365,8 +365,7 @@ class DiscordClass(client):
                                 report = "Finish your game of blackjack first, " +  text.author.mention + "."
                                 break
                             if bet <= bank: # As of 11 AM ET on January 22nd, 2021, there have been 31765 flips that got heads and 31664 flips that got tails in the eggsoup server. This is 50/50. Stop complaining.
-                                results = [1, 0]
-                                result = choice(results)
+                                result = randint(0,1)
                                 if result==1:
                                     change = bet
                                     report = "Heads! You win! Your winnings have been added to your balance, " + text.author.mention + "."
