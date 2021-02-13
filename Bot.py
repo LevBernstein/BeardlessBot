@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.18
+# Version: 8.5.19
 
 # Default modules:
 import asyncio
@@ -439,10 +439,6 @@ class DiscordClass(client):
             await text.channel.send(report)
             return
         
-        if text.content.startswith('?av ben') or text.content.startswith('!av ben') or text.content.startswith('!av <@441423641394020354>'):
-            await text.delete()
-            return
-        
         if text.content.startswith('!av'):
             bar = 4
             if text.content.startswith('!avatar'):
@@ -464,6 +460,7 @@ class DiscordClass(client):
             await text.channel.send(report)
             
         if text.content.startswith('-mute ') or text.content.startswith('!mute '):
+            # TODO switch to message.mentions for target acquisition
             if text.author.guild_permissions.manage_messages:
                 target = text.content.split('@', 1)[1]
                 duration = "0"
@@ -928,10 +925,6 @@ class DiscordClass(client):
         if text.guild.id == 781025281590165555: # Commands for the Day Care Discord server.
             if 'twitter.com/year_progress' in text.content:
                 await text.delete()
-                return
-            
-            if text.content.startswith('?luke'):
-                await text.channel.send("I'm michael hutchence")
                 return
 
     client.run(token)
