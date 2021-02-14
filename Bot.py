@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.19
+# Version: 8.5.20
 
 # Default modules:
 import asyncio
@@ -142,6 +142,8 @@ class DiscordClass(client):
                 print("Avatar live!")
             except discord.HTTPException:
                 print("Avatar failed to update!")
+            except FileNotFoundError:
+                print("Avatar file not found! Check your directory structure.")
     
     @client.event
     async def on_message(text):
