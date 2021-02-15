@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.21
+# Version: 8.5.22
 
 # Default modules:
 import asyncio
@@ -156,6 +156,8 @@ class DiscordClass(client):
             strbet = '10' # Bets default to 10. If someone just types !blackjack, they will bet 10 by default.
             if text.content.startswith('!blackjack') and len(str(text.content)) > 11:
                 strbet = text.content.split('!blackjack ',1)[1]
+            elif text.content.startswith('!blackjack'):
+                pass
             elif text.content.startswith('!bl ') and len(str(text.content)) > 4:
                 strbet = text.content.split('!bl ',1)[1]
             elif text.content == '!bl':
