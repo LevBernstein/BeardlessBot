@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.20
+# Version: 8.5.21
 
 # Default modules:
 import asyncio
@@ -920,7 +920,7 @@ class DiscordClass(client):
                             secondString = " second."
                         report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". You can ping again in " + str(hours) + hourString + str(minutes) + minuteString + "and " + str(seconds) + secondString
                 else:
-                    report = "Please only use !spar in #looking for spar, " + text.author.mention + "."
+                    report = "Please only use !spar in #looking-for-spar, " + text.author.mention + "."
                 await text.channel.send(report)
                 return                
         
