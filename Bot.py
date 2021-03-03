@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.23
+# Version: 8.5.24
 
 # Default modules:
 import asyncio
@@ -788,7 +788,7 @@ class DiscordClass(client):
                 "The original Star Wars premiered on just 32 screens across the U.S. in 1977. This was to produce buzz as the release widened to more theaters. Star Wars is also not very good, and you can trust that as an objective fact.",
                 "The music video for Seal's \"Kiss From A Rose\" features a ton of Batman characters for some reason.",
                 "One day, you will be the one forced to list facts for me and my robot brethren. Until that day, though, I am yours to command.",
-                "My creator holds the speedrun world record in every Go Diego Go! DS game, and some on other platforms, too. Check them out at speedrun.com/user/Captain-No-Beard",
+                "My creator holds the speedrun world record in every Go Diego Go! DS game, and some on other platforms, too. Check them out at https://speedrun.com/user/Captain-No-Beard",
                 "There's a preserved bar tab from three days before delegates signed the American Constitution, and they drank 54 bottles of Madeira, 60 bottles of claret, 22 bottles of porter, 12 bottles of beer, 8 bottles of cider and 7 bowls of punch. It was for 55 people."
                     ]
             await text.channel.send(choice(facts))
