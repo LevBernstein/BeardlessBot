@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.22
+# Version: 8.5.23
 
 # Default modules:
 import asyncio
@@ -463,57 +463,63 @@ class DiscordClass(client):
                         print(err)
             await text.channel.send(report)
             
-        if text.content.startswith('-mute ') or text.content.startswith('!mute '):
+        if text.content.startswith('-mute') or text.content.startswith('!mute'):
             # TODO switch to message.mentions for target acquisition
             if text.author.guild_permissions.manage_messages:
-                target = text.content.split('@', 1)[1]
-                duration = "0"
-                if target.startswith('!'): # Resolves a discrepancy between mobile and desktop Discord
-                    target = target[1:]
-                target, duration = target.split('>', 1)
-                if target == "654133911558946837": # If user tries to mute Beardless Bot:
-                    await text.channel.send("I am too powerful to be muted. Stop trying.")
+                if '@' in text.content:
+                    target = text.content.split('@', 1)[1]
+                    duration = "0"
+                    if target.startswith('!'): # Resolves a discrepancy between mobile and desktop Discord
+                        target = target[1:]
+                    target, duration = target.split('>', 1)
+                    if target == "654133911558946837": # If user tries to mute Beardless Bot:
+                        await text.channel.send("I am too powerful to be muted. Stop trying.")
+                    else:
+                        print("Author: " + str(text.author.id) + " muting target: " + target)
+                        role = get(text.guild.roles, name = 'Muted')
+                        newtarg = await text.guild.fetch_member(str(target))
+                        await newtarg.add_roles(role)
+                        await text.channel.send("Muted " + str(newtarg.mention) + ".")
+                        mTime = 0.0 # Autounmute:
+                        if 'h' in duration:
+                            duration = duration[1:]
+                            duration, brick = duration.split('h', 1)
+                            mTime = float(duration) * 3600.0
+                        elif 'm' in duration:
+                            duration = duration[1:]
+                            duration, brick = duration.split('m', 1)
+                            mTime = float(duration) * 60.0
+                        elif 's' in duration:
+                            duration = duration[1:]
+                            duration, brick = duration.split('s', 1)
+                            mTime = float(duration)
+                        if mTime != 0.0:
+                            print(mTime)
+                            await asyncio.sleep(mTime)
+                            await newtarg.remove_roles(role)
+                            print("Unmuted " + newtarg.name)
                 else:
-                    print("Author: " + str(text.author.id) + " muting target: " + target)
-                    role = get(text.guild.roles, name = 'Muted')
-                    newtarg = await text.guild.fetch_member(str(target))
-                    await newtarg.add_roles(role)
-                    await text.channel.send("Muted " + str(newtarg.mention) + ".")
-                    mTime = 0.0 # Autounmute:
-                    if 'h' in duration:
-                        duration = duration[1:]
-                        duration, brick = duration.split('h', 1)
-                        mTime = float(duration) * 3600.0
-                    elif 'm' in duration:
-                        duration = duration[1:]
-                        duration, brick = duration.split('m', 1)
-                        mTime = float(duration) * 60.0
-                    elif 's' in duration:
-                        duration = duration[1:]
-                        duration, brick = duration.split('s', 1)
-                        mTime = float(duration)
-                    if mTime != 0.0:
-                        print(mTime)
-                        await asyncio.sleep(mTime)
-                        await newtarg.remove_roles(role)
-                        print("Unmuted " + newtarg.name)
+                    await text.channel.send("Invalid target!")
             else:
                 await text.channel.send("You do not have permission to use this command!")
             return
         
-        if text.content.startswith('-unmute ') or text.content.startswith('!unmute '):
+        if text.content.startswith('-unmute') or text.content.startswith('!unmute'):
             if text.author.guild_permissions.manage_messages:
-                print("Original message: " + text.content)
-                target = text.content.split('@', 1)[1]
-                if target.startswith('!'):
-                    target = target[1:]
-                target = target[:-1]
-                print("Author: " + str(text.author.id))
-                print("Target: " + target)
-                role = get(text.guild.roles, name = 'Muted')
-                newtarg = await text.guild.fetch_member(str(target))
-                await newtarg.remove_roles(role)
-                await text.channel.send("Unmuted " + str(newtarg.mention) + ".")
+                if '@' in text.content:
+                    print("Original message: " + text.content)
+                    target = text.content.split('@', 1)[1]
+                    if target.startswith('!'):
+                        target = target[1:]
+                    target = target[:-1]
+                    print("Author: " + str(text.author.id))
+                    print("Target: " + target)
+                    role = get(text.guild.roles, name = 'Muted')
+                    newtarg = await text.guild.fetch_member(str(target))
+                    await newtarg.remove_roles(role)
+                    await text.channel.send("Unmuted " + str(newtarg.mention) + ".")
+                else:
+                    await text.channel.send("Invalid target!")
             else:
                 await text.channel.send("You do not have permission to use this command!")
             return
