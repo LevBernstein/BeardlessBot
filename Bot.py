@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.24
+# Version: 8.5.25
 
 # Default modules:
 import asyncio
@@ -839,7 +839,7 @@ class DiscordClass(client):
                 if text.content.startswith('!pins') or text.content.startswith('!rules'):
                     await text.channel.send('https://cdn.discordapp.com/attachments/696148344291983361/804097714114658314/lfsrules.png')
             
-            if text.content.startswith('!warn') and text.channel.id != 705098150423167059 and len(text.content) > 6:
+            if text.content.startswith('!warn') and text.channel.id != 705098150423167059 and len(text.content) > 6 and text.author.guild_permissions.manage_messages:
                 emb = discord.Embed(title="Infraction Logged.", description="", color=0xfff994)
                 emb.add_field(name= "_ _", value= "Mods can view the infraction details in #infractions.", inline=True)
                 await text.channel.send(embed=emb)
