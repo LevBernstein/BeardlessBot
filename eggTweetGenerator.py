@@ -68,11 +68,8 @@ def generate_text( chains, num_words, key_size ):
     s = firstLetter + sourceTextCapital
     return s
 
-
-
-
 def final():
     chains = generate_chains( FILE, KEY_SIZE )
-    text = generate_text( chains, randint(20,100), KEY_SIZE )
+    text = generate_text( chains, randint(10,30), KEY_SIZE )
     print(text)
     return text

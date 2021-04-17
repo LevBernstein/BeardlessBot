@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.6.0
+# Version: 8.6.1
 
 # Default modules:
 import asyncio
@@ -828,7 +828,6 @@ class DiscordClass(client):
                 await text.channel.send(jet.mention)
         
         if text.guild.id == 442403231864324119: # Commands only used in eggsoup's Discord server.
-            
             if text.content.startswith('!eggtweet') or text.content.startswith('!tweet'):
                 emb = discord.Embed(title="eggsoup(@eggsouptv)", description="", color=0x1da1f2)
                 report = (eggTweetGenerator.final())
