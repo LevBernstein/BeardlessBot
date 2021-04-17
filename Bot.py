@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.5.25
+# Version: 8.6.0
 
 # Default modules:
 import asyncio
@@ -16,6 +16,9 @@ from time import time
 import discord
 from discord.ext import commands
 from discord.utils import get
+
+# Other:
+import eggTweetGenerator
 
 game = False
 token = ""
@@ -718,6 +721,9 @@ class DiscordClass(client):
             await text.channel.send(end)
             return
         
+        if text.content.startswith("!rohan"):
+            await text.channel.send("https://cdn.discordapp.com/avatars/267441559379771394/ae7b3e2ef57c4a0621b7549c00647835.png?size=256")
+        
         if text.content.startswith("!random"):
             message = "Invalid random."
             if "legend" in text.content:
@@ -793,7 +799,7 @@ class DiscordClass(client):
                     ]
             await text.channel.send(choice(facts))
             return
-        
+
         if text.content.startswith("!help") or text.content.startswith("!commands"):
             emb = discord.Embed(title="Beardless Bot Commands", description="", color=0xfff994)
             emb.add_field(name= "!register", value= "Registers you with the currency system.", inline=True)
@@ -822,6 +828,14 @@ class DiscordClass(client):
                 await text.channel.send(jet.mention)
         
         if text.guild.id == 442403231864324119: # Commands only used in eggsoup's Discord server.
+            
+            if text.content.startswith('!eggtweet') or text.content.startswith('!tweet'):
+                emb = discord.Embed(title="eggsoup(@eggsouptv)", description="", color=0x1da1f2)
+                report = (eggTweetGenerator.final())
+                emb.add_field(name= "_ _", value= report)
+                await text.channel.send(embed=emb)
+                return
+            
             if text.content.startswith('!reddit'):
                 await text.channel.send("https://www.reddit.com/r/eggsoup/")
                 return
