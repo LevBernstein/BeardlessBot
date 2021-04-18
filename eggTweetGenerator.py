@@ -58,7 +58,7 @@ def generate_text( chains, num_words, key_size ):
         s+= ' ' + word
         key = ' '.join(key.split()[1 : key_size + 1])
         if key_size > 1:
-            key+= ' '        
+            key+= ' '
         key+= word
         i+= 1
     sourceTextCapital = s
@@ -70,6 +70,6 @@ def generate_text( chains, num_words, key_size ):
 
 def final():
     chains = generate_chains( FILE, KEY_SIZE )
-    text = generate_text( chains, randint(10,30), KEY_SIZE )
+    text = generate_text( chains, randint(10,35), KEY_SIZE )
     print(text)
     return text
