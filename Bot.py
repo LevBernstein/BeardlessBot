@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.6.1
+# Version: 8.6.2
 
 # Default modules:
 import asyncio
@@ -722,7 +722,7 @@ class DiscordClass(client):
             return
         
         if text.content.startswith("!rohan"):
-            await text.channel.send("https://cdn.discordapp.com/avatars/267441559379771394/ae7b3e2ef57c4a0621b7549c00647835.png?size=256")
+            await text.channel.send(file=discord.File('cute.png'))
         
         if text.content.startswith("!random"):
             message = "Invalid random."
