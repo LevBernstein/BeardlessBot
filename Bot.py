@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.6.3
+# Version: 8.6.4
 
 # Default modules:
 import asyncio
@@ -846,20 +846,20 @@ class DiscordClass(client):
             
             if text.content.startswith('!mee6'):
                 mee6 = await text.guild.fetch_member("159985870458322944")
-                await text.channel.send('Silence ' + mee6.mention)
+                await text.channel.send('Silence ' + mee6.mention + "!")
                 return
             
             if text.channel.id == 605083979737071616:
                 if text.content.startswith('!pins') or text.content.startswith('!rules'):
-                    emb = discord.Embed(title="How to use looking-for-spar.", description="", color=0xfff994)
-                    emb.add_field(name= "To spar someone from your region:", value= "Do the command !spar <region> <other info>. For instance, to find a diamond from US-E to play 2s with, I would do:\n!spar US-E looking for a diamond 2s partner. \nValid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA. !spar has a 2 hour cooldown. Please use #roles to give yourself the correct roles.", inline=False)
-                    emb.add_field(name= "If you don't want to get pings:", value= "Remove your region role in #roles. Otherwise, responding 'no' to calls to spar is annoying and counterproductive, and will earn you a warning.", inline=False)
+                    emb = discord.Embed(title="How to use this channel.", description="", color=0xfff994)
+                    emb.add_field(name= "To spar someone from your region:", value= "Do the command !spar <region> <other info>. For instance, to find a diamond from US-E to play 2s with, I would do:\n!spar US-E looking for a diamond 2s partner. \nValid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA. !spar has a 2 hour cooldown. Please use <#833566541831208971> to give yourself the correct roles.", inline=False)
+                    emb.add_field(name= "If you don't want to get pings:", value= "Remove your region role in <#833566541831208971>. Otherwise, responding 'no' to calls to spar is annoying and counterproductive, and will earn you a warning.", inline=False)
                     await text.channel.send(embed=emb)
                     return
             
             if text.content.startswith('!warn') and text.channel.id != 705098150423167059 and len(text.content) > 6 and text.author.guild_permissions.manage_messages:
                 emb = discord.Embed(title="Infraction Logged.", description="", color=0xfff994)
-                emb.add_field(name= "_ _", value= "Mods can view the infraction details in #infractions.", inline=True)
+                emb.add_field(name= "_ _", value= "Mods can view the infraction details in <#705098150423167059>.", inline=True)
                 await text.channel.send(embed=emb)
                 return
             
@@ -947,7 +947,7 @@ class DiscordClass(client):
                             secondString = " second."
                         report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". You can ping again in " + str(hours) + hourString + str(minutes) + minuteString + "and " + str(seconds) + secondString
                 else:
-                    report = "Please only use !spar in #looking-for-spar, " + text.author.mention + "."
+                    report = "Please only use !spar in <#605083979737071616>, " + text.author.mention + "."
                 await text.channel.send(report)
                 return                
         
