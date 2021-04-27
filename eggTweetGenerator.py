@@ -69,7 +69,8 @@ def generate_text( chains, num_words, key_size ):
     return s
 
 def final():
-    chains = generate_chains( FILE, KEY_SIZE )
-    text = generate_text( chains, randint(10,35), KEY_SIZE )
+    randInt = randint(1,2)
+    chains = generate_chains( FILE, randInt )
+    text = generate_text( chains, randint(10,35), randInt )
     print(text)
     return text

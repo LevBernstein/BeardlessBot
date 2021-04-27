@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.6.2
+# Version: 8.6.3
 
 # Default modules:
 import asyncio
@@ -826,6 +826,7 @@ class DiscordClass(client):
             if text.content.startswith('!file'):
                 jet = await text.guild.fetch_member("579316676642996266")
                 await text.channel.send(jet.mention)
+                return
         
         if text.guild.id == 442403231864324119: # Commands only used in eggsoup's Discord server.
             if text.content.startswith('!eggtweet') or text.content.startswith('!tweet'):
@@ -850,17 +851,22 @@ class DiscordClass(client):
             
             if text.channel.id == 605083979737071616:
                 if text.content.startswith('!pins') or text.content.startswith('!rules'):
-                    await text.channel.send('https://cdn.discordapp.com/attachments/696148344291983361/804097714114658314/lfsrules.png')
+                    emb = discord.Embed(title="How to use looking-for-spar.", description="", color=0xfff994)
+                    emb.add_field(name= "To spar someone from your region:", value= "Do the command !spar <region> <other info>. For instance, to find a diamond from US-E to play 2s with, I would do:\n!spar US-E looking for a diamond 2s partner. \nValid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA. !spar has a 2 hour cooldown. Please use #roles to give yourself the correct roles.", inline=False)
+                    emb.add_field(name= "If you don't want to get pings:", value= "Remove your region role in #roles. Otherwise, responding 'no' to calls to spar is annoying and counterproductive, and will earn you a warning.", inline=False)
+                    await text.channel.send(embed=emb)
+                    return
             
             if text.content.startswith('!warn') and text.channel.id != 705098150423167059 and len(text.content) > 6 and text.author.guild_permissions.manage_messages:
                 emb = discord.Embed(title="Infraction Logged.", description="", color=0xfff994)
                 emb.add_field(name= "_ _", value= "Mods can view the infraction details in #infractions.", inline=True)
                 await text.channel.send(embed=emb)
+                return
             
             if text.content.startswith('!spar'):
                 if text.channel.id == 605083979737071616: # This is the "looking-for-spar" channel in eggsoup's Discord server.
                     cooldown = 7200
-                    report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help."
+                    report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help, or do !pins."
                     tooRecent = None
                     found = False
                     if 'jpn' in text.content:
