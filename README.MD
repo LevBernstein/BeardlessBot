@@ -11,7 +11,7 @@ Originally created for use in eggsoup's discord server.
 
 2. Create a file named "token.txt" that contains your Discord API token.
 
-3. Place token.txt in the same folder as Bot.py.
+3. Place token.txt in the resources folder.
 
 Alternatively, if you just want to add the bot to your own Discord 
 server while I host it, you can simply click this link: 

@@ -5,7 +5,7 @@ from random import randint
 #The following markov chain code was provided by CSTUY SHIP.
 
 KEY_SIZE = 2
-FILE = 'eggtweets_clean.txt'
+FILE = 'resources/eggtweets_clean.txt'
 
 def read_file( fname ):
     f = open( fname, 'r' )
