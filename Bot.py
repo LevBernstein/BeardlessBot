@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.6.4
+# Version: 8.6.5
 
 # Default modules:
 import asyncio
@@ -138,7 +138,7 @@ class DiscordClass(client):
             print("Failed to update status!")
         intents = discord.Intents.default()
         intents.members = True
-        with open("prof.png", "rb") as g:
+        with open("Images/prof.png", "rb") as g:
             pic = g.read()
             try:
                 await client.user.edit(avatar=pic)
@@ -722,7 +722,7 @@ class DiscordClass(client):
             return
         
         if text.content.startswith("!rohan"):
-            await text.channel.send(file=discord.File('cute.png'))
+            await text.channel.send(file=discord.File('Images/cute.png'))
         
         if text.content.startswith("!random"):
             message = "Invalid random."
