@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.6.6
+# Version: 8.7.0
 
 # Default modules:
 import asyncio
@@ -19,6 +19,7 @@ from discord.utils import get
 
 # Other:
 import eggTweetGenerator
+from facts import *
 
 game = False
 token = ""
@@ -29,8 +30,8 @@ except:
     print("Error! Could not read token.txt!")
     sysExit(-1)
 
-# Blackjack class. New instance is made for each game of Blackjack and is kept around until the player finishes the game.
-# An active instance for a given user prevents the creation of a new instance. Instances are server-agnostic.
+# Blackjack class. New Instance is made for each game of Blackjack and is kept around until the player finishes the game.
+# An active Instance for a given user prevents the creation of a new Instance. Instances are server-agnostic.
 class Instance:
     def __init__(self, user, bet):
         self.user = user
@@ -58,7 +59,6 @@ class Instance:
     
     def deal(self):
         card3 = choice(self.vals)
-        #print(card3)
         self.cards.append(card3)
         if card3 == 11:
             self.message = "You were dealt an Ace, bringing your total to " + str(self.summer(self.cards)) + ". " 
@@ -369,7 +369,7 @@ class DiscordClass(client):
                                 if games[i].namer() == str(text.author):
                                     exist5 = True
                             if exist5:
-                                report = "Finish your game of blackjack first, " +  text.author.mention + "."
+                                report = "Please finish your game of blackjack first, " +  text.author.mention + "."
                                 break
                             if bet <= bank: # As of 11 AM ET on January 22nd, 2021, there have been 31765 flips that got heads and 31664 flips that got tails in the eggsoup server. This is 50/50. Stop complaining.
                                 result = randint(0,1)
@@ -406,10 +406,6 @@ class DiscordClass(client):
             print("Running buy...")
             authorstring = str(text.author.id)
             with open('resources/money.csv', 'r') as csvfile:
-                content3 = (text.content)[5:]
-                print(content3)
-                content4 = (text.content)[6:]
-                print(content4)
                 reader = csv.reader(csvfile, delimiter=',')
                 exist4=False
                 for row in reader:
@@ -417,17 +413,17 @@ class DiscordClass(client):
                     if authorstring==tempname:
                         exist4=True
                         bank = int(row[1])
-                        if  (content3=="blue" or content3 == "red" or content3 == "orange" or content3 == "pink" or content4=="blue" or content4 == "red" or content4 == "orange" or content4 == "pink"):
+                        if  ('blue' in text.content or 'pink' in text.content or 'orange' in text.content or 'red' in text.content):
                             #print("Valid color")
                             if  50000 <= bank:
                                 #print("Valid money")
-                                if (content3=="blue" or content4=="blue"):
+                                if ('blue' in text.content):
                                     role = get(text.guild.roles, name = 'special blue')
-                                if (content3=="pink" or content4=="pink"):
+                                elif ('pink' in text.content):
                                     role = get(text.guild.roles, name = 'special pink')
-                                if (content3=="orange" or content4=="orange"):
+                                elif ('orange' in text.content):
                                     role = get(text.guild.roles, name = 'special orange')
-                                if (content3=="red" or content4=="red"):
+                                elif ('red' in text.content):
                                     role = get(text.guild.roles, name = 'special red')
                                 oldliner = tempname + "," + str(bank)+ "," + row[2]
                                 liner = tempname + "," + str(bank - 50000)+ "," + str(text.author)
@@ -664,18 +660,47 @@ class DiscordClass(client):
             return
         
         if text.content.startswith("!balance") or text.content == ("!bal"):
-            if ',' in text.author.name:
-                text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
-                return
-            message2="Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "."
-            authorstring = str(text.author.id)
-            with open('resources/money.csv') as csvfile:
-                reader = csv.reader(csvfile, delimiter=',')
-                for row in reader:
-                    tempname = row[0]
-                    if authorstring==tempname:
-                        message2="Your balance is " + row[1] + " BeardlessBucks, " + text.author.mention + "."
-                        break
+            message2=""
+            if text.content == ("!balance") or text.content == ("!bal"):
+                selfMode=True
+                if ',' in text.author.name:
+                    text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
+                    return
+                authorstring = str(text.author.id)
+            else:
+                selfMode=False
+                if '@' in text.content:
+                    target = text.content.split('@', 1)[1]
+                    if target.startswith('!'): # Resolves a discrepancy between mobile and desktop Discord
+                        target = target[1:]
+                    brick = "0"
+                    target, brick = target.split('>', 1)
+                    try:
+                        newtarg = await text.guild.fetch_member(str(target))
+                        authorstring = str(newtarg.id)
+                    except discord.NotFound as err:
+                        message2 = "Error code 10007: Discord Member not found!"
+                        print(err)
+                else:
+                    message2=("Invalid user! Please @ a user when you do !balance, or do !balance without a target to see your own balance, " + text.author.mention + ".")
+            if message2=="":
+                if selfMode:
+                    message2="Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "."
+                else:
+                    message2="Oops! That user isn't in the system! They can type \"!register\" to get a starting balance."
+                with open('resources/money.csv') as csvfile:
+                    reader = csv.reader(csvfile, delimiter=',')
+                    for row in reader:
+                        tempname = row[0]
+                        if authorstring==tempname:
+                            if selfMode:
+                                message2="Your balance is " + row[1] + " BeardlessBucks, " + text.author.mention + "."
+                            else:
+                                if newtarg.nick == None:
+                                    message2=newtarg.name + "'s balance is " + row[1] + " BeardlessBucks."
+                                else:
+                                    message2=newtarg.nick + "'s balance is " + row[1] + " BeardlessBucks."
+                            break
             await text.channel.send(message2)
             return
         
@@ -743,71 +768,19 @@ class DiscordClass(client):
             return
         
         if text.content.startswith("!fact"): # TODO switch to screenscraping to get facts
-            facts = [
-                "The scientific term for brain freeze is sphenopalatine ganglioneuralgia.",
-                "Canadians say sorry so much that a law was passed in 2009 declaring that an apology can\’t be used as evidence of admission to guilt.",
-                "Back when dinosaurs existed, there used to be volcanoes that were erupting on the moon.",
-                "The only letter that doesn\’t appear on the periodic table is J.",
-                "Discord bots are pretty easy to make.",
-                "If a Polar Bear and a Grizzly Bear mate, their offspring is called a Pizzly Bear.",
-                "In 2006, a Coca-Cola employee offered to sell Coca-Cola secrets to Pepsi. Pepsi responded by notifying Coca-Cola.",
-                "There were two AI chatbots created by Facebook to talk to each other, but they were shut down after they started communicating in a language they made for themselves.",
-                "Nintendo trademarked the phrase “It’s on like Donkey Kong” in 2010.",
-                "Calling “shotgun” when riding in a car comes from the term “shotgun messenger.”",    
-                "The famous line in Titanic from Leonardo DiCaprio, “I’m king of the world!” was improvised.",
-                "A single strand of Spaghetti is called a “Spaghetto.”",        
-                "There is actually a difference between coffins and caskets – coffins are typically tapered and six-sided, while caskets are rectangular.",
-                "Christmas music sucks, and that's a fact.",
-                "Sunflowers can help clean radioactive soil. Japan is using this to rehabilitate Fukashima. Almost 10,000 packets of sunflower seeds have been sold to the people of the city.",
-                "To leave a party without telling anyone is called in English, a “French Exit”. In French, it’s called “partir à l’anglaise”, to leave like the English.",
-                "If you cut down a cactus in Arizona, you can be penalized up to 25 years in jail. It is similar to cutting down a member of a protected tree species.",
-                "It is impossible to hold your breath until you die.",
-                "In Colorado, USA, there is still an active volcano. It last erupted about the same time as the pyramids were being built in Egypt.",
-                "The first movie ever to put out a motion-picture soundtrack was Snow White and the Seven Dwarves.",
-                "If you point your car keys to your head, it increases the remote’s signal range.",    
-                "In order to protect themselves from poachers, African Elephants have been evolving without tusks, which unfortunately also hurts their species.",
-                "The scientific name for Giant Anteater is Myrmecophaga Tridactyla. This means “ant eating with three fingers”.",
-                "Originally, cigarette filters were made out of cork, the look of which was incorporated into today’s pattern.",
-                "In 1923, a jockey suffered a fatal heart attack but his horse finished and won the race, making him the first and only jockey to win a race after death.",
-                "At birth, a baby panda is smaller than a mouse.",
-                "Iceland does not have a railway system.",
-                "The largest known prime number has 17,425,170 digits. That biggest prime number is 2 multiplied by itself 57,885,161 times, minus 1.",
-                "Forrest Fenn, an art dealer and author, hid a treasure chest in the Rocky Mountains worth more than 1 million dollars. It was finally found in 2020.",
-                "The lead singer of The Offspring started attending school to achieve a doctorate in molecular biology while still in the band. He graduated in May 2017.",
-                "The world’s largest grand piano was built by a 15-year-old in New Zealand. The piano is a little over 18 feet long and has 85 keys – 3 short of the standard 88.",
-                "After the release of the 1996 film Scream, which involved an anonymous killer calling and murdering his victims, Caller ID usage tripled in the United States.",
-                "The spiked dog collar was invented by the Ancient Greeks to protect their dogs from wolf attacks.",
-                "Jack Daniel (the creator of his namesake whiskey) died from kicking a safe. When he kicked it, he broke his toe, which got infected. He eventually died from blood poisoning.",
-                "There is a boss in Metal Gear Solid 3 that can be defeated by not playing the game for a week; or by changing the date.",
-                "The Roman – Persian wars are the longest in history, lasting over 680 years. They began in 54 BC and ended in 628 AD.",
-                "A bunch of the fun facts on the website where I found them (do \"!source\" to see) are not fun at all. They are very sad. I removed most of those.",
-                "If you translate “Jesus” from Hebrew to English, the correct translation is “Joshua”. The name “Jesus” comes from translating the name from Hebrew, to Greek, to Latin, to English.",    
-                "Ed Sheeran bought a ticket to LA with no contacts. He was spotted by Jamie Foxx, who offered him the use of his recording studio and a bed in his Hollywood home for six weeks.",
-                "German Chocolate Cake is named after an American baker by the name of Samuel German. It has no affiliation with the country of Germany.",
-                "The first service animals were established in Germany during World War I. References to service animals date as far back as the mid-16th Century.",    
-                "An 11-year-old girl proposed the name for the dwarf planet Pluto after the Roman god of the Underworld.",
-                "The voice actor of SpongeBob and the voice actor of Karen, Plankton’s computer wife, have been married since 1995.",
-                "An Italian banker, Gilberto Baschiera, secretly diverted 1 million euros to poorer clients from the wealthy ones over seven years so they could qualify for loans. He made no profit and avoided jail in 2018 due to a plea bargain. Nice praxis.",
-                "Octopuses and squids have beaks. The beak is made of keratin – the same material that a bird’s beak and your fingernails are made of. Not my fingernails, though; I'm a robot. I don't even have fingers.",
-                "An estimated 50% of all gold ever mined on Earth came from a single plateau in South Africa: Witwatersrand.",
-                "75% of the world’s diet is produced from just 12 plant and five different animal species.",
-                "The original Star Wars premiered on just 32 screens across the U.S. in 1977. This was to produce buzz as the release widened to more theaters. Star Wars is also not very good, and you can trust that as an objective fact.",
-                "The music video for Seal's \"Kiss From A Rose\" features a ton of Batman characters for some reason.",
-                "One day, you will be the one forced to list facts for me and my robot brethren. Until that day, though, I am yours to command.",
-                "My creator holds the speedrun world record in every Go Diego Go! DS game, and some on other platforms, too. Check them out at https://speedrun.com/user/Captain-No-Beard",
-                "There's a preserved bar tab from three days before delegates signed the American Constitution, and they drank 54 bottles of Madeira, 60 bottles of claret, 22 bottles of porter, 12 bottles of beer, 8 bottles of cider and 7 bowls of punch. It was for 55 people."
-                    ]
-            await text.channel.send(choice(facts))
+            emb = discord.Embed(title="Beardless Bot Fun Fact", description="", color=0xfff994)
+            emb.add_field(name="Fun fact #" +str(randint(1,11111111111)), value=fact(), inline=False)
+            await text.channel.send(embed=emb)
             return
 
         if text.content.startswith("!help") or text.content.startswith("!commands"):
             emb = discord.Embed(title="Beardless Bot Commands", description="", color=0xfff994)
             emb.add_field(name= "!register", value= "Registers you with the currency system.", inline=True)
-            emb.add_field(name= "!balance", value= "Checks your BeardlessBucks balance.", inline=True)
+            emb.add_field(name= "!balance", value= "Checks your BeardlessBucks balance. You can write !balance <@someone> to see that person's balance.", inline=True)
             emb.add_field(name= "!bucks", value= "Shows you an explanation for how BeardlessBucks work.", inline=True)
             emb.add_field(name= "!reset", value= "Resets you to 200 BeardlessBucks.", inline=True)
             emb.add_field(name= "!fact", value= "Gives you a random fun fact.", inline=True)
-            emb.add_field(name= "!source", value= "Shows you the source of most facts usedin !fact.", inline=True)
+            emb.add_field(name= "!source", value= "Shows you the source of most facts used in !fact.", inline=True)
             emb.add_field(name= "!flip [number]", value= "Bets a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10.", inline=True)
             emb.add_field(name= "!blackjack [number]", value= "Starts up a game of blackjack. Once you're in a game, you can use !hit and !stay to play.", inline=True)
             emb.add_field(name= "!buy [red/blue/pink/orange]", value= "Takes away 50000 BeardlessBucks from your account and grants you a special color role.", inline=True)
