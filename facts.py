@@ -1,5 +1,6 @@
 # Fun facts for Beardless Bot
 from random import choice
+
 def fact():
     facts = [
         "The scientific term for brain freeze is sphenopalatine ganglioneuralgia.",

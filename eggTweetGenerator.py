@@ -1,8 +1,5 @@
-from random import choice
-from random import random
-from random import randint
-
 #The following markov chain code was provided by CSTUY SHIP.
+from random import choice, randint
 
 KEY_SIZE = 2
 FILE = 'resources/eggtweets_clean.txt'

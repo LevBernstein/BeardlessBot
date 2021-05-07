@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.7.0
+# Version: 8.7.1
 
 # Default modules:
 import asyncio
@@ -19,6 +19,7 @@ from discord.utils import get
 
 # Other:
 import eggTweetGenerator
+from dice import *
 from facts import *
 
 game = False
@@ -144,7 +145,7 @@ class DiscordClass(client):
                 await client.user.edit(avatar=pic)
                 print("Avatar live!")
             except discord.HTTPException:
-                print("Avatar failed to update!")
+                print("Avatar failed to update! You might be sending requests too quickly.")
             except FileNotFoundError:
                 print("Avatar file not found! Check your directory structure.")
     
@@ -184,7 +185,7 @@ class DiscordClass(client):
             if allBet == False and bet < 0: # Check if !allBet first to avoid attempting to cast "all" to int
                 report = "Invalid bet. Choose a value greater than or equal to 0."
             else:
-                with open('resources/money.csv', 'r') as csvfile:
+                with open('resources/money.csv', 'r') as csvfile: # In future, maybe switch to some kind of NoSQL db like Mongo instead of storing in a csv
                     reader = csv.reader(csvfile, delimiter=',')
                     for row in reader:
                         if str(text.author.id) == row[0]:
@@ -457,9 +458,8 @@ class DiscordClass(client):
                     try:
                         newtarg = await text.guild.fetch_member(str(target))
                         report = newtarg.avatar_url
-                    except discord.NotFound as err:
-                        report = "Error code 10007: Discord Member not found!"
-                        print(err)
+                    except discord.NotFound:
+                        report = "Discord Member " + str(target) + " not found!"
             await text.channel.send(report)
             
         if text.content.startswith('-mute') or text.content.startswith('!mute'):
@@ -528,12 +528,12 @@ class DiscordClass(client):
             await text.channel.send(report)
             return
         
-        if text.content.startswith('!song') or text.content.startswith('!playlist'):
+        if text.content.startswith('!song') or text.content.startswith('!playlist') or text.content.startswith('!music'):
             linker = ' Here\'s my playlist (discord will only show the first hundred songs): https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg'
             await text.channel.send(linker)
             return
         
-        if text.content.startswith('!leaderboard') or text.content.startswith('!lb'): # This is incredibly memory inefficient. It's not a concern now, but if resources/money.csv becomes sufficiently large, this code will require a rewrite.
+        if text.content.startswith('!leaderboard') or text.content.startswith('!lb'):
             storedVals = []
             storedNames = []
             finalList = []
@@ -545,7 +545,7 @@ class DiscordClass(client):
                 reader = csv.reader(csvfile, delimiter=',')
                 for row in reader:
                     bank = int(row[1])
-                    if bank != 0: # Don't bother displaying in the leaderboard people with 0 BeardlessBucks
+                    if bank != 0: # Don't bother displaying info for people with 0 BeardlessBucks
                         storedVals.append(bank)
                         name = row[2]
                         storedNames.append(name)
@@ -554,7 +554,7 @@ class DiscordClass(client):
             for x,y in diction.items():
                 diction2[x[:-5]] = y
             sortedDict = OrderedDict(sorted(diction2.items(), key = itemgetter(1)))
-            print(sortedDict)
+            #print(sortedDict)
             limit = 10
             if len(sortedDict) < 10:
                 limit = len(names)
@@ -563,71 +563,18 @@ class DiscordClass(client):
                     if len(sortedDict) > 10:
                         sortedDict.pop(x)
                     break
-            print(sortedDict)
+            #print(sortedDict)
             for x, y in sortedDict.items():
                 names.append(x)
-            for i in range(len(names)):
-                print(names[i])
+            #for i in range(len(names)):
+                #print(names[i])
             for i in range(limit):
                 emb.add_field(name= (str(i+1) + ". " + names[(limit-1)-i]), value= str(sortedDict[names[(limit-1)-i]]), inline=True)
             await text.channel.send(embed=emb)
             return
         
         if text.content.startswith('!d') and ((text.content.split('!d',1)[1])[0]).isnumeric() and len(text.content) < 12: # The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
-            report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
-            command = text.content.split('!d',1)[1]
-            print(command[0])
-            print(command)
-            isTen = False # Because !d10 and !d100 share their first two characters after the split, I was getting errors whenever I ran !d10 without a modifier.
-            # This boolean takes care of those errors. The problem arises because both the conditions for rolling a d10 and 2/3 of the conditions for rolling a d100
-            # would be met whenever the bot tried to roll a d10; then, when checking if command[2]=="0", I would get an array index out of bounds error, as the
-            # length of the command is actually only 2, not 3. However, with the boolean isTen earlier in the line, now it will never check to see if command has that
-            # third slot.
-            if "-" in command:
-                modifier = -1
-            else:
-                modifier = 1
-            if text.content == '!d2' or text.content == '!d1':
-                report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
-            else:
-                if command[0] == "4":
-                    if len(command)==1:
-                        report = randint(1,4)
-                    elif (command[1]=="+" or command[1] == "-"):
-                        report = randint(1,4) + modifier*int(command[2:])
-                if command[0] == "6":
-                    if len(command)==1:
-                        report = randint(1,6)
-                    elif (command[1]=="+" or command[1] == "-"):
-                        report = randint(1,6) + modifier*int(command[2:])
-                if command[0] == "8":
-                    if len(command)==1:
-                        report = randint(1,8)
-                    elif (command[1]=="+" or command[1] == "-"):
-                        report = randint(1,8) + modifier*int(command[2:])
-                if command[0] == "1" and command[1] == "0":
-                    if len(command)==2:
-                        isTen = True
-                        report = randint(1,10)
-                    elif (command[2]=="+" or command[2] == "-"):
-                        isTen = True
-                        report = randint(1,10) + modifier*int(command[3:])
-                if command[0] == "1" and command[1] == "2":
-                    if len(command)==2:
-                        report = randint(1,12)
-                    elif (command[2]=="+" or command[2] == "-"):
-                        report = randint(1,12) + modifier*int(command[3:])
-                if command[0] == "2" and command[1] == "0":
-                    if len(command)==2:
-                        report = randint(1,20)
-                    elif (command[2]=="+" or command[2] == "-") :
-                        report = randint(1,20) + modifier*int(command[3:])
-                if isTen == False and command[0] == "1" and command[1] == "0" and command[2] == "0":
-                    if len(command)==3:
-                        report = randint(1,100)
-                    elif (command[3]=="+" or command[3] == "-"):
-                        report = randint(1,100) + modifier*int(command[4:])
-            await text.channel.send(report)
+            await text.channel.send(roll(text.content))
             return
 
         if text.content.startswith('!reset'):
@@ -731,8 +678,8 @@ class DiscordClass(client):
             await text.channel.send(buckmessage)
             return
         
-        if text.content.startswith("!hello") or text.content == "!hi":
-            answers = ["How ya doin?", "Yo!", "What's cookin?", "Hello!", "Ahoy!", "Hi!", "What's up?","Hey!"]
+        if text.content.startswith("!hello") or text.content == "!hi" or ("hello" in text.content and ("beardless" in text.content or "bb" in text.content)):
+            answers = ["How ya doin?", "Yo!", "What's cookin?", "Hello!", "Ahoy!", "Hi!", "What's up?", "Hey!", "How's it goin?", "Greetings!"]
             await text.channel.send(choice(answers))
             return
         
