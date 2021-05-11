@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.7.1
+# Version: 8.7.2
 
 # Default modules:
 import asyncio
@@ -179,8 +179,12 @@ class DiscordClass(client):
                 try:
                     bet = int(strbet)
                 except:
-                    bet = 10
                     print("Failed to cast bet to int!")
+                    if (' ' not in text.content):
+                        bet = 10
+                    else:
+                        await text.channel.send("Invalid bet amount. Please choose a number >-1, " + text.author.mention + ".")
+                        return
             authorstring = str(text.author)
             if allBet == False and bet < 0: # Check if !allBet first to avoid attempting to cast "all" to int
                 report = "Invalid bet. Choose a value greater than or equal to 0."
@@ -349,11 +353,15 @@ class DiscordClass(client):
                 try:
                     bet = int(strbet)
                 except:
-                    bet = 10
                     print("Failed to cast bet to int!")
+                    if (' ' not in text.content):
+                        bet = 10
+                    else:
+                        await text.channel.send("Invalid bet amount. Please choose a number >-1, " + text.author.mention + ".")
+                        return
             authorstring = str(text.author.id)
             if allBet == False and int(strbet) < 0:
-                report = "Invalid bet amount. Choose a value >-1, " + text.author.mention + "."
+                report = "Invalid bet amount. Please choose a number >-1, " + text.author.mention + "."
             else:
                 with open('resources/money.csv', 'r') as csvfile:
                     reader = csv.reader(csvfile, delimiter=',')
