@@ -50,7 +50,7 @@ def roll(message):
                 report = randint(1,20)
             elif (command[2]=="+" or command[2] == "-") :
                 report = randint(1,20) + modifier*int(command[3:])
-        elif isTen == False and command[0] == "1" and command[1] == "0" and command[2] == "0":
+        if isTen == False and command[0] == "1" and command[1] == "0" and command[2] == "0":
             if len(command)==3:
                 report = randint(1,100)
             elif (command[3]=="+" or command[3] == "-"):
