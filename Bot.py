@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.7.2
+# Version: 8.7.3
 
 # Default modules:
 import asyncio
@@ -584,7 +584,11 @@ class DiscordClass(client):
         if text.content.startswith('!d') and ((text.content.split('!d',1)[1])[0]).isnumeric() and len(text.content) < 12: # The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
             await text.channel.send(roll(text.content))
             return
-
+        
+        if text.content.startswith('!dice'):
+            await text.channel.send("Enter !d[number][+/-][modifier] to roll a [number]-sided die and add or subtract a modifier. For example: !d8+3, or !d100-17, or !d6.")
+            return
+        
         if text.content.startswith('!reset'):
             if ',' in text.author.name:
                 text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
