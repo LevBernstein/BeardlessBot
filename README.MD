@@ -9,9 +9,13 @@ Originally created for use in eggsoup's discord server.
 
 1. Download the repository.
 
-2. Create a file named "token.txt" that contains your Discord API token.
+2. Create a file named "token.txt" that contains your Discord API token (you can get a token [here](https://discord.com/developers/applications)).
 
 3. Place token.txt in the resources folder.
+
+4. Create a filed named "catToken.txt" that contains your Cat API token (you can get a token [here](https://thecatapi.com/)).
+
+5. Place catToken.txt in the resources folder.
 
 Alternatively, if you just want to add the bot to your own Discord 
 server while I host it, you can simply click this link: 

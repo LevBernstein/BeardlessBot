@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.7.4
+# Version: 8.7.5
 
 # Default modules:
 import asyncio
@@ -21,6 +21,7 @@ from discord.utils import get
 import eggTweetGenerator
 from dice import *
 from facts import *
+from cat import *
 
 game = False
 token = ""
@@ -29,6 +30,17 @@ try:
         token = f.readline()
 except:
     print("Error! Could not read token.txt!")
+    sysExit(-1)
+
+try:
+    with open("resources/catToken.txt", "r") as f: # in catToken.txt, paste in your own Cat API Key
+        catKey = f.readline()
+        if catKey.endswith("\n"): # API doesn't handle line and carriage return characters well
+            catKey = catKey[:-1]
+        if catKey.endswith("\r"):
+            catKey = catKey[:-1]
+except:
+    print("Error! Could not read catToken.txt!")
     sysExit(-1)
 
 # Blackjack class. New Instance is made for each game of Blackjack and is kept around until the player finishes the game.
@@ -726,12 +738,21 @@ class DiscordClass(client):
             await text.channel.send(message)
             return
         
-        if text.content.startswith("!fact"): # TODO switch to screenscraping to get facts
+        if text.content.startswith("!fact"):
             emb = discord.Embed(title="Beardless Bot Fun Fact", description="", color=0xfff994)
             emb.add_field(name="Fun fact #" +str(randint(1,11111111111)), value=fact(), inline=False)
             await text.channel.send(embed=emb)
             return
 
+        if text.content.startswith("!cat"):
+            try:
+                catURL = cat(catKey)
+                await text.channel.send(catURL)
+                return
+            except:
+                await text.channel.send("Cat API Limit Reached! It should reset at the end of the month.")
+                return        
+        
         if text.content.startswith("!help") or text.content.startswith("!commands"):
             emb = discord.Embed(title="Beardless Bot Commands", description="", color=0xfff994)
             emb.add_field(name= "!register", value= "Registers you with the currency system.", inline=True)
@@ -750,6 +771,7 @@ class DiscordClass(client):
             emb.add_field(name= "!video", value= "Shows you my latest YouTube video.", inline=True)
             emb.add_field(name= "!add", value= "Gives you a link to add this bot to your server.", inline=True)
             emb.add_field(name= "!av", value= "Display a user's avatar. Write just !av if you want to see your own avatar.", inline=True)
+            emb.add_field(name= "!cat", value= "Gets a random cat picture.", inline=True)
             emb.add_field(name= "!commands", value= "Shows you this list.", inline=True)
             await text.channel.send(embed=emb)
             return
