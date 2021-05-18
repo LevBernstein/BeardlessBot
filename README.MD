@@ -1,5 +1,7 @@
 # Beardless Bot
 
+### Lev Bernstein
+
 A Discord bot supporting gambling (coin flips and blackjack),
 a currency system, fun facts, and more.
 
@@ -17,9 +19,7 @@ Originally created for use in eggsoup's discord server.
 
 5. Place catToken.txt in the resources folder.
 
-Alternatively, if you just want to add the bot to your own Discord 
-server while I host it, you can simply click this link: 
-https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot
+Alternatively, if you just want to add the bot to your own Discord server while I host it, you can simply [click this link](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot).
 
 ### Dependencies
 
