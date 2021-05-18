@@ -1,4 +1,4 @@
-# Cat images for Beardless Bot
+# Cat and dog images for Beardless Bot
 
 import requests
 from sys import exit as sysExit
