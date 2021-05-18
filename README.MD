@@ -27,8 +27,6 @@ https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permission
 
 * Discord.py. To install, run "python3 -m pip install -U discord.py"
 
-
-
 ## License
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
