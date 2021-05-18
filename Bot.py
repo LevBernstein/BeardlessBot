@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.7.5
+# Version: 8.7.6
 
 # Default modules:
 import asyncio
@@ -21,7 +21,7 @@ from discord.utils import get
 import eggTweetGenerator
 from dice import *
 from facts import *
-from cat import *
+from animals import *
 
 game = False
 token = ""
@@ -41,6 +41,17 @@ try:
             catKey = catKey[:-1]
 except:
     print("Error! Could not read catToken.txt!")
+    sysExit(-1)
+
+try:
+    with open("resources/dogToken.txt", "r") as f: # in catToken.txt, paste in your own Cat API Key
+        dogKey = f.readline()
+        if dogKey.endswith("\n"): # API doesn't handle line and carriage return characters well
+            dogKey = dogKey[:-1]
+        if dogKey.endswith("\r"):
+            dogKey = dogKey[:-1]
+except:
+    print("Error! Could not read dogToken.txt!")
     sysExit(-1)
 
 # Blackjack class. New Instance is made for each game of Blackjack and is kept around until the player finishes the game.
@@ -746,12 +757,21 @@ class DiscordClass(client):
 
         if text.content.startswith("!cat"):
             try:
-                catURL = cat(catKey)
+                catURL = animal("cat", catKey)
                 await text.channel.send(catURL)
                 return
             except:
                 await text.channel.send("Cat API Limit Reached! It should reset at the end of the month.")
-                return        
+                return
+        
+        if text.content.startswith("!dog"):
+            try:
+                dogURL = animal("dog", dogKey)
+                await text.channel.send(dogURL)
+                return
+            except:
+                await text.channel.send("Dog API Limit Reached! It should reset at the end of the month.")
+                return  
         
         if text.content.startswith("!help") or text.content.startswith("!commands"):
             emb = discord.Embed(title="Beardless Bot Commands", description="", color=0xfff994)
