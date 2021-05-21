@@ -71,3 +71,6 @@ def final():
     text = generate_text( chains, randint(10,35), randInt )
     print(text)
     return text
+
+if __name__ == "__main__":
+    final()
