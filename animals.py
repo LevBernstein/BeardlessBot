@@ -1,4 +1,4 @@
-# Cat and dog images for Beardless Bot
+# Animal images for Beardless Bot
 
 import requests
 
