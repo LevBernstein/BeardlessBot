@@ -759,19 +759,25 @@ class DiscordClass(client):
             try:
                 catURL = animal("cat", catKey)
                 await text.channel.send(catURL)
-                return
             except:
                 await text.channel.send("Cat API Limit Reached! It should reset at the end of the month.")
-                return
+            return
         
         if text.content.startswith("!dog"):
             try:
                 dogURL = animal("dog", dogKey)
                 await text.channel.send(dogURL)
-                return
             except:
                 await text.channel.send("Dog API Limit Reached! It should reset at the end of the month.")
-                return  
+            return  
+        
+        if text.content.startswith("!duck"):
+            try:
+                duckURL = animal("duck", "duckie")
+                await text.channel.send(duckURL)
+            except:
+                await text.channel.send("Something's gone wrong with the duck API! Please ping my creator and he'll see what's going on.")
+            return  
         
         if text.content.startswith("!help") or text.content.startswith("!commands"):
             emb = discord.Embed(title="Beardless Bot Commands", description="", color=0xfff994)
