@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.7.7
+# Version: 8.7.8
 
 # Default modules:
 import asyncio
@@ -23,7 +23,6 @@ from dice import *
 from facts import *
 from animals import *
 
-game = False
 token = ""
 try:
     with open("resources/token.txt", "r") as f: # in token.txt, paste in your own Discord API token
@@ -227,7 +226,6 @@ class DiscordClass(client):
                                 report = "You already have an active game, " + text.author.mention + "."
                             else:
                                 if bet <= bank:
-                                    game = True
                                     x = Instance(text.author, bet)
                                     games.append(x)
                                     report = x.message
@@ -310,7 +308,6 @@ class DiscordClass(client):
                     bet = gamer.bet
                     break
             if exist5:
-                neutral = False
                 result = gamer.stay()
                 report = "The dealer has a total of " + str(gamer.dealerSum) + "."
                 if result == -3:
@@ -575,17 +572,11 @@ class DiscordClass(client):
             with open('resources/money.csv') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
                 for row in reader:
-                    bank = int(row[1])
-                    if bank != 0: # Don't bother displaying info for people with 0 BeardlessBucks
-                        storedVals.append(bank)
-                        name = row[2]
-                        storedNames.append(name)
-            for i in range(len(storedVals)):
-                diction[storedNames[i]] = storedVals[i]
+                    if int(row[1]) != 0: # Don't bother displaying info for people with 0 BeardlessBucks
+                        diction[row[2]] = int(row[1])
             for x,y in diction.items():
                 diction2[x[:-5]] = y
             sortedDict = OrderedDict(sorted(diction2.items(), key = itemgetter(1)))
-            #print(sortedDict)
             limit = 10
             if len(sortedDict) < 10:
                 limit = len(names)
@@ -594,11 +585,8 @@ class DiscordClass(client):
                     if len(sortedDict) > 10:
                         sortedDict.pop(x)
                     break
-            #print(sortedDict)
             for x, y in sortedDict.items():
                 names.append(x)
-            #for i in range(len(names)):
-                #print(names[i])
             for i in range(limit):
                 emb.add_field(name= (str(i+1) + ". " + names[(limit-1)-i]), value= str(sortedDict[names[(limit-1)-i]]), inline=True)
             await text.channel.send(embed=emb)
