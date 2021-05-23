@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.7.8
+# Version: 8.7.9
 
 # Default modules:
 import asyncio
@@ -23,7 +23,6 @@ from dice import *
 from facts import *
 from animals import *
 
-token = ""
 try:
     with open("resources/token.txt", "r") as f: # in token.txt, paste in your own Discord API token
         token = f.readline()
@@ -76,9 +75,7 @@ class Instance:
         return total
 
     def perfect(self, cardSet):
-        if self.summer(cardSet) == 21:
-            return True
-        return False
+        return True if self.summer(cardSet) == 21 else False
     
     def deal(self):
         card3 = choice(self.vals)
@@ -116,9 +113,7 @@ class Instance:
         return stringer
 
     def checkBust(self, cardSet):
-        if self.summer(cardSet) > 21:
-            return True
-        return False
+        return True if self.summer(cardSet) > 21 else False
 
     def namer(self):
         return self.user
@@ -343,10 +338,7 @@ class DiscordClass(client):
                                     x.writelines(texter)
                                 break
                 elif bet == 0:
-                    if result == 0:
-                        report += ". Y"
-                    else:
-                        report += ". However, y"
+                    report += ". Y" if result == 0 else ". However, y"
                     report += "ou bet nothing, so your balance has not changed"
                 report += ", " + text.author.mention + "."
                 for i in range(len(games)):
@@ -360,12 +352,8 @@ class DiscordClass(client):
             if ',' in text.author.name:
                 text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                 return
-            print(text.author.name + ": " + text.content)
             allBet = False
-            if len(text.content) > 5:
-                strbet = text.content.split('!flip ',1)[1]
-            else:
-                strbet = 10
+            strbet = text.content.split('!flip ',1)[1] if len(text.content) > 5 else 10
             if strbet == "all":
                 allBet = True
                 bet = 0
@@ -472,16 +460,13 @@ class DiscordClass(client):
             return
         
         if text.content.startswith('!av'):
-            bar = 4
-            if text.content.startswith('!avatar'):
-                bar = 8
+            bar = 8 if text.content.startswith('!avatar') else 4
             report = text.author.avatar_url
             if len(text.content) > bar:
                 if '@' in text.content:
                     target = text.content.split('@', 1)[1]
                     if target.startswith('!'): # Resolves a discrepancy between mobile and desktop Discord
                         target = target[1:]
-                    brick = "0"
                     target, brick = target.split('>', 1)
                     try:
                         newtarg = await text.guild.fetch_member(str(target))
@@ -495,7 +480,6 @@ class DiscordClass(client):
             if text.author.guild_permissions.manage_messages:
                 if '@' in text.content:
                     target = text.content.split('@', 1)[1]
-                    duration = "0"
                     if target.startswith('!'): # Resolves a discrepancy between mobile and desktop Discord
                         target = target[1:]
                     target, duration = target.split('>', 1)
@@ -643,7 +627,6 @@ class DiscordClass(client):
                     target = text.content.split('@', 1)[1]
                     if target.startswith('!'): # Resolves a discrepancy between mobile and desktop Discord
                         target = target[1:]
-                    brick = "0"
                     target, brick = target.split('>', 1)
                     try:
                         newtarg = await text.guild.fetch_member(str(target))
@@ -701,7 +684,7 @@ class DiscordClass(client):
             await text.channel.send(buckmessage)
             return
         
-        if text.content.startswith("!hello") or text.content == "!hi" or ("hello" in text.content and ("beardless" in text.content or "bb" in text.content)):
+        if text.content.startswith("!hello") or text.content == "!hi" or (("hello" in text.content or "hi" in text.content) and ("beardless" in text.content or "bb" in text.content)):
             answers = ["How ya doin?", "Yo!", "What's cookin?", "Hello!", "Ahoy!", "Hi!", "What's up?", "Hey!", "How's it goin?", "Greetings!"]
             await text.channel.send(choice(answers))
             return
@@ -723,7 +706,7 @@ class DiscordClass(client):
             message = "Invalid random."
             if "legend" in text.content:
                 legends = [
-                "Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako", "Magyar"]
+                "Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako", "Magyar", "Reno"]
                 ran = choice(legends)
                 message = "Your legend is " + ran + "."
                 try:
@@ -757,7 +740,7 @@ class DiscordClass(client):
                 await text.channel.send(dogURL)
             except:
                 await text.channel.send("Dog API Limit Reached! It should reset at the end of the month.")
-            return  
+            return
         
         if text.content.startswith("!duck"):
             try:
@@ -765,7 +748,7 @@ class DiscordClass(client):
                 await text.channel.send(duckURL)
             except:
                 await text.channel.send("Something's gone wrong with the duck API! Please ping my creator and he'll see what's going on.")
-            return  
+            return
         
         if text.content.startswith("!help") or text.content.startswith("!commands"):
             emb = discord.Embed(title="Beardless Bot Commands", description="", color=0xfff994)
@@ -785,7 +768,7 @@ class DiscordClass(client):
             emb.add_field(name= "!video", value= "Shows you my latest YouTube video.", inline=True)
             emb.add_field(name= "!add", value= "Gives you a link to add this bot to your server.", inline=True)
             emb.add_field(name= "!av", value= "Display a user's avatar. Write just !av if you want to see your own avatar.", inline=True)
-            emb.add_field(name= "!cat", value= "Gets a random cat picture.", inline=True)
+            emb.add_field(name= "!cat/dog/duck", value= "Gets a random cat/dog/duck picture.", inline=True)
             emb.add_field(name= "!commands", value= "Shows you this list.", inline=True)
             await text.channel.send(embed=emb)
             return

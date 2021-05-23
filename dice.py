@@ -4,7 +4,7 @@ from random import randint
 def roll(message): # takes a string of the format !dn+b and rolls one n-sided die with a modifier of b.
     report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
     command = message.split('!d',1)[1]
-    modifier = -1 if "-" in command else 1 
+    modifier = -1 if "-" in command else 1
     if message == '!d2' or message == '!d1':
         return report
     if command.startswith("4") or command.startswith("6") or command.startswith("8"):
