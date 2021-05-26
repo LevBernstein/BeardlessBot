@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.7.9
+# Version: 8.7.10
 
 # Default modules:
 import asyncio
@@ -563,16 +563,15 @@ class DiscordClass(client):
             sortedDict = OrderedDict(sorted(diction2.items(), key = itemgetter(1)))
             limit = 10
             if len(sortedDict) < 10:
-                limit = len(names)
+                limit = len(sortedDict.items())
             while len(sortedDict) > 10:
                 for x, y in sortedDict.items():
                     if len(sortedDict) > 10:
                         sortedDict.pop(x)
                     break
-            for x, y in sortedDict.items():
-                names.append(x)
             for i in range(limit):
-                emb.add_field(name= (str(i+1) + ". " + names[(limit-1)-i]), value= str(sortedDict[names[(limit-1)-i]]), inline=True)
+                tup = sortedDict.popitem()
+                emb.add_field(name= (str(i+1) + ". " + tup[0]), value= str(tup[1]), inline=True)
             await text.channel.send(embed=emb)
             return
         
