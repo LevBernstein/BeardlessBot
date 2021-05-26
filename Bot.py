@@ -1,10 +1,11 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.7.11
+# Version: 8.8.0
 
 # Default modules:
 import asyncio
 import csv
+import requests
 from collections import OrderedDict
 from math import floor
 from operator import itemgetter
@@ -730,6 +731,28 @@ class DiscordClass(client):
                 await text.channel.send("Something's gone wrong with the duck API! Please ping my creator and he'll see what's going on.")
             return
         
+        if text.content.startswith("!define "):
+            word = text.content.split(' ', 1)[1]
+            if " " in word:
+                await text.channel.send("Please only look up individual words.")
+                return
+            r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
+            if r.status_code == 200:
+                try:
+                    emb = discord.Embed(title=word.upper(), description="Audio: " + r.json()[0]['phonetics'][0]['audio'], color=0xfff994)
+                    i = 0
+                    for entry in r.json():
+                        for meaning in entry["meanings"]:
+                            for definition in meaning["definitions"]:
+                                i += 1
+                                emb.add_field(name= "Definition " + str(i) + ":", value= definition["definition"], inline=True)
+                    await text.channel.send(embed=emb)
+                    return
+                except:
+                    pass
+            await text.channel.send("Error!")
+            return
+            
         if text.content.startswith("!help") or text.content.startswith("!commands"):
             emb = discord.Embed(title="Beardless Bot Commands", description="", color=0xfff994)
             emb.add_field(name= "!register", value= "Registers you with the currency system.", inline=True)
@@ -749,6 +772,7 @@ class DiscordClass(client):
             emb.add_field(name= "!add", value= "Gives you a link to add this bot to your server.", inline=True)
             emb.add_field(name= "!av", value= "Display a user's avatar. Write just !av if you want to see your own avatar.", inline=True)
             emb.add_field(name= "!cat/dog/duck", value= "Gets a random cat/dog/duck picture.", inline=True)
+            emb.add_field(name= "!define [word]", value= "Define a word.", inline=True)
             emb.add_field(name= "!commands", value= "Shows you this list.", inline=True)
             await text.channel.send(embed=emb)
             return
