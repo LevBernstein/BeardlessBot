@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.7.10
+# Version: 8.7.11
 
 # Default modules:
 import asyncio
@@ -229,7 +229,7 @@ class DiscordClass(client):
                                             bet = bet * -1
                                         totalsum = bank + bet
                                         oldliner = str(text.author.id) + "," + str(bank) + "," + row[2]
-                                        liner = str(text.author.id) + "," + str(totalsum)+ "," + str(text.author)
+                                        liner = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
                                         texter = open("resources/money.csv", "r")
                                         texter = ''.join([i for i in texter]) \
                                             .replace(oldliner, liner)
@@ -268,13 +268,11 @@ class DiscordClass(client):
                         reader = csv.reader(csvfile, delimiter=',')
                         exist4=False
                         for row in reader:
-                            tempname = str(text.author)
                             if str(text.author.id) == row[0]:
                                 exist4=True
-                                bank = int(row[1])
-                                totalsum = bank + bet
-                                oldliner = str(text.author.id)+ "," + str(bank)+ "," + row[2]
-                                liner = str(text.author.id) + "," + str(totalsum)+ "," + str(text.author)
+                                totalsum = int(row[1]) + bet
+                                oldliner = str(text.author.id) + "," + row[1] + "," + row[2]
+                                liner = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
                                 texter = open("resources/money.csv", "r")
                                 texter = ''.join([i for i in texter]) \
                                     .replace(oldliner, liner)
@@ -327,10 +325,9 @@ class DiscordClass(client):
                         for row in reader:
                             if str(text.author.id) == row[0]:
                                 exist4=True
-                                bank = int(row[1])
-                                totalsum = bank + bet
-                                oldliner = str(text.author.id) + "," + str(bank)+ "," + row[2]
-                                liner = str(text.author.id) + "," + str(totalsum)+ "," + str(text.author)
+                                totalsum = int(row[1]) + bet
+                                oldliner = str(text.author.id) + "," + row[1] + "," + row[2]
+                                liner = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
                                 texter = open("resources/money.csv", "r")
                                 texter = ''.join([i for i in texter]) \
                                     .replace(oldliner, liner)
@@ -375,8 +372,7 @@ class DiscordClass(client):
                     reader = csv.reader(csvfile, delimiter=',')
                     exist4=False
                     for row in reader:
-                        tempname = row[0]
-                        if authorstring == tempname:
+                        if authorstring == row[0]:
                             exist4=True
                             bank = int(row[1])
                             if allBet:
@@ -401,8 +397,8 @@ class DiscordClass(client):
                                 if change == 0:
                                     report += " However, you bet nothing, so your balance will not change."
                                 else:
-                                    oldliner = tempname + "," + str(bank)+ "," + row[2]
-                                    liner = tempname + "," + str(totalsum)+ "," + str(text.author)
+                                    oldliner = row[0] + "," + str(bank) + "," + row[2]
+                                    liner = row[0] + "," + str(totalsum) + "," + str(text.author)
                                     texter = open("resources/money.csv", "r")
                                     texter = ''.join([i for i in texter]) \
                                         .replace(oldliner, liner)
@@ -426,13 +422,11 @@ class DiscordClass(client):
                 reader = csv.reader(csvfile, delimiter=',')
                 exist4=False
                 for row in reader:
-                    tempname = row[0]
-                    if authorstring==tempname:
+                    if authorstring==row[0]:
                         exist4=True
-                        bank = int(row[1])
                         if  ('blue' in text.content or 'pink' in text.content or 'orange' in text.content or 'red' in text.content):
                             #print("Valid color")
-                            if  50000 <= bank:
+                            if  50000 <= int(row[1]):
                                 #print("Valid money")
                                 if ('blue' in text.content):
                                     role = get(text.guild.roles, name = 'special blue')
@@ -442,8 +436,8 @@ class DiscordClass(client):
                                     role = get(text.guild.roles, name = 'special orange')
                                 elif ('red' in text.content):
                                     role = get(text.guild.roles, name = 'special red')
-                                oldliner = tempname + "," + str(bank)+ "," + row[2]
-                                liner = tempname + "," + str(bank - 50000)+ "," + str(text.author)
+                                oldliner = row[0] + "," + row[1] + "," + row[2]
+                                liner = row[0] + "," + str(int(row[1]) - 50000) + "," + str(text.author)
                                 texter = open("resources/money.csv", "r")
                                 texter = ''.join([i for i in texter]) \
                                         .replace(oldliner, liner)
@@ -546,24 +540,15 @@ class DiscordClass(client):
             return
         
         if text.content.startswith('!leaderboard') or text.content.startswith('!lb'):
-            storedVals = []
-            storedNames = []
-            finalList = []
             diction = {}
-            diction2 = {}
-            names = []
             emb = discord.Embed(title="BeardlessBucks Leaderboard", description="", color=0xfff994)
             with open('resources/money.csv') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
                 for row in reader:
                     if int(row[1]) != 0: # Don't bother displaying info for people with 0 BeardlessBucks
-                        diction[row[2]] = int(row[1])
-            for x,y in diction.items():
-                diction2[x[:-5]] = y
-            sortedDict = OrderedDict(sorted(diction2.items(), key = itemgetter(1)))
-            limit = 10
-            if len(sortedDict) < 10:
-                limit = len(sortedDict.items())
+                        diction[(row[2])[:-5]] = int(row[1])
+            sortedDict = OrderedDict(sorted(diction.items(), key = itemgetter(1)))
+            limit = len(sortedDict.items()) if len(sortedDict) < 10 else 10
             while len(sortedDict) > 10:
                 for x, y in sortedDict.items():
                     if len(sortedDict) > 10:
@@ -592,12 +577,10 @@ class DiscordClass(client):
                 reader = csv.reader(csvfile, delimiter=',')
                 exist=False
                 for row in reader:
-                    tempname = row[0]
-                    if authorstring==tempname:
+                    if authorstring==row[0]:
                         exist=True
-                        bank = int(row[1])
-                        oldliner = tempname + "," + str(bank)+ "," + row[2]
-                        liner = tempname + "," + str(200)+ "," + str(text.author)
+                        oldliner = authorstring + "," + row[1] + "," + row[2]
+                        liner = authorstring + "," + str(200) + "," + str(text.author)
                         texter = open("resources/money.csv", "r")
                         texter = ''.join([i for i in texter]) \
                             .replace(oldliner, liner)
@@ -643,8 +626,7 @@ class DiscordClass(client):
                 with open('resources/money.csv') as csvfile:
                     reader = csv.reader(csvfile, delimiter=',')
                     for row in reader:
-                        tempname = row[0]
-                        if authorstring==tempname:
+                        if authorstring==row[0]:
                             if selfMode:
                                 message2="Your balance is " + row[1] + " BeardlessBucks, " + text.author.mention + "."
                             else:
@@ -665,8 +647,7 @@ class DiscordClass(client):
                 reader = csv.reader(csvfile, delimiter=',')
                 exist=False
                 for row in reader:
-                    tempname = row[0]
-                    if authorstring==tempname:
+                    if authorstring==row[0]:
                         exist=True
                         message3="You are already in the system! Hooray! You have " + row[1] + " BeardlessBucks, " + text.author.mention + "."
                 if exist==False:
