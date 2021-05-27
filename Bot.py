@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.8.0
+# Version: 8.8.1
 
 # Default modules:
 import asyncio
@@ -27,30 +27,20 @@ from animals import *
 try:
     with open("resources/token.txt", "r") as f: # in token.txt, paste in your own Discord API token
         token = f.readline()
-except:
-    print("Error! Could not read token.txt!")
-    sysExit(-1)
-
-try:
     with open("resources/catToken.txt", "r") as f: # in catToken.txt, paste in your own Cat API Key
         catKey = f.readline()
         if catKey.endswith("\n"): # API doesn't handle line and carriage return characters well
             catKey = catKey[:-1]
         if catKey.endswith("\r"):
             catKey = catKey[:-1]
-except:
-    print("Error! Could not read catToken.txt!")
-    sysExit(-1)
-
-try:
-    with open("resources/dogToken.txt", "r") as f: # in catToken.txt, paste in your own Cat API Key
+    with open("resources/dogToken.txt", "r") as f: # in dogToken.txt, paste in your own Dog API Key
         dogKey = f.readline()
-        if dogKey.endswith("\n"): # API doesn't handle line and carriage return characters well
+        if dogKey.endswith("\n"):
             dogKey = dogKey[:-1]
         if dogKey.endswith("\r"):
             dogKey = dogKey[:-1]
-except:
-    print("Error! Could not read dogToken.txt!")
+except Exception as err:
+    print(err)
     sysExit(-1)
 
 # Blackjack class. New Instance is made for each game of Blackjack and is kept around until the player finishes the game.
@@ -70,13 +60,10 @@ class Instance:
         self.State = True
 
     def summer(self, cardSet):
-        total = 0
-        for i in range(len(cardSet)):
-            total += cardSet[i]
-        return total
+        return sum(cardSet)
 
     def perfect(self, cardSet):
-        return True if self.summer(cardSet) == 21 else False
+        return self.summer(cardSet) == 21
     
     def deal(self):
         card3 = choice(self.vals)
@@ -107,14 +94,10 @@ class Instance:
         return self.message
 
     def toString(self):
-        stringer = "Your cards are "
-        for i in range(len(self.cards)):
-            stringer += str(self.cards[i]) + ", "
-        stringer = stringer[0:-2] + "." # Remove the last comma and space, replace with a period
-        return stringer
+        return "Your cards are " + str(self.cards)[1:-1] + "."
 
     def checkBust(self, cardSet):
-        return True if self.summer(cardSet) > 21 else False
+        return self.summer(cardSet) > 21
 
     def namer(self):
         return self.user
@@ -126,12 +109,11 @@ class Instance:
             return 0
         if self.dealerSum > 21:
             return 4
-        if self.summer(self.cards) < self.dealerSum:
-            return -3
-        return -1 # Error
+        return -3 # self.summer(self.cards) < self.dealerSum
         
-games = [] # Stores the active instances of blacjack. An array might not be the most efficient place to store these, 
+games = [] # Stores the active instances of blackjack. An array might not be the most efficient place to store these, 
 # but because this bot sees use on a relatively small scale, this is not an issue.
+# TODO: switch to BST sorted based on user ID
 # These ping ints are for keeping track of pings in eggsoup's Discord server.
 usePing = 0
 uswPing = 0
@@ -157,15 +139,15 @@ class DiscordClass(client):
             print("Failed to update status!")
         intents = discord.Intents.default()
         intents.members = True
-        with open("images/prof.png", "rb") as g:
-            pic = g.read()
-            try:
+        try:
+            with open("images/prof.png", "rb") as g:
+                pic = g.read()
                 await client.user.edit(avatar=pic)
                 print("Avatar live!")
-            except discord.HTTPException:
-                print("Avatar failed to update! You might be sending requests too quickly.")
-            except FileNotFoundError:
-                print("Avatar file not found! Check your directory structure.")
+        except discord.HTTPException:
+            print("Avatar failed to update! You might be sending requests too quickly.")
+        except FileNotFoundError:
+            print("Avatar file not found! Check your directory structure.")
     
     @client.event
     async def on_message(text):
@@ -218,6 +200,7 @@ class DiscordClass(client):
                             for i in range(len(games)):
                                 if games[i].namer() == text.author:
                                     exist5 = True
+                                    break
                             if exist5:
                                 report = "You already have an active game, " + text.author.mention + "."
                             else:
@@ -261,10 +244,7 @@ class DiscordClass(client):
             if exist5:
                 report = gamer.deal()
                 if gamer.checkBust(gamer.cards) == True or gamer.perfect(gamer.cards) == True:
-                    if gamer.checkBust(gamer.cards) == True:
-                        bet = gamer.bet * -1
-                    else:
-                        bet = gamer.bet
+                    bet = (gamer.bet * -1) if gamer.checkBust(gamer.cards) else gamer.bet
                     with open('resources/money.csv', 'r') as csvfile:
                         reader = csv.reader(csvfile, delimiter=',')
                         exist4=False
@@ -294,7 +274,6 @@ class DiscordClass(client):
             report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
             authorstring = str(text.author)
             exist5 = False
-            bet = 1
             for i in range(len(games)):
                 if games[i].namer() == text.author:
                     exist5 = True
@@ -734,23 +713,25 @@ class DiscordClass(client):
         if text.content.startswith("!define "):
             word = text.content.split(' ', 1)[1]
             if " " in word:
-                await text.channel.send("Please only look up individual words.")
-                return
-            r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
-            if r.status_code == 200:
-                try:
-                    emb = discord.Embed(title=word.upper(), description="Audio: " + r.json()[0]['phonetics'][0]['audio'], color=0xfff994)
-                    i = 0
-                    for entry in r.json():
-                        for meaning in entry["meanings"]:
-                            for definition in meaning["definitions"]:
-                                i += 1
-                                emb.add_field(name= "Definition " + str(i) + ":", value= definition["definition"], inline=True)
-                    await text.channel.send(embed=emb)
-                    return
-                except:
-                    pass
-            await text.channel.send("Error!")
+                report = "Please only look up individual words."
+            else:
+                r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
+                if r.status_code == 200:
+                    try:
+                        emb = discord.Embed(title=word.upper(), description="Audio: " + r.json()[0]['phonetics'][0]['audio'], color=0xfff994)
+                        i = 0
+                        for entry in r.json():
+                            for meaning in entry["meanings"]:
+                                for definition in meaning["definitions"]:
+                                    i += 1
+                                    emb.add_field(name= "Definition " + str(i) + ":", value= definition["definition"], inline=True)
+                        await text.channel.send(embed=emb)
+                        return
+                    except:
+                        report = "Invalid word!"
+                else:
+                    report = "Error!"
+            await text.channel.send(report)
             return
             
         if text.content.startswith("!help") or text.content.startswith("!commands"):
@@ -772,7 +753,7 @@ class DiscordClass(client):
             emb.add_field(name= "!add", value= "Gives you a link to add this bot to your server.", inline=True)
             emb.add_field(name= "!av", value= "Display a user's avatar. Write just !av if you want to see your own avatar.", inline=True)
             emb.add_field(name= "!cat/dog/duck", value= "Gets a random cat/dog/duck picture.", inline=True)
-            emb.add_field(name= "!define [word]", value= "Define a word.", inline=True)
+            emb.add_field(name= "!define [word]", value= "Shows you the definition(s) of a word.", inline=True)
             emb.add_field(name= "!commands", value= "Shows you this list.", inline=True)
             await text.channel.send(embed=emb)
             return
