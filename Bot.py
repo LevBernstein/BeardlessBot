@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.8.2
+# Version: 8.8.3
 
 # Default modules:
 import asyncio
@@ -576,7 +576,7 @@ class DiscordClass(client):
                 await text.channel.send('You have been reset to 200 BeardlessBucks, ' + text.author.mention + ".")
                 return
             
-            if text.content.startswith("!balance") or text.content == ("!bal"):
+            if text.content.startswith("!balance") or text.content.startswith("!bal"):
                 message2=""
                 if text.content == ("!balance") or text.content == ("!bal"):
                     selfMode=True
@@ -584,7 +584,7 @@ class DiscordClass(client):
                         text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                         return
                     authorstring = str(text.author.id)
-                else:
+                elif text.content.startswith("!balance ") or text.content.startswith("!bal "):
                     selfMode=False
                     if '@' in text.content:
                         target = text.content.split('@', 1)[1]
@@ -599,6 +599,8 @@ class DiscordClass(client):
                             print(err)
                     else:
                         message2=("Invalid user! Please @ a user when you do !balance, or do !balance without a target to see your own balance, " + text.author.mention + ".")
+                else:
+                    return
                 if message2=="":
                     if selfMode:
                         message2="Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "."
