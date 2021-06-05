@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.8.3
+# Version: 8.8.4
 
 # Default modules:
 import asyncio
@@ -495,9 +495,7 @@ class DiscordClass(client):
                     if '@' in text.content:
                         print("Original message: " + text.content)
                         target = text.content.split('@', 1)[1]
-                        if target.startswith('!'):
-                            target = target[1:]
-                        target = target[:-1]
+                        target = target[1:-1] if target.startswith('!') else target[:-1]
                         print("Author: " + str(text.author.id))
                         print("Target: " + target)
                         role = get(text.guild.roles, name = 'Muted')
@@ -511,13 +509,11 @@ class DiscordClass(client):
                 return
             
             if text.content.startswith('!video'):
-                report = 'My creator made a new video! Check it out at https://youtu.be/-4FzBLS-UVI'
-                await text.channel.send(report)
+                await text.channel.send('My creator made a new video! Check it out at https://youtu.be/-4FzBLS-UVI')
                 return
             
             if text.content.startswith('!song') or text.content.startswith('!playlist') or text.content.startswith('!music'):
-                linker = ' Here\'s my playlist (discord will only show the first hundred songs): https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg'
-                await text.channel.send(linker)
+                await text.channel.send('Here\'s my playlist (discord will only show the first hundred songs): https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg')
                 return
             
             if text.content.startswith('!leaderboard') or text.content.startswith('!lb'):
@@ -529,13 +525,7 @@ class DiscordClass(client):
                         if int(row[1]) != 0: # Don't bother displaying info for people with 0 BeardlessBucks
                             diction[(row[2])[:-5]] = int(row[1])
                 sortedDict = OrderedDict(sorted(diction.items(), key = itemgetter(1)))
-                limit = len(sortedDict.items()) if len(sortedDict) < 10 else 10
-                while len(sortedDict) > 10:
-                    for x, y in sortedDict.items():
-                        if len(sortedDict) > 10:
-                            sortedDict.pop(x)
-                        break
-                for i in range(limit):
+                for i in range(len(sortedDict.items()) if len(sortedDict) < 10 else 10):
                     tup = sortedDict.popitem()
                     emb.add_field(name= (str(i+1) + ". " + tup[0]), value= str(tup[1]), inline=True)
                 await text.channel.send(embed=emb)
