@@ -54,9 +54,7 @@ def generate_text( chains, num_words, key_size ):
         word = choice( chains[ key ] )
         s+= ' ' + word
         key = ' '.join(key.split()[1 : key_size + 1])
-        if key_size > 1:
-            key+= ' '
-        key+= word
+        key+= (' ' + word) if key_size > 1 else word
         i+= 1
     sourceTextCapital = s
     firstLetter = sourceTextCapital[0]
