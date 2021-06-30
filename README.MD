@@ -15,9 +15,7 @@ Originally created for use in eggsoup's discord server.
 
 4. Create a file named "catToken.txt" that contains your Cat API token (you can get a token [here](https://thecatapi.com/signup/)).
 
-6. Create a file named "dogToken.txt" that contains your Dog API token (you can get a token [here](https://thedogapi.com/signup/)).
-
-7. Place all three token files in the resources folder.
+7. Place both token files in the resources folder.
 
 Alternatively, if you just want to add the bot to your own Discord server while I host it, you can simply [click this link](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot).
 

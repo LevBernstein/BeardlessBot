@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.8.5
+# Version: 8.8.6
 
 # Default modules:
 import asyncio
@@ -33,12 +33,6 @@ try:
             catKey = catKey[:-1]
         if catKey.endswith("\r"):
             catKey = catKey[:-1]
-    with open("resources/dogToken.txt", "r") as f: # in dogToken.txt, paste in your own Dog API Key
-        dogKey = f.readline()
-        if dogKey.endswith("\n"):
-            dogKey = dogKey[:-1]
-        if dogKey.endswith("\r"):
-            dogKey = dogKey[:-1]
 except Exception as err:
     print(err)
     sysExit(-1)
@@ -520,7 +514,7 @@ class DiscordClass(client):
                 sortedDict = OrderedDict(sorted(diction.items(), key = itemgetter(1)))
                 for i in range(len(sortedDict.items()) if len(sortedDict) < 10 else 10):
                     tup = sortedDict.popitem()
-                    emb.add_field(name = (str(i + 1) + ". " + tup[0]), value = str(tup[1]), inline=True)
+                    emb.add_field(name = (str(i + 1) + ". " + tup[0]), value = str(tup[1]), inline = True)
                 await text.channel.send(embed=emb)
                 return
             
@@ -678,11 +672,13 @@ class DiscordClass(client):
                 return
             
             if text.content.startswith("!dog"):
+                text.content = "!dog" if text.content == "!dog " else text.content
+                print(text.content)
                 try:
-                    dogURL = animal("dog", dogKey)
+                    dogURL = animal(text.content[1:], "doggie")
                     await text.channel.send(dogURL)
                 except:
-                    await text.channel.send("Dog API Limit Reached! It should reset at the end of the month.")
+                    await text.channel.send("Something's gone wrong with the dog API! Please ping my creator and he'll see what's going on.")
                 return
             
             if text.content.startswith("!duck"):
