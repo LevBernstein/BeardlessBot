@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.8.6
+# Version: 8.8.7
 
 # Default modules:
 import asyncio
@@ -180,7 +180,6 @@ class DiscordClass(client):
                         else:
                             await text.channel.send("Invalid bet amount. Please choose a number >-1, " + text.author.mention + ".")
                             return
-                authorstring = str(text.author)
                 if allBet == False and bet < 0: # Check if !allBet first to avoid attempting to cast "all" to int
                     report = "Invalid bet. Choose a value greater than or equal to 0."
                 else:
@@ -204,9 +203,7 @@ class DiscordClass(client):
                                         games.append(x)
                                         report = x.message
                                         if x.checkBust(x.cards) or x.perfect(x.cards):
-                                            if x.checkBust(x.cards):
-                                                bet *= -1
-                                            totalsum = bank + bet
+                                            totalsum = bank + (bet * -1) if x.checkBust(x.cards) else bank + bet
                                             oldliner = str(text.author.id) + "," + str(bank) + "," + row[2]
                                             liner = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
                                             texter = open("resources/money.csv", "r")
@@ -228,7 +225,6 @@ class DiscordClass(client):
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
                 report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
-                authorstring = str(text.author)
                 exist5 = False
                 for i in range(len(games)):
                     if games[i].namer() == text.author:
@@ -237,16 +233,14 @@ class DiscordClass(client):
                         break
                 if exist5:
                     report = gamer.deal()
-                    if gamer.checkBust(gamer.cards) == True or gamer.perfect(gamer.cards) == True:
+                    if gamer.checkBust(gamer.cards) or gamer.perfect(gamer.cards):
                         bet = (gamer.bet * -1) if gamer.checkBust(gamer.cards) else gamer.bet
                         with open('resources/money.csv', 'r') as csvfile:
                             reader = csv.reader(csvfile, delimiter = ',')
-                            exist4=False
                             for row in reader:
                                 if str(text.author.id) == row[0]:
-                                    exist4=True
                                     totalsum = int(row[1]) + bet
-                                    oldliner = str(text.author.id) + "," + row[1] + "," + row[2]
+                                    oldliner = row[0] + "," + row[1] + "," + row[2]
                                     liner = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
                                     texter = open("resources/money.csv", "r")
                                     texter = ''.join([i for i in texter]).replace(oldliner, liner)
@@ -265,7 +259,6 @@ class DiscordClass(client):
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
                 report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
-                authorstring = str(text.author)
                 exist5 = False
                 for i in range(len(games)):
                     if games[i].namer() == text.author:
@@ -294,12 +287,10 @@ class DiscordClass(client):
                     if result != 0 and bet != 0:
                         with open('resources/money.csv', 'r') as csvfile:
                             reader = csv.reader(csvfile, delimiter = ',')
-                            exist4=False
                             for row in reader:
                                 if str(text.author.id) == row[0]:
-                                    exist4=True
                                     totalsum = int(row[1]) + bet
-                                    oldliner = str(text.author.id) + "," + row[1] + "," + row[2]
+                                    oldliner = row[0] + "," + row[1] + "," + row[2]
                                     liner = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
                                     texter = open("resources/money.csv", "r")
                                     texter = ''.join([i for i in texter]).replace(oldliner, liner)
@@ -336,15 +327,14 @@ class DiscordClass(client):
                         else:
                             await text.channel.send("Invalid bet amount. Please choose a number >-1, " + text.author.mention + ".")
                             return
-                authorstring = str(text.author.id)
-                if allBet == False and int(strbet) < 0:
+                if int(strbet) < 0 and not allBet:
                     report = "Invalid bet amount. Please choose a number >-1, " + text.author.mention + "."
                 else:
                     with open('resources/money.csv', 'r') as csvfile:
                         reader = csv.reader(csvfile, delimiter = ',')
-                        exist4=False
+                        exist4 = False
                         for row in reader:
-                            if authorstring == row[0]:
+                            if str(text.author.id) == row[0]:
                                 exist4 = True
                                 bank = int(row[1])
                                 if allBet:
@@ -388,11 +378,10 @@ class DiscordClass(client):
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
                 print("Running buy...")
-                authorstring = str(text.author.id)
                 with open('resources/money.csv', 'r') as csvfile:
                     reader = csv.reader(csvfile, delimiter = ',')
                     for row in reader:
-                        if authorstring==row[0]:
+                        if str(text.author.id) ==row[0]:
                             if  ('blue' in text.content or 'pink' in text.content or 'orange' in text.content or 'red' in text.content):
                                 #print("Valid color")
                                 if  50000 <= int(row[1]):
@@ -530,15 +519,14 @@ class DiscordClass(client):
                 if ',' in text.author.name:
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
-                authorstring = str(text.author.id)
                 with open('resources/money.csv') as csvfile:
                     reader = csv.reader(csvfile, delimiter = ',')
                     exist = False
                     for row in reader:
-                        if authorstring == row[0]:
-                            exist=True
-                            oldliner = authorstring + "," + row[1] + "," + row[2]
-                            liner = authorstring + "," + str(200) + "," + str(text.author)
+                        if str(text.author.id) == row[0]:
+                            exist = True
+                            oldliner = row[0] + "," + row[1] + "," + row[2]
+                            liner = row[0] + "," + str(200) + "," + str(text.author)
                             texter = open("resources/money.csv", "r")
                             texter = ''.join([i for i in texter]).replace(oldliner, liner)
                             with open("resources/money.csv", "w") as x:
@@ -547,7 +535,7 @@ class DiscordClass(client):
                         message3="Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                         with open('resources/money.csv', 'a') as csvfile2:
                             writer = csv.writer(csvfile)
-                            newline = "\r\n" + authorstring + ",300," + str(text.author)
+                            newline = "\r\n" + str(text.author.id) + ",300," + str(text.author)
                             csvfile2.write(newline)
                 await text.channel.send('You have been reset to 200 BeardlessBucks, ' + text.author.mention + ".")
                 return
@@ -561,7 +549,7 @@ class DiscordClass(client):
                         return
                     authorstring = str(text.author.id)
                 elif text.content.startswith("!balance ") or text.content.startswith("!bal "):
-                    selfMode=False
+                    selfMode = False
                     if '@' in text.content:
                         target = text.content.split('@', 1)[1]
                         if target.startswith('!'): # Resolves a discrepancy between mobile and desktop Discord
@@ -578,10 +566,7 @@ class DiscordClass(client):
                 else:
                     return
                 if message2 == "":
-                    if selfMode:
-                        message2 = "Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "."
-                    else:
-                        message2 = "Oops! That user isn't in the system! They can type \"!register\" to get a starting balance."
+                    message2 = "Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "." if selfMode else "Oops! That user isn't in the system! They can type \"!register\" to get a starting balance."
                     with open('resources/money.csv') as csvfile:
                         reader = csv.reader(csvfile, delimiter = ',')
                         for row in reader:
@@ -589,10 +574,7 @@ class DiscordClass(client):
                                 if selfMode:
                                     message2 = "Your balance is " + row[1] + " BeardlessBucks, " + text.author.mention + "."
                                 else:
-                                    if newtarg.nick == None:
-                                        message2 = newtarg.name + "'s balance is " + row[1] + " BeardlessBucks."
-                                    else:
-                                        message2 = newtarg.nick + "'s balance is " + row[1] + " BeardlessBucks."
+                                    message2 = (newtarg.name if newtarg.nick == None else newtarg.nick) + "'s balance is " + row[1] + " BeardlessBucks."
                                 break
                 await text.channel.send(message2)
                 return
@@ -601,19 +583,19 @@ class DiscordClass(client):
                 if ',' in text.author.name:
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
-                authorstring = str(text.author.id)
                 with open('resources/money.csv') as csvfile:
                     reader = csv.reader(csvfile, delimiter = ',')
                     exist = False
                     for row in reader:
-                        if authorstring == row[0]:
-                            exist=True
+                        if str(text.author.id) == row[0]:
+                            exist = True
                             message3 = "You are already in the system! Hooray! You have " + row[1] + " BeardlessBucks, " + text.author.mention + "."
+                            break
                     if not exist:
                         message3 = "Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                         with open('resources/money.csv', 'a') as csvfile2:
                             writer = csv.writer(csvfile)
-                            newline = "\r\n" + authorstring + ",300," + str(text.author)
+                            newline = "\r\n" + str(text.author.id) + ",300," + str(text.author)
                             csvfile2.write(newline)
                     await text.channel.send(message3)
                     return
@@ -672,8 +654,9 @@ class DiscordClass(client):
                 return
             
             if text.content.startswith("!dog"):
+                if text.content.startswith("!dogs"):
+                    return
                 text.content = "!dog" if text.content == "!dog " else text.content
-                print(text.content)
                 try:
                     dogURL = animal(text.content[1:], "doggie")
                     await text.channel.send(dogURL)
