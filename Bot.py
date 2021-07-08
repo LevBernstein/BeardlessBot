@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.9.0
+# Version: 8.9.1
 
 # Default modules:
 import asyncio
@@ -100,14 +100,9 @@ class Instance:
 games = [] # Stores the active instances of blackjack. An array might not be the most efficient place to store these, 
 # but because this bot sees use on a relatively small scale, this is not an issue.
 # TODO: switch to BST sorted based on user ID
-# These ping ints are for keeping track of pings in eggsoup's Discord server.
-usePing = 0
-uswPing = 0
-euPing = 0
-seaPing = 0
-ausPing = 0
-jpnPing = 0
-brzPing = 0
+
+# This dictionary is for keeping track of pings in eggsoup's Discord server.
+regions = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
 
 client = discord.Client()
 class DiscordClass(client):
@@ -635,7 +630,9 @@ class DiscordClass(client):
             
             if text.content.startswith("!dog"):
                 if text.content.startswith("!dog moose"):
-                    await text.channel.send(file = discord.File('images/' + choice(['moose.gif', 'moose2.gif'])))
+                    mooseNum = randint(1, 14)
+                    mooseFile = 'images/moose/moose' + str(mooseNum) + (".gif" if mooseNum < 4 else ".jpg")
+                    await text.channel.send(file = discord.File(mooseFile))
                     return
                 if text.content.startswith("!dogs"):
                     return
@@ -656,12 +653,13 @@ class DiscordClass(client):
                 return
             
             animalName = text.content[1:]
-            if animalName in ["duck", "fish", "fox", "rabbit", "bunny", "panda", "bird", "koala", "lizard"]:
+            if any(animalName.startswith(animal) for animal in ["duck", "fish", "fox", "rabbit", "bunny", "panda", "bird", "koala", "lizard"]):
                 try:
                     animalURL = animal(animalName)
                     await text.channel.send(animalURL)
                 except:
                     await text.channel.send("Something's gone wrong with the " + animalName + " API! Please ping my creator and he'll see what's going on.")
+                return
            
             if text.content.startswith("!define "):
                 word = text.content.split(' ', 1)[1]
@@ -758,68 +756,20 @@ class DiscordClass(client):
                             report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help, or do !pins."
                             tooRecent = None
                             found = False
-                            if 'jpn' in text.content:
-                                found = True
-                                global jpnPing
-                                if time() - jpnPing > cooldown:
-                                    jpnPing = time()
-                                    role = get(text.guild.roles, name = 'JPN')
-                                else:
-                                    tooRecent = jpnPing
-                            elif 'brz' in text.content:
-                                found = True
-                                global brzPing
-                                if time() - brzPing > cooldown:
-                                    brzPing = time()
-                                    role = get(text.guild.roles, name = 'BRZ')
-                                else:
-                                    tooRecent = brzPing
-                            elif 'us-w' in text.content or 'usw' in text.content:
-                                found = True
-                                global uswPing
-                                if time() - uswPing > cooldown:
-                                    uswPing = time()
-                                    role = get(text.guild.roles, name = 'US-W')
-                                else:
-                                    tooRecent = uswPing
-                            elif 'us-e' in text.content or 'use' in text.content:
-                                print('us-e')
-                                found = True
-                                global usePing
-                                print(time() - usePing)
-                                print(cooldown)
-                                if time() - usePing > cooldown:
-                                    usePing = time()
-                                    role = get(text.guild.roles, name = 'US-E')
-                                else:
-                                    tooRecent = usePing
-                            elif 'sea' in text.content:
-                                found = True
-                                global seaPing
-                                if time() - seaPing > cooldown:
-                                    seaPing = time()
-                                    role = get(text.guild.roles, name = 'SEA')
-                                else:
-                                    tooRecent = seaPing
-                            elif 'aus' in text.content:
-                                found = True
-                                global ausPing
-                                if time() - ausPing > cooldown:
-                                    ausPing = time()
-                                    role = get(text.guild.roles, name = 'AUS')
-                                else:
-                                    tooRecent = ausPing
-                            elif 'eu' in text.content:
-                                found = True
-                                global euPing
-                                if time() - euPing > cooldown:
-                                    euPing = time()
-                                    role = get(text.guild.roles, name = 'EU')
-                                else:
-                                    tooRecent = euPing
-                            if (tooRecent is None) and found:
-                                report = role.mention + " come spar " + text.author.mention + "!"
-                            elif found:
+                            if "use" in text.content: text.content = "us-e"
+                            if "usw" in text.content: text.content = "us-w"
+                            global regions
+                            for key, value in regions.items():
+                                if key in text.content:
+                                    found = True
+                                    if time() - value > cooldown:
+                                        regions.update({key: time()})
+                                        role = get(text.guild.roles, name = key.upper())
+                                        report = role.mention + " come spar " + text.author.mention + "!"
+                                    else:
+                                        tooRecent = value
+                                    break
+                            if found and (tooRecent is not None):
                                 seconds = 7200 - (time() - tooRecent)
                                 minutes = floor(seconds/60)
                                 seconds = floor(seconds % 60)
