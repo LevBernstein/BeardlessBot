@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.9.1
+# Version: 8.9.2
 
 # Default modules:
 import asyncio
@@ -620,8 +620,8 @@ class DiscordClass(client):
                 await text.channel.send(embed = emb)
                 return
             
-            if text.content.startswith("!dog"):
-                if text.content.startswith("!dog moose"):
+            if text.content.startswith("!dog") or text.content.startswith("!moose"):
+                if text.content.startswith("!dog moose") or text.content.startswith("!moose"):
                     mooseNum = randint(1, 23)
                     mooseFile = 'images/moose/moose' + str(mooseNum) + (".gif" if mooseNum < 4 else ".jpg")
                     await text.channel.send(file = discord.File(mooseFile))
