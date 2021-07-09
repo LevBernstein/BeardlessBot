@@ -630,7 +630,7 @@ class DiscordClass(client):
             
             if text.content.startswith("!dog"):
                 if text.content.startswith("!dog moose"):
-                    mooseNum = randint(1, 14)
+                    mooseNum = randint(1, 23)
                     mooseFile = 'images/moose/moose' + str(mooseNum) + (".gif" if mooseNum < 4 else ".jpg")
                     await text.channel.send(file = discord.File(mooseFile))
                     return
