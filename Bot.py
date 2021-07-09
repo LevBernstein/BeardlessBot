@@ -50,7 +50,7 @@ class Instance:
             self.dealerSum += randint(1,10)
         self.vals = [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11]
         self.message = self.deal()
-        self.message = self.deal()
+        self.message = self.deal() # Deals two cards
 
     def perfect(self, cardSet):
         return sum(cardSet) == 21
@@ -335,15 +335,12 @@ class DiscordClass(client):
                                     break
                                 if bet <= bank: # As of 11 AM ET on January 22nd, 2021, there have been 31765 flips that got heads and 31664 flips that got tails in the eggsoup server. This is 50/50. Stop complaining.
                                     result = randint(0,1)
-                                    if result == 1:
-                                        change = bet
+                                    if result:
                                         report = "Heads! You win! Your winnings have been added to your balance, " + text.author.mention + "."
-                                        totalsum = bank + change
                                     else:
-                                        change = bet * -1
                                         report = "Tails! You lose! Your loss has been deducted from your balance, " + text.author.mention + "."
-                                        totalsum = bank + change
-                                    if change == 0:
+                                    totalsum = bank + (bet if result else bet * -1)
+                                    if not bet:
                                         report += " However, you bet nothing, so your balance will not change."
                                     else:
                                         oldliner = row[0] + "," + str(bank) + "," + row[2]
@@ -490,11 +487,6 @@ class DiscordClass(client):
                 await text.channel.send(embed=emb)
                 return
             
-            if text.content.startswith('!d') and ((text.content.split('!d',1)[1])[0]).isnumeric() and len(text.content) < 12:
-                # The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
-                await text.channel.send(roll(text.content))
-                return
-            
             if text.content.startswith('!dice'):
                 await text.channel.send("Enter !d[number][+/-][modifier] to roll a [number]-sided die and add or subtract a modifier. For example: !d8+3, or !d100-17, or !d6.")
                 return
@@ -588,7 +580,7 @@ class DiscordClass(client):
                 await text.channel.send("BeardlessBucks are this bot's special currency. You can earn them by playing games. First, do !register to get yourself started with a balance.")
                 return
             
-            if text.content.startswith("!hello") or text.content == "!hi" or (("hello" in text.content or "hi" in text.content) and ("beardless" in text.content or "bb" in text.content)):
+            if any([text.content.startswith("!hello"), text.content == "!hi", (("hello" in text.content or "hi" in text.content) and ("beardless" in text.content or "bb" in text.content))]):
                 answers = ["How ya doin?", "Yo!", "What's cookin?", "Hello!", "Ahoy!", "Hi!", "What's up?", "Hey!", "How's it goin?", "Greetings!"]
                 await text.channel.send(choice(answers))
                 return
@@ -630,7 +622,7 @@ class DiscordClass(client):
             
             if text.content.startswith("!dog"):
                 if text.content.startswith("!dog moose"):
-                    mooseNum = randint(1, 14)
+                    mooseNum = randint(1, 23)
                     mooseFile = 'images/moose/moose' + str(mooseNum) + (".gif" if mooseNum < 4 else ".jpg")
                     await text.channel.send(file = discord.File(mooseFile))
                     return
@@ -652,8 +644,8 @@ class DiscordClass(client):
                     await text.channel.send("Cat API Limit Reached! It should reset at the end of the month.")
                 return
             
-            animalName = text.content[1:]
-            if any(animalName.startswith(animal) for animal in ["duck", "fish", "fox", "rabbit", "bunny", "panda", "bird", "koala", "lizard"]):
+            animalName = text.content[1:].split(" ", 1)[0]
+            if animalName in ["duck", "fish", "fox", "rabbit", "bunny", "panda", "bird", "koala", "lizard"]:
                 try:
                     animalURL = animal(animalName)
                     await text.channel.send(animalURL)
@@ -684,7 +676,12 @@ class DiscordClass(client):
                         report = "Error!"
                 await text.channel.send(report)
                 return
-                
+            
+            if text.content.startswith('!d') and ((text.content.split('!d',1)[1])[0]).isnumeric() and len(text.content) < 12:
+                # The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
+                await text.channel.send(roll(text.content))
+                return
+            
             if text.content.startswith("!help") or text.content.startswith("!commands"):
                 emb = discord.Embed(title = "Beardless Bot Commands", description = "", color=0xfff994)
                 emb.add_field(name = "!register", value = "Registers you with the currency system.", inline = True)
@@ -744,7 +741,7 @@ class DiscordClass(client):
                             await text.channel.send(embed = emb)
                             return
                     
-                    if text.content.startswith('!warn') and text.channel.id != 705098150423167059 and len(text.content) > 6 and text.author.guild_permissions.manage_messages:
+                    if all([text.content.startswith('!warn'), text.channel.id != 705098150423167059, len(text.content) > 6, text.author.guild_permissions.manage_messages]):
                         emb = discord.Embed(title = "Infraction Logged.", description = "", color = 0xfff994)
                         emb.add_field(name = "_ _", value = "Mods can view the infraction details in <#705098150423167059>.", inline = True)
                         await text.channel.send(embed = emb)
