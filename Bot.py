@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.9.2
+# Version: 8.9.3
 
 # Default modules:
 import asyncio
@@ -27,12 +27,6 @@ from animals import *
 try:
     with open("resources/token.txt", "r") as f: # in token.txt, paste in your own Discord API token
         token = f.readline()
-    with open("resources/catToken.txt", "r") as f: # in catToken.txt, paste in your own Cat API Key
-        catKey = f.readline()
-        if catKey.endswith("\n"): # API doesn't handle line and carriage return characters well
-            catKey = catKey[:-1]
-        if catKey.endswith("\r"):
-            catKey = catKey[:-1]
 except Exception as err:
     print(err)
     sysExit(-1)
@@ -117,7 +111,7 @@ class DiscordClass(client):
             await client.change_presence(activity = discord.Game(name = 'try !blackjack and !flip'))
             print("Status updated!")
         except discord.HTTPException:
-            print("Failed to update status!")
+            print("Failed to update status! You might be restarting the bot too many times.")
         intents = discord.Intents.default()
         intents.members = True
         try:
@@ -603,11 +597,11 @@ class DiscordClass(client):
                     legends = ["Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako", "Magyar", "Reno"]
                     ran = choice(legends)
                     message = "Your legend is " + ran + "."
-                    try:
-                        gerard = await text.guild.fetch_member("193041297538285568") # Checks to see if the Gerard bot is in this server
-                        message += " Type \"!legend " + ran + "\" to learn more about this legend."
-                    except:
-                        pass
+                    #try: # disabled while Gerard is down
+                        #gerard = await text.guild.fetch_member("193041297538285568") # Checks to see if the Gerard bot is in this server
+                        #message += " Type \"!legend " + ran + "\" to learn more about this legend."
+                    #except:
+                        #pass
                 elif "weapon" in text.content:
                     weapons = ["Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"]
                     message = "Your weapon is " + choice(weapons) + "."
@@ -635,17 +629,9 @@ class DiscordClass(client):
                 except:
                     await text.channel.send("Something's gone wrong with the dog API! Please ping my creator and he'll see what's going on.")
                 return
-            
-            if text.content.startswith("!cat"):
-                try:
-                    catURL = animal("cat", catKey)
-                    await text.channel.send(catURL)
-                except:
-                    await text.channel.send("Cat API Limit Reached! It should reset at the end of the month.")
-                return
-            
+
             animalName = text.content[1:].split(" ", 1)[0]
-            if animalName in ["duck", "fish", "fox", "rabbit", "bunny", "panda", "bird", "koala", "lizard"]:
+            if animalName in ["cat", "duck", "fish", "fox", "rabbit", "bunny", "panda", "bird", "koala", "lizard"]:
                 try:
                     animalURL = animal(animalName)
                     await text.channel.send(animalURL)
