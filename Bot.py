@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.9.3
+# Version: 8.9.4
 
 # Default modules:
 import asyncio
@@ -46,8 +46,8 @@ class Instance:
         self.message = self.deal()
         self.message = self.deal() # Deals two cards
 
-    def perfect(self, cardSet):
-        return sum(cardSet) == 21
+    def perfect(self):
+        return sum(self.cards) == 21
     
     def deal(self):
         card3 = choice(self.vals)
@@ -60,16 +60,16 @@ class Instance:
             self.message = "You were dealt a " + choice(["10", "Jack", "Queen", "King"]) + ", bringing your total to " + str(sum(self.cards)) + ". "
         else:
             self.message = "You were dealt a " + str(card3) + ", bringing your total to " + str(sum(self.cards)) + ". "
-        if 11 in self.cards and self.checkBust(self.cards):
+        if 11 in self.cards and self.checkBust():
             for i in range(len(self.cards)):
                 if self.cards[i] == 11:
                     self.cards[i] = 1
                     break
             self.message += "Because you would have busted, your Ace has been changed from an 11 to 1 . Your new total is " + str(sum(self.cards)) + ". "
         self.message += self.toString() + " The dealer is showing " + str(self.dealerUp) + ", with one card face down."
-        if self.checkBust(self.cards):
+        if self.checkBust():
             self.message += " You busted. Game over, " + self.user.mention + "."
-        elif self.perfect(self.cards):
+        elif self.perfect():
             self.message += " You hit 21! You win, " + self.user.mention + "!"
         else:
             self.message += " Type !hit to deal another card to yourself, or !stay to stop at your current total, " + self.user.mention+ "."
@@ -78,8 +78,8 @@ class Instance:
     def toString(self):
         return "Your cards are " + str(self.cards)[1:-1] + "."
 
-    def checkBust(self, cardSet):
-        return sum(cardSet) > 21
+    def checkBust(self):
+        return sum(self.cards) > 21
 
     def getUser(self):
         return self.user
@@ -183,8 +183,8 @@ class DiscordClass(client):
                                         x = Instance(text.author, bet)
                                         games.append(x)
                                         report = x.message
-                                        if x.checkBust(x.cards) or x.perfect(x.cards):
-                                            totalsum = bank + ((bet * -1) if x.checkBust(x.cards) else bet)
+                                        if x.checkBust() or x.perfect():
+                                            totalsum = bank + ((bet * -1) if x.checkBust() else bet)
                                             oldliner = str(text.author.id) + "," + str(bank) + "," + row[2]
                                             liner = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
                                             texter = open("resources/money.csv", "r")
@@ -214,8 +214,8 @@ class DiscordClass(client):
                         break
                 if exist:
                     report = gamer.deal()
-                    if gamer.checkBust(gamer.cards) or gamer.perfect(gamer.cards):
-                        bet = (gamer.bet * -1) if gamer.checkBust(gamer.cards) else gamer.bet
+                    if gamer.checkBust() or gamer.perfect():
+                        bet = (gamer.bet * -1) if gamer.checkBust() else gamer.bet
                         with open('resources/money.csv', 'r') as csvfile:
                             reader = csv.reader(csvfile, delimiter = ',')
                             for row in reader:
@@ -574,7 +574,7 @@ class DiscordClass(client):
                 await text.channel.send("BeardlessBucks are this bot's special currency. You can earn them by playing games. First, do !register to get yourself started with a balance.")
                 return
             
-            if any([text.content.startswith("!hello"), text.content == "!hi", (("hello" in text.content or "hi" in text.content) and ("beardless" in text.content or "bb" in text.content))]):
+            if text.content.startswith("!hello") or text.content == "!hi":
                 answers = ["How ya doin?", "Yo!", "What's cookin?", "Hello!", "Ahoy!", "Hi!", "What's up?", "Hey!", "How's it goin?", "Greetings!"]
                 await text.channel.send(choice(answers))
                 return
@@ -592,17 +592,12 @@ class DiscordClass(client):
                 return
             
             if text.content.startswith("!random"):
+                ranType = text.content.split(' ', 1)[1]
                 message = "Invalid random."
-                if "legend" in text.content:
+                if ranType == "legend":
                     legends = ["Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako", "Magyar", "Reno"]
-                    ran = choice(legends)
-                    message = "Your legend is " + ran + "."
-                    #try: # disabled while Gerard is down
-                        #gerard = await text.guild.fetch_member("193041297538285568") # Checks to see if the Gerard bot is in this server
-                        #message += " Type \"!legend " + ran + "\" to learn more about this legend."
-                    #except:
-                        #pass
-                elif "weapon" in text.content:
+                    message = "Your legend is " + choice(legends) + "."
+                elif ranType == "weapon":
                     weapons = ["Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"]
                     message = "Your weapon is " + choice(weapons) + "."
                 await text.channel.send(message)
@@ -631,7 +626,7 @@ class DiscordClass(client):
                 return
 
             animalName = text.content[1:].split(" ", 1)[0]
-            if animalName in ["cat", "duck", "fish", "fox", "rabbit", "bunny", "panda", "bird", "koala", "lizard"]:
+            if text.content.startswith("!") and animalName in ["cat", "duck", "fish", "fox", "rabbit", "bunny", "panda", "bird", "koala", "lizard"]:
                 try:
                     animalURL = animal(animalName)
                     await text.channel.send(animalURL)
