@@ -11,7 +11,7 @@ def animal(animalType):
         print(r.status_code)
     
     if animalType.startswith("dog"):
-        if not (" " in animalType):
+        if len(animalType) == 4 or not (" " in animalType):
             r = requests.get("https://dog.ceo/api/breeds/image/random")
             return(r.json()['message'])
         breed = animalType.split(" ", 1)[1]
@@ -57,4 +57,4 @@ def animal(animalType):
             return(r.json()['url'])
         print(r.status_code)
     
-    raise Exception("Error!")
+    raise Exception("Error with the " + animalType + "API!")

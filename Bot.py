@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.9.4
+# Version: 8.9.5
 
 # Default modules:
 import asyncio
@@ -385,55 +385,43 @@ class DiscordClass(client):
                 return
             
             if text.content.startswith('!av'):
-                bar = 8 if text.content.startswith('!avatar') else 4
-                report = text.author.avatar_url
-                if len(text.content) > bar:
-                    if '@' in text.content:
-                        target = text.content.split('@', 1)[1]
-                        if target.startswith('!'): # Resolves a discrepancy between mobile and desktop Discord
-                            target = target[1:]
-                        target, brick = target.split('>', 1)
-                        try:
-                            newtarg = await text.guild.fetch_member(str(target))
-                            report = newtarg.avatar_url
-                        except discord.NotFound:
-                            report = "Discord Member " + str(target) + " not found!"
+                target = text.author if not text.mentions else text.mentions[0]
+                try:
+                    report = target.avatar_url
+                except discord.NotFound:
+                    report = "Discord Member " + str(target.mention) + " not found!"
                 await text.channel.send(report)
                 
             if text.content.startswith('-mute') or text.content.startswith('!mute'):
-                # TODO switch to message.mentions for target acquisition
                 if text.author.guild_permissions.manage_messages:
-                    if '@' in text.content:
-                        target = text.content.split('@', 1)[1]
-                        if target.startswith('!'): # Resolves a discrepancy between mobile and desktop Discord
-                            target = target[1:]
-                        target, duration = target.split('>', 1)
-                        if target == "654133911558946837": # If user tries to mute Beardless Bot:
+                    if text.mentions:
+                        target = text.mentions[0]
+                        duration = text.content.split('>', 1)[1]
+                        if str(target.id) == "654133911558946837": # If user tries to mute Beardless Bot:
                             await text.channel.send("I am too powerful to be muted. Stop trying.")
                             return
-                        print("Author: " + str(text.author.id) + " muting target: " + target)
+                        print("Author: " + str(text.author.id) + " muting target: " + str(target.id))
                         role = get(text.guild.roles, name = 'Muted')
-                        newtarg = await text.guild.fetch_member(str(target))
-                        await newtarg.add_roles(role)
-                        await text.channel.send("Muted " + str(newtarg.mention) + ".")
+                        await target.add_roles(role)
+                        await text.channel.send("Muted " + str(target.mention) + ".")
                         mTime = 0.0 # Autounmute:
                         if 'h' in duration:
                             duration = duration[1:]
-                            duration, brick = duration.split('h', 1)
+                            duration = duration.split('h', 1)[0]
                             mTime = float(duration) * 3600.0
                         elif 'm' in duration:
                             duration = duration[1:]
-                            duration, brick = duration.split('m', 1)
+                            duration = duration.split('m', 1)[0]
                             mTime = float(duration) * 60.0
                         elif 's' in duration:
                             duration = duration[1:]
-                            duration, brick = duration.split('s', 1)
+                            duration = duration.split('s', 1)[0]
                             mTime = float(duration)
                         if mTime != 0.0:
-                            print(mTime)
+                            print("Muted for " + str(mTime))
                             await asyncio.sleep(mTime)
-                            await newtarg.remove_roles(role)
-                            print("Unmuted " + newtarg.name)
+                            await target.remove_roles(role)
+                            print("Unmuted " + target.name)
                     else:
                         await text.channel.send("Invalid target!")
                 else:
@@ -442,18 +430,13 @@ class DiscordClass(client):
             
             if text.content.startswith('-unmute') or text.content.startswith('!unmute'):
                 if text.author.guild_permissions.manage_messages:
-                    if '@' in text.content:
-                        print("Original message: " + text.content)
-                        target = text.content.split('@', 1)[1]
-                        target = target[1:-1] if target.startswith('!') else target[:-1]
-                        print("Author: " + str(text.author.id))
-                        print("Target: " + target)
-                        role = get(text.guild.roles, name = 'Muted')
-                        newtarg = await text.guild.fetch_member(str(target))
-                        await newtarg.remove_roles(role)
-                        await text.channel.send("Unmuted " + str(newtarg.mention) + ".")
-                    else:
+                    if not text.mentions:
                         await text.channel.send("Invalid target!")
+                        return
+                    target = text.mentions[0]
+                    role = get(text.guild.roles, name = 'Muted')
+                    await target.remove_roles(role)
+                    await text.channel.send("Unmuted " + str(target.mention) + ".")
                 else:
                     await text.channel.send("You do not have permission to use this command!")
                 return
@@ -486,6 +469,7 @@ class DiscordClass(client):
                 return
             
             if text.content.startswith('!reset'):
+                report = 'You have been reset to 200 BeardlessBucks, ' + text.author.mention + "."
                 if ',' in text.author.name:
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
@@ -502,16 +486,16 @@ class DiscordClass(client):
                             with open("resources/money.csv", "w") as money:
                                 money.writelines(texter)
                     if not exist:
-                        message3="Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
+                        report ="Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                         with open('resources/money.csv', 'a') as money:
                             writer = csv.writer(csvfile)
                             newline = "\r\n" + str(text.author.id) + ",300," + str(text.author)
                             money.write(newline)
-                await text.channel.send('You have been reset to 200 BeardlessBucks, ' + text.author.mention + ".")
+                await text.channel.send(report)
                 return
             
             if text.content.startswith("!balance") or text.content.startswith("!bal"):
-                message2 = ""
+                report = ""
                 if text.content == ("!balance") or text.content == ("!bal"):
                     selfMode = True
                     if ',' in text.author.name:
@@ -520,33 +504,29 @@ class DiscordClass(client):
                     authorstring = str(text.author.id)
                 elif text.content.startswith("!balance ") or text.content.startswith("!bal "):
                     selfMode = False
-                    if '@' in text.content:
-                        target = text.content.split('@', 1)[1]
-                        if target.startswith('!'): # Resolves a discrepancy between mobile and desktop Discord
-                            target = target[1:]
-                        target, brick = target.split('>', 1)
+                    if text.mentions:
+                        target = text.mentions[0]
                         try:
-                            newtarg = await text.guild.fetch_member(str(target))
-                            authorstring = str(newtarg.id)
+                            authorstring = str(target.id)
                         except discord.NotFound as err:
-                            message2 = "Error code 10007: Discord Member not found!"
+                            report = "Discord Member " + str(target.mention) + " not found!"
                             print(err)
                     else:
-                        message2 = "Invalid user! Please @ a user when you do !balance, or do !balance without a target to see your own balance, " + text.author.mention + "."
+                        report = "Invalid user! Please @ a user when you do !balance, or do !balance without a target to see your own balance, " + text.author.mention + "."
                 else:
                     return
-                if message2 == "":
-                    message2 = "Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "." if selfMode else "Oops! That user isn't in the system! They can type \"!register\" to get a starting balance."
+                if report == "":
+                    report = "Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "." if selfMode else "Oops! That user isn't in the system! They can type \"!register\" to get a starting balance."
                     with open('resources/money.csv') as csvfile:
                         reader = csv.reader(csvfile, delimiter = ',')
                         for row in reader:
                             if authorstring == row[0]:
                                 if selfMode:
-                                    message2 = "Your balance is " + row[1] + " BeardlessBucks, " + text.author.mention + "."
+                                    report = "Your balance is " + row[1] + " BeardlessBucks, " + text.author.mention + "."
                                 else:
-                                    message2 = (newtarg.name if newtarg.nick is None else newtarg.nick) + "'s balance is " + row[1] + " BeardlessBucks."
+                                    report = (target.name if target.nick is None else target.nick) + "'s balance is " + row[1] + " BeardlessBucks."
                                 break
-                await text.channel.send(message2)
+                await text.channel.send(report)
                 return
             
             if text.content.startswith("!register"): # Make sure resources/money.csv is not open in any other program
@@ -559,15 +539,15 @@ class DiscordClass(client):
                     for row in reader:
                         if str(text.author.id) == row[0]:
                             exist = True
-                            message3 = "You are already in the system! Hooray! You have " + row[1] + " BeardlessBucks, " + text.author.mention + "."
+                            report = "You are already in the system! Hooray! You have " + row[1] + " BeardlessBucks, " + text.author.mention + "."
                             break
                     if not exist:
-                        message3 = "Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
+                        report = "Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                         with open('resources/money.csv', 'a') as money:
                             writer = csv.writer(csvfile)
                             newline = "\r\n" + str(text.author.id) + ",300," + str(text.author)
                             money.write(newline)
-                    await text.channel.send(message3)
+                    await text.channel.send(report)
                     return
             
             if text.content.startswith("!bucks"):
@@ -593,34 +573,30 @@ class DiscordClass(client):
             
             if text.content.startswith("!random"):
                 ranType = text.content.split(' ', 1)[1]
-                message = "Invalid random."
+                report = "Invalid random."
                 if ranType == "legend":
                     legends = ["Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako", "Magyar", "Reno"]
-                    message = "Your legend is " + choice(legends) + "."
+                    report = "Your legend is " + choice(legends) + "."
                 elif ranType == "weapon":
                     weapons = ["Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"]
-                    message = "Your weapon is " + choice(weapons) + "."
-                await text.channel.send(message)
+                    report = "Your weapon is " + choice(weapons) + "."
+                await text.channel.send(report)
                 return
             
             if text.content.startswith("!fact"):
                 emb = discord.Embed(title = "Beardless Bot Fun Fact", description = "", color = 0xfff994)
-                emb.add_field(name = "Fun fact #" + str(randint(1,1111111111)), value = fact(), inline = False)
+                emb.add_field(name = "Fun fact #" + str(randint(1,111111111)), value = fact(), inline = False)
                 await text.channel.send(embed = emb)
                 return
             
             if text.content.startswith("!dog") or text.content.startswith("!moose"):
                 if text.content.startswith("!dog moose") or text.content.startswith("!moose"):
-                    mooseNum = randint(1, 23)
+                    mooseNum = randint(1, 24)
                     mooseFile = 'images/moose/moose' + str(mooseNum) + (".gif" if mooseNum < 4 else ".jpg")
                     await text.channel.send(file = discord.File(mooseFile))
                     return
-                if text.content.startswith("!dogs"):
-                    return
-                text.content = "!dog" if text.content == "!dog " else text.content
                 try:
-                    dogURL = animal(text.content[1:])
-                    await text.channel.send(dogURL)
+                    await text.channel.send(animal(text.content[1:]))
                 except:
                     await text.channel.send("Something's gone wrong with the dog API! Please ping my creator and he'll see what's going on.")
                 return
@@ -628,8 +604,7 @@ class DiscordClass(client):
             animalName = text.content[1:].split(" ", 1)[0]
             if text.content.startswith("!") and animalName in ["cat", "duck", "fish", "fox", "rabbit", "bunny", "panda", "bird", "koala", "lizard"]:
                 try:
-                    animalURL = animal(animalName)
-                    await text.channel.send(animalURL)
+                    await text.channel.send(animal(animalName))
                 except:
                     await text.channel.send("Something's gone wrong with the " + animalName + " API! Please ping my creator and he'll see what's going on.")
                 return
