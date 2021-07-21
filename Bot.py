@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.9.6
+# Version: 8.9.7
 
 # Default modules:
 import asyncio
@@ -607,6 +607,18 @@ class DiscordClass(client):
                     await text.channel.send("Something's gone wrong with the " + animalName + " API! Please ping my creator and he'll see what's going on.")
                 return
            
+            if text.content.startswith("!clear") or text.content.startswith("!purge"):
+                if not text.author.guild_permissions.manage_messages:
+                    await text.channel.send("You do not have permission to use this command!")
+                    return
+                try:
+                   messageNumber = int(text.content.split(" ", 1)[1]) + 1
+                except:
+                    await text.channel.send("Invalid message number!")
+                    return
+                await text.channel.purge(limit = messageNumber, check = lambda msg: not msg.pinned)
+                return
+           
             if text.content.startswith("!define "):
                 word = text.content.split(' ', 1)[1]
                 if " " in word:
@@ -650,12 +662,11 @@ class DiscordClass(client):
                 emb.add_field(name = "!leaderboard", value = "Shows you the BeardlessBucks leaderboard.", inline = True)
                 emb.add_field(name = "!d[number][+/-][modifier]", value = "Rolls a [number]-sided die and adds or subtracts the modifier. Example: !d8+3, or !d100-17.", inline = True)
                 emb.add_field(name = "!random [legend/weapon]", value = "Randomly selects a Brawlhalla legend or weapon for you.", inline = True)
-                emb.add_field(name = "!hello", value = "Exchanges a pleasant greeting with the bot.", inline = True)
-                emb.add_field(name = "!video", value = "Shows you my latest YouTube video.", inline = True)
                 emb.add_field(name = "!add", value = "Gives you a link to add this bot to your server.", inline = True)
                 emb.add_field(name = "!av", value = "Display a user's avatar. Write just !av if you want to see your own avatar.", inline = True)
                 emb.add_field(name = "![animal name]", value = "Gets a random cat/dog/duck/fish/fox/rabbit/panda/lizard/koala/bird picture. Example: !duck", inline = True)
                 emb.add_field(name = "!define [word]", value = "Shows you the definition(s) of a word.", inline = True)
+                emb.add_field(name = "!purge [number]", value = "Mass-deletes messages. Mod only.", inline = True)
                 emb.add_field(name = "!commands", value = "Shows you this list.", inline = True)
                 await text.channel.send(embed = emb)
                 return
