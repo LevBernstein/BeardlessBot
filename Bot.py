@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.9.5
+# Version: 8.9.6
 
 # Default modules:
 import asyncio
@@ -255,13 +255,13 @@ class DiscordClass(client):
                         bet *= -1
                         if bet != 0:
                             report +=  ". Your loss has been deducted from your balance"
-                    if result == 0:
+                    elif result == 0:
                         report += " That ties your sum of " + str(sum(gamer.cards))
                         if bet != 0:
                             report += ". Your money has been returned"
-                    if result == 3:
+                    elif result == 3:
                         report += " You're closer to 21 with a sum of " + str(sum(gamer.cards))
-                    if result == 4:
+                    elif result == 4:
                         report += " You have a sum of " + str(sum(gamer.cards)) + ". The dealer busts"
                     if (result == 3 or result == 4) and bet != 0:
                         report += ". You win! Your winnings have been added to your balance"
@@ -354,20 +354,21 @@ class DiscordClass(client):
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
                 print("Running buy...")
-                with open('resources/money.csv', 'r') as csvfile:
-                    reader = csv.reader(csvfile, delimiter = ',')
-                    for row in reader:
-                        if str(text.author.id) == row[0]:
-                            if  'blue' in text.content or 'pink' in text.content or 'orange' in text.content or 'red' in text.content:
+                color = text.content.split(" ", 1)[1]
+                role = get(text.guild.roles, name = 'special ' + color)
+                if color not in ["blue", "pink", "orange", "red"]:
+                    report = "Invalid color. Choose blue, red, orange, or pink, " + text.author.mention + "."
+                elif not role:
+                    report = "Special color roles do not exist in this server, " + text.author.mention + "."
+                elif role in text.author.roles:
+                    report = "You already have this special color, " + text.author.mention + "."
+                else:
+                    report = "Not enough Beardess Bucks. You need 50000 to buy a special color, " + text.author.mention + "."
+                    with open('resources/money.csv', 'r') as csvfile:
+                        reader = csv.reader(csvfile, delimiter = ',')
+                        for row in reader:
+                            if str(text.author.id) == row[0]:
                                 if  50000 <= int(row[1]):
-                                    if ('blue' in text.content):
-                                        role = get(text.guild.roles, name = 'special blue')
-                                    elif ('pink' in text.content):
-                                        role = get(text.guild.roles, name = 'special pink')
-                                    elif ('orange' in text.content):
-                                        role = get(text.guild.roles, name = 'special orange')
-                                    elif ('red' in text.content):
-                                        role = get(text.guild.roles, name = 'special red')
                                     oldliner = row[0] + "," + row[1] + "," + row[2]
                                     liner = row[0] + "," + str(int(row[1]) - 50000) + "," + str(text.author)
                                     texter = open("resources/money.csv", "r")
@@ -375,12 +376,8 @@ class DiscordClass(client):
                                     with open("resources/money.csv", "w") as money:
                                         money.writelines(texter)
                                     await text.author.add_roles(role)
-                                    report = "Color purchased successfully, " + text.author.mention + "!"
-                                else:
-                                    report = "Not enough Beardess Bucks. You need 50000 to buy a special color, " + text.author.mention + "."
-                            else:
-                                report = "Invalid color. Choose blue, red, orange, or pink, " + text.author.mention + "."
-                            break
+                                    report = "Color \"special " + color + "\" purchased successfully, " + text.author.mention + "!"
+                                break
                 await text.channel.send(report)
                 return
             
@@ -391,6 +388,7 @@ class DiscordClass(client):
                 except discord.NotFound:
                     report = "Discord Member " + str(target.mention) + " not found!"
                 await text.channel.send(report)
+                return
                 
             if text.content.startswith('-mute') or text.content.startswith('!mute'):
                 if text.author.guild_permissions.manage_messages:
