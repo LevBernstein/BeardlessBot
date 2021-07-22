@@ -5,10 +5,15 @@ from random import randint
 
 def animal(animalType):
     if animalType == "cat":
-        r = requests.get("https://aws.random.cat/meow")
-        if r.status_code == 200:
-            return(r.json()['file'])
-        print(r.status_code)
+        # cat API has been throwing 503 errors regularly, not sure why. Spotty hosting maybe.
+        count = 0
+        while count < 10:
+            # the loop is to try to make another request if one pulls a 503.
+            r = requests.get("https://aws.random.cat/meow")
+            if r.status_code == 200:
+                return(r.json()['file'])
+            count += 1
+            print(r.status_code)
     
     if animalType.startswith("dog"):
         if len(animalType) == 4 or not (" " in animalType):

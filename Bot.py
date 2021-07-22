@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.9.10
+# Version: 8.9.11
 
 # Default modules:
 import asyncio
@@ -38,6 +38,9 @@ except:
     secretWord = "".join(str(randint(0, 9)) for n in range(20))
 
 secretFound = False
+
+# This dictionary is for keeping track of pings in eggsoup's Discord server.
+regions = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
 
 # Blackjack class. New Instance is made for each game of Blackjack and is kept around until the player finishes the game.
 # An active Instance for a given user prevents the creation of a new Instance. Instances are server-agnostic.
@@ -102,9 +105,6 @@ class Instance:
 games = [] # Stores the active instances of blackjack. An array might not be the most efficient place to store these, 
 # but because this bot sees use on a relatively small scale, this is not an issue.
 # TODO: switch to BST sorted based on user ID
-
-# This dictionary is for keeping track of pings in eggsoup's Discord server.
-regions = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
 
 client = discord.Client()
 class DiscordClass(client):
@@ -182,10 +182,9 @@ class DiscordClass(client):
                                 for i in range(len(games)):
                                     if games[i].getUser() == text.author:
                                         exist = True
-                                        break
-                                if exist:
-                                    report = "You already have an active game, " + text.author.mention + "."
-                                else:
+                                        report = "You already have an active game, " + text.author.mention + "."
+                                        break      
+                                if not exist:
                                     report = "You do not have enough BeardlessBucks to bet that much, " + text.author.mention + "!"
                                     if bet <= bank:
                                         x = Instance(text.author, bet)
@@ -509,7 +508,7 @@ class DiscordClass(client):
                         report = "Invalid user! Please @ a user when you do !balance, or do !balance without a target to see your own balance, " + text.author.mention + "."
                 else:
                     return
-                if report == "":
+                if not report:
                     report = "Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "." if selfMode else "Oops! That user isn't in the system! They can type \"!register\" to get a starting balance."
                     with open('resources/money.csv') as csvfile:
                         reader = csv.reader(csvfile, delimiter = ',')
@@ -583,6 +582,20 @@ class DiscordClass(client):
                 await text.channel.send(embed = emb)
                 return
             
+            if text.content.startswith("!animals"):
+                emb = discord.Embed(title = "Animals photo commands:", description = "", color = 0xfff994)
+                emb.add_field(name = "!dog", value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>", inline = False)
+                emb.add_field(name = "!cat", value = "_ _", inline = True)
+                emb.add_field(name = "!duck", value = "_ _", inline = True)
+                emb.add_field(name = "!fish", value = "_ _", inline = True)
+                emb.add_field(name = "!fox", value = "_ _", inline = True)
+                emb.add_field(name = "!rabbit", value = "_ _", inline = True)
+                emb.add_field(name = "!panda", value = "_ _", inline = True)
+                emb.add_field(name = "!bird", value = "_ _", inline = True)
+                emb.add_field(name = "!koala", value = "_ _", inline = True)
+                emb.add_field(name = "!lizard", value = "_ _", inline = True)
+                await text.channel.send(embed = emb)
+            
             if text.content.startswith("!dog") or text.content.startswith("!moose"):
                 if text.content.startswith("!dog moose") or text.content.startswith("!moose"):
                     mooseNum = randint(1, 24)
@@ -599,7 +612,8 @@ class DiscordClass(client):
             if text.content.startswith("!") and animalName in ["cat", "duck", "fish", "fox", "rabbit", "bunny", "panda", "bird", "koala", "lizard"]:
                 try:
                     await text.channel.send(animal(animalName))
-                except:
+                except Exception as err:
+                    print(err)
                     await text.channel.send("Something's gone wrong with the " + animalName + " API! Please ping my creator and he'll see what's going on.")
                 return
            
@@ -693,6 +707,9 @@ class DiscordClass(client):
                         mee6 = await text.guild.fetch_member("159985870458322944")
                         await text.channel.send('Silence ' + mee6.mention + "!")
                         return
+                    
+                    if text.content.startswith("!notify"):
+                        await text.channel.send("Hey can someone notify egg about this? On " + choice(["Youtube, sub -> eggsoup", "Twitch, Subscribe -> Eggsoup", "r/eggsoup, join -> now", "Twitter, follow -> eggsoup", "brawlhalla, settings -> quit", "brawlhalla, scythe -> miss", "Unarmed, dlight -> everything", "Sword, dlight -> sair", "all legends, design rework -> ugly", "Toilet, poop -> flush", "Microsoft Word, ctrl c -> ctrl v", ]) + " is true. He might get mad if I randomly ping him, so I’d rather somebody more important than me tell him this. This could be in a future brawlhalla guide or something do I just wanted to let him know")
                     
                     if text.channel.id == 605083979737071616:
                         if text.content.startswith('!pins') or text.content.startswith('!rules'):
