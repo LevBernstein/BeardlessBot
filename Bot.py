@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.9.9
+# Version: 8.9.10
 
 # Default modules:
 import asyncio
@@ -30,6 +30,14 @@ try:
 except Exception as err:
     print(err)
     sysExit(-1)
+
+try:
+    with open("resources/secretWord.txt") as f:
+        secretWord = f.readline()
+except:
+    secretWord = "".join(str(randint(0, 9)) for n in range(20))
+
+secretFound = False
 
 # Blackjack class. New Instance is made for each game of Blackjack and is kept around until the player finishes the game.
 # An active Instance for a given user prevents the creation of a new Instance. Instances are server-agnostic.
@@ -97,11 +105,6 @@ games = [] # Stores the active instances of blackjack. An array might not be the
 
 # This dictionary is for keeping track of pings in eggsoup's Discord server.
 regions = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
-
-with open("resources/secretWord.txt") as f:
-    secretWord = f.readline()
-
-secretFound = False
 
 client = discord.Client()
 class DiscordClass(client):
@@ -276,11 +279,12 @@ class DiscordClass(client):
                 await text.channel.send(report)
                 return
             
-            global secretFound
-            if (not secretFound) and secretWord in text.content:
-                secretFound = True
-                await text.channel.send("DELICIOUS! You found the secret word. Ping Captain No-Beard for your prize!")
-                print("Secret word found!")
+            if secretWord in text.content:
+                global secretFound
+                if not secretFound: 
+                    secretFound = True
+                    await text.channel.send("DELICIOUS! You found the secret word. Ping Captain No-Beard for your prize!")
+                    print("Secret word found!")
             
             if text.content.startswith('!flip'):
                 if ',' in text.author.name:
