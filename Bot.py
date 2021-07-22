@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.9.8
+# Version: 8.9.9
 
 # Default modules:
 import asyncio
@@ -479,7 +479,7 @@ class DiscordClass(client):
                         report ="Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                         with open('resources/money.csv', 'a') as money:
                             writer = csv.writer(csvfile)
-                            newline = "\r\n" + str(text.author.id) + ",300," + text.author
+                            newline = "\r\n" + str(text.author.id) + ",300," + str(text.author)
                             money.write(newline)
                 await text.channel.send(report)
                 return
@@ -535,7 +535,7 @@ class DiscordClass(client):
                         report = "Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                         with open('resources/money.csv', 'a') as money:
                             writer = csv.writer(csvfile)
-                            newline = "\r\n" + str(text.author.id) + ",300," + text.author
+                            newline = "\r\n" + str(text.author.id) + ",300," + str(text.author)
                             money.write(newline)
                     await text.channel.send(report)
                     return
