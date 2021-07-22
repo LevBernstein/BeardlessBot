@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.9.7
+# Version: 8.9.8
 
 # Default modules:
 import asyncio
@@ -50,16 +50,16 @@ class Instance:
         return sum(self.cards) == 21
     
     def deal(self):
-        card3 = choice(self.vals)
-        self.cards.append(card3)
-        if card3 == 11:
+        card = choice(self.vals)
+        self.cards.append(card)
+        if card == 11:
             self.message = "You were dealt an Ace, bringing your total to " + str(sum(self.cards)) + ". " 
-        elif card3 == 8:
-            self.message = "You were dealt an " + str(card3) + ", bringing your total to " + str(sum(self.cards)) + ". "
-        elif card3 == 10:
+        elif card == 8:
+            self.message = "You were dealt an " + str(card) + ", bringing your total to " + str(sum(self.cards)) + ". "
+        elif card == 10:
             self.message = "You were dealt a " + choice(["10", "Jack", "Queen", "King"]) + ", bringing your total to " + str(sum(self.cards)) + ". "
         else:
-            self.message = "You were dealt a " + str(card3) + ", bringing your total to " + str(sum(self.cards)) + ". "
+            self.message = "You were dealt a " + str(card) + ", bringing your total to " + str(sum(self.cards)) + ". "
         if 11 in self.cards and self.checkBust():
             for i in range(len(self.cards)):
                 if self.cards[i] == 11:
@@ -98,6 +98,11 @@ games = [] # Stores the active instances of blackjack. An array might not be the
 # This dictionary is for keeping track of pings in eggsoup's Discord server.
 regions = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
 
+with open("resources/secretWord.txt") as f:
+    secretWord = f.readline()
+
+secretFound = False
+
 client = discord.Client()
 class DiscordClass(client):
     
@@ -134,18 +139,18 @@ class DiscordClass(client):
                     return
                 report = "You need to register first! Type !register to get started, " + text.author.mention + "."
                 strbet = '10' # Bets default to 10. If someone just types !blackjack, they will bet 10 by default.
-                if text.content.startswith('!blackjack') and len(str(text.content)) > 11:
+                if text.content.startswith('!blackjack') and len(text.content) > 11:
                     strbet = text.content.split('!blackjack ',1)[1]
                 elif text.content.startswith('!blackjack'):
                     pass
-                elif text.content.startswith('!bl ') and len(str(text.content)) > 4:
+                elif text.content.startswith('!bl ') and len(text.content) > 4:
                     strbet = text.content.split('!bl ',1)[1]
                 elif text.content == '!bl':
                     pass
                 elif text.content.startswith('!bl'):
                     # This way, other bots' commands that start with !bl won't trigger blackjack.
                     return
-                elif text.content.startswith('!bj') and len(str(text.content)) > 4:
+                elif text.content.startswith('!bj') and len(text.content) > 4:
                     strbet = text.content.split('!bj ',1)[1]
                 allBet = False
                 if strbet == "all":
@@ -155,12 +160,11 @@ class DiscordClass(client):
                     try:
                         bet = int(strbet)
                     except:
-                        if (' ' not in text.content):
-                            bet = 10
-                        else:
-                            print("Failed to cast bet to int!")
+                        if ' ' in text.content:
+                            print("Failed to cast bet to int! Bet msg: " + text.content)
                             await text.channel.send("Invalid bet amount. Please choose a number >-1, " + text.author.mention + ".")
                             return
+                        bet = 10
                 if bet < 0:
                     report = "Invalid bet. Choose a value greater than or equal to 0."
                 else:
@@ -179,24 +183,20 @@ class DiscordClass(client):
                                 if exist:
                                     report = "You already have an active game, " + text.author.mention + "."
                                 else:
+                                    report = "You do not have enough BeardlessBucks to bet that much, " + text.author.mention + "!"
                                     if bet <= bank:
                                         x = Instance(text.author, bet)
-                                        games.append(x)
                                         report = x.message
-                                        if x.checkBust() or x.perfect():
-                                            totalsum = bank + ((bet * -1) if x.checkBust() else bet)
+                                        if x.perfect():
+                                            totalsum = bank + bet
                                             oldliner = str(text.author.id) + "," + str(bank) + "," + row[2]
                                             liner = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
                                             texter = open("resources/money.csv", "r")
                                             texter = ''.join([i for i in texter]).replace(oldliner, liner)
                                             with open("resources/money.csv", "w") as money:
                                                 money.writelines(texter)
-                                            for i in range(len(games)):
-                                                if games[i].getUser() == text.author:
-                                                    games.pop(i)
-                                                    break
-                                    else:
-                                        report = "You do not have enough BeardlessBucks to bet that much, " + text.author.mention + "!"
+                                        else:
+                                            games.append(x)
                                 break
                 await text.channel.send(report)
                 return
@@ -206,89 +206,82 @@ class DiscordClass(client):
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
                 report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
-                exist = False
                 for i in range(len(games)):
                     if games[i].getUser() == text.author:
-                        exist = True
                         gamer = games[i]
-                        break
-                if exist:
-                    report = gamer.deal()
-                    if gamer.checkBust() or gamer.perfect():
-                        bet = (gamer.bet * -1) if gamer.checkBust() else gamer.bet
-                        with open('resources/money.csv', 'r') as csvfile:
-                            reader = csv.reader(csvfile, delimiter = ',')
-                            for row in reader:
-                                if str(text.author.id) == row[0]:
-                                    totalsum = int(row[1]) + bet
-                                    oldliner = row[0] + "," + row[1] + "," + row[2]
-                                    liner = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
-                                    texter = open("resources/money.csv", "r")
-                                    texter = ''.join([i for i in texter]).replace(oldliner, liner)
-                                    with open("resources/money.csv", "w") as money:
-                                        money.writelines(texter)
-                                    for i in range(len(games)):
-                                        if games[i].getUser() == text.author:
-                                            games.pop(i)
-                                            break
-                                    break
+                        report = gamer.deal()
+                        if gamer.checkBust() or gamer.perfect():
+                            bet = (gamer.bet * -1) if gamer.checkBust() else gamer.bet
+                            with open('resources/money.csv', 'r') as csvfile:
+                                reader = csv.reader(csvfile, delimiter = ',')
+                                for row in reader:
+                                    if str(text.author.id) == row[0]:
+                                        totalsum = int(row[1]) + bet
+                                        oldliner = row[0] + "," + row[1] + "," + row[2]
+                                        liner = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
+                                        texter = open("resources/money.csv", "r")
+                                        texter = ''.join([j for j in texter]).replace(oldliner, liner)
+                                        with open("resources/money.csv", "w") as money:
+                                            money.writelines(texter)
+                                        games.pop(i)
+                                        break
+                            break
                 await text.channel.send(report)
                 return
-
+            
             if text.content.startswith('!stay') or text.content.startswith('!stand'):
                 if ',' in text.author.name:
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
                 report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
-                exist = False
                 for i in range(len(games)):
                     if games[i].getUser() == text.author:
-                        exist = True
                         gamer = games[i]
                         bet = gamer.bet
+                        result = gamer.stay()
+                        report = "The dealer has a total of " + str(gamer.dealerSum) + "."
+                        if result == -3:
+                            report += " That's closer to 21 than your sum of " + str(sum(gamer.cards)) + ". You lose"
+                            bet *= -1
+                            if bet:
+                                report +=  ". Your loss has been deducted from your balance"
+                        elif result == 0:
+                            report += " That ties your sum of " + str(sum(gamer.cards))
+                            if bet:
+                                report += ". Your money has been returned"
+                        elif result == 3:
+                            report += " You're closer to 21 with a sum of " + str(sum(gamer.cards))
+                        elif result == 4:
+                            report += " You have a sum of " + str(sum(gamer.cards)) + ". The dealer busts"
+                        if (result == 3 or result == 4) and bet:
+                            report += ". You win! Your winnings have been added to your balance"
+                        if result and bet:
+                            with open('resources/money.csv', 'r') as csvfile:
+                                reader = csv.reader(csvfile, delimiter = ',')
+                                for row in reader:
+                                    if str(text.author.id) == row[0]:
+                                        totalsum = int(row[1]) + bet
+                                        oldliner = row[0] + "," + row[1] + "," + row[2]
+                                        liner = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
+                                        texter = open("resources/money.csv", "r")
+                                        texter = ''.join([j for j in texter]).replace(oldliner, liner)
+                                        with open("resources/money.csv", "w") as money:
+                                            money.writelines(texter)
+                                        break
+                        elif not bet:
+                            report += (". Y" if not result else ". However, y") + "ou bet nothing, so your balance has not changed"
+                        report += ", " + text.author.mention + "."
+                        games.pop(i)
                         break
-                if exist:
-                    result = gamer.stay()
-                    report = "The dealer has a total of " + str(gamer.dealerSum) + "."
-                    if result == -3:
-                        report += " That's closer to 21 than your sum of " + str(sum(gamer.cards)) + ". You lose"
-                        bet *= -1
-                        if bet != 0:
-                            report +=  ". Your loss has been deducted from your balance"
-                    elif result == 0:
-                        report += " That ties your sum of " + str(sum(gamer.cards))
-                        if bet != 0:
-                            report += ". Your money has been returned"
-                    elif result == 3:
-                        report += " You're closer to 21 with a sum of " + str(sum(gamer.cards))
-                    elif result == 4:
-                        report += " You have a sum of " + str(sum(gamer.cards)) + ". The dealer busts"
-                    if (result == 3 or result == 4) and bet != 0:
-                        report += ". You win! Your winnings have been added to your balance"
-                    if result != 0 and bet != 0:
-                        with open('resources/money.csv', 'r') as csvfile:
-                            reader = csv.reader(csvfile, delimiter = ',')
-                            for row in reader:
-                                if str(text.author.id) == row[0]:
-                                    totalsum = int(row[1]) + bet
-                                    oldliner = row[0] + "," + row[1] + "," + row[2]
-                                    liner = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
-                                    texter = open("resources/money.csv", "r")
-                                    texter = ''.join([i for i in texter]).replace(oldliner, liner)
-                                    with open("resources/money.csv", "w") as money:
-                                        money.writelines(texter)
-                                    break
-                    elif bet == 0:
-                        report += ". Y" if result == 0 else ". However, y"
-                        report += "ou bet nothing, so your balance has not changed"
-                    report += ", " + text.author.mention + "."
-                    for i in range(len(games)):
-                        if games[i].getUser() == text.author:
-                            games.pop(i)
-                            break
                 await text.channel.send(report)
                 return
-                
+            
+            global secretFound
+            if (not secretFound) and secretWord in text.content:
+                secretFound = True
+                await text.channel.send("DELICIOUS! You found the secret word. Ping Captain No-Beard for your prize!")
+                print("Secret word found!")
+            
             if text.content.startswith('!flip'):
                 if ',' in text.author.name:
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
@@ -302,12 +295,11 @@ class DiscordClass(client):
                     try:
                         bet = int(strbet)
                     except:
-                        if (' ' not in text.content):
-                            bet = 10
-                        else:
-                            print("Failed to cast bet to int!")
+                        if ' ' in text.content:
+                            print("Failed to cast bet to int! Bet msg: " + text.content)
                             await text.channel.send("Invalid bet amount. Please choose a number >-1, " + text.author.mention + ".")
                             return
+                        bet = 10
                 if (not allBet) and int(strbet) < 0:
                     report = "Invalid bet amount. Please choose a number >-1, " + text.author.mention + "."
                 else:
@@ -321,7 +313,7 @@ class DiscordClass(client):
                                     bet = bank
                                 found = False
                                 for i in range(len(games)):
-                                    if games[i].getUser() == str(text.author):
+                                    if games[i].getUser() == text.author:
                                         found = True
                                         break
                                 if found:
@@ -386,7 +378,7 @@ class DiscordClass(client):
                 try:
                     report = target.avatar_url
                 except discord.NotFound:
-                    report = "Discord Member " + str(target.mention) + " not found!"
+                    report = "Discord Member " + target.mention + " not found!"
                 await text.channel.send(report)
                 return
                 
@@ -401,7 +393,7 @@ class DiscordClass(client):
                         print("Author: " + str(text.author.id) + " muting target: " + str(target.id))
                         role = get(text.guild.roles, name = 'Muted')
                         await target.add_roles(role)
-                        await text.channel.send("Muted " + str(target.mention) + ".")
+                        await text.channel.send("Muted " + target.mention + ".")
                         mTime = 0.0 # Autounmute:
                         if 'h' in duration:
                             duration = duration[1:]
@@ -415,7 +407,7 @@ class DiscordClass(client):
                             duration = duration[1:]
                             duration = duration.split('s', 1)[0]
                             mTime = float(duration)
-                        if mTime != 0.0:
+                        if mTime:
                             print("Muted for " + str(mTime))
                             await asyncio.sleep(mTime)
                             await target.remove_roles(role)
@@ -434,7 +426,7 @@ class DiscordClass(client):
                     target = text.mentions[0]
                     role = get(text.guild.roles, name = 'Muted')
                     await target.remove_roles(role)
-                    await text.channel.send("Unmuted " + str(target.mention) + ".")
+                    await text.channel.send("Unmuted " + target.mention + ".")
                 else:
                     await text.channel.send("You do not have permission to use this command!")
                 return
@@ -453,7 +445,7 @@ class DiscordClass(client):
                 with open('resources/money.csv') as csvfile:
                     reader = csv.reader(csvfile, delimiter = ',')
                     for row in reader:
-                        if int(row[1]) != 0: # Don't bother displaying info for people with 0 BeardlessBucks
+                        if int(row[1]): # Don't bother displaying info for people with 0 BeardlessBucks
                             diction[(row[2])[:-5]] = int(row[1])
                 sortedDict = OrderedDict(sorted(diction.items(), key = itemgetter(1)))
                 for i in range(len(sortedDict.items()) if len(sortedDict) < 10 else 10):
@@ -487,7 +479,7 @@ class DiscordClass(client):
                         report ="Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                         with open('resources/money.csv', 'a') as money:
                             writer = csv.writer(csvfile)
-                            newline = "\r\n" + str(text.author.id) + ",300," + str(text.author)
+                            newline = "\r\n" + str(text.author.id) + ",300," + text.author
                             money.write(newline)
                 await text.channel.send(report)
                 return
@@ -507,7 +499,7 @@ class DiscordClass(client):
                         try:
                             authorstring = str(target.id)
                         except discord.NotFound as err:
-                            report = "Discord Member " + str(target.mention) + " not found!"
+                            report = "Discord Member " + target.mention + " not found!"
                             print(err)
                     else:
                         report = "Invalid user! Please @ a user when you do !balance, or do !balance without a target to see your own balance, " + text.author.mention + "."
@@ -543,7 +535,7 @@ class DiscordClass(client):
                         report = "Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                         with open('resources/money.csv', 'a') as money:
                             writer = csv.writer(csvfile)
-                            newline = "\r\n" + str(text.author.id) + ",300," + str(text.author)
+                            newline = "\r\n" + str(text.author.id) + ",300," + text.author
                             money.write(newline)
                     await text.channel.send(report)
                     return
@@ -618,7 +610,7 @@ class DiscordClass(client):
                     return
                 await text.channel.purge(limit = messageNumber, check = lambda msg: not msg.pinned)
                 return
-           
+
             if text.content.startswith("!define "):
                 word = text.content.split(' ', 1)[1]
                 if " " in word:

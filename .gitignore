@@ -1,3 +1,4 @@
-*oken.txt
+token.txt
+secretWord.txt
 *.swp
 __pycache__
