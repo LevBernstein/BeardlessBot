@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.9.12
+# Version: 8.9.13
 
 # Default modules:
 import asyncio
