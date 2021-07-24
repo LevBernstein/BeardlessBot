@@ -6,13 +6,11 @@ from random import randint
 def animal(animalType):
     if animalType == "cat":
         # cat API has been throwing 503 errors regularly, not sure why. Spotty hosting maybe.
-        count = 0
-        while count < 10:
+        for i in range(10):
             # the loop is to try to make another request if one pulls a 503.
             r = requests.get("https://aws.random.cat/meow")
             if r.status_code == 200:
                 return(r.json()['file'])
-            count += 1
             print(r.status_code)
     
     if animalType.startswith("dog"):
@@ -28,15 +26,13 @@ def animal(animalType):
         return(r.json()['message'] if not r.json()['message'].startswith("Breed not found") else "Breed not found! Do !dog breeds to see all the breeds.")
     
     if animalType == "fish":
-        count = 0
-        while count < 10:
+        for i in range(10):
             fishID = str(randint(2, 1969))
             print("Fish id: " + fishID)
             r = requests.get("https://fishbase.ropensci.org/species/" + fishID) # valid range of species by id on fishbase.
             # there appear to be gaps in the valid range, so try some more numbers if you random into an invalid fish
             if r.status_code == 200:
                 return(r.json()["data"][0]["image"])
-            count += 1
             print("Invalid fish ID " + fishID)
         print(r.status_code)
     

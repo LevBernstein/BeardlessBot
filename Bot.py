@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.9.11
+# Version: 8.9.12
 
 # Default modules:
 import asyncio
@@ -203,7 +203,7 @@ class DiscordClass(client):
                 await text.channel.send(report)
                 return
             
-            if text.content.startswith('!deal') or text.content == '!hit':
+            if text.content == '!deal' or text.content == '!hit':
                 if ',' in text.author.name:
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
@@ -213,7 +213,7 @@ class DiscordClass(client):
                         gamer = games[i]
                         report = gamer.deal()
                         if gamer.checkBust() or gamer.perfect():
-                            bet = (gamer.bet * -1) if gamer.checkBust() else gamer.bet
+                            bet = gamer.bet * (-1 if gamer.checkBust() else 1)
                             with open('resources/money.csv', 'r') as csvfile:
                                 reader = csv.reader(csvfile, delimiter = ',')
                                 for row in reader:
@@ -231,7 +231,7 @@ class DiscordClass(client):
                 await text.channel.send(report)
                 return
             
-            if text.content.startswith('!stay') or text.content.startswith('!stand'):
+            if text.content =='!stay' or text.content == '!stand':
                 if ',' in text.author.name:
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
@@ -280,9 +280,9 @@ class DiscordClass(client):
             
             if secretWord in text.content:
                 global secretFound
-                if not secretFound: 
+                if not secretFound:
                     secretFound = True
-                    await text.channel.send("DELICIOUS! You found the secret word. Ping Captain No-Beard for your prize!")
+                    await text.channel.send("DELICIOUS! You found the secret word, " + secretWord + ". Ping Captain No-Beard for your prize!")
                     print("Secret word found!")
             
             if text.content.startswith('!flip'):
@@ -328,7 +328,7 @@ class DiscordClass(client):
                                         report = "Heads! You win! Your winnings have been added to your balance, " + text.author.mention + "."
                                     else:
                                         report = "Tails! You lose! Your loss has been deducted from your balance, " + text.author.mention + "."
-                                    totalsum = bank + (bet if result else bet * -1)
+                                    totalsum = bank + (bet * (1 if result else -1))
                                     if not bet:
                                         report += " However, you bet nothing, so your balance will not change."
                                     else:
@@ -347,6 +347,9 @@ class DiscordClass(client):
             if text.content.startswith('!buy'): # Requires roles named special blue, special pink, special orange, and special red.
                 if ',' in text.author.name:
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
+                    return
+                if text.guild is None:
+                    await text.channel.send("This command can only be used in a server.")
                     return
                 print("Running buy...")
                 color = text.content.split(" ", 1)[1]
@@ -385,7 +388,10 @@ class DiscordClass(client):
                 await text.channel.send(report)
                 return
                 
-            if text.content.startswith('-mute') or text.content.startswith('!mute'):
+            if text.content.startswith('!mute') or text.content.startswith('-mute'):
+                if text.guild is None:
+                    await text.channel.send("This command can only be used in a server.")
+                    return
                 if text.author.guild_permissions.manage_messages:
                     if text.mentions:
                         target = text.mentions[0]
@@ -421,7 +427,7 @@ class DiscordClass(client):
                     await text.channel.send("You do not have permission to use this command!")
                 return
             
-            if text.content.startswith('-unmute') or text.content.startswith('!unmute'):
+            if text.content.startswith('!unmute') or text.content.startswith('-unmute'):
                 if text.author.guild_permissions.manage_messages:
                     if not text.mentions:
                         await text.channel.send("Invalid target!")
@@ -434,15 +440,15 @@ class DiscordClass(client):
                     await text.channel.send("You do not have permission to use this command!")
                 return
             
-            if text.content.startswith('!video'):
+            if text.content == '!video':
                 await text.channel.send('My creator made a new video! Check it out at https://youtu.be/-4FzBLS-UVI')
                 return
             
-            if text.content.startswith('!song') or text.content.startswith('!playlist') or text.content.startswith('!music'):
+            if text.content == '!playlist' or text.content == '!music':
                 await text.channel.send('Here\'s my playlist (discord will only show the first hundred songs): https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg')
                 return
             
-            if text.content.startswith('!leaderboard') or text.content.startswith('!lb'):
+            if text.content == '!leaderboard' or text.content == '!lb':
                 diction = {}
                 emb = discord.Embed(title = "BeardlessBucks Leaderboard", description = "", color = 0xfff994)
                 with open('resources/money.csv') as csvfile:
@@ -461,7 +467,7 @@ class DiscordClass(client):
                 await text.channel.send("Enter !d[number][+/-][modifier] to roll a [number]-sided die and add or subtract a modifier. For example: !d8+3, or !d100-17, or !d6.")
                 return
             
-            if text.content.startswith('!reset'):
+            if text.content == '!reset':
                 report = 'You have been reset to 200 BeardlessBucks, ' + text.author.mention + "."
                 if ',' in text.author.name:
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
@@ -522,7 +528,7 @@ class DiscordClass(client):
                 await text.channel.send(report)
                 return
             
-            if text.content.startswith("!register"): # Make sure resources/money.csv is not open in any other program
+            if text.content == "!register": # Make sure resources/money.csv is not open in any other program
                 if ',' in text.author.name:
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
@@ -543,46 +549,48 @@ class DiscordClass(client):
                     await text.channel.send(report)
                     return
             
-            if text.content.startswith("!bucks"):
+            if text.content == "!bucks":
                 await text.channel.send("BeardlessBucks are this bot's special currency. You can earn them by playing games. First, do !register to get yourself started with a balance.")
                 return
             
-            if text.content.startswith("!hello") or text.content == "!hi":
+            if text.content == "!hello" or text.content == "!hi":
                 answers = ["How ya doin?", "Yo!", "What's cookin?", "Hello!", "Ahoy!", "Hi!", "What's up?", "Hey!", "How's it goin?", "Greetings!"]
                 await text.channel.send(choice(answers))
                 return
             
-            if text.content.startswith("!source"):
+            if text.content == "!source":
                 await text.channel.send("Most facts taken from https://www.thefactsite.com/1000-interesting-facts/.")
                 return
             
-            if text.content.startswith("!link") or text.content.startswith("!add") or text.content.startswith("!join"):
-                await text.channel.send("Want to add this bot to your server? Click https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot")
+            if text.content == "!add" or text.content == "!join":
+                await text.channel.send("Want to add this bot to your server?\nClick https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot")
                 return
             
-            if text.content.startswith("!rohan"):
+            if text.content == "!rohan":
                 await text.channel.send(file = discord.File('images/cute.png'))
                 return
             
             if text.content.startswith("!random"):
                 ranType = text.content.split(' ', 1)[1]
-                report = "Invalid random."
-                if ranType == "legend":
+                if ranType == "legend" or ranType == "weapon":
+                    emb = discord.Embed(title = "Random " + ranType, description = "", color = 0xfff994)
                     legends = ["Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako", "Magyar", "Reno"]
-                    report = "Your legend is " + choice(legends) + "."
-                elif ranType == "weapon":
                     weapons = ["Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"]
-                    report = "Your weapon is " + choice(weapons) + "."
-                await text.channel.send(report)
+                    emb.add_field(name = "Your " + ("legend" if ranType == "legend" else "weapon") + " is " + choice(legends if ranType == "legend" else weapons) + ".", value = "_ _", inline=False)
+                    await text.channel.send(embed = emb)
+                else:
+                    await text.channel.send("Invalid random!")
+                return
+                
                 return
             
-            if text.content.startswith("!fact"):
+            if text.content == "!fact":
                 emb = discord.Embed(title = "Beardless Bot Fun Fact", description = "", color = 0xfff994)
                 emb.add_field(name = "Fun fact #" + str(randint(1,111111111)), value = fact(), inline = False)
                 await text.channel.send(embed = emb)
                 return
             
-            if text.content.startswith("!animals"):
+            if text.content == "!animals":
                 emb = discord.Embed(title = "Animals photo commands:", description = "", color = 0xfff994)
                 emb.add_field(name = "!dog", value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>", inline = False)
                 emb.add_field(name = "!cat", value = "_ _", inline = True)
@@ -623,10 +631,9 @@ class DiscordClass(client):
                     return
                 try:
                    messageNumber = int(text.content.split(" ", 1)[1]) + 1
+                   await text.channel.purge(limit = messageNumber, check = lambda msg: not msg.pinned)
                 except:
                     await text.channel.send("Invalid message number!")
-                    return
-                await text.channel.purge(limit = messageNumber, check = lambda msg: not msg.pinned)
                 return
 
             if text.content.startswith("!define "):
@@ -658,8 +665,8 @@ class DiscordClass(client):
                 await text.channel.send(roll(text.content))
                 return
             
-            if text.content.startswith("!help") or text.content.startswith("!commands"):
-                emb = discord.Embed(title = "Beardless Bot Commands", description = "", color=0xfff994)
+            if text.content == "!commands" or text.content == "!help":
+                emb = discord.Embed(title = "Beardless Bot Commands", description = "!commands to pull up this list", color=0xfff994)
                 emb.add_field(name = "!register", value = "Registers you with the currency system.", inline = True)
                 emb.add_field(name = "!balance", value = "Checks your BeardlessBucks balance. You can write !balance <@someone> to see that person's balance.", inline = True)
                 emb.add_field(name = "!bucks", value = "Shows you an explanation for how BeardlessBucks work.", inline = True)
@@ -676,43 +683,41 @@ class DiscordClass(client):
                 emb.add_field(name = "!av", value = "Display a user's avatar. Write just !av if you want to see your own avatar.", inline = True)
                 emb.add_field(name = "![animal name]", value = "Gets a random cat/dog/duck/fish/fox/rabbit/panda/lizard/koala/bird picture. Example: !duck", inline = True)
                 emb.add_field(name = "!define [word]", value = "Shows you the definition(s) of a word.", inline = True)
-                emb.add_field(name = "!purge [number]", value = "Mass-deletes messages. Mod only.", inline = True)
-                emb.add_field(name = "!commands", value = "Shows you this list.", inline = True)
+                if text.author.guild_permissions.manage_messages:
+                    emb.add_field(name = "!purge [number]", value = "Mass-deletes messages. Mod only.", inline = True)
+                    emb.add_field(name = "!mute [target] [duration]", value = "Mutes someone for an amount of time. Excepts either seconds, minutes orhours. Requires a Muted role that has no send message perms. ", inline = True)
                 await text.channel.send(embed = emb)
                 return
             
             if text.guild is not None: # Server-specific commands; this check prevents an error caused by commands being used in DMs
                 if text.guild.id == 797140390993068035: # Commands only used in Jetspec's Discord server.
-                    if text.content.startswith('!file'):
+                    if text.content == '!file':
                         jet = await text.guild.fetch_member("579316676642996266")
                         await text.channel.send(jet.mention)
+                        print("Pinging Jetspec.")
                         return
                 
                 if text.guild.id == 442403231864324119: # Commands only used in eggsoup's Discord server.
-                    if text.content.startswith('!eggtweet') or text.content.startswith('!tweet'):
+                    if text.content == '!eggtweet' or text.content == '!tweet':
                         emb = discord.Embed(title = "eggsoup(@eggsouptv)", description = "", color = 0x1da1f2)
                         emb.add_field(name = "_ _", value = eggTweetGenerator.final())
                         await text.channel.send(embed = emb)
                         return
                     
-                    if text.content.startswith('!reddit'):
+                    if text.content == '!reddit':
                         await text.channel.send("https://www.reddit.com/r/eggsoup/")
                         return
                     
-                    if text.content.startswith('!guide'):
+                    if text.content == '!guide':
                         await text.channel.send("https://www.youtube.com/watch?v=nH0TOoJIU80")
                         return
                     
-                    if text.content.startswith('!mee6'):
-                        mee6 = await text.guild.fetch_member("159985870458322944")
-                        await text.channel.send('Silence ' + mee6.mention + "!")
+                    if text.content == "!notify":
+                        await text.channel.send("Hey can someone notify egg about this? On " + choice(["Youtube, sub -> eggsoup", "Twitch, Subscribe -> Eggsoup", "r/eggsoup, join -> now", "Twitter, follow -> eggsoup", "brawlhalla, settings -> quit", "brawlhalla, scythe -> miss", "Unarmed, dlight -> everything", "Sword, dlight -> sair", "all legends, design rework -> ugly", "Toilet, poop -> flush", "Microsoft Word, ctrl c -> ctrl v", ]) + " is true. He might get mad if I randomly ping him, so I’d rather somebody more important than me tell him this. This could be in a future brawlhalla guide or something do I just wanted to let him know")
                         return
                     
-                    if text.content.startswith("!notify"):
-                        await text.channel.send("Hey can someone notify egg about this? On " + choice(["Youtube, sub -> eggsoup", "Twitch, Subscribe -> Eggsoup", "r/eggsoup, join -> now", "Twitter, follow -> eggsoup", "brawlhalla, settings -> quit", "brawlhalla, scythe -> miss", "Unarmed, dlight -> everything", "Sword, dlight -> sair", "all legends, design rework -> ugly", "Toilet, poop -> flush", "Microsoft Word, ctrl c -> ctrl v", ]) + " is true. He might get mad if I randomly ping him, so I’d rather somebody more important than me tell him this. This could be in a future brawlhalla guide or something do I just wanted to let him know")
-                    
                     if text.channel.id == 605083979737071616:
-                        if text.content.startswith('!pins') or text.content.startswith('!rules'):
+                        if text.content == '!pins' or text.content == '!rules':
                             emb = discord.Embed(title = "How to use this channel.", description = "", color = 0xfff994)
                             emb.add_field(name = "To spar someone from your region:", value = "Do the command !spar <region> <other info>. For instance, to find a diamond from US-E to play 2s with, I would do:\n!spar US-E looking for a diamond 2s partner. \nValid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA. !spar has a 2 hour cooldown. Please use <#833566541831208971> to give yourself the correct roles.", inline = False)
                             emb.add_field(name = "If you don't want to get pings:", value = "Remove your region role in <#833566541831208971>. Otherwise, responding 'no' to calls to spar is annoying and counterproductive, and will earn you a warning.", inline = False)
