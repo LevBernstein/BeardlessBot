@@ -382,10 +382,9 @@ class DiscordClass(client):
             if text.content.startswith('!av'):
                 target = text.author if not text.mentions else text.mentions[0]
                 try:
-                    report = target.avatar_url
+                    await text.channel.send(target.avatar_url)
                 except discord.NotFound:
-                    report = "Discord Member " + target.mention + " not found!"
-                await text.channel.send(report)
+                    await text.channel.send("Discord Member " + target.mention + " not found!")
                 return
                 
             if text.content.startswith('!mute') or text.content.startswith('-mute'):
@@ -401,8 +400,13 @@ class DiscordClass(client):
                             return
                         print("Author: " + str(text.author.id) + " muting target: " + str(target.id))
                         role = get(text.guild.roles, name = 'Muted')
+                        if role is None:
+                            await text.channel.send("This command requires a \"Muted\" role in order to function. Mute failed.")
+                            return
                         await target.add_roles(role)
-                        await text.channel.send("Muted " + target.mention + ".")
+                        emb = discord.Embed(title = "Muting " + (target.nick if target.nick else target.name) + ".", description = "", color = 0xfff994)
+                        emb.add_field(name = "Muted " + (target.nick if target.nick else target.name) + " for " + duration + ".", value = "_ _", inline = False)
+                        await text.channel.send(embed = emb)
                         mTime = 0.0 # Autounmute:
                         if 'h' in duration:
                             duration = duration[1:]
@@ -424,7 +428,7 @@ class DiscordClass(client):
                     else:
                         await text.channel.send("Invalid target!")
                 else:
-                    await text.channel.send("You do not have permission to use this command!")
+                    await text.channel.send("You do not have permission to use this command, " + text.author.mention + ".")
                 return
             
             if text.content.startswith('!unmute') or text.content.startswith('-unmute'):
@@ -437,7 +441,7 @@ class DiscordClass(client):
                     await target.remove_roles(role)
                     await text.channel.send("Unmuted " + target.mention + ".")
                 else:
-                    await text.channel.send("You do not have permission to use this command!")
+                    await text.channel.send("You do not have permission to use this command, " + text.author.mention + ".")
                 return
             
             if text.content == '!video':
@@ -460,15 +464,16 @@ class DiscordClass(client):
                 for i in range(len(sortedDict.items()) if len(sortedDict) < 10 else 10):
                     tup = sortedDict.popitem()
                     emb.add_field(name = (str(i + 1) + ". " + tup[0]), value = str(tup[1]), inline = True)
-                await text.channel.send(embed=emb)
+                await text.channel.send(embed = emb)
                 return
             
             if text.content.startswith('!dice'):
-                await text.channel.send("Enter !d[number][+/-][modifier] to roll a [number]-sided die and add or subtract a modifier. For example: !d8+3, or !d100-17, or !d6.")
+                emb = discord.Embed(title = "Beardless Bot Dice", description = "Enter !d[number][+/-][modifier] to roll a [number]-sided die and add or subtract a modifier. For example: !d8+3, or !d100-17, or !d6.", color = 0xfff994)
+                await text.channel.send(embed = emb)
                 return
             
             if text.content == '!reset':
-                report = 'You have been reset to 200 BeardlessBucks, ' + text.author.mention + "."
+                report = 'You have been reset to 200 BeardlessBucks, ' + (text.author.nick if text.author.nick else text.author.name) + "."
                 if ',' in text.author.name:
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
@@ -485,12 +490,13 @@ class DiscordClass(client):
                             with open("resources/money.csv", "w") as money:
                                 money.writelines(texter)
                     if not exist:
-                        report ="Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
+                        report ="Successfully registered. You have 300 BeardlessBucks, " + (text.author.nick if text.author.nick else text.author.name) + "."
                         with open('resources/money.csv', 'a') as money:
                             writer = csv.writer(csvfile)
                             newline = "\r\n" + str(text.author.id) + ",300," + str(text.author)
                             money.write(newline)
-                await text.channel.send(report)
+                emb = discord.Embed(title = report, description = "_ _", color = 0xfff994)
+                await text.channel.send(embed = emb)
                 return
             
             if text.content.startswith("!balance") or text.content.startswith("!bal"):
@@ -523,7 +529,7 @@ class DiscordClass(client):
                                 if selfMode:
                                     report = "Your balance is " + row[1] + " BeardlessBucks, " + text.author.mention + "."
                                 else:
-                                    report = (target.name if target.nick is None else target.nick) + "'s balance is " + row[1] + " BeardlessBucks."
+                                    report = (target.nick if target.nick else target.name) + "'s balance is " + row[1] + " BeardlessBucks."
                                 break
                 await text.channel.send(report)
                 return
@@ -627,7 +633,7 @@ class DiscordClass(client):
            
             if text.content.startswith("!clear") or text.content.startswith("!purge"):
                 if not text.author.guild_permissions.manage_messages:
-                    await text.channel.send("You do not have permission to use this command!")
+                    await text.channel.send("You do not have permission to use this command, " + text.author.mention + ".")
                     return
                 try:
                    messageNumber = int(text.content.split(" ", 1)[1]) + 1
