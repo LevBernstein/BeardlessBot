@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.10.1
+# Version: 8.10.2
 
 # Default modules:
 import asyncio
@@ -386,7 +386,7 @@ class DiscordClass(client):
                                     await text.author.add_roles(role)
                                     report = "Color \"special " + color + "\" purchased successfully, " + text.author.mention + "!"
                                 break
-                await text.channel.send(embed = discord.Embed(title = "Beardless Bot Special colors", description = report, color = 0xfff994))
+                await text.channel.send(embed = discord.Embed(title = "Beardless Bot Special Colors", description = report, color = 0xfff994))
                 return
             
             if text.content.startswith('!av'):
@@ -413,9 +413,7 @@ class DiscordClass(client):
                         if role is None:
                             await text.channel.send("This command requires a \"Muted\" role in order to function. Mute failed.")
                             return
-                        await target.add_roles(role)
-                        await text.channel.send(embed = discord.Embed(title = "Beardless Bot Mute.", description = "Muted " + (target.nick if target.nick else target.name) + " for " + duration + ".", color = 0xfff994))
-                        mTime = 0.0 # Autounmute:
+                        mTime = 0.0
                         if 'h' in duration:
                             duration = duration[1:]
                             duration = duration.split('h', 1)[0]
@@ -428,7 +426,9 @@ class DiscordClass(client):
                             duration = duration[1:]
                             duration = duration.split('s', 1)[0]
                             mTime = float(duration)
-                        if mTime:
+                        await target.add_roles(role)
+                        await text.channel.send(embed = discord.Embed(title = "Beardless Bot Mute", description = "Muted " + (target.nick if target.nick else target.name) + ((" for " + duration + ".") if mTime else "."), color = 0xfff994))
+                        if mTime: # Autounmute:
                             print("Muted for " + str(mTime))
                             await asyncio.sleep(mTime)
                             await target.remove_roles(role)
@@ -447,7 +447,7 @@ class DiscordClass(client):
                     target = text.mentions[0]
                     role = get(text.guild.roles, name = 'Muted')
                     await target.remove_roles(role)
-                    await text.channel.send(embed = discord.Embed(title = "Beardless Bot Unmute.", description = "Unmuted " + target.mention + ".", color = 0xfff994))
+                    await text.channel.send(embed = discord.Embed(title = "Beardless Bot Unmute", description = "Unmuted " + target.mention + ".", color = 0xfff994))
                 else:
                     await text.channel.send("You do not have permission to use this command, " + text.author.mention + ".")
                 return
@@ -671,7 +671,9 @@ class DiscordClass(client):
             if text.content == ("!ping"):
                 startTime = datetime.now()
                 message = await text.channel.send(embed = discord.Embed(title = "Pinging...", description = "", color = 0xfff994))
-                await message.edit(embed = discord.Embed(title = "Pinged!", description = "Beardless Bot's latency is " + str(int((datetime.now() - startTime).total_seconds() * 1000)) + "ms.", color = 0xfff994))
+                emb = discord.Embed(title = "Pinged!", description = "Beardless Bot's latency is " + str(int((datetime.now() - startTime).total_seconds() * 1000)) + "ms.", color = 0xfff994)
+                emb.set_thumbnail(url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
+                await message.edit(embed = emb)
                 return
             
             if text.content.startswith('!d') and ((text.content.split('!d',1)[1])[0]).isnumeric() and len(text.content) < 12:
@@ -734,7 +736,9 @@ class DiscordClass(client):
                         return
                     
                     if text.content == '!reddit':
-                        await text.channel.send(embed = discord.Embed(title = "The official Eggsoup Subreddit", description = "https://www.reddit.com/r/eggsoup/", color = 0xfff994))
+                        emb = discord.Embed(title = "The Official Eggsoup Subreddit", description = "https://www.reddit.com/r/eggsoup/", color = 0xfff994)
+                        emb.set_thumbnail(url = "https://styles.redditmedia.com/t5_2m5xhn/styles/communityIcon_0yqex29y6lu51.png?width=256&s=fcf916f19b8f0bffff91d512691837630b378d80")
+                        await text.channel.send(embed = emb)
                         return
                     
                     if text.content == '!guide':
