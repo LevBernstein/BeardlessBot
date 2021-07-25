@@ -1,18 +1,18 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: 8.10.0
+# Version: 8.10.1
 
 # Default modules:
 import asyncio
 import csv
 import requests
 from collections import OrderedDict
+from datetime import datetime
 from math import floor
 from operator import itemgetter
 from random import choice, randint
 from sys import exit as sysExit
 from time import time
-from datetime import datetime
 
 # Installed modules:
 import discord
@@ -21,9 +21,10 @@ from discord.utils import get
 
 # Other:
 import eggTweetGenerator
+from animals import *
 from dice import *
 from facts import *
-from animals import *
+
 
 try:
     with open("resources/token.txt", "r") as f: # in token.txt, paste in your own Discord API token
@@ -707,12 +708,14 @@ class DiscordClass(client):
             if text.guild is not None: # Server-specific commands; this check prevents an error caused by commands being used in DMs
                 if text.content.startswith("!info"):
                     target = text.mentions[0] if text.mentions else text.author
-                    emb = discord.Embed(description = str(target.activity) if target.activity else "", color = target.color)
+                    emb = discord.Embed(description = str(target.activity) if target.activity else " ", color = target.color) # Discord occasionally reports people with an activity as not having them;
+                    # if so, go invisible and back online
                     emb.set_author(name = str(target), icon_url = target.avatar_url)
                     emb.set_thumbnail(url = target.avatar_url)
                     emb.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7], inline = True)
                     emb.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7], inline = True)
-                    emb.add_field(name = "Roles", value = ", ".join(role.mention for role in reversed(target.roles) if not role.name == "@everyone"), inline = False)
+                    if len(target.roles) > 1: # Every user has the "@everyone" role, so check if they have more roles than that
+                        emb.add_field(name = "Roles", value = ", ".join(role.mention for role in reversed(target.roles) if not role.name == "@everyone"), inline = False)
                     await text.channel.send(embed = emb)
                     return
                 
@@ -724,7 +727,7 @@ class DiscordClass(client):
                         return
                 
                 if text.guild.id == 442403231864324119: # Commands only used in eggsoup's Discord server.
-                    if text.content == '!eggtweet' or text.content == '!tweet':
+                    if text.content == '!tweet' or text.content == '!eggtweet':
                         emb = discord.Embed(title = "eggsoup(@eggsouptv)", description = "", color = 0x1da1f2)
                         emb.add_field(name = "_ _", value = eggTweetGenerator.final())
                         await text.channel.send(embed = emb)
