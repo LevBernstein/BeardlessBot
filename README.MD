@@ -1,5 +1,7 @@
 # Beardless Bot
 
+### Full Release v1.0.0
+
 ### Lev Bernstein
 
 A Discord bot supporting gambling (coin flips and blackjack),
@@ -22,6 +24,14 @@ Alternatively, if you just want to add the bot to your own Discord server while 
 * Python 3. To install, visit https://python.org/downloads/ and follow the instructions for your OS.
 
 * Discord.py. To install, run "python3 -m pip install -U discord.py"
+
+## Setup
+
+* To use the !mute command, create a role named Muted with no send message permissions.
+
+* To use Beardless Bot's event logging, create a channel named bb-log.
+
+* To use special colors, create roles named special red, special blue, special pink, and special orange.
 
 ## License
 This program is free software: you can redistribute it and/or modify
