@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.0.2
+# Version: Full Release 1.0.3
 
 # Default modules:
 import asyncio
@@ -40,8 +40,8 @@ except:
 
 secretFound = False
 
-# This dictionary is for keeping track of pings in eggsoup's Discord server. TODO: expand to all servers that want it
-regions = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
+# This dictionary is for keeping track of pings in the various looking-for-spar channels.
+sparPings = {}
 
 # Blackjack class. New Instance is made for each game of Blackjack and is kept around until the player finishes the game.
 # An active Instance for a given user prevents the creation of a new Instance. Instances are server-agnostic.
@@ -140,6 +140,9 @@ class DiscordClass(client):
         except FileNotFoundError:
             print("Avatar file not found! Check your directory structure.")
         print("Beardless Bot is in " + str(len(client.guilds)) + " servers.")
+        global sparPings
+        for server in client.guilds:
+            sparPings[str(server.id)] = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
     
     @client.event
     async def on_message_delete(text):
@@ -236,7 +239,7 @@ class DiscordClass(client):
                 emb = discord.Embed(description = "Member " + member.mention + " left\nID: " + str(member.id), color = 0xff0000)
                 emb.set_author(name = str(member) +" left the server", icon_url = member.avatar_url)
                 if len(member.roles) > 1:
-                    emb.add_field(name = "Roles:", value = ", ".join(role.mention for role in member.roles[1:]))
+                    emb.add_field(name = "Roles:", value = ", ".join(role.mention for role in reversed(member.roles[1:])))
                 await channel.send(embed = emb)
                 break
         return
@@ -508,7 +511,7 @@ class DiscordClass(client):
                 if ',' in text.author.name:
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
-                if text.guild is None:
+                if not text.guild:
                     await text.channel.send("This command can only be used in a server.")
                     return
                 if msg == "!buy":
@@ -553,7 +556,7 @@ class DiscordClass(client):
                 return
                 
             if msg.startswith('!mute'):
-                if text.guild is None:
+                if not text.guild:
                     await text.channel.send("This command can only be used in a server.")
                     return
                 if text.author.guild_permissions.manage_messages:
@@ -565,9 +568,8 @@ class DiscordClass(client):
                             return
                         print("Author: " + str(text.author.id) + " muting target: " + str(target.id))
                         role = get(text.guild.roles, name = 'Muted')
-                        if role is None:
-                            await text.channel.send("This command requires a \"Muted\" role in order to function. Mute failed.")
-                            return
+                        if not role:
+                            role = await text.guild.create_role(name = "Muted", colour = discord.Colour(0x818386), permissions = discord.Permissions(send_messages = False, read_messages = True))
                         mTime = 0.0
                         mString = None
                         if 'h' in duration:
@@ -746,11 +748,11 @@ class DiscordClass(client):
                 return
             
             if msg == "!source":
-                await text.channel.send(embed = discord.Embed(title = "Beardless Bot Fun Facts", description = "Most facts taken from https://www.thefactsite.com/1000-interesting-facts/.", color = 0xfff994))
+                await text.channel.send(embed = discord.Embed(title = "Beardless Bot Fun Facts", description = "Most facts taken from [this website](https://www.thefactsite.com/1000-interesting-facts/).", color = 0xfff994))
                 return
             
             if msg == "!add" or msg == "!join":
-                emb = discord.Embed(title = "Want to add this bot to your server?", description = "Click https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot", color = 0xfff994)
+                emb = discord.Embed(title = "Want to add this bot to your server?", description = "[Click this link!](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot)", color = 0xfff994)
                 emb.set_thumbnail(url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
                 await text.channel.send(embed = emb)
                 return
@@ -905,6 +907,46 @@ class DiscordClass(client):
                     await text.channel.send(embed = emb)
                     return
                 
+                if msg.startswith('!spar'):
+                    if text.channel.name == "looking-for-spar":
+                        cooldown = 7200
+                        report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help, or do !pins."
+                        tooRecent = None
+                        found = False
+                        if "usw" in text.content.lower(): msg = "us-w"
+                        if "use" in text.content.lower(): msg = "us-e"
+                        global sparPings
+                        global regions
+                        for server, pings in sparPings.items():
+                            if server == str(text.guild.id):
+                                for key, value in sparPings[server].items():
+                                    if key in msg:
+                                        found = True
+                                        if time() - value > cooldown:
+                                            sparPings[server][key] = time()
+                                            role = get(text.guild.roles, name = key.upper())
+                                            if not role:
+                                                role = await text.guild.create_role(name = key.upper(), mentionable = False)
+                                            report = role.mention + " come spar " + text.author.mention + "!"
+                                        else:
+                                            tooRecent = value
+                                        break
+                                break
+                        if found and tooRecent:
+                            seconds = 7200 - (time() - tooRecent)
+                            minutes = floor(seconds/60)
+                            seconds = floor(seconds % 60)
+                            hours = floor(minutes/60)
+                            minutes = minutes % 60
+                            hourString = " hour, " if hours == 1 else " hours, "
+                            minuteString = " minute, " if minutes == 1 else " minutes, "
+                            secondString = " second." if seconds == 1 else " seconds."
+                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". You can ping again in " + str(hours) + hourString + str(minutes) + minuteString + "and " + str(seconds) + secondString
+                    else:
+                        report = "Please only use !spar in <#605083979737071616>, " + text.author.mention + "."
+                    await text.channel.send(report)
+                    return
+                
                 if text.guild.id == 797140390993068035: # Commands only used in Jetspec's Discord server.
                     if msg == '!file':
                         jet = await text.guild.fetch_member("579316676642996266")
@@ -952,40 +994,6 @@ class DiscordClass(client):
                         emb = discord.Embed(title = "Infraction Logged.", description = "", color = 0xfff994)
                         emb.add_field(name = "_ _", value = "Mods can view the infraction details in <#705098150423167059>.", inline = True)
                         await text.channel.send(embed = emb)
-                        return
-                    
-                    if msg.startswith('!spar'):
-                        if text.channel.id == 605083979737071616: # This is the "looking-for-spar" channel in eggsoup's Discord server.
-                            cooldown = 7200
-                            report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help, or do !pins."
-                            tooRecent = None
-                            found = False
-                            if "usw" in text.content.lower(): msg = "us-w"
-                            if "use" in text.content.lower(): msg = "us-e"
-                            global regions
-                            for key, value in regions.items():
-                                if key in msg:
-                                    found = True
-                                    if time() - value > cooldown:
-                                        regions.update({key: time()})
-                                        role = get(text.guild.roles, name = key.upper())
-                                        report = role.mention + " come spar " + text.author.mention + "!"
-                                    else:
-                                        tooRecent = value
-                                    break
-                            if found and tooRecent:
-                                seconds = 7200 - (time() - tooRecent)
-                                minutes = floor(seconds/60)
-                                seconds = floor(seconds % 60)
-                                hours = floor(minutes/60)
-                                minutes = minutes % 60
-                                hourString = " hour, " if hours == 1 else " hours, "
-                                minuteString = " minute, " if minutes == 1 else " minutes, "
-                                secondString = " second." if seconds == 1 else " seconds."
-                                report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". You can ping again in " + str(hours) + hourString + str(minutes) + minuteString + "and " + str(seconds) + secondString
-                        else:
-                            report = "Please only use !spar in <#605083979737071616>, " + text.author.mention + "."
-                        await text.channel.send(report)
                         return
                 
                 if text.guild.id == 781025281590165555: # Commands for the Day Care Discord server.

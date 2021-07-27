@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release v1.0.2
+### Full Release v1.0.3
 
 ### Lev Bernstein
 
@@ -27,7 +27,7 @@ Alternatively, if you just want to add the bot to your own Discord server while 
 
 ## Setup
 
-* To use the !mute command, create a role named Muted with no send message permissions.
+* To use the !spar command, create a channel named looking-for-spar.
 
 * To use Beardless Bot's event logging, create a channel named bb-log.
 
