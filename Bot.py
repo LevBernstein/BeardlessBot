@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.0.0
+# Version: Full Release 1.0.1
 
 # Default modules:
 import asyncio
@@ -135,12 +135,13 @@ class DiscordClass(client):
     
     @client.event
     async def on_message_delete(text):
-        for channel in text.guild.channels:
-            if channel.name == "bb-log":
-                emb = discord.Embed(description = "**Deleted message sent by " + text.author.mention + " in **" + text.channel.mention + "\n" + text.content, color = 0xff0000)
-                emb.set_author(name = str(text.author), icon_url = text.author.avatar_url)
-                await channel.send(embed = emb)
-                break
+        if text.content: # Prevents embeds from causing a loop
+            for channel in text.guild.channels:
+                if channel.name == "bb-log":
+                    emb = discord.Embed(description = "**Deleted message sent by " + text.author.mention + " in **" + text.channel.mention + "\n" + text.content, color = 0xff0000)
+                    emb.set_author(name = str(text.author), icon_url = text.author.avatar_url)
+                    await channel.send(embed = emb)
+                    break
         return
     
     @client.event
@@ -159,7 +160,7 @@ class DiscordClass(client):
     
     @client.event
     async def on_message_edit(before, after):
-        if before.content != after.content: # this check prevents embeds from getting logged
+        if before.content != after.content: # This check prevents embeds from getting logged, as they have no "content" field
             for channel in before.guild.channels:
                 if channel.name == "bb-log":
                     try:
@@ -474,15 +475,14 @@ class DiscordClass(client):
                                         break
                                 if found:
                                     report = "Please finish your game of blackjack first, " +  text.author.mention + "."
-                                    break
-                                if bet <= bank: # As of 11 AM ET on January 22nd, 2021, there have been 31765 flips that got heads and 31664 flips that got tails in the eggsoup server. This is 50/50. Stop complaining.
+                                elif bet <= bank: # As of 11 AM ET on January 22nd, 2021, there have been 31765 flips that got heads and 31664 flips that got tails in the eggsoup server. This is 50/50. Stop complaining.
                                     result = randint(0,1)
                                     report = ("Heads! You win! Your winnings have been added to" if result else "Tails! You lose! Your loss has been deducted from") + " your balance, " + text.author.mention + "."
                                     totalsum = bank + (bet * (1 if result else -1))
                                     if not bet:
                                         report += " However, you bet nothing, so your balance will not change."
                                     else:
-                                        oldliner = row[0] + "," + str(bank) + "," + row[2]
+                                        oldliner = row[0] + "," + row[1] + "," + row[2]
                                         liner = row[0] + "," + str(totalsum) + "," + str(text.author)
                                         texter = open("resources/money.csv", "r")
                                         texter = ''.join([i for i in texter]).replace(oldliner, liner)
@@ -501,7 +501,6 @@ class DiscordClass(client):
                 if text.guild is None:
                     await text.channel.send("This command can only be used in a server.")
                     return
-                print("Running buy...")
                 color = msg.split(" ", 1)[1]
                 role = get(text.guild.roles, name = 'special ' + color)
                 if color not in ["blue", "pink", "orange", "red"]:
@@ -554,25 +553,43 @@ class DiscordClass(client):
                             await text.channel.send("This command requires a \"Muted\" role in order to function. Mute failed.")
                             return
                         mTime = 0.0
+                        mString = None
                         if 'h' in duration:
                             duration = duration[1:]
                             duration = duration.split('h', 1)[0]
+                            mString = " hours" if int(duration) != 1 else " hour"
                             mTime = float(duration) * 3600.0
                         elif 'm' in duration:
                             duration = duration[1:]
                             duration = duration.split('m', 1)[0]
+                            mString = " minutes" if int(duration) != 1 else " minute"
                             mTime = float(duration) * 60.0
                         elif 's' in duration:
                             duration = duration[1:]
                             duration = duration.split('s', 1)[0]
+                            mString = " seconds" if int(duration) != 1 else " second"
                             mTime = float(duration)
                         await target.add_roles(role)
-                        await text.channel.send(embed = discord.Embed(title = "Beardless Bot Mute", description = "Muted " + (target.nick if target.nick else target.name) + ((" for " + duration + ".") if mTime else "."), color = 0xfff994))
+                        emb = discord.Embed(title = "Beardless Bot Mute", description = "Muted " + target.mention + ((" for " + duration + mString + ".") if mTime else "."), color = 0xfff994)
+                        emb.set_author(name = str(text.author), icon_url = text.author.avatar_url)
+                        await text.channel.send(embed = emb)
+                        for channel in text.guild.channels:
+                            if channel.name == "bb-log":
+                                emb = discord.Embed(title = "Beardless Bot Mute", description = "Muted " + target.mention + ((" for " + duration + mString) if mTime else "") + " in " + text.channel.mention + ".", color = 0xff0000)
+                                emb.set_author(name = str(text.author), icon_url = text.author.avatar_url)
+                                await channel.send(embed = emb)
+                                break
                         if mTime: # Autounmute:
                             print("Muted for " + str(mTime))
                             await asyncio.sleep(mTime)
                             await target.remove_roles(role)
                             print("Unmuted " + target.name)
+                            for channel in text.guild.channels:
+                                if channel.name == "bb-log":
+                                    emb = discord.Embed(title = "Beardless Bot Mute", description = "Unmuted " + target.mention + ".", color = 0x00ff00)
+                                    emb.set_author(name = str(text.author), icon_url = text.author.avatar_url)
+                                    await channel.send(embed = emb)
+                                    break
                     else:
                         await text.channel.send("Invalid target!")
                 else:
@@ -588,6 +605,12 @@ class DiscordClass(client):
                     role = get(text.guild.roles, name = 'Muted')
                     await target.remove_roles(role)
                     await text.channel.send(embed = discord.Embed(title = "Beardless Bot Unmute", description = "Unmuted " + target.mention + ".", color = 0xfff994))
+                    for channel in text.guild.channels:
+                        if channel.name == "bb-log":
+                            emb = discord.Embed(title = "Beardless Bot Mute", description = "Unmuted " + target.mention + ".", color = 0x00ff00)
+                            emb.set_author(name = str(text.author), icon_url = text.author.avatar_url)
+                            await channel.send(embed = emb)
+                            break
                 else:
                     await text.channel.send("You do not have permission to use this command, " + text.author.mention + ".")
                 return
@@ -711,7 +734,9 @@ class DiscordClass(client):
                 return
             
             if msg == "!add" or msg == "!join":
-                await text.channel.send(embed = discord.Embed(title = "Want to add this bot to your server?", description = "Click https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot", color = 0xfff994))
+                emb = discord.Embed(title = "Want to add this bot to your server?", description = "Click https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot", color = 0xfff994)
+                emb.set_thumbnail(url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
+                await text.channel.send(embed = emb)
                 return
             
             if msg == "!rohan":
@@ -726,8 +751,6 @@ class DiscordClass(client):
                     await text.channel.send(embed = discord.Embed(title = "Random " + ranType, description = "Your " + ("legend" if ranType == "legend" else "weapon") + " is " + choice(legends if ranType == "legend" else weapons) + ".", color = 0xfff994))
                 else:
                     await text.channel.send(embed = discord.Embed(title = "Invalid random!", description = "Please do !random legend or !random weapon.", color = 0xfff994))
-                return
-                
                 return
             
             if msg == "!fact":
@@ -750,7 +773,7 @@ class DiscordClass(client):
             
             if msg.startswith("!dog") or msg.startswith("!moose"):
                 if msg.startswith("!dog moose") or msg.startswith("!moose"):
-                    mooseNum = randint(1, 24)
+                    mooseNum = randint(1, 27)
                     mooseFile = 'images/moose/moose' + str(mooseNum) + (".gif" if mooseNum < 4 else ".jpg")
                     await text.channel.send(file = discord.File(mooseFile))
                     return
