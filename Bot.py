@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.0.3
+# Version: Full Release 1.0.4
 
 # Default modules:
 import asyncio
@@ -143,6 +143,14 @@ class DiscordClass(client):
         global sparPings
         for server in client.guilds:
             sparPings[str(server.id)] = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
+    
+    @client.event
+    async def on_guild_join(guild):
+        sparPings[str(guild.id)] = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
+        for key, value in sparPings[str(guild.id)].items():
+            await text.guild.create_role(name = key.upper(), mentionable = False)
+            print("Just joined " + guild.name + "!")
+        
     
     @client.event
     async def on_message_delete(text):
