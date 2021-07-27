@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.0.1
+# Version: Full Release 1.0.2
 
 # Default modules:
 import asyncio
@@ -40,7 +40,7 @@ except:
 
 secretFound = False
 
-# This dictionary is for keeping track of pings in eggsoup's Discord server.
+# This dictionary is for keeping track of pings in eggsoup's Discord server. TODO: expand to all servers that want it
 regions = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
 
 # Blackjack class. New Instance is made for each game of Blackjack and is kept around until the player finishes the game.
@@ -107,6 +107,13 @@ games = [] # Stores the active instances of blackjack. An array might not be the
 # but because this bot sees use on a relatively small scale, this is not an issue.
 # TODO: switch to BST sorted based on user ID
 
+def memSearch(text): # inaccurate method for finding a user if no @ is provided
+    term = (text.content.split(" ", 1)[1]).lower()
+    for member in text.guild.members:
+        if term in member.name.lower():
+            return member
+    return None
+
 client = discord.Client(intents = discord.Intents.all())
 class DiscordClass(client):
     
@@ -132,10 +139,11 @@ class DiscordClass(client):
             print("Avatar failed to update! You might be sending requests too quickly.")
         except FileNotFoundError:
             print("Avatar file not found! Check your directory structure.")
+        print("Beardless Bot is in " + str(len(client.guilds)) + " servers.")
     
     @client.event
     async def on_message_delete(text):
-        if text.content: # Prevents embeds from causing a loop
+        if text.content and text.guild: # Prevents embeds from causing a loop
             for channel in text.guild.channels:
                 if channel.name == "bb-log":
                     emb = discord.Embed(description = "**Deleted message sent by " + text.author.mention + " in **" + text.channel.mention + "\n" + text.content, color = 0xff0000)
@@ -147,20 +155,21 @@ class DiscordClass(client):
     @client.event
     async def on_bulk_message_delete(textArr):
         text = textArr[0]
-        for channel in text.guild.channels:
-            if channel.name == "bb-log":
-                try:
-                    emb = discord.Embed(description = "Purged " + str(len(textArr) - 1) + " messages in " + text.channel.mention + ".", color = 0xff0000)
-                    emb.set_author(name = "Purge!", icon_url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
-                    await channel.send(embed = emb)
-                except:
-                    pass
-                break
+        if text.guild:
+            for channel in text.guild.channels:
+                if channel.name == "bb-log":
+                    try:
+                        emb = discord.Embed(description = "Purged " + str(len(textArr) - 1) + " messages in " + text.channel.mention + ".", color = 0xff0000)
+                        emb.set_author(name = "Purge!", icon_url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
+                        await channel.send(embed = emb)
+                    except:
+                        pass
+                    break
         return
     
     @client.event
     async def on_message_edit(before, after):
-        if before.content != after.content: # This check prevents embeds from getting logged, as they have no "content" field
+        if before.guild and before.content != after.content: # This check prevents embeds from getting logged, as they have no "content" field
             for channel in before.guild.channels:
                 if channel.name == "bb-log":
                     try:
@@ -176,17 +185,18 @@ class DiscordClass(client):
     
     @client.event
     async def on_reaction_clear(text, reactions):
-        for channel in text.guild.channels:
-            if channel.name == "bb-log":
-                try:
-                    emb = discord.Embed(description = "Reactions cleared from message sent by" + text.author.mention + " in " + text.channel.mention, color = 0xff0000)
-                    emb.set_author(name = str(text.author), icon_url = text.author.avatar_url)
-                    emb.add_field(name = "Message content:", value = text.content)
-                    emb.add_field(name = "Reactions:", value = ", ".join(str(reaction) for reaction in reactions))
-                    await channel.send(embed = emb)
-                except:
-                    pass
-                break
+        if text.guild:
+            for channel in text.guild.channels:
+                if channel.name == "bb-log":
+                    try:
+                        emb = discord.Embed(description = "Reactions cleared from message sent by" + text.author.mention + " in " + text.channel.mention, color = 0xff0000)
+                        emb.set_author(name = str(text.author), icon_url = text.author.avatar_url)
+                        emb.add_field(name = "Message content:", value = text.content)
+                        emb.add_field(name = "Reactions:", value = ", ".join(str(reaction) for reaction in reactions))
+                        await channel.send(embed = emb)
+                    except:
+                        pass
+                    break
         return
     
     @client.event
@@ -213,8 +223,8 @@ class DiscordClass(client):
     async def on_member_join(member):
         for channel in member.guild.channels:
             if channel.name == "bb-log":
-                emb = discord.Embed(description = "Member " + member.mention + " joined\nAccount registered on " + str(member.created_at)[:-7], color = 0x00ff00)
-                emb.set_author(name = "Member joined", icon_url = member.avatar_url)
+                emb = discord.Embed(description = "Member " + member.mention + " joined\nAccount registered on " + str(member.created_at)[:-7] + "\nID: " + str(member.id), color = 0x00ff00)
+                emb.set_author(name = str(member) + " joined the server", icon_url = member.avatar_url)
                 await channel.send(embed = emb)
                 break
         return
@@ -223,8 +233,8 @@ class DiscordClass(client):
     async def on_member_remove(member):
         for channel in member.guild.channels:
             if channel.name == "bb-log":
-                emb = discord.Embed(description = "Member " + member.mention + " left", color = 0xff0000)
-                emb.set_author(name = "Member left", icon_url = member.avatar_url)
+                emb = discord.Embed(description = "Member " + member.mention + " left\nID: " + str(member.id), color = 0xff0000)
+                emb.set_author(name = str(member) +" left the server", icon_url = member.avatar_url)
                 if len(member.roles) > 1:
                     emb.add_field(name = "Roles:", value = ", ".join(role.mention for role in member.roles[1:]))
                 await channel.send(embed = emb)
@@ -434,7 +444,7 @@ class DiscordClass(client):
                     
             if msg == "!hint" or msg == "!hints":
                 emb = discord.Embed(title = "Hints for Beardless Bot's Secret Word", description = "", color = 0xfff994)
-                hints = ["The secret word is in English, no special characters, one word, no spaces.", "The secret word has never been said in the eggsoup server, though gerard said it twice in the past; I deleted those messages.", "The secret word is vital for a good coup.", "Political power grows out of the barrel of a revolver. A headshot helps too."]
+                hints = ["The secret word is in English, no special characters, one word, no spaces.", "The secret word has never been said in the eggsoup server, though gerard said it twice in the past; I deleted those messages.", "The secret word is vital for a good coup.", "Political power grows out of the barrel of a revolver. A headshot helps too.", "It might help to learn the language of the merfolk."]
                 for i in range(len(hints)):
                     emb.add_field(name = str(i+1), value = hints[i], inline = True)
                 await text.channel.send(embed = emb)
@@ -501,42 +511,48 @@ class DiscordClass(client):
                 if text.guild is None:
                     await text.channel.send("This command can only be used in a server.")
                     return
-                color = msg.split(" ", 1)[1]
-                role = get(text.guild.roles, name = 'special ' + color)
-                if color not in ["blue", "pink", "orange", "red"]:
+                if msg == "!buy":
                     report = "Invalid color. Choose blue, red, orange, or pink, " + text.author.mention + "."
-                elif not role:
-                    report = "Special color roles do not exist in this server, " + text.author.mention + "."
-                elif role in text.author.roles:
-                    report = "You already have this special color, " + text.author.mention + "."
                 else:
-                    report = "Not enough Beardess Bucks. You need 50000 to buy a special color, " + text.author.mention + "."
-                    with open('resources/money.csv', 'r') as csvfile:
-                        reader = csv.reader(csvfile, delimiter = ',')
-                        for row in reader:
-                            if str(text.author.id) == row[0]:
-                                if  50000 <= int(row[1]):
-                                    oldliner = row[0] + "," + row[1] + "," + row[2]
-                                    liner = row[0] + "," + str(int(row[1]) - 50000) + "," + str(text.author)
-                                    texter = open("resources/money.csv", "r")
-                                    texter = ''.join([i for i in texter]).replace(oldliner, liner)
-                                    with open("resources/money.csv", "w") as money:
-                                        money.writelines(texter)
-                                    await text.author.add_roles(role)
-                                    report = "Color \"special " + color + "\" purchased successfully, " + text.author.mention + "!"
-                                break
+                    color = msg.split(" ", 1)[1]
+                    role = get(text.guild.roles, name = 'special ' + color)
+                    if color not in ["blue", "pink", "orange", "red"]:
+                        report = "Invalid color. Choose blue, red, orange, or pink, " + text.author.mention + "."
+                    elif not role:
+                        report = "Special color roles do not exist in this server, " + text.author.mention + "."
+                    elif role in text.author.roles:
+                        report = "You already have this special color, " + text.author.mention + "."
+                    else:
+                        report = "Not enough Beardess Bucks. You need 50000 to buy a special color, " + text.author.mention + "."
+                        with open('resources/money.csv', 'r') as csvfile:
+                            reader = csv.reader(csvfile, delimiter = ',')
+                            for row in reader:
+                                if str(text.author.id) == row[0]:
+                                    if  50000 <= int(row[1]):
+                                        oldliner = row[0] + "," + row[1] + "," + row[2]
+                                        liner = row[0] + "," + str(int(row[1]) - 50000) + "," + str(text.author)
+                                        texter = open("resources/money.csv", "r")
+                                        texter = ''.join([i for i in texter]).replace(oldliner, liner)
+                                        with open("resources/money.csv", "w") as money:
+                                            money.writelines(texter)
+                                        await text.author.add_roles(role)
+                                        report = "Color \"special " + color + "\" purchased successfully, " + text.author.mention + "!"
+                                    break
                 await text.channel.send(embed = discord.Embed(title = "Beardless Bot Special Colors", description = report, color = 0xfff994))
                 return
             
             if msg.startswith('!av'):
-                target = text.author if not text.mentions else text.mentions[0]
+                target = text.mentions[0] if text.mentions else (text.author if not " " in msg else memSearch(text))
+                if not target:
+                    await text.channel.send("Invalid target!")
+                    return
                 try:
                     await text.channel.send(target.avatar_url)
                 except discord.NotFound:
                     await text.channel.send(embed = discord.Embed(title = "Error!", description = "Discord Member " + target.mention + " not found!", color = 0xfff994))
                 return
                 
-            if msg.startswith('!mute') or msg.startswith('-mute'):
+            if msg.startswith('!mute'):
                 if text.guild is None:
                     await text.channel.send("This command can only be used in a server.")
                     return
@@ -619,7 +635,7 @@ class DiscordClass(client):
                 await text.channel.send('Here\'s my playlist (discord will only show the first hundred songs): https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg')
                 return
             
-            if msg == '!leaderboard' or msg == '!lb':
+            if msg == '!leaderboard' or msg == "!leaderboards" or msg == '!lb':
                 diction = {}
                 emb = discord.Embed(title = "BeardlessBucks Leaderboard", description = "", color = 0xfff994)
                 with open('resources/money.csv') as csvfile:
@@ -639,7 +655,7 @@ class DiscordClass(client):
                 return
             
             if msg == '!reset':
-                report = 'You have been reset to 200 BeardlessBucks, ' + (text.author.nick if text.author.nick else text.author.name) + "."
+                report = 'You have been reset to 200 BeardlessBucks, ' + text.author.mention + "."
                 if ',' in text.author.name:
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
@@ -656,7 +672,7 @@ class DiscordClass(client):
                             with open("resources/money.csv", "w") as money:
                                 money.writelines(texter)
                     if not exist:
-                        report ="Successfully registered. You have 300 BeardlessBucks, " + (text.author.nick if text.author.nick else text.author.name) + "."
+                        report ="Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                         with open('resources/money.csv', 'a') as money:
                             writer = csv.writer(csvfile)
                             newline = "\r\n" + str(text.author.id) + ",300," + str(text.author)
@@ -674,15 +690,15 @@ class DiscordClass(client):
                     authorstring = str(text.author.id)
                 elif msg.startswith("!balance ") or msg.startswith("!bal "):
                     selfMode = False
-                    if text.mentions:
-                        target = text.mentions[0]
+                    target = text.mentions[0] if text.mentions else (text.author if not " " in msg else memSearch(text))
+                    if target:
                         try:
                             authorstring = str(target.id)
                         except discord.NotFound as err:
                             report = "Discord Member " + target.mention + " not found!"
                             print(err)
                     else:
-                        report = "Invalid user! Please @ a user when you do !balance, or do !balance without a target to see your own balance, " + text.author.mention + "."
+                        report = "Invalid user! Please @ a user when you do !balance (or enter their username), or do !balance without a target to see your own balance, " + text.author.mention + "."
                 else:
                     return
                 if not report:
@@ -694,7 +710,7 @@ class DiscordClass(client):
                                 if selfMode:
                                     report = "Your balance is " + row[1] + " BeardlessBucks, " + text.author.mention + "."
                                 else:
-                                    report = (target.nick if target.nick else target.name) + "'s balance is " + row[1] + " BeardlessBucks."
+                                    report = target.mention + "'s balance is " + row[1] + " BeardlessBucks."
                                 break
                 await text.channel.send(embed = discord.Embed(title = "Beardless Bucks Balance", description = report, color = 0xfff994))
                 return
@@ -792,7 +808,7 @@ class DiscordClass(client):
                     await text.channel.send("Something's gone wrong with the " + animalName + " API! Please ping my creator and he'll see what's going on.")
                 return
            
-            if msg.startswith("!clear") or msg.startswith("!purge"):
+            if (msg.startswith("!clear") or msg.startswith("!purge")) and text.guild:
                 if not text.author.guild_permissions.manage_messages:
                     await text.channel.send("You do not have permission to use this command, " + text.author.mention + ".")
                     return
@@ -838,7 +854,7 @@ class DiscordClass(client):
             if msg.startswith('!d') and ((msg.split('!d',1)[1])[0]).isnumeric() and len(msg) < 12:
                 # The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
                 report = roll(msg)
-                if report is not None:
+                if report:
                     await text.channel.send(embed = discord.Embed(title = "Rolling Dice...", description = "You got " + str(report) + ", " + text.author.mention, color = 0xfff994))
                 else:
                     await text.channel.send(embed = discord.Embed(title = "Beardless Bot Dice", description = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3", color = 0xfff994))
@@ -847,7 +863,7 @@ class DiscordClass(client):
             if msg == "!commands" or msg == "!help":
                 emb = discord.Embed(title = "Beardless Bot Commands", description = "!commands to pull up this list", color=0xfff994)
                 emb.add_field(name = "!register", value = "Registers you with the currency system.", inline = True)
-                emb.add_field(name = "!balance", value = "Checks your BeardlessBucks balance. You can write !balance <@someone> to see that person's balance.", inline = True)
+                emb.add_field(name = "!balance", value = "Checks your BeardlessBucks balance. You can write !balance <@someone>/<username> to see that person's balance.", inline = True)
                 emb.add_field(name = "!bucks", value = "Shows you an explanation for how BeardlessBucks work.", inline = True)
                 emb.add_field(name = "!reset", value = "Resets you to 200 BeardlessBucks.", inline = True)
                 emb.add_field(name = "!fact", value = "Gives you a random fun fact.", inline = True)
@@ -859,21 +875,24 @@ class DiscordClass(client):
                 emb.add_field(name = "!d[number][+/-][modifier]", value = "Rolls a [number]-sided die and adds or subtracts the modifier. Example: !d8+3, or !d100-17.", inline = True)
                 emb.add_field(name = "!random [legend/weapon]", value = "Randomly selects a Brawlhalla legend or weapon for you.", inline = True)
                 emb.add_field(name = "!add", value = "Gives you a link to add this bot to your server.", inline = True)
-                emb.add_field(name = "!av [user]", value = "Display a user's avatar. Write just !av if you want to see your own avatar.", inline = True)
-                emb.add_field(name = "!info [user]", value = "Displays general information about a user. Write just !info to see your own info.", inline = True)
+                emb.add_field(name = "!av [user/username]", value = "Display a user's avatar. Write just !av if you want to see your own avatar.", inline = True)
+                emb.add_field(name = "!info [user/username]", value = "Displays general information about a user. Write just !info to see your own info.", inline = True)
                 emb.add_field(name = "![animal name]", value = "Gets a random cat/dog/duck/fish/fox/rabbit/panda/lizard/koala/bird picture. Example: !duck", inline = True)
                 emb.add_field(name = "!define [word]", value = "Shows you the definition(s) of a word.", inline = True)
                 emb.add_field(name = "!ping", value = "Checks Beardless Bot's latency.", inline = True)
-                if text.author.guild_permissions.manage_messages:
+                if text.guild and text.author.guild_permissions.manage_messages:
                     emb.add_field(name = "!purge [number]", value = "Mass-deletes messages", inline = True)
                     emb.add_field(name = "!mute [target] [duration]", value = "Mutes someone for an amount of time. Excepts either seconds, minutes orhours. Requires a Muted role that has no send message perms.", inline = True)
                     emb.add_field(name = "!unmute [target]", value = "Unmutes the target.", inline = True)
                 await text.channel.send(embed = emb)
                 return
             
-            if text.guild is not None: # Server-specific commands; this check prevents an error caused by commands being used in DMs
+            if text.guild: # Server-specific commands; this check prevents an error caused by commands being used in DMs
                 if msg.startswith("!info"):
-                    target = text.mentions[0] if text.mentions else text.author
+                    target = text.mentions[0] if text.mentions else (text.author if not " " in msg else memSearch(text))
+                    if not target:
+                        await text.channel.send("Invalid target!")
+                        return
                     emb = discord.Embed(description = str(target.activity) if target.activity else " ", color = target.color) # Discord occasionally reports people with an activity as not having them;
                     # if so, go invisible and back online
                     emb.set_author(name = str(target), icon_url = target.avatar_url)
@@ -881,7 +900,7 @@ class DiscordClass(client):
                     emb.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7], inline = True)
                     emb.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7], inline = True)
                     if len(target.roles) > 1: # Every user has the "@everyone" role, so check if they have more roles than that
-                        emb.add_field(name = "Roles", value = ", ".join(role.mention for role in reversed(target.roles) if not role.name == "@everyone"), inline = False)
+                        emb.add_field(name = "Roles", value = ", ".join(role.mention for role in reversed(target.roles[1:])), inline = False)
                         # I reverse target.roles in order to make them display in order of power; this way, it displays roles from your most powerful role to your least
                     await text.channel.send(embed = emb)
                     return
@@ -954,7 +973,7 @@ class DiscordClass(client):
                                     else:
                                         tooRecent = value
                                     break
-                            if found and (tooRecent is not None):
+                            if found and tooRecent:
                                 seconds = 7200 - (time() - tooRecent)
                                 minutes = floor(seconds/60)
                                 seconds = floor(seconds % 60)
