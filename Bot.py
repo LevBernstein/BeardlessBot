@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.0.5
+# Version: Full Release 1.0.6
 
 # Default modules:
 import asyncio
@@ -149,13 +149,13 @@ class DiscordClass(client):
         global sparPings
         sparPings[str(guild.id)] = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
         for key, value in sparPings[str(guild.id)].items():
-            await text.guild.create_role(name = key.upper(), mentionable = False)
+            await guild.create_role(name = key.upper(), mentionable = False)
         print("Just joined " + guild.name + "!")
         return
         
     @client.event
     async def on_message_delete(text):
-        if text.content and text.guild: # Prevents embeds from causing a loop
+        if (text.content or text.author.id != 654133911558946837 or text.channel.name != "bb-log") and text.guild: # Prevents embeds from causing a loop
             for channel in text.guild.channels:
                 if channel.name == "bb-log":
                     emb = discord.Embed(description = "**Deleted message sent by " + text.author.mention + " in **" + text.channel.mention + "\n" + text.content, color = 0xff0000)
