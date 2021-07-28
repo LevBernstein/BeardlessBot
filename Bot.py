@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.0.4
+# Version: Full Release 1.0.5
 
 # Default modules:
 import asyncio
@@ -146,12 +146,13 @@ class DiscordClass(client):
     
     @client.event
     async def on_guild_join(guild):
+        global sparPings
         sparPings[str(guild.id)] = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
         for key, value in sparPings[str(guild.id)].items():
             await text.guild.create_role(name = key.upper(), mentionable = False)
-            print("Just joined " + guild.name + "!")
+        print("Just joined " + guild.name + "!")
+        return
         
-    
     @client.event
     async def on_message_delete(text):
         if text.content and text.guild: # Prevents embeds from causing a loop
@@ -454,8 +455,9 @@ class DiscordClass(client):
                     print("Secret word found!")
                     
             if msg == "!hint" or msg == "!hints":
+                with open("resources/hints.txt", "r") as f:
+                    hints = f.read().splitlines()
                 emb = discord.Embed(title = "Hints for Beardless Bot's Secret Word", description = "", color = 0xfff994)
-                hints = ["The secret word is in English, no special characters, one word, no spaces.", "The secret word has never been said in the eggsoup server, though gerard said it twice in the past; I deleted those messages.", "The secret word is vital for a good coup.", "Political power grows out of the barrel of a revolver. A headshot helps too.", "It might help to learn the language of the merfolk."]
                 for i in range(len(hints)):
                     emb.add_field(name = str(i+1), value = hints[i], inline = True)
                 await text.channel.send(embed = emb)
@@ -916,6 +918,7 @@ class DiscordClass(client):
                     return
                 
                 if msg.startswith('!spar'):
+                    report = "Please only use !spar in looking-for-spar, " + text.author.mention + "."
                     if text.channel.name == "looking-for-spar":
                         cooldown = 7200
                         report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help, or do !pins."
@@ -951,7 +954,10 @@ class DiscordClass(client):
                             secondString = " second." if seconds == 1 else " seconds."
                             report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". You can ping again in " + str(hours) + hourString + str(minutes) + minuteString + "and " + str(seconds) + secondString
                     else:
-                        report = "Please only use !spar in <#605083979737071616>, " + text.author.mention + "."
+                        for channel in text.guild.channels:
+                            if channel.name == "looking-for-spar":
+                                report = "Please only use !spar in " + channel.mention + ", " + text.author.mention + "."
+                                break
                     await text.channel.send(report)
                     return
                 
