@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release v1.0.7
+### Full Release v1.0.8
 
 ### Lev Bernstein
 

@@ -1,44 +1,42 @@
 #The following Markov chain code was provided by CSTUY SHIP.
+import re
 from random import choice, randint
 
-KEY_SIZE = 2
-FILE = 'resources/eggtweets_clean.txt'
-
-def generate_chains(fname, key_size):
-    with open(fname, 'r') as f:
-        text = f.read()
+def generate_chains(fileName, keySize):
+    with open(fileName, 'r') as f:
+        words = f.read().split()
     chains = {}
-    words = text.split()
-    for i in range(len(words) - key_size):
-        key = ' '.join(words[i : i + key_size]) 
-        value = words[i + key_size]
+    for i in range(len(words) - keySize):
+        key = ' '.join(words[i : i + keySize]) 
+        value = words[i + keySize]
         if key in chains:
             chains[key].append(value)
         else:
-            new_list = []
-            new_list.append(value)
-            chains[key] = new_list
+            chains[key] = [value]
     return chains
 
-def generate_text(chains, num_words, key_size):
+def generate_text(chains, num_words, keySize):
     key = choice(list(chains.keys()))
     s = key
     for i in range(num_words):
         word = choice(chains[key])
         s += ' ' + word
-        key = (' '.join(key.split()[1 : key_size + 1])) + (' ' + word) if key_size > 1 else word
-    sourceTextCapital = s
-    firstLetter = sourceTextCapital[0]
-    sourceTextCapital = sourceTextCapital[1:]
-    firstLetter = firstLetter.title()
-    s = firstLetter + sourceTextCapital
-    return s
+        key = ' '.join(key.split()[1 : keySize + 1]) + ' ' + word if keySize > 1 else word
+    return s[0].title() + s[1:]
 
-def final():
-    complexity = randint(1, 2)
-    text = generate_text(generate_chains(FILE, complexity), randint(10, 35), complexity)
-    print(text)
-    return text
+def tweet():
+    keySize = randint(1, 2)
+    return generate_text(generate_chains('resources/eggtweets_clean.txt', keySize), randint(10, 35), keySize)
+
+def formattedTweet(tweet):
+    if any(endChar in tweet for endChar in [".", "!", "?"]):
+        reverseTweet = tweet[::-1]
+        for i in range(len(reverseTweet)):
+            if reverseTweet[i] in [".", "!", "?"]:
+                return (reverseTweet[:i:-1])
+    return tweet
 
 if __name__ == "__main__":
-    final()
+    result = tweet()
+    print(result)
+    print(formattedTweet(result))

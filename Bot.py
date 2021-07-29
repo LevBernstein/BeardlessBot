@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.0.7
+# Version: Full Release 1.0.8
 
 # Default modules:
 import asyncio
@@ -20,9 +20,9 @@ from discord.ext import commands
 from discord.utils import get
 
 # Other:
-import eggTweetGenerator
 from animals import *
 from dice import *
+from eggTweetGenerator import *
 from facts import *
 
 try:
@@ -484,7 +484,7 @@ class DiscordClass(client):
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
                 allBet = False
-                strbet = msg.split('!flip ',1)[1] if len(msg) > 5 else 10
+                strbet = msg.split('!flip ',1)[1] if len(msg) > 6 else 10
                 if strbet == "all":
                     allBet = True
                     bet = 0
@@ -945,10 +945,11 @@ class DiscordClass(client):
                         found = False
                         global sparPings
                         global regions
+                        splitMsg = msg.split(" ")
                         for server, pings in sparPings.items():
                             if server == str(text.guild.id):
                                 for key, value in sparPings[server].items():
-                                    if key in msg:
+                                    if key in splitMsg:
                                         found = True
                                         if time() - value > cooldown:
                                             sparPings[server][key] = time()
@@ -960,16 +961,21 @@ class DiscordClass(client):
                                             tooRecent = value
                                         break
                                 if not found:
-                                    if "usw" in msg:
-                                        role = get(text.guild.roles, name = "US-W")
-                                        if not role:
-                                            role = await text.guild.create_role(name = "US-W", mentionable = False)
-                                        report = role.mention + " come spar " + text.author.mention + "!"
-                                    elif "use" in msg:
-                                        role = get(text.guild.roles, name = "US-E")
-                                        if not role:
-                                            role = await text.guild.create_role(name = "US-E", mentionable = False)
-                                        report = role.mention + " come spar " + text.author.mention + "!"
+                                    spelledRole = None
+                                    if "usw" in splitMsg:
+                                        spelledRole = "us-w"
+                                    elif "use" in splitMsg:
+                                        spelledRole = "us-e"
+                                    if spelledRole:
+                                        found = True
+                                        if time() - sparPings[server][spelledRole] > cooldown:
+                                            sparPings[server][spelledRole] = time()
+                                            role = get(text.guild.roles, name = spelledRole.upper())
+                                            if not role:
+                                                role = await text.guild.create_role(name = spelledRole.upper(), mentionable = False)
+                                            report = role.mention + " come spar " + text.author.mention + "!"
+                                        else:
+                                            tooRecent = sparPings[server][spelledRole]
                                 break
                         if found and tooRecent:
                             seconds = 7200 - (time() - tooRecent)
@@ -999,7 +1005,7 @@ class DiscordClass(client):
                 if text.guild.id == 442403231864324119: # Commands only used in eggsoup's Discord server.
                     if msg == '!tweet' or msg == '!eggtweet':
                         emb = discord.Embed(title = "eggsoup(@eggsouptv)", description = "", color = 0x1da1f2)
-                        emb.add_field(name = "_ _", value = eggTweetGenerator.final())
+                        emb.add_field(name = "_ _", value = formattedTweet(tweet()))
                         await text.channel.send(embed = emb)
                         return
                     
