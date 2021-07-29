@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.0.6
+# Version: Full Release 1.0.7
 
 # Default modules:
 import asyncio
@@ -148,9 +148,24 @@ class DiscordClass(client):
     async def on_guild_join(guild):
         global sparPings
         sparPings[str(guild.id)] = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
-        for key, value in sparPings[str(guild.id)].items():
-            await guild.create_role(name = key.upper(), mentionable = False)
         print("Just joined " + guild.name + "!")
+        try:
+            for key, value in sparPings[str(guild.id)].items():
+                role = get(guild.roles, name = key.upper())
+                if not role:
+                    await guild.create_role(name = key.upper(), mentionable = False)
+        except:
+            print("Not given admin perms in " + guild.name + "...")
+            for channel in guild.channels:
+                try:
+                    emb = discord.Embed(title = "I need admin perms!", description = "Beardless Bot requires permissions in order to do just about anything. Without them, I can't do much, so I'm leaving. If you add me back to this server, please make sure to leave checked the box that grants me the Administrator permission.", color = 0xff0000)
+                    emb.set_author(name = "Beardless Bot", icon_url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
+                    await channel.send(embed = emb)
+                    break
+                except:
+                    pass
+            await guild.leave()
+            print("Left " + guild.name + ". Beardless Bot is now in " + str(len(client.guilds)) + " servers.")
         return
         
     @client.event
@@ -453,7 +468,8 @@ class DiscordClass(client):
                     secretFound = True
                     await text.channel.send(embed = discord.Embed(title = "Well done! You found the secret word," + secretWord + "!", description = "Ping Captain No-Beard for your prize!",  color = 0xfff994))
                     print("Secret word found!")
-                    
+                return
+                
             if msg == "!hint" or msg == "!hints":
                 with open("resources/hints.txt", "r") as f:
                     hints = f.read().splitlines()
@@ -772,13 +788,16 @@ class DiscordClass(client):
                 return
             
             if msg.startswith("!random"):
-                ranType = msg.split(' ', 1)[1]
-                if ranType == "legend" or ranType == "weapon":
-                    legends = ["Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako", "Magyar", "Reno"]
-                    weapons = ["Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"]
-                    await text.channel.send(embed = discord.Embed(title = "Random " + ranType, description = "Your " + ("legend" if ranType == "legend" else "weapon") + " is " + choice(legends if ranType == "legend" else weapons) + ".", color = 0xfff994))
-                else:
-                    await text.channel.send(embed = discord.Embed(title = "Invalid random!", description = "Please do !random legend or !random weapon.", color = 0xfff994))
+                try:
+                    ranType = msg.split(' ', 1)[1]
+                    if ranType == "legend" or ranType == "weapon":
+                        legends = ["Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako", "Magyar", "Reno"]
+                        weapons = ["Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"]
+                        await text.channel.send(embed = discord.Embed(title = "Random " + ranType, description = "Your " + ("legend" if ranType == "legend" else "weapon") + " is " + choice(legends if ranType == "legend" else weapons) + ".", color = 0xfff994))
+                    else:
+                        await text.channel.send(embed = discord.Embed(title = "Invalid random!", description = "Please do !random legend or !random weapon.", color = 0xfff994))
+                except:
+                    await text.channel.send(embed = discord.Embed(title = "Brawlhalla Randomizer", description = "Please do !random legend or !random weapon to get a random legend or weapon.", color = 0xfff994))
                 return
             
             if msg == "!fact":
@@ -924,8 +943,6 @@ class DiscordClass(client):
                         report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. Check the pinned message if you need help, or do !pins."
                         tooRecent = None
                         found = False
-                        if "usw" in text.content.lower(): msg = "us-w"
-                        if "use" in text.content.lower(): msg = "us-e"
                         global sparPings
                         global regions
                         for server, pings in sparPings.items():
@@ -942,6 +959,17 @@ class DiscordClass(client):
                                         else:
                                             tooRecent = value
                                         break
+                                if not found:
+                                    if "usw" in msg:
+                                        role = get(text.guild.roles, name = "US-W")
+                                        if not role:
+                                            role = await text.guild.create_role(name = "US-W", mentionable = False)
+                                        report = role.mention + " come spar " + text.author.mention + "!"
+                                    elif "use" in msg:
+                                        role = get(text.guild.roles, name = "US-E")
+                                        if not role:
+                                            role = await text.guild.create_role(name = "US-E", mentionable = False)
+                                        report = role.mention + " come spar " + text.author.mention + "!"
                                 break
                         if found and tooRecent:
                             seconds = 7200 - (time() - tooRecent)
