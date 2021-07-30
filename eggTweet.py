@@ -29,11 +29,9 @@ def tweet():
     return generate_text(generate_chains('resources/eggtweets_clean.txt', keySize), randint(10, 35), keySize)
 
 def formattedTweet(tweet):
-    if any(endChar in tweet for endChar in [".", "!", "?"]):
-        reverseTweet = tweet[::-1]
-        for i in range(len(reverseTweet)):
-            if reverseTweet[i] in [".", "!", "?"]:
-                return (reverseTweet[:i:-1])
+    for i in range(len(tweet)):
+        if tweet[len(tweet) - i - 1] in [".", "!", "?"]:
+            return (tweet[:(len(tweet) - i - 1)])
     return tweet
 
 if __name__ == "__main__":

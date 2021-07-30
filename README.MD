@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release v1.0.8
+### Full Release v1.1.0
 
 ### Lev Bernstein
 
@@ -17,13 +17,15 @@ Originally created for use in eggsoup's discord server.
 
 3. Place the token file in the resources folder.
 
-Alternatively, if you just want to add the bot to your own Discord server while I host it, you can simply [click this link](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot).
+Alternatively, if you just want to add the bot to your own Discord server while I host it, you can simply [click this link](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot), then skip down to [Setup](#setup).
 
 ### Dependencies
 
 * Python 3. To install, visit https://python.org/downloads/ and follow the instructions for your OS.
 
-* Discord.py. To install, run "python3 -m pip install -U discord.py"
+* Discord.py. To install, run "pip install -U discord.py"
+
+* Pytest. To install, run "pip install -U pytest"
 
 ## Setup
 

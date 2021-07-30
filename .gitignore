@@ -2,3 +2,4 @@ token.txt
 secretWord.txt
 *.swp
 __pycache__
+testResults.md

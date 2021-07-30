@@ -11,7 +11,7 @@ def animal(animalType):
             r = requests.get("https://aws.random.cat/meow")
             if r.status_code == 200:
                 return r.json()['file']
-            print(str(r.status_code) + "cat")
+            print(str(r.status_code) + " cat")
     
     if animalType.startswith("dog"):
         if len(animalType) == 4 or not (" " in animalType):
@@ -52,6 +52,6 @@ def animal(animalType):
         r = requests.get("https://nekos.life/api/v2/img/lizard" if animalType == "lizard" else "https://random-d.uk/api/quack")
         if r.status_code == 200:
             return r.json()['url']
-    print(str(r.status_code) + animalType)
+    print(str(r.status_code) + " " + animalType)
     
     raise Exception("Error with the " + animalType + "API!")

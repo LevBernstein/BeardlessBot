@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.0.8
+# Version: Full Release 1.1.0
 
 # Default modules:
 import asyncio
@@ -21,9 +21,11 @@ from discord.utils import get
 
 # Other:
 from animals import *
+from blackjack import *
+from define import *
 from dice import *
-from eggTweetGenerator import *
-from facts import *
+from eggTweet import *
+from fact import *
 
 try:
     with open("resources/token.txt", "r") as f: # in token.txt, paste in your own Discord API token
@@ -43,71 +45,10 @@ secretFound = False
 # This dictionary is for keeping track of pings in the various looking-for-spar channels.
 sparPings = {}
 
-# Blackjack class. New Instance is made for each game of Blackjack and is kept around until the player finishes the game.
-# An active Instance for a given user prevents the creation of a new Instance. Instances are server-agnostic.
-class Instance:
-    def __init__(self, user, bet):
-        self.user = user
-        self.bet = bet
-        self.cards = []
-        self.dealerUp = randint(2,11)
-        self.dealerSum = self.dealerUp
-        while self.dealerSum < 17:
-            self.dealerSum += randint(1,10)
-        self.vals = [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11]
-        self.message = self.deal()
-        self.message = self.deal() # Deals two cards
+games = [] # Stores the active instances of blackjack. A list works for storing these, but once the Bot reaches verified status
+# (more than 75 servers), will have to switch to a more efficient data structure
 
-    def perfect(self):
-        return sum(self.cards) == 21
-    
-    def deal(self):
-        card = choice(self.vals)
-        self.cards.append(card)
-        if card == 11:
-            self.message = "You were dealt an Ace, bringing your total to " + str(sum(self.cards)) + ". " 
-        elif card == 8:
-            self.message = "You were dealt an " + str(card) + ", bringing your total to " + str(sum(self.cards)) + ". "
-        elif card == 10:
-            self.message = "You were dealt a " + choice(["10", "Jack", "Queen", "King"]) + ", bringing your total to " + str(sum(self.cards)) + ". "
-        else:
-            self.message = "You were dealt a " + str(card) + ", bringing your total to " + str(sum(self.cards)) + ". "
-        if 11 in self.cards and self.checkBust():
-            for i in range(len(self.cards)):
-                if self.cards[i] == 11:
-                    self.cards[i] = 1
-                    break
-            self.message += "Because you would have busted, your Ace has been changed from an 11 to 1 . Your new total is " + str(sum(self.cards)) + ". "
-        self.message += self.toString() + " The dealer is showing " + str(self.dealerUp) + ", with one card face down."
-        if self.checkBust():
-            self.message += " You busted. Game over, " + self.user.mention + "."
-        elif self.perfect():
-            self.message += " You hit 21! You win, " + self.user.mention + "!"
-        else:
-            self.message += " Type !hit to deal another card to yourself, or !stay to stop at your current total, " + self.user.mention+ "."
-        return self.message
-
-    def toString(self):
-        return "Your cards are " + str(self.cards)[1:-1] + "."
-
-    def checkBust(self):
-        return sum(self.cards) > 21
-
-    def getUser(self):
-        return self.user
-    
-    def stay(self):
-        if sum(self.cards) > self.dealerSum:
-            return 3
-        if sum(self.cards) == self.dealerSum:
-            return 0
-        return 4 if self.dealerSum > 21 else -3
-        
-games = [] # Stores the active instances of blackjack. An array might not be the most efficient place to store these, 
-# but because this bot sees use on a relatively small scale, this is not an issue.
-# TODO: switch to BST sorted based on user ID
-
-def memSearch(text): # inaccurate method for finding a user if no @ is provided
+def memSearch(text): # method for finding a user based on username if no @ is provided
     term = (text.content.split(" ", 1)[1]).lower()
     for member in text.guild.members:
         if term in member.name.lower():
@@ -117,9 +58,6 @@ def memSearch(text): # inaccurate method for finding a user if no @ is provided
 client = discord.Client(intents = discord.Intents.all())
 class DiscordClass(client):
     
-    #intents = discord.Intents()
-    #intents.members = True
-   
     @client.event
     async def on_ready():
         print("Beardless Bot online!")
@@ -263,7 +201,7 @@ class DiscordClass(client):
                 emb = discord.Embed(description = "Member " + member.mention + " left\nID: " + str(member.id), color = 0xff0000)
                 emb.set_author(name = str(member) +" left the server", icon_url = member.avatar_url)
                 if len(member.roles) > 1:
-                    emb.add_field(name = "Roles:", value = ", ".join(role.mention for role in reversed(member.roles[1:])))
+                    emb.add_field(name = "Roles:", value = ", ".join(role.mention for role in member.roles[:1:-1]))
                 await channel.send(embed = emb)
                 break
         return
@@ -471,12 +409,15 @@ class DiscordClass(client):
                 return
                 
             if msg == "!hint" or msg == "!hints":
-                with open("resources/hints.txt", "r") as f:
-                    hints = f.read().splitlines()
-                emb = discord.Embed(title = "Hints for Beardless Bot's Secret Word", description = "", color = 0xfff994)
-                for i in range(len(hints)):
-                    emb.add_field(name = str(i+1), value = hints[i], inline = True)
-                await text.channel.send(embed = emb)
+                if not secretWord.isnumeric():
+                    with open("resources/hints.txt", "r") as f:
+                        hints = f.read().splitlines()
+                    emb = discord.Embed(title = "Hints for Beardless Bot's Secret Word", description = "", color = 0xfff994)
+                    for i in range(len(hints)):
+                        emb.add_field(name = str(i+1), value = hints[i], inline = True)
+                    await text.channel.send(embed = emb)
+                else:
+                    await text.channel.send("Secret word has not been defined!")
                 return
             
             if msg.startswith('!flip'):
@@ -851,27 +792,7 @@ class DiscordClass(client):
                 return
 
             if msg.startswith("!define "):
-                word = msg.split(' ', 1)[1]
-                if " " in word:
-                    report = "Please only look up individual words."
-                else:
-                    r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
-                    if r.status_code == 200:
-                        try:
-                            emb = discord.Embed(title = word.upper(), description = "Audio: " + r.json()[0]['phonetics'][0]['audio'], color = 0xfff994)
-                            i = 0
-                            for entry in r.json():
-                                for meaning in entry["meanings"]:
-                                    for definition in meaning["definitions"]:
-                                        i += 1
-                                        emb.add_field(name = "Definition " + str(i) + ":", value = definition["definition"], inline = True)
-                            await text.channel.send(embed = emb)
-                            return
-                        except:
-                            report = "Invalid word!"
-                    else:
-                        report = "Error!"
-                await text.channel.send(report)
+                await text.channel.send(embed = define(msg))
                 return
             
             if msg == "!ping":
@@ -931,7 +852,7 @@ class DiscordClass(client):
                     emb.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7], inline = True)
                     emb.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7], inline = True)
                     if len(target.roles) > 1: # Every user has the "@everyone" role, so check if they have more roles than that
-                        emb.add_field(name = "Roles", value = ", ".join(role.mention for role in reversed(target.roles[1:])), inline = False)
+                        emb.add_field(name = "Roles", value = ", ".join(role.mention for role in target.roles[:1:-1]), inline = False)
                         # I reverse target.roles in order to make them display in order of power; this way, it displays roles from your most powerful role to your least
                     await text.channel.send(embed = emb)
                     return
@@ -961,12 +882,8 @@ class DiscordClass(client):
                                             tooRecent = value
                                         break
                                 if not found:
-                                    spelledRole = None
-                                    if "usw" in splitMsg:
-                                        spelledRole = "us-w"
-                                    elif "use" in splitMsg:
-                                        spelledRole = "us-e"
-                                    if spelledRole:
+                                    if "usw" in splitMsg or "use" in splitMsg:
+                                        spelledRole = "us-w" if "usw" in splitMsg else "us-e"
                                         found = True
                                         if time() - sparPings[server][spelledRole] > cooldown:
                                             sparPings[server][spelledRole] = time()
