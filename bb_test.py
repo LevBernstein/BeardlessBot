@@ -1,12 +1,13 @@
 # Beardless Bot Unit Tests
 
-import requests
 from random import choice
+
+import requests
 
 from animals import *
 from dice import *
 from eggTweet import *
-from facts import *
+from fact import *
 
 IMAGETYPES = ["image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"]
 IMAGESIGS = ["b'\\xff\\xd8\\xff\\xe0\\x00\\x10", "b'\\x89\\x50\\x4e\\x47\\x0d\\x0a\\x1a\\x0a", "'b\'\\xff\\xd8\\xff\\xe2\\x024"]

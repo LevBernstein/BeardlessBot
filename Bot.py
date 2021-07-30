@@ -1,11 +1,10 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.1.0
+# Version: Full Release 1.1.1
 
 # Default modules:
 import asyncio
 import csv
-import requests
 from collections import OrderedDict
 from datetime import datetime
 from math import floor
@@ -16,6 +15,7 @@ from time import time
 
 # Installed modules:
 import discord
+import requests
 from discord.ext import commands
 from discord.utils import get
 

@@ -1,6 +1,7 @@
 # Animal images for Beardless Bot
 
 import requests
+
 from random import randint
 
 def animal(animalType):

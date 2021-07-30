@@ -1,5 +1,5 @@
-import requests
 import discord
+import requests
 
 def define(msg):
     word = msg.split(' ', 1)[1]
