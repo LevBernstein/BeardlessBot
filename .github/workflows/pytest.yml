@@ -30,4 +30,4 @@ jobs:
         coverage run -m pytest
     - name: View code coverage
       run: |
-        coverage report --include==$(echo $PWD)/*
+        coverage report
