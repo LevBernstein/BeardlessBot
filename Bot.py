@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.1.3
+# Version: Full Release 1.1.4
 
 # Default modules:
 import asyncio
@@ -25,6 +25,7 @@ from define import *
 from dice import *
 from eggTweet import *
 from fact import *
+from logs import *
 
 try:
     with open("resources/token.txt", "r") as f: # in token.txt, paste in your own Discord API token
@@ -109,9 +110,7 @@ class DiscordClass(client):
         if text.guild and (text.content or text.author.id != 654133911558946837 or text.channel.name != "bb-log"): # Prevents embeds from causing a loop
             for channel in text.guild.channels:
                 if channel.name == "bb-log":
-                    emb = discord.Embed(description = "**Deleted message sent by " + text.author.mention + " in **" + text.channel.mention + "\n" + text.content, color = 0xff0000)
-                    emb.set_author(name = str(text.author), icon_url = text.author.avatar_url)
-                    await channel.send(embed = emb)
+                    await channel.send(embed = logDeleteMsg(text))
                     break
         return
     
@@ -122,9 +121,7 @@ class DiscordClass(client):
             for channel in text.guild.channels:
                 if channel.name == "bb-log":
                     try:
-                        emb = discord.Embed(description = "Purged " + str(len(textArr) - 1) + " messages in " + text.channel.mention + ".", color = 0xff0000)
-                        emb.set_author(name = "Purge!", icon_url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
-                        await channel.send(embed = emb)
+                        await channel.send(embed = logPurge(text, textArr))
                     except:
                         pass
                     break
@@ -136,11 +133,7 @@ class DiscordClass(client):
             for channel in before.guild.channels:
                 if channel.name == "bb-log":
                     try:
-                        emb = discord.Embed(description = "Messaged edited by" + before.author.mention + " in " + before.channel.mention, color = 0xffff00)
-                        emb.set_author(name = str(before.author), icon_url = before.author.avatar_url)
-                        emb.add_field(name = "Before:", value = before.content, inline = False)
-                        emb.add_field(name = "After:", value = after.content + "\n[Jump to Message](" + after.jump_url +")", inline = False)
-                        await channel.send(embed = emb)
+                        await channel.send(embed = logEditMsg(before, after))
                     except:
                         pass
                     break
@@ -152,11 +145,7 @@ class DiscordClass(client):
             for channel in text.guild.channels:
                 if channel.name == "bb-log":
                     try:
-                        emb = discord.Embed(description = "Reactions cleared from message sent by" + text.author.mention + " in " + text.channel.mention, color = 0xff0000)
-                        emb.set_author(name = str(text.author), icon_url = text.author.avatar_url)
-                        emb.add_field(name = "Message content:", value = text.content)
-                        emb.add_field(name = "Reactions:", value = ", ".join(str(reaction) for reaction in reactions))
-                        await channel.send(embed = emb)
+                        await channel.send(embed = logClearReacts(text, reactions))
                     except:
                         pass
                     break
@@ -166,9 +155,7 @@ class DiscordClass(client):
     async def on_guild_channel_delete(ch):
         for channel in ch.guild.channels:
             if channel.name == "bb-log":
-                emb = discord.Embed(description = "Channel \"" + ch.name + "\" deleted", color = 0xff0000)
-                emb.set_author(name = "Channel deleted", icon_url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
-                await channel.send(embed = emb)
+                await channel.send(embed = logDeleteChannel(ch))
                 break
         return
     
@@ -176,9 +163,7 @@ class DiscordClass(client):
     async def on_guild_channel_create(ch):
         for channel in ch.guild.channels:
             if channel.name == "bb-log":
-                emb = discord.Embed(description = "Channel " + ch.mention + " created", color = 0x00ff00)
-                emb.set_author(name = "Channel created", icon_url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
-                await channel.send(embed = emb)
+                await channel.send(embed = logCreateChannel(ch))
                 break
         return
     
@@ -186,9 +171,7 @@ class DiscordClass(client):
     async def on_member_join(member):
         for channel in member.guild.channels:
             if channel.name == "bb-log":
-                emb = discord.Embed(description = "Member " + member.mention + " joined\nAccount registered on " + str(member.created_at)[:-7] + "\nID: " + str(member.id), color = 0x00ff00)
-                emb.set_author(name = str(member) + " joined the server", icon_url = member.avatar_url)
-                await channel.send(embed = emb)
+                await channel.send(embed = logMemberJoin(member))
                 break
         return
     
@@ -196,11 +179,7 @@ class DiscordClass(client):
     async def on_member_remove(member):
         for channel in member.guild.channels:
             if channel.name == "bb-log":
-                emb = discord.Embed(description = "Member " + member.mention + " left\nID: " + str(member.id), color = 0xff0000)
-                emb.set_author(name = str(member) +" left the server", icon_url = member.avatar_url)
-                if len(member.roles) > 1:
-                    emb.add_field(name = "Roles:", value = ", ".join(role.mention for role in member.roles[:1:-1]))
-                await channel.send(embed = emb)
+                await channel.send(embed = logMemberRemove(member))
                 break
         return
     
@@ -209,26 +188,9 @@ class DiscordClass(client):
         for channel in after.guild.channels:
             if channel.name == "bb-log":
                 if before.nick != after.nick:
-                    emb = discord.Embed(description = "Nickname of" + after.mention + " changed", color = 0xffff00)
-                    emb.set_author(name = str(after), icon_url = after.avatar_url)
-                    emb.add_field(name = "Before:", value = before.nick, inline = False)
-                    emb.add_field(name = "After:", value = after.nick, inline = False)
-                    await channel.send(embed = emb)
+                    await channel.send(embed = logMemberNickChange(before, after))
                 elif before.roles != after.roles:
-                    newRole = None
-                    for role in before.roles:
-                        if role not in after.roles:
-                            newRole = role
-                            break
-                    if not newRole:
-                        for role in after.roles:
-                            if role not in before.roles:
-                                newRole = role
-                                break
-                    removed = [" removed from ", 0xff0000] if len(before.roles) > len(after.roles) else [" added to ", 0x00ff00]
-                    emb = discord.Embed(description = "Role " + newRole.mention + removed[0]  + after.mention, color = removed[1])
-                    emb.set_author(name = str(after), icon_url = after.avatar_url)
-                    await channel.send(embed = emb)
+                    await channel.send(embed = logMemberRolesChange(before, after))
                 break
         return
     
@@ -236,10 +198,7 @@ class DiscordClass(client):
     async def on_member_ban(guild, member):
         for channel in guild.channels:
             if channel.name == "bb-log":
-                emb = discord.Embed(description = "Member " + member.mention + " banned\n" + member.name, color = 0xff0000)
-                emb.set_author(name = "Member banned", icon_url = member.avatar_url)
-                emb.set_thumbnail(url = member.avatar_url)
-                await channel.send(embed = emb)
+                await channel.send(embed = logBan(member))
                 break
         return
     
@@ -247,10 +206,7 @@ class DiscordClass(client):
     async def on_member_unban(guild, member):
         for channel in guild.channels:
             if channel.name == "bb-log":
-                emb = discord.Embed(description = "Member " + member.mention + " unbanned\n" + member.name, color = 0x00ff00)
-                emb.set_author(name = "Member unbanned", icon_url = member.avatar_url)
-                emb.set_thumbnail(url = member.avatar_url)
-                await channel.send(embed = emb)
+                await channel.send(embed = logUnban(member))
                 break
         return
     
@@ -405,7 +361,7 @@ class DiscordClass(client):
                     await text.channel.send(embed = discord.Embed(title = "Well done! You found the secret word," + secretWord + "!", description = "Ping Captain No-Beard for your prize!",  color = 0xfff994))
                     print("Secret word found!")
                 return
-                
+            
             if msg == "!hint" or msg == "!hints":
                 if not secretWord.isnumeric():
                     with open("resources/hints.txt", "r") as f:
@@ -494,7 +450,7 @@ class DiscordClass(client):
                         if str(target.id) == "654133911558946837": # If user tries to mute Beardless Bot:
                             await text.channel.send("I am too powerful to be muted. Stop trying.")
                             return
-                        print("Author: " + str(text.author.id) + " muting target: " + str(target.id))
+                        print("Author " + str(author) + " muting target " + str(target))
                         role = get(text.guild.roles, name = 'Muted')
                         if not role:
                             role = await text.guild.create_role(name = "Muted", colour = discord.Colour(0x818386), permissions = discord.Permissions(send_messages = False, read_messages = True))
@@ -658,7 +614,10 @@ class DiscordClass(client):
                     await text.channel.send(animal(animalName))
                 except Exception as err:
                     print(err)
-                    await text.channel.send("Something's gone wrong with the " + animalName + " API! Please ping my creator and he'll see what's going on.")
+                    if animalName == "fish":
+                        await text.channel.send("The fish API is currently down. I do not know when it will come back up.")
+                    else:
+                        await text.channel.send("Something's gone wrong with the " + animalName + " API! Please ping my creator and he'll see what's going on.")
                 return
            
             if (msg.startswith("!clear") or msg.startswith("!purge")) and text.guild:

@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release v1.1.3
+### Full Release v1.1.4
 
 ### Lev Bernstein
 
@@ -23,7 +23,7 @@ Alternatively, if you just want to add the bot to your own Discord server while 
 
 * Python 3. To install, visit https://python.org/downloads/ and follow the instructions for your OS.
 
-* Run "pip install -r requirements.txt"
+* Run `pip install -r requirements.txt`.
 
 ## Setup
 
