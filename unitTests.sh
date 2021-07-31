@@ -1,3 +1,4 @@
-#run `bash unitTests.sh' to run bb's unit tests
+#run `bash unitTests.sh` to run bb's unit tests, output results to stdout and testResults.md
 echo "# Beardless Bot Unit Test Results" > testResults.md;
-pytest --tb=line |& tee -a testResults.md; #outputs the result of pytest to stdout and to testResults.md
+coverage run -m pytest --tb=line |& tee -a testResults.md;
+coverage report --include=$(echo $PWD)/* |& tee -a testResults.md;

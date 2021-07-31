@@ -68,7 +68,7 @@ def test_fact():
 
 def test_egg_formatted_tweet():
     eggTweet = tweet()
-    assert formattedTweet(eggTweet) in eggTweet
+    assert eggTweet.startswith(formattedTweet(eggTweet))
 
 def test_dice():
     for sideNum in [4, 6, 8, 100, 10, 12, 20]:

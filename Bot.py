@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.1.2
+# Version: Full Release 1.1.3
 
 # Default modules:
 import asyncio
@@ -56,7 +56,6 @@ def memSearch(text): # method for finding a user based on username if no @ is pr
 
 client = discord.Client(intents = discord.Intents.all())
 class DiscordClass(client):
-    
     @client.event
     async def on_ready():
         print("Beardless Bot online!")
@@ -107,7 +106,7 @@ class DiscordClass(client):
         
     @client.event
     async def on_message_delete(text):
-        if (text.content or text.author.id != 654133911558946837 or text.channel.name != "bb-log") and text.guild: # Prevents embeds from causing a loop
+        if text.guild and (text.content or text.author.id != 654133911558946837 or text.channel.name != "bb-log"): # Prevents embeds from causing a loop
             for channel in text.guild.channels:
                 if channel.name == "bb-log":
                     emb = discord.Embed(description = "**Deleted message sent by " + text.author.mention + " in **" + text.channel.mention + "\n" + text.content, color = 0xff0000)
@@ -312,10 +311,10 @@ class DiscordClass(client):
                                         report = x.message
                                         if x.perfect():
                                             totalsum = bank + bet
-                                            oldline = str(text.author.id) + "," + str(bank) + "," + row[2]
-                                            newline = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
+                                            oldLine = str(text.author.id) + "," + str(bank) + "," + row[2]
+                                            newLine = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
                                             texter = open("resources/money.csv", "r")
-                                            texter = ''.join([i for i in texter]).replace(oldline, newline)
+                                            texter = ''.join([i for i in texter]).replace(oldLine, newLine)
                                             with open("resources/money.csv", "w") as money:
                                                 money.writelines(texter)
                                         else:
@@ -340,10 +339,10 @@ class DiscordClass(client):
                                 for row in reader:
                                     if str(text.author.id) == row[0]:
                                         totalsum = int(row[1]) + bet
-                                        oldline = row[0] + "," + row[1] + "," + row[2]
-                                        line = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
+                                        oldLine = row[0] + "," + row[1] + "," + row[2]
+                                        newLine = str(text.author.id) + "," + str(totalsum) + "," + str(text.author)
                                         texter = open("resources/money.csv", "r")
-                                        texter = ''.join([j for j in texter]).replace(oldline, line)
+                                        texter = ''.join([j for j in texter]).replace(oldLine, newLine)
                                         with open("resources/money.csv", "w") as money:
                                             money.writelines(texter)
                                         games.pop(i)
@@ -602,6 +601,7 @@ class DiscordClass(client):
             if msg == "!add" or msg == "!join":
                 emb = discord.Embed(title = "Want to add this bot to your server?", description = "[Click this link!](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot)", color = 0xfff994)
                 emb.set_thumbnail(url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
+                emb.add_field(name = "If you like Beardless Bot...", value = "Please leave a review on [top.gg](https://top.gg/bot/654133911558946837).", inline = False)
                 await text.channel.send(embed = emb)
                 return
             
