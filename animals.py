@@ -6,13 +6,13 @@ from random import randint
 
 def animal(animalType):
     if animalType == "cat":
-        # cat API has been throwing 503 errors regularly, not sure why. Spotty hosting maybe.
+        # cat API has been throwing 503 errors regularly, reporting "Service Unavailable: Back-end server is at capacity"
         for i in range(10):
             # the loop is to try to make another request if one pulls a 503.
             r = requests.get("https://aws.random.cat/meow")
             if r.status_code == 200:
                 return r.json()['file']
-            print(str(r.status_code) + " cat")
+            print(str(r.status_code) + "; " + r.reason + "; cat")
     
     if animalType.startswith("dog"):
         if len(animalType) == 4 or not (" " in animalType):
@@ -43,16 +43,16 @@ def animal(animalType):
     if animalType == "bunny" or animalType == "rabbit":
         return "https://bunnies.media/gif/" + str(randint(2, 163)) + ".gif"
     
-    if animalType in ["panda", "koala", "bird"]:
+    if animalType in ("panda", "koala", "bird"):
         # panda API has had some performance issues lately
         r = requests.get("https://some-random-api.ml/img/" + ("birb" if animalType == "bird" else animalType))
         if r.status_code == 200:
             return r.json()['link']
     
-    if animalType in ["lizard", "duck"]:
+    if animalType in ("lizard", "duck"):
         r = requests.get("https://nekos.life/api/v2/img/lizard" if animalType == "lizard" else "https://random-d.uk/api/quack")
         if r.status_code == 200:
             return r.json()['url']
-    print(str(r.status_code) + " " + animalType)
+    print(str(r.status_code) + "; " + r.reason + "; " + animalType)
     
     raise Exception("Error with the " + animalType + "API!")

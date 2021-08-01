@@ -21,8 +21,7 @@ def register(text):
                 report = "Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                 with open('resources/money.csv', 'a') as money:
                     writer = csv.writer(csvfile)
-                    newline = "\r\n" + str(text.author.id) + ",300," + str(text.author)
-                    money.write(newline)
+                    money.write("\r\n" + str(text.author.id) + ",300," + str(text.author))
     return discord.Embed(title = "Beardless Bucks Registration", description = report, color = 0xfff994)
 
 def balance(text):
@@ -58,11 +57,11 @@ def reset(text):
                     exist = True
                     if row[1] != str(200):
                         oldLine = row[0] + "," + row[1] + "," + row[2]
-                        newLine = row[0] + "," + str(200) + "," + str(text.author)
-                        texter = open("resources/money.csv", "r")
-                        texter = ''.join([i for i in texter]).replace(oldLine, newLine)
-                        with open("resources/money.csv", "w") as money:
-                            money.writelines(texter)
+                        newLine = row[0] + ",200," + str(text.author)
+                        with open("resources/money.csv", "r") as oldMoney:
+                            oldMoney = ''.join([i for i in oldMoney]).replace(oldLine, newLine)
+                            with open("resources/money.csv", "w") as money:
+                                money.writelines(oldMoney)
             if not exist:
                 report ="Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                 with open('resources/money.csv', 'a') as money:

@@ -1,4 +1,4 @@
-#The following Markov chain code was provided by CSTUY SHIP.
+# The following Markov chain code was provided by CSTUY SHIP.
 import re
 from random import choice, randint
 
@@ -30,7 +30,7 @@ def tweet():
 
 def formattedTweet(tweet):
     for i in range(len(tweet)):
-        if tweet[len(tweet) - i - 1] in [".", "!", "?"]:
+        if tweet[len(tweet) - i - 1] in (".", "!", "?"):
             return (tweet[:(len(tweet) - i - 1)])
     return tweet
 

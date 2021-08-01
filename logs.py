@@ -1,3 +1,5 @@
+# Beadless Bot Event Logging
+
 import discord
 
 def logDeleteMsg(text):
@@ -64,7 +66,7 @@ def logMemberRolesChange(before, after):
             if role not in before.roles:
                 newRole = role
                 break
-    tup = [" removed from ", 0xff0000] if len(before.roles) > len(after.roles) else [" added to ", 0x00ff00]
+    tup = (" removed from ", 0xff0000) if len(before.roles) > len(after.roles) else (" added to ", 0x00ff00)
     emb = discord.Embed(description = "Role " + newRole.mention + tup[0]  + after.mention, color = tup[1])
     emb.set_author(name = str(after), icon_url = after.avatar_url)
     return emb
