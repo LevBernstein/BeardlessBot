@@ -2,6 +2,8 @@
 
 import discord
 
+# TODO: Implement logging for threads
+
 def logDeleteMsg(text):
     emb = discord.Embed(description = "**Deleted message sent by " + text.author.mention + " in **" + text.channel.mention + "\n" + text.content, color = 0xff0000)
     emb.set_author(name = str(text.author), icon_url = text.author.avatar_url)

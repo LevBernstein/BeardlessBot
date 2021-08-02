@@ -16,7 +16,7 @@ def define(msg):
                         for definition in meaning["definitions"]:
                             i += 1
                             emb.add_field(name = "Definition " + str(i) + ":", value = definition["definition"], inline = True)
-                return(emb)
+                return emb
             except:
                 report = "Invalid word!"
         else:
