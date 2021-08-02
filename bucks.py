@@ -5,6 +5,13 @@ from operator import itemgetter
 
 import discord
 
+def memSearch(text): # method for finding a user based on username if no @ is provided
+    term = (text.content.split(" ", 1)[1]).lower()
+    for member in text.guild.members:
+        if term in member.name.lower():
+            return member
+    return None
+
 def register(text):
     if ',' in text.author.name:
         report = "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + "."
@@ -56,7 +63,7 @@ def reset(text):
                 if str(text.author.id) == row[0]:
                     exist = True
                     if row[1] != str(200):
-                        oldLine = row[0] + "," + row[1] + "," + row[2]
+                        oldLine = ",".join(row)
                         newLine = row[0] + ",200," + str(text.author)
                         with open("resources/money.csv", "r") as oldMoney:
                             oldMoney = ''.join([i for i in oldMoney]).replace(oldLine, newLine)

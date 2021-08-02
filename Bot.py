@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.1.6
+# Version: Full Release 1.1.7
 
 import asyncio
 import csv
@@ -44,13 +44,6 @@ sparPings = {}
 
 games = [] # Stores the active instances of blackjack. A list works for storing these, but once the Bot reaches verified status
 # (more than 75 servers), will have to switch to a more efficient data structure
-
-def memSearch(text): # method for finding a user based on username if no @ is provided
-    term = (text.content.split(" ", 1)[1]).lower()
-    for member in text.guild.members:
-        if term in member.name.lower():
-            return member
-    return None
 
 client = discord.Client(intents = discord.Intents.all())
 class DiscordClass(client):
@@ -263,7 +256,7 @@ class DiscordClass(client):
                                         x = Instance(text.author, bet)
                                         report = x.message
                                         if x.perfect(): 
-                                            oldLine = str(text.author.id) + "," + str(bank) + "," + row[2]
+                                            oldLine = ",".join(row)
                                             newLine = str(text.author.id) + "," + str(bank + bet) + "," + str(text.author)
                                             with open("resources/money.csv", "r") as oldMoney:
                                                 oldMoney = ''.join([i for i in oldMoney]).replace(oldLine, newLine)
@@ -291,7 +284,7 @@ class DiscordClass(client):
                                 reader = csv.reader(csvfile, delimiter = ',')
                                 for row in reader:
                                     if str(text.author.id) == row[0]:
-                                        oldLine = row[0] + "," + row[1] + "," + row[2]
+                                        oldLine = ",".join(row)
                                         newLine = str(text.author.id) + "," + str(int(row[1]) + bet) + "," + str(text.author)
                                         with open("resources/money.csv", "r") as oldMoney:
                                             oldMoney = ''.join([j for j in oldMoney]).replace(oldLine, newLine)
@@ -303,7 +296,7 @@ class DiscordClass(client):
                 await text.channel.send(embed = discord.Embed(title = "Beardless Bot Blackjack", description = report, color = 0xfff994))
                 return
             
-            if msg =='!stay' or msg == '!stand':
+            if msg == '!stay' or msg == '!stand':
                 if ',' in text.author.name:
                     await text.channel.send("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
                     return
@@ -318,7 +311,7 @@ class DiscordClass(client):
                             report += " That's closer to 21 than your sum of " + str(sum(gamer.cards)) + ". You lose"
                             bet *= -1
                             if bet:
-                                report +=  ". Your loss has been deducted from your balance"
+                                report += ". Your loss has been deducted from your balance"
                         elif result == 0:
                             report += " That ties your sum of " + str(sum(gamer.cards))
                             if bet:
@@ -334,7 +327,7 @@ class DiscordClass(client):
                                 reader = csv.reader(csvfile, delimiter = ',')
                                 for row in reader:
                                     if str(text.author.id) == row[0]:
-                                        oldLine = row[0] + "," + row[1] + "," + row[2]
+                                        oldLine = ",".join(row)
                                         newLine = str(text.author.id) + "," + str(int(row[1]) + bet) + "," + str(text.author)
                                         with open("resources/money.csv", "r") as oldMoney:
                                             oldMoney = ''.join([j for j in oldMoney]).replace(oldLine, newLine)
@@ -363,7 +356,7 @@ class DiscordClass(client):
                             for row in reader:
                                 if str(text.author.id) == row[0]:
                                     exist = True
-                                    oldLine = row[0] + "," + row[1] + "," + row[2]
+                                    oldLine = ",".join(row)
                                     newLine = row[0] + "," + str(int(row[1]) + 200000) + "," + str(text.author)
                                     with open("resources/money.csv", "r") as oldMoney:
                                         oldMoney = ''.join([i for i in oldMoney]).replace(oldLine, newLine)
@@ -429,7 +422,7 @@ class DiscordClass(client):
                                     if not bet:
                                         report += " However, you bet nothing, so your balance will not change."
                                     else:
-                                        oldLine = row[0] + "," + row[1] + "," + row[2]
+                                        oldLine = ",".join(row)
                                         newLine = row[0] + "," + str(bank + (bet * (1 if result else -1))) + "," + str(text.author)
                                         with open("resources/money.csv", "r") as oldMoney:
                                             oldMoney = ''.join([i for i in oldMoney]).replace(oldLine, newLine)
@@ -704,7 +697,7 @@ class DiscordClass(client):
                                 for row in reader:
                                     if str(text.author.id) == row[0]:
                                         if  50000 <= int(row[1]):
-                                            oldLine = row[0] + "," + row[1] + "," + row[2]
+                                            oldLine = ",".join(row)
                                             newLine = row[0] + "," + str(int(row[1]) - 50000) + "," + str(text.author)
                                             with open("resources/money.csv", "r") as oldMoney:
                                                 oldMoney = ''.join([i for i in oldMoney]).replace(oldLine, newLine)
