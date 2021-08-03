@@ -26,7 +26,6 @@ def register(text):
             if not report:
                 report = "Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                 with open('resources/money.csv', 'a') as money:
-                    writer = csv.writer(csvfile)
                     money.write("\r\n" + str(text.author.id) + ",300," + str(text.author))
     return discord.Embed(title = "BeardlessBucks Registration", description = report, color = 0xfff994)
 
@@ -62,17 +61,15 @@ def reset(text):
                 if str(text.author.id) == row[0]:
                     report = 'You have been reset to 200 BeardlessBucks, ' + text.author.mention + "."
                     if row[1] != str(200):
-                        oldLine = ",".join(row)
                         newLine = ",".join((row[0], "200", str(text.author)))
                         with open("resources/money.csv", "r") as oldMoney:
-                            oldMoney = ''.join([i for i in oldMoney]).replace(oldLine, newLine)
+                            oldMoney = ''.join([i for i in oldMoney]).replace(",".join(row), newLine)
                             with open("resources/money.csv", "w") as money:
                                 money.writelines(oldMoney)
                     break
             if not report:
                 report ="Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
                 with open('resources/money.csv', 'a') as money:
-                    writer = csv.writer(csvfile)
                     money.write("\r\n" + str(text.author.id) + ",300," + str(text.author))
     return discord.Embed(title = "BeardlessBucks Reset", description = report, color = 0xfff994)
 
