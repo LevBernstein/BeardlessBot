@@ -13,7 +13,7 @@ class Instance:
             self.dealerSum += randint(1,10)
         self.vals = (2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11)
         self.message = self.startingHand()
-
+    
     def perfect(self):
         return sum(self.cards) == 21
     
@@ -63,8 +63,11 @@ class Instance:
             self.message += " Type !hit to deal another card to yourself, or !stay to stop at your current total, " + self.user.mention+ "."
     
     def checkBust(self):
-        return sum(self.cards) > 21
-
+        if sum(self.cards) > 21:
+            self.bet *= -1
+            return True
+        return False
+    
     def getUser(self):
         return self.user
     

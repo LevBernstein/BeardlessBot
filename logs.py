@@ -18,7 +18,7 @@ def logEditMsg(before, after):
     emb = discord.Embed(description = "Messaged edited by" + before.author.mention + " in " + before.channel.mention, color = 0xffff00)
     emb.set_author(name = str(before.author), icon_url = before.author.avatar_url)
     emb.add_field(name = "Before:", value = before.content, inline = False)
-    emb.add_field(name = "After:", value = after.content + "\n[Jump to Message](" + after.jump_url +")", inline = False)
+    emb.add_field(name = "After:", value = after.content + "\n[Jump to Message](" + after.jump_url + ")", inline = False)
     return emb
 
 def logClearReacts(text, reactions):
