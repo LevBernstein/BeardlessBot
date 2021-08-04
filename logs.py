@@ -15,26 +15,26 @@ def logPurge(text, textArr):
     return emb
 
 def logEditMsg(before, after):
-    emb = discord.Embed(description = "Messaged edited by" + before.author.mention + " in " + before.channel.mention, color = 0xffff00)
+    emb = discord.Embed(description = "Messaged edited by" + before.author.mention + " in " + before.channel.mention + ".", color = 0xffff00)
     emb.set_author(name = str(before.author), icon_url = before.author.avatar_url)
     emb.add_field(name = "Before:", value = before.content, inline = False)
     emb.add_field(name = "After:", value = after.content + "\n[Jump to Message](" + after.jump_url + ")", inline = False)
     return emb
 
 def logClearReacts(text, reactions):
-    emb = discord.Embed(description = "Reactions cleared from message sent by" + text.author.mention + " in " + text.channel.mention, color = 0xff0000)
+    emb = discord.Embed(description = "Reactions cleared from message sent by" + text.author.mention + " in " + text.channel.mention + ".", color = 0xff0000)
     emb.set_author(name = str(text.author), icon_url = text.author.avatar_url)
     emb.add_field(name = "Message content:", value = text.content)
     emb.add_field(name = "Reactions:", value = ", ".join(str(reaction) for reaction in reactions))
     return emb
 
 def logDeleteChannel(channel):
-    emb = discord.Embed(description = "Channel \"" + channel.name + "\" deleted", color = 0xff0000)
+    emb = discord.Embed(description = "Channel \"" + channel.name + "\" deleted.", color = 0xff0000)
     emb.set_author(name = "Channel deleted", icon_url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
     return emb
 
 def logCreateChannel(channel):
-    emb = discord.Embed(description = "Channel " + channel.mention + " created", color = 0x00ff00)
+    emb = discord.Embed(description = "Channel " + channel.mention + " created.", color = 0x00ff00)
     emb.set_author(name = "Channel created", icon_url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
     return emb
 
@@ -47,7 +47,7 @@ def logMemberRemove(member):
     emb = discord.Embed(description = "Member " + member.mention + " left\nID: " + str(member.id), color = 0xff0000)
     emb.set_author(name = str(member) +" left the server", icon_url = member.avatar_url)
     if len(member.roles) > 1:
-        emb.add_field(name = "Roles:", value = ", ".join(role.mention for role in member.roles[:1:-1]))
+        emb.add_field(name = "Roles:", value = ", ".join(role.mention for role in member.roles[:0:-1]))
     return emb
 
 def logMemberNickChange(before, after):

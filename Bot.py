@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.1.10
+# Version: Full Release 1.1.11
 
 import asyncio
 import csv
@@ -512,21 +512,30 @@ class DiscordClass(client):
                     emb.add_field(name = "!" + animalName, value = "_ _", inline = True)
                 await text.channel.send(embed = emb)
             
-            if msg.startswith("!dog") or msg == "!moose":
+            animalName = msg[1:].split(" ", 1)[0]
+            if animalName == "dog" or msg == "!moose":
                 if msg in ("!dog moose", "!moose"):
                     mooseNum = randint(1, 36)
                     await text.channel.send(file = discord.File('images/moose/moose' + str(mooseNum) + (".gif" if mooseNum < 4 else ".jpg")))
                     return
                 try:
-                    await text.channel.send(animal(msg[1:]))
+                    dogUrl = animal(msg[1:])
+                    if dogUrl.startswith("Breed not found") or dogUrl.startswith("Dog breeds"):
+                        await text.channel.send(dogUrl)
+                        return
+                    breed = "hound" if "hound" in dogUrl else dogUrl.split("https://images.dog.ceo/breeds/", 1)[1].split("/", 1)[0]
+                    emb = discord.Embed(title = "Random " + breed.title() + " Picture", description = "", color = 0xfff994)
+                    emb.set_image(url = dogUrl)
+                    await text.channel.send(embed = emb)
                 except:
                     await text.channel.send("Something's gone wrong with the dog API! Please ping my creator and he'll see what's going on.")
                 return
             
-            animalName = msg[1:].split(" ", 1)[0]
             if msg.startswith("!") and animalName in ("cat", "duck", "fish", "fox", "rabbit", "bunny", "panda", "bird", "koala", "lizard"):
                 try:
-                    await text.channel.send(animal(animalName))
+                    emb = discord.Embed(title = "Random " + animalName.title() + " Picture", description = "", color = 0xfff994)
+                    emb.set_image(url = animal(animalName))
+                    await text.channel.send(embed = emb)
                 except Exception as err:
                     print(err)
                     if animalName == "fish":
@@ -695,21 +704,21 @@ class DiscordClass(client):
                 if msg.startswith("!info"):
                     target = text.mentions[0] if text.mentions else (text.author if not " " in msg else memSearch(text))
                     if not target:
-                        emb = discord.Embed(name = "Invalid target!", description = "Please choose a valid target. Valid targets are either a ping or a username.", color = 0xfff994)
+                        emb = discord.Embed(name = "Invalid target!", description = "Please choose a valid target. Valid targets are either a ping or a username.", color = 0xff0000)
                     else:
-                        emb = discord.Embed(description = str(target.activity) if target.activity else "", color = target.color)
+                        emb = discord.Embed(description = target.activity.name if target.activity else "", color = target.color)
                         # Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
                         emb.set_author(name = str(target), icon_url = target.avatar_url)
                         emb.set_thumbnail(url = target.avatar_url)
-                        emb.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7], inline = True)
-                        emb.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7], inline = True)
+                        emb.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7] + " UTC", inline = True)
+                        emb.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7] + " UTC", inline = True)
                         if len(target.roles) > 1: # Every user has the "@everyone" role, so check if they have more roles than that
                             emb.add_field(name = "Roles", value = ", ".join(role.mention for role in target.roles[:0:-1]), inline = False)
                             # Reverse target.roles in order to make them display in decreasing order of power
                     await text.channel.send(embed = emb)
                     return
                 
-                if msg.startswith('!spar'):
+                if msg.startswith('!spar '):
                     report = "Please only use !spar in looking-for-spar, " + text.author.mention + "."
                     if text.channel.name == "looking-for-spar":
                         report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. If you need help, try doing !pins."

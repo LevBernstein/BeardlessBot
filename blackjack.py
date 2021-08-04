@@ -20,15 +20,7 @@ class Instance:
     def startingHand(self):
         self.cards.append(choice(self.vals))
         self.cards.append(choice(self.vals))
-        message = "Your starting hand consists of " + self.cardName(self.cards[0]) + " and " + self.cardName(self.cards[1]) + ". "
-        if 11 in self.cards and self.checkBust():
-            for i in range(len(self.cards)):
-                if self.cards[i] == 11:
-                    self.cards[i] = 1
-                    break
-            message += "Your Ace is acting as a 1, so your total is " + str(sum(self.cards)) + ". "
-        else:
-            message += "Your total is " + str(sum(self.cards)) + ". "
+        message = "Your starting hand consists of " + self.cardName(self.cards[0]) + " and " + self.cardName(self.cards[1]) + ". Your total is " + str(sum(self.cards)) + ". "
         if self.perfect():
             message += "You hit 21! You win, " + self.user.mention + "!"
         else:
@@ -54,7 +46,7 @@ class Instance:
                     self.cards[i] = 1
                     break
             self.message += "Because you would have busted, your Ace has been changed from an 11 to 1 . Your new total is " + str(sum(self.cards)) + ". "
-        self.message += "Your cards are " + str(self.cards)[1:-1] + ". The dealer is showing " + str(self.dealerUp) + ", with one card face down."
+        self.message += "Your card values are " + ", ".join(str(card) for card in self.cards) + ". The dealer is showing " + str(self.dealerUp) + ", with one card face down."
         if self.checkBust():
             self.message += " You busted. Game over, " + self.user.mention + "."
         elif self.perfect():
@@ -72,7 +64,7 @@ class Instance:
         return self.user
     
     def stay(self):
-        if sum(self.cards) > self.dealerSum:
+        if sum(self.cards) > self.dealerSum and not self.checkBust():
             return 3
         if sum(self.cards) == self.dealerSum:
             return 0

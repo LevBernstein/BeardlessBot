@@ -6,7 +6,7 @@ from random import randint
 
 def animal(animalType):
     if animalType == "cat":
-        # cat API has been throwing 503 errors regularly, reporting "Service Unavailable: Back-end server is at capacity"
+        # cat API has been throwing 503 errors every other call, likely due to rate limiting
         for i in range(10):
             # the loop is to try to make another request if one pulls a 503.
             r = requests.get("https://aws.random.cat/meow")
@@ -40,7 +40,7 @@ def animal(animalType):
         if r.status_code == 200:
             return r.json()['image']
     
-    if animalType == "bunny" or animalType == "rabbit":
+    if animalType in ("bunny", "rabbit"):
         return "https://bunnies.media/gif/" + str(randint(2, 163)) + ".gif"
     
     if animalType in ("panda", "koala", "bird"):
@@ -49,7 +49,7 @@ def animal(animalType):
         if r.status_code == 200:
             return r.json()['link']
     
-    if animalType in ("lizard", "duck"):
+    if animalType in ("duck"): # if animalType in ("duck", "lizard")
         r = requests.get("https://nekos.life/api/v2/img/lizard" if animalType == "lizard" else "https://random-d.uk/api/quack")
         if r.status_code == 200:
             return r.json()['url']

@@ -3,6 +3,7 @@ import requests
 
 def define(msg):
     word = msg.split(' ', 1)[1]
+    report = "Invalid word!"
     if " " in word:
         report = "Please only look up individual words."
     else:
@@ -18,7 +19,5 @@ def define(msg):
                             emb.add_field(name = "Definition " + str(i) + ":", value = definition["definition"], inline = True)
                 return emb
             except:
-                report = "Invalid word!"
-        else:
-            report = "Error!"
+                pass
     return discord.Embed(title = "Beardless Bot Definitions", description = report, color = 0xfff994)
