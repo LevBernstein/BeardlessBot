@@ -1,5 +1,4 @@
 # The following Markov chain code was provided by CSTUY SHIP.
-import re
 from random import choice, randint
 
 def generate_chains(fileName, keySize):
@@ -21,7 +20,7 @@ def generate_text(chains, num_words, keySize):
     for i in range(num_words):
         word = choice(chains[key])
         s += ' ' + word
-        key = ' '.join(key.split()[1 : keySize + 1]) + ' ' + word if keySize > 1 else word
+        key = ' '.join(key.split()[1:keySize + 1]) + ' ' + word if keySize > 1 else word
     return s[0].title() + s[1:]
 
 def tweet():

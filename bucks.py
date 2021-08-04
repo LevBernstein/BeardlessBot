@@ -1,5 +1,4 @@
 import csv
-from random import choice, randint
 from collections import OrderedDict
 from operator import itemgetter
 
@@ -59,7 +58,7 @@ def reset(text):
             reader = csv.reader(csvfile, delimiter = ',')
             for row in reader:
                 if str(text.author.id) == row[0]:
-                    report = 'You have been reset to 200 BeardlessBucks, ' + text.author.mention + "."
+                    report = "You have been reset to 200 BeardlessBucks, " + text.author.mention + "."
                     if row[1] != str(200):
                         newLine = ",".join((row[0], "200", str(text.author)))
                         with open("resources/money.csv", "r") as oldMoney:

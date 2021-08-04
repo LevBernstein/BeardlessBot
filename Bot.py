@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.1.9
+# Version: Full Release 1.1.10
 
 import asyncio
 import csv
@@ -615,7 +615,7 @@ class DiscordClass(client):
                             await text.channel.send(embed = emb)
                             for channel in text.guild.channels:
                                 if channel.name == "bb-log":
-                                    await channel.send(embed = logMute(target, text.author, text.channel, duration, mString, mTime))
+                                    await channel.send(embed = logMute(target, text, duration, mString, mTime))
                                     break
                             if mTime: # Autounmute:
                                 print("Muted " + str(target) + " for " + str(mTime))
@@ -697,7 +697,7 @@ class DiscordClass(client):
                     if not target:
                         emb = discord.Embed(name = "Invalid target!", description = "Please choose a valid target. Valid targets are either a ping or a username.", color = 0xfff994)
                     else:
-                        emb = discord.Embed(description = str(target.activity) if target.activity else "_ _", color = target.color)
+                        emb = discord.Embed(description = str(target.activity) if target.activity else "", color = target.color)
                         # Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
                         emb.set_author(name = str(target), icon_url = target.avatar_url)
                         emb.set_thumbnail(url = target.avatar_url)
@@ -737,7 +737,7 @@ class DiscordClass(client):
                                         if not role:
                                             role = await text.guild.create_role(name = spelledRole.upper(), mentionable = False)
                                         if time() - sparPings[guild][spelledRole] > 7200:
-                                            sparPings[guild][spelledRole] = time()
+                                            sparPings[guild][spelledRole] = int(time())
                                             report = role.mention + " come spar " + text.author.mention + "!"
                                         else:
                                             tooRecent = sparPings[guild][spelledRole]
@@ -746,7 +746,7 @@ class DiscordClass(client):
                             hours, seconds = divmod(7200 - (int(time()) - tooRecent), 3600)
                             minutes, seconds = divmod(seconds, 60)
                             report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". You can ping again in "
-                            report += str(hours) + (" hour, " if hours == 1 else " hours, ") + str(minutes) + (" minute, " if minutes == 1 else " minutes, ") + str(seconds) + (" second." if seconds == 1 else " seconds.")
+                            report += str(hours) + (" hour, " if hours == 1 else " hours, ") + str(minutes) + (" minute" if minutes == 1 else " minutes") + ", and " + str(seconds) + (" second." if seconds == 1 else " seconds.")
                     else:
                         for channel in text.guild.channels:
                             if channel.name == "looking-for-spar":
