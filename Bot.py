@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.1.12
+# Version: Full Release 1.2.0
 
 import asyncio
 import csv
@@ -213,7 +213,7 @@ class DiscordClass(client):
                     strbet = '10' # Bets default to 10. If someone just types !blackjack, they will bet 10 by default.
                     if msg.startswith('!blackjack ') and len(msg) > 11:
                         strbet = msg.split('!blackjack ',1)[1]
-                    elif msg == "!blackjack" or msg == "!bl":
+                    elif msg in ("!blackjack", "!bl"):
                         pass
                     elif msg.startswith('!bl ') and len(msg) > 4:
                         strbet = msg.split('!bl ',1)[1]
@@ -277,16 +277,8 @@ class DiscordClass(client):
                             gamer.deal()
                             report = gamer.message
                             if gamer.checkBust() or gamer.perfect():
-                                with open('resources/money.csv', 'r') as csvfile:
-                                    for row in csv.reader(csvfile, delimiter = ','):
-                                        if str(text.author.id) == row[0]:
-                                            newLine = ",".join((row[0], str(int(row[1])), str(text.author)))
-                                            with open("resources/money.csv", "r") as oldMoney:
-                                                oldMoney = ''.join([j for j in oldMoney]).replace(",".join(row), newLine)
-                                                with open("resources/money.csv", "w") as money:
-                                                    money.writelines(oldMoney)
-                                            games.pop(i)
-                                            break
+                                writeMoney(text.author, gamer.bet * (-1 if gamer.checkBust() else 1), True, True)
+                                games.pop(i)
                             break
                 await text.channel.send(embed = discord.Embed(title = "Beardless Bot Blackjack", description = report, color = 0xfff994))
                 return
@@ -318,44 +310,24 @@ class DiscordClass(client):
                             if result >= 3 and bet:
                                 report += ". You win! Your winnings have been added to your balance"
                             if result and bet:
-                                with open('resources/money.csv', 'r') as csvfile:
-                                    for row in csv.reader(csvfile, delimiter = ','):
-                                        if str(text.author.id) == row[0]:
-                                            newLine = ",".join((row[0], str(int(row[1]) + bet), str(text.author)))
-                                            with open("resources/money.csv", "r") as oldMoney:
-                                                oldMoney = ''.join([j for j in oldMoney]).replace(",".join(row), newLine)
-                                                with open("resources/money.csv", "w") as money:
-                                                    money.writelines(oldMoney)
-                                            break
+                                writeMoney(text.author, bet, True, True)
                             elif not bet:
-                                report += (". Y" if not result else ". However, y") + "ou bet nothing, so your balance has not changed"
+                                report += ". {}ou bet nothing, so your balance has not changed".format("Y" if not result else "However, y")
                             report += ", " + text.author.mention + "."
                             games.pop(i)
                             break
                 await text.channel.send(embed = discord.Embed(title = "Beardless Bot Blackjack", description = report, color = 0xfff994))
                 return
             
-            if secretWord in msg:
+            if secretWord in msg.split(" "):
                 global secretFound
                 if not secretFound:
                     secretFound = True
                     report = "Ping Captain No-Beard for your prize, " + text.author.mention + "!"
                     if not "," in text.author.name:
-                        report = "200000 BeardlessBucks have been added to your account, " + text.author.mention + "!"
+                        report = "100000 BeardlessBucks have been added to your account, " + text.author.mention + "!"
                         print("Secret word found by " + str(text.author))
-                        with open('resources/money.csv') as csvfile:
-                            exist = False
-                            for row in csv.reader(csvfile, delimiter = ','):
-                                if str(text.author.id) == row[0]:
-                                    exist = True
-                                    newLine = ",".join((row[0], str(int(row[1]) + 200000), str(text.author)))
-                                    with open("resources/money.csv", "r") as oldMoney:
-                                        oldMoney = ''.join([i for i in oldMoney]).replace(",".join(row), newLine)
-                                        with open("resources/money.csv", "w") as money:
-                                                money.writelines(oldMoney)
-                            if not exist:
-                                with open('resources/money.csv', 'a') as money:
-                                    money.write("\r\n" + str(text.author.id) + ",200000," + str(text.author))
+                        writeMoney(text.author, 100000, True, True)
                     await text.channel.send(embed = discord.Embed(title = "Well done! You found the secret word, " + secretWord + "!", description = report,  color = 0xfff994))
                     return
             
@@ -557,29 +529,29 @@ class DiscordClass(client):
             
             if msg in ("!commands", "!help"):
                 emb = discord.Embed(title = "Beardless Bot Commands", description = "!commands to pull up this list", color = 0xfff994)
-                emb.add_field(name = "!register", value = "Registers you with the currency system.", inline = True)
-                emb.add_field(name = "!balance", value = "Checks your BeardlessBucks balance. You can write !balance <@someone>/<username> to see that person's balance.", inline = True)
-                emb.add_field(name = "!bucks", value = "Shows you an explanation for how BeardlessBucks work.", inline = True)
-                emb.add_field(name = "!reset", value = "Resets you to 200 BeardlessBucks.", inline = True)
-                emb.add_field(name = "!fact", value = "Gives you a random fun fact.", inline = True)
-                emb.add_field(name = "!source", value = "Shows you the source of most facts used in !fact.", inline = True)
-                emb.add_field(name = "!flip [number]", value = "Bets a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10.", inline = True)
-                emb.add_field(name = "!blackjack [number]", value = "Starts up a game of blackjack. Once you're in a game, you can use !hit and !stay to play.", inline = True)
-                emb.add_field(name = "!leaderboard", value = "Shows you the BeardlessBucks leaderboard.", inline = True)
-                emb.add_field(name = "!d[number][+/-][modifier]", value = "Rolls a [number]-sided die and adds or subtracts the modifier. Example: !d8+3, or !d100-17.", inline = True)
-                emb.add_field(name = "!random legend/weapon", value = "Randomly selects a Brawlhalla legend or weapon for you.", inline = True)
-                emb.add_field(name = "!add", value = "Gives you a link to add this bot to your server.", inline = True)
-                emb.add_field(name = "!av [user/username]", value = "Display a user's avatar. Write just !av if you want to see your own avatar.", inline = True)
-                emb.add_field(name = "![animal name]", value = "Gets a random cat/dog/duck/fish/fox/rabbit/panda/lizard/koala/bird picture. Example: !duck", inline = True)
-                emb.add_field(name = "!define [word]", value = "Shows you the definition(s) of a word.", inline = True)
-                emb.add_field(name = "!ping", value = "Checks Beardless Bot's latency.", inline = True)
-                if text.guild:
-                    emb.add_field(name = "!buy red/blue/pink/orange", value = "Takes away 50000 BeardlessBucks from your account and grants you a special color role.", inline = True)
-                    emb.add_field(name = "!info [user/username]", value = "Displays general information about a user. Write just !info to see your own info.", inline = True)
-                    if text.author.guild_permissions.manage_messages:
-                        emb.add_field(name = "!purge [number]", value = "Mass-deletes messages", inline = True)
-                        emb.add_field(name = "!mute [target] [duration]", value = "Mutes someone for an amount of time. Accepts either seconds, minutes, or hours.", inline = True)
-                        emb.add_field(name = "!unmute [target]", value = "Unmutes the target.", inline = True)
+                commandNum = 15 if not text.guild else 20 if text.author.guild_permissions.manage_messages else 17
+                commands = (("!register", "Registers you with the currency system."),
+                    ("!balance", "Checks your BeardlessBucks balance. You can write !balance <@someone>/<username> to see that person's balance."),
+                    ("!bucks", "Shows you an explanation for how BeardlessBucks work."),
+                    ("!reset", "Resets you to 200 BeardlessBucks."),
+                    ("!fact", "Gives you a random fun fact."),
+                    ("!source", "Shows you the source of most facts used in !fact."),
+                    ("!flip [number]", "Bets a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10."),
+                    ("!blackjack [number]", "Starts up a game of blackjack. Once you're in a game, you can use !hit and !stay to play."),
+                    ("!d[number][+/-][modifier]", "Rolls a [number]-sided die and adds or subtracts the modifier. Example: !d8+3, or !d100-17."),
+                    ("!random legend/weapon", "Randomly selects a Brawlhalla legend or weapon for you."),
+                    ("!add", "Gives you a link to add this bot to your server."),
+                    ("!av [user/username]", "Display a user's avatar. Write just !av if you want to see your own avatar."),
+                    ("![animal name]", "Gets a random cat/dog/duck/fish/fox/rabbit/panda/lizard/koala/bird picture. Example: !duck"),
+                    ("!define [word]", "Shows you the definition(s) of a word."),
+                    ("!ping", "Checks Beardless Bot's latency."),
+                    ("!buy red/blue/pink/orange", "Takes away 50000 BeardlessBucks from your account and grants you a special color role."),
+                    ("!info [user/username]", "Displays general information about a user. Write just !info to see your own info."),
+                    ("!purge [number]", "Mass-deletes messages"),
+                    ("!mute [target] [duration]", "Mutes someone for an amount of time. Accepts either seconds, minutes, or hours."),
+                    ("!unmute [target]", "Unmutes the target."))
+                for command in commands[:commandNum]:
+                    emb.add_field(name = command[0], value = command[1], inline = True)
                 await text.channel.send(embed = emb)
                 return
             
@@ -681,17 +653,10 @@ class DiscordClass(client):
                             else:
                                 report = "Not enough BeardlessBucks. You need 50000 to buy a special color, " + text.author.mention + "."
                                 with open('resources/money.csv', 'r') as csvfile:
-                                    for row in csv.reader(csvfile, delimiter = ','):
-                                        if str(text.author.id) == row[0]:
-                                            if  50000 <= int(row[1]):
-                                                newLine = ",".join((row[0], str(int(row[1]) - 50000), str(text.author)))
-                                                with open("resources/money.csv", "r") as oldMoney:
-                                                    oldMoney = ''.join([i for i in oldMoney]).replace(",".join(row), newLine)
-                                                    with open("resources/money.csv", "w") as money:
-                                                        money.writelines(oldMoney)
-                                                await text.author.add_roles(role)
-                                                report = "Color " + role.mention + " purchased successfully, " + text.author.mention + "!"
-                                            break
+                                    result, bonus = writeMoney(text.author, -50000, True, True)
+                                    if result != -2:
+                                        report = "Color " + role.mention + " purchased successfully, " + text.author.mention + "!"
+                                        await text.author.add_roles(role)
                     await text.channel.send(embed = discord.Embed(title = "Beardless Bot Special Colors", description = report, color = 0xfff994))
                     return
                 
@@ -748,8 +713,8 @@ class DiscordClass(client):
                         if role and tooRecent:
                             hours, seconds = divmod(7200 - (int(time()) - tooRecent), 3600)
                             minutes, seconds = divmod(seconds, 60)
-                            report = "This region has been pinged too recently! Regions can only be pinged once every two hours, " + text.author.mention + ". You can ping again in "
-                            report += str(hours) + (" hour, " if hours == 1 else " hours, ") + str(minutes) + (" minute" if minutes == 1 else " minutes") + ", and " + str(seconds) + (" second." if seconds == 1 else " seconds.")
+                            report = ("This region has been pinged too recently! Regions can only be pinged once every two hours, {}. You can ping again in {} hour{}, {} minute{}, and {} second{}."
+                            .format(text.author.mention, str(hours), "" if hours == 1 else "s", str(minutes), "" if minutes == 1 else "s", str(seconds), "" if seconds == 1 else "s"))
                     else:
                         for channel in text.guild.channels:
                             if channel.name == "looking-for-spar":

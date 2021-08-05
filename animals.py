@@ -22,8 +22,11 @@ def animal(animalType):
         if breed.startswith("breeds"):
             r = requests.get("https://dog.ceo/api/breeds/list/all")
             return "Dog breeds: " + (", ".join(breed for breed in r.json()["message"])) + "."
-        r = requests.get("https://dog.ceo/api/breed/" + breed + "/images/random")
-        return r.json()['message'] if not r.json()['message'].startswith("Breed not found") else "Breed not found! Do !dog breeds to see all the breeds."
+        if breed.isalnum():
+            r = requests.get("https://dog.ceo/api/breed/" + breed + "/images/random")
+            if not r.json()['message'].startswith("Breed not found"):
+                return r.json()['message']
+        return "Breed not found! Do !dog breeds to see all the breeds."
     
     if animalType == "fish":
         for i in range(10):
