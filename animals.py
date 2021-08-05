@@ -49,10 +49,10 @@ def animal(animalType):
         if r.status_code == 200:
             return r.json()['link']
     
-    if animalType in ("duck"): # if animalType in ("duck", "lizard")
+    if animalType in ("duck", "lizard"):
         r = requests.get("https://nekos.life/api/v2/img/lizard" if animalType == "lizard" else "https://random-d.uk/api/quack")
         if r.status_code == 200:
             return r.json()['url']
-    print(str(r.status_code) + "; " + r.reason + "; " + animalType)
     
+    print(str(r.status_code) + "; " + r.reason + "; " + animalType)
     raise Exception("Error with the " + animalType + "API!")

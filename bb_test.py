@@ -13,11 +13,11 @@ from fact import *
 from logs import *
 
 class TestUser(discord.User):
-    def __init__(self):
-        self.name = "testname"
-        self.nick = "testnick"
+    def __init__(self, name = "testname", nick = "testnick", discriminator = "0000"):
+        self.name = name
+        self.nick = nick
         self.id = 123456789
-        self.discriminator = "0000"
+        self.discriminator = discriminator
         self.bot = False
         self.avatar = self.default_avatar
         self.roles = []
@@ -39,9 +39,9 @@ class TestChannel(discord.TextChannel):
         self.category_id = 0
 
 class TestMessage(discord.Message):
-    def __init__(self):
+    def __init__(self, content = "testcontent"):
         self.author = TestUser()
-        self.content = "testcontent"
+        self.content = content
         self.id = 123456789
         self.channel = TestChannel()
         self.type = discord.MessageType.default
@@ -64,9 +64,9 @@ def test_dog_breeds():
     assert len(animal("dog breeds")[12:-1].split(", ")) == 95
 
 def test_dog_breed(): 
-    #for breed in animal("dog breeds")[12:-1].split(", "):
-        #r = requests.head(animal("dog " + breed))
-        #assert r.ok and r.headers["content-type"] in IMAGETYPES
+    for breed in animal("dog breeds")[12:-1].split(", "):
+        r = requests.head(animal("dog " + breed))
+        assert r.ok and r.headers["content-type"] in IMAGETYPES
     assert animal("dog invalid breed") == "Breed not found! Do !dog breeds to see all the breeds."
 
 #def test_fish(): # fish API is experiencing a server outage
@@ -93,9 +93,9 @@ def test_bird():# Bird API headers lack a content-type field, so check if the UR
     r = requests.get(animal("bird"))
     assert r.ok and any(str(r.content).startswith(signature) for signature in IMAGESIGS)
 
-#def test_lizard(): # lizard API is experiencing a server outage
-    #r = requests.head(animal("lizard"))
-    #assert r.ok and r.headers["content-type"] in IMAGETYPES
+def test_lizard():
+    r = requests.head(animal("lizard"))
+    assert r.ok and r.headers["content-type"] in IMAGETYPES
 
 def test_duck():
     r = requests.head(animal("duck"))
@@ -134,7 +134,7 @@ def test_logPurge():
 
 def test_logEditMsg():
     before = TestMessage()
-    after = TestMessage()
+    after = TestMessage("newcontent")
     emb = logEditMsg(before, after)
     assert emb.description == "Messaged edited by" + before.author.mention + " in " + before.channel.mention + "."
     assert emb.fields[0].value == before.content
@@ -167,12 +167,12 @@ def test_logMemberRemove():
 
 def test_logMemberNickChange():
     before = TestUser()
-    after = TestUser()
+    after = TestUser("testuser", "newnick")
     emb = logMemberNickChange(before, after)
     assert emb.description == "Nickname of" + after.mention + " changed"
     assert emb.fields[0].value == before.nick
     assert emb.fields[1].value == after.nick
-    
+
 def test_logMemberRolesChange():
     before = TestUser()
     after = TestUser()
@@ -200,22 +200,35 @@ def test_logUnmute():
     member = TestUser()
     assert logUnmute(member, TestUser()).description == "Autounmuted " + member.mention + "."
 
-def test_register():
+def test_memSearch():
     text = TestMessage()
+    namedUser = TestUser("searchterm", "testnick", "9999")
+    text.guild.members = [TestUser(), namedUser]
+    text.content = "!av searchterm#9999"
+    assert memSearch(text) == namedUser
+    text.content = "!info searchterm"
+    assert memSearch(text) == namedUser
+    text.content = "!bal search"
+    assert memSearch(text) == namedUser
+    text.content = "!info invalidterm"
+    assert memSearch(text) == None
+
+def test_register():
+    text = TestMessage("!register")
     text.author.id = 654133911558946837
     assert register(text).description == "You are already in the system! Hooray! You have 200 BeardlessBucks, " + text.author.mention + "."
     text.author.name = ",badname,"
     assert balance(text).description == "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + "."
 
 def test_balance():
-    text = TestMessage()
+    text = TestMessage("!bal")
     text.author.id = 654133911558946837
     assert balance(text).description == "Your balance is 200 BeardlessBucks, " + text.author.mention + "."
     text.author.name = ",badname,"
     assert balance(text).description == "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + "."
 
 def test_reset():
-    text = TestMessage()
+    text = TestMessage("!reset")
     text.author.id = 654133911558946837
     assert reset(text).description == "You have been reset to 200 BeardlessBucks, " + text.author.mention + "."
     text.author.name = ",badname,"
@@ -236,7 +249,7 @@ def test_define():
 def test_blackjack_perfect():
     game = Instance(TestUser(), 10)
     game.cards = [10, 11]
-    assert game.perfect() == True and game.checkBust() == False
+    assert game.perfect() == True
 
 def test_blackjack_deal():
     game = Instance(TestUser(), 10)
@@ -275,4 +288,4 @@ def test_blackjack_startingHand():
     game.cards = []
     game.message = game.startingHand()
     assert len(game.cards) == 2
-    assert game.message.startswith("Your starting hand consists of " + game.cardName(game.cards[0]) + " and " + game.cardName(game.cards[1]) + ". Your total is " + str(sum(game.cards)) + ". ")
+    assert game.message.startswith("Your starting hand consists of a")

@@ -3,13 +3,20 @@ from collections import OrderedDict
 from operator import itemgetter
 
 import discord
+from discord.utils import find
 
-def memSearch(text): # method for finding a user based on username if no mention is provided
+def memSearch(text):
+    # method for finding a user based on username and, possibly, discriminator (#1234), if no mention is provided
     term = (text.content.split(" ", 1)[1]).lower()
+    semiMatch = looseMatch = None
     for member in text.guild.members:
-        if term in member.name.lower():
+        if term == str(member).lower():
             return member
-    return None
+        if term == member.name.lower():
+            semiMatch = member
+        if not semiMatch and term in member.name.lower():
+            looseMatch = member
+    return semiMatch if semiMatch else looseMatch
 
 def register(text):
     report = ""
@@ -17,8 +24,7 @@ def register(text):
         report = "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + "."
     else:
         with open('resources/money.csv') as csvfile:
-            reader = csv.reader(csvfile, delimiter = ',')
-            for row in reader:
+            for row in csv.reader(csvfile, delimiter = ','):
                 if str(text.author.id) == row[0]:
                     report = "You are already in the system! Hooray! You have " + row[1] + " BeardlessBucks, " + text.author.mention + "."
                     break
@@ -40,10 +46,9 @@ def balance(text):
             if not target:
                 report = "Invalid user! Please @ a user when you do !balance (or enter their username), or do !balance without a target to see your own balance, " + text.author.mention + "."
         if not report:
-            report = "Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "." if target == text.author else "Oops! That user isn't in the system! They can type \"!register\" to get a starting balance."
+            report = "Oops! You aren't in the system! Type \"!register\" to get a starting balance, " + text.author.mention + "." if target == text.author else "Oops! " + target.mention + " isn't in the system! They can type \"!register\" to get a starting balance."
             with open('resources/money.csv') as csvfile:
-                reader = csv.reader(csvfile, delimiter = ',')
-                for row in reader:
+                for row in csv.reader(csvfile, delimiter = ','):
                     if str(target.id) == row[0]:
                         report = ("Your balance is " + row[1] + " BeardlessBucks, " + text.author.mention + ".") if target == text.author else (target.mention + "'s balance is " + row[1] + " BeardlessBucks.")
                         break
@@ -55,8 +60,7 @@ def reset(text):
         report = "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + "."
     else:
         with open('resources/money.csv') as csvfile:
-            reader = csv.reader(csvfile, delimiter = ',')
-            for row in reader:
+            for row in csv.reader(csvfile, delimiter = ','):
                 if str(text.author.id) == row[0]:
                     report = "You have been reset to 200 BeardlessBucks, " + text.author.mention + "."
                     if row[1] != str(200):
@@ -76,8 +80,7 @@ def leaderboard():
     diction = {}
     emb = discord.Embed(title = "BeardlessBucks Leaderboard", description = "", color = 0xfff994)
     with open('resources/money.csv') as csvfile:
-        reader = csv.reader(csvfile, delimiter = ',')
-        for row in reader:
+        for row in csv.reader(csvfile, delimiter = ','):
             if int(row[1]): # Don't bother displaying info for people with 0 BeardlessBucks
                 diction[(row[2])[:-5]] = int(row[1])
     sortedDict = OrderedDict(sorted(diction.items(), key = itemgetter(1))) # Sort by value for each key in diction, which is BeardlessBucks balance
