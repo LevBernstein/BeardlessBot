@@ -6,11 +6,9 @@ import requests
 from animals import *
 from blackjack import *
 from bucks import *
-from define import *
-from dice import *
 from eggTweet import *
-from fact import *
 from logs import *
+from misc import *
 
 class TestUser(discord.User):
     def __init__(self, name = "testname", nick = "testnick", discriminator = "0000"):
@@ -21,6 +19,8 @@ class TestUser(discord.User):
         self.bot = False
         self.avatar = self.default_avatar
         self.roles = []
+        self.joined_at = self.created_at
+        self.activity = None
     
     def avatar_url_as(self, format = None, size = 1024):
         # Discord really doesn't like it when you construct its objects manually;
@@ -112,6 +112,8 @@ def test_tweet():
 def test_egg_formatted_tweet():
     eggTweet = tweet()
     assert eggTweet.startswith(formattedTweet(eggTweet))
+    assert not "." in formattedTweet("test.")
+    assert not "." in formattedTweet("test")
 
 def test_dice():
     message = TestMessage()
@@ -218,6 +220,7 @@ def test_register():
     text.author.id = 654133911558946837
     assert register(text).description == "You are already in the system! Hooray! You have 200 BeardlessBucks, " + text.author.mention + "."
     text.author.name = ",badname,"
+    text.author.id = 999999999999999999
     assert balance(text).description == "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + "."
 
 def test_balance():
@@ -256,6 +259,10 @@ def test_blackjack_deal():
     game.cards = [2, 3]
     game.deal()
     assert len(game.cards) == 3
+    game.cards = [11, 9]
+    game.deal()
+    assert sum(game.cards) <= 21
+    assert "your Ace has been changed" in game.message
 
 def test_blackjack_cardName():
     game = Instance(TestUser(), 10)
@@ -289,3 +296,36 @@ def test_blackjack_startingHand():
     game.message = game.startingHand()
     assert len(game.cards) == 2
     assert game.message.startswith("Your starting hand consists of a")
+
+def test_randomBrawl():
+    assert randomBrawl("!random legend").title == "Random Legend"
+    assert randomBrawl("!random weapon").title == "Random Weapon"
+    assert randomBrawl("!randominvalidrandom").title == "Brawlhalla Randomizer"
+    assert randomBrawl("!random invalidrandom").title == "Invalid random!"
+
+def test_info():
+    text = TestMessage("!info searchterm")
+    namedUser = TestUser("searchterm")
+    text.guild.members = [TestUser(), namedUser]
+    namedUser.roles = [namedUser, namedUser]
+    namedUserInfo = info(text)
+    assert namedUserInfo.fields[0].value == str(namedUser.created_at)[:-7] + " UTC"
+    assert namedUserInfo.fields[1].value == str(namedUser.joined_at)[:-7] + " UTC"
+    assert namedUserInfo.fields[2].value == namedUser.mention
+    assert info("!infoerror").title == "Invalid target!"
+
+def test_sparPins():
+    assert sparPins().title == "How to use this channel."
+    assert len(sparPins().fields) == 2
+
+def test_av():
+    text = TestMessage("!av searchterm")
+    namedUser = TestUser("searchterm")
+    text.guild.members = [TestUser(), namedUser]
+    assert av(text).image.url == namedUser.avatar_url
+    assert av("!averror").title == "Invalid target!"
+
+def test_commands():
+    text = TestMessage()
+    text.guild = None
+    assert len(commands(text).fields) == 15

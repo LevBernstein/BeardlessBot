@@ -13,6 +13,8 @@ def memSearch(text):
         if term == str(member).lower():
             return member
         if term == member.name.lower():
+            if not "#" in term:
+                return member
             semiMatch = member
         if not semiMatch and term in member.name.lower():
             looseMatch = member

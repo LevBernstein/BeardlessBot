@@ -30,9 +30,9 @@ def animal(animalType):
     
     if animalType == "fish":
         for i in range(10):
-            fishID = str(randint(2, 1969))
+            fishID = str(randint(2, 1969)) # valid range of species by id on fishbase.
             print("Fish id: " + fishID)
-            r = requests.get("https://fishbase.ropensci.org/species/" + fishID) # valid range of species by id on fishbase.
+            r = requests.get("https://fishbase.ropensci.org/species/" + fishID) 
             # there appear to be gaps in the valid range, so try some more numbers if you random into an invalid fish
             if r.status_code == 200:
                 return r.json()["data"][0]["image"]

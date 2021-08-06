@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.2.0
+# Version: Full Release 1.2.1
 
 import asyncio
 import csv
@@ -16,11 +16,9 @@ from discord.utils import get
 from animals import *
 from blackjack import *
 from bucks import *
-from define import *
-from dice import *
 from eggTweet import *
-from fact import *
 from logs import *
+from misc import *
 
 try:
     with open("resources/token.txt", "r") as f: # in token.txt, paste in your own Discord API token
@@ -394,17 +392,7 @@ class DiscordClass(client):
                 return
             
             if msg.startswith('!av'):
-                target = text.mentions[0] if text.mentions else (text.author if not text.guild or not " " in msg else memSearch(text))
-                if not target:
-                    await text.channel.send("Invalid target!")
-                    return
-                try:
-                    emb = discord.Embed(title = "", description = "", color = target.color)
-                    emb.set_author(name = str(target), icon_url = target.avatar_url)
-                    emb.set_image(url = target.avatar_url)
-                    await text.channel.send(embed = emb)
-                except discord.NotFound:
-                    await text.channel.send(embed = discord.Embed(title = "Error!", description = "Discord Member " + target.mention + " not found!", color = 0xfff994))
+                await text.channel.send(embed = av(text))
                 return
             
             if msg in ('!playlist', '!music'):
@@ -455,16 +443,7 @@ class DiscordClass(client):
                 return
             
             if msg.startswith("!random"):
-                try:
-                    ranType = msg.split(' ', 1)[1]
-                    if ranType in ("legend", "weapon"):
-                        legends = ("Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako", "Magyar", "Reno")
-                        weapons = ("Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe")
-                        await text.channel.send(embed = discord.Embed(title = "Random " + ranType, description = "Your " + ranType + " is " + choice(legends if ranType == "legend" else weapons) + ".", color = 0xfff994))
-                    else:
-                        await text.channel.send(embed = discord.Embed(title = "Invalid random!", description = "Please do !random legend or !random weapon.", color = 0xfff994))
-                except:
-                    await text.channel.send(embed = discord.Embed(title = "Brawlhalla Randomizer", description = "Please do !random legend or !random weapon to get a random legend or weapon.", color = 0xfff994))
+                await text.channel.send(embed = randomBrawl(msg))
                 return
             
             if msg == "!fact":
@@ -528,31 +507,7 @@ class DiscordClass(client):
                 return
             
             if msg in ("!commands", "!help"):
-                emb = discord.Embed(title = "Beardless Bot Commands", description = "!commands to pull up this list", color = 0xfff994)
-                commandNum = 15 if not text.guild else 20 if text.author.guild_permissions.manage_messages else 17
-                commands = (("!register", "Registers you with the currency system."),
-                    ("!balance", "Checks your BeardlessBucks balance. You can write !balance <@someone>/<username> to see that person's balance."),
-                    ("!bucks", "Shows you an explanation for how BeardlessBucks work."),
-                    ("!reset", "Resets you to 200 BeardlessBucks."),
-                    ("!fact", "Gives you a random fun fact."),
-                    ("!source", "Shows you the source of most facts used in !fact."),
-                    ("!flip [number]", "Bets a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10."),
-                    ("!blackjack [number]", "Starts up a game of blackjack. Once you're in a game, you can use !hit and !stay to play."),
-                    ("!d[number][+/-][modifier]", "Rolls a [number]-sided die and adds or subtracts the modifier. Example: !d8+3, or !d100-17."),
-                    ("!random legend/weapon", "Randomly selects a Brawlhalla legend or weapon for you."),
-                    ("!add", "Gives you a link to add this bot to your server."),
-                    ("!av [user/username]", "Display a user's avatar. Write just !av if you want to see your own avatar."),
-                    ("![animal name]", "Gets a random cat/dog/duck/fish/fox/rabbit/panda/lizard/koala/bird picture. Example: !duck"),
-                    ("!define [word]", "Shows you the definition(s) of a word."),
-                    ("!ping", "Checks Beardless Bot's latency."),
-                    ("!buy red/blue/pink/orange", "Takes away 50000 BeardlessBucks from your account and grants you a special color role."),
-                    ("!info [user/username]", "Displays general information about a user. Write just !info to see your own info."),
-                    ("!purge [number]", "Mass-deletes messages"),
-                    ("!mute [target] [duration]", "Mutes someone for an amount of time. Accepts either seconds, minutes, or hours."),
-                    ("!unmute [target]", "Unmutes the target."))
-                for command in commands[:commandNum]:
-                    emb.add_field(name = command[0], value = command[1], inline = True)
-                await text.channel.send(embed = emb)
+                await text.channel.send(embed = commands(text))
                 return
             
             if text.guild: # Server-specific commands; this check prevents an error caused by commands being used in DMs
@@ -661,20 +616,7 @@ class DiscordClass(client):
                     return
                 
                 if msg.startswith("!info"):
-                    target = text.mentions[0] if text.mentions else (text.author if not " " in msg else memSearch(text))
-                    if not target:
-                        emb = discord.Embed(name = "Invalid target!", description = "Please choose a valid target. Valid targets are either a ping or a username.", color = 0xff0000)
-                    else:
-                        emb = discord.Embed(description = target.activity.name if target.activity else "", color = target.color)
-                        # Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
-                        emb.set_author(name = str(target), icon_url = target.avatar_url)
-                        emb.set_thumbnail(url = target.avatar_url)
-                        emb.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7] + " UTC", inline = True)
-                        emb.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7] + " UTC", inline = True)
-                        if len(target.roles) > 1: # Every user has the "@everyone" role, so check if they have more roles than that
-                            emb.add_field(name = "Roles", value = ", ".join(role.mention for role in target.roles[:0:-1]), inline = False)
-                            # Reverse target.roles in order to make them display in decreasing order of power
-                    await text.channel.send(embed = emb)
+                    await text.channel.send(embed = info(text))
                     return
                 
                 if msg.startswith('!spar '):
@@ -725,10 +667,7 @@ class DiscordClass(client):
                 
                 if text.channel.name == "looking-for-spar":
                     if msg in ('!pins', '!rules', '!spar'):
-                        emb = discord.Embed(title = "How to use this channel.", description = "", color = 0xfff994)
-                        emb.add_field(name = "To spar someone from your region:", value = "Do the command !spar <region> <other info>. For instance, to find a diamond from US-E to play 2s with, I would do:\n!spar US-E looking for a diamond 2s partner.\nValid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA. !spar has a 2 hour cooldown. Please use the roles channel to give yourself the correct roles.", inline = False)
-                        emb.add_field(name = "If you don't want to get pings:", value = "Remove your region role. Otherwise, responding 'no' to calls to spar is annoying and counterproductive, and will earn you a warning.", inline = False)
-                        await text.channel.send(embed = emb)
+                        await text.channel.send(embed = sparPins())
                         return
                 
                 if msg == '!twitch':
