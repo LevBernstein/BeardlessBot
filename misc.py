@@ -22,7 +22,7 @@ def define(msg):
                     for meaning in entry["meanings"]:
                         for definition in meaning["definitions"]:
                             i += 1
-                            emb.add_field(name = "Definition " + str(i) + ":", value = definition["definition"], inline = True)
+                            emb.add_field(name = "Definition " + str(i) + ":", value = definition["definition"])
                 return emb
             except:
                 pass
@@ -69,8 +69,8 @@ def info(text):
             # Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
             emb.set_author(name = str(target), icon_url = target.avatar_url)
             emb.set_thumbnail(url = target.avatar_url)
-            emb.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7] + " UTC", inline = True)
-            emb.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7] + " UTC", inline = True)
+            emb.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7] + " UTC")
+            emb.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7] + " UTC")
             if len(target.roles) > 1: # Every user has the "@everyone" role, so check if they have more roles than that
                 emb.add_field(name = "Roles", value = ", ".join(role.mention for role in target.roles[:0:-1]), inline = False)
                 # Reverse target.roles in order to make them display in decreasing order of power
@@ -121,5 +121,26 @@ def commands(text):
         ("!mute [target] [duration]", "Mutes someone for an amount of time. Accepts either seconds, minutes, or hours."),
         ("!unmute [target]", "Unmutes the target."))
     for command in commands[:commandNum]:
-        emb.add_field(name = command[0], value = command[1], inline = True)
+        emb.add_field(name = command[0], value = command[1])
     return emb
+
+def join():
+    emb = discord.Embed(title = "Want to add this bot to your server?", description = "[Click this link!](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot)", color = 0xfff994)
+    emb.set_thumbnail(url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
+    emb.add_field(name = "If you like Beardless Bot...", value = "Please leave a review on [top.gg](https://top.gg/bot/654133911558946837).", inline = False)
+    return emb
+
+def animals():
+    emb = discord.Embed(title = "Animal Photo Commands:", description = "", color = 0xfff994)
+    emb.add_field(name = "!dog", value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>", inline = False)
+    for animalName in ("cat", "duck", "fish", "fox", "rabbit", "panda", "bird", "koala", "lizard"):
+        emb.add_field(name = "!" + animalName, value = "_ _")
+    return emb
+
+def hints():
+    with open("resources/hints.txt", "r") as f:
+        hints = f.read().splitlines()
+        emb = discord.Embed(title = "Hints for Beardless Bot's Secret Word", description = "", color = 0xfff994)
+        for i in range(len(hints)):
+            emb.add_field(name = str(i + 1), value = hints[i])
+        return emb

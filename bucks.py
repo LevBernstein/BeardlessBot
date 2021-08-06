@@ -27,6 +27,8 @@ def writeMoney(member, amount, writing, adding):
         with open("resources/money.csv") as csvfile:
             for row in csv.reader(csvfile, delimiter = ","):
                 if str(member.id) == row[0]:
+                    if isinstance(amount, str):
+                        amount = (-1 * int(row[1])) if amount[0] == "-" else int(row[1])
                     if row[1] != str(int(row[1]) + amount if adding else amount) and writing:
                         if int(row[1]) + amount < 0:
                             return -2, None
@@ -89,5 +91,5 @@ def leaderboard():
     sortedDict = OrderedDict(sorted(diction.items(), key = itemgetter(1))) # Sort by value for each key in diction, which is BeardlessBucks balance
     for i in range(min(len(sortedDict), 10)):
         tup = sortedDict.popitem()
-        emb.add_field(name = (str(i + 1) + ". " + tup[0]), value = str(tup[1]), inline = True)
+        emb.add_field(name = (str(i + 1) + ". " + tup[0]), value = str(tup[1]))
     return emb

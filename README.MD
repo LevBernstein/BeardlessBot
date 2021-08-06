@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release v1.2.1
+### Full Release v1.2.2
 
 ### Lev Bernstein
 
@@ -13,17 +13,13 @@ Originally created for use in eggsoup's discord server.
 
 1. Download the repository.
 
-2. Create a file named "token.txt" that contains your Discord API token (you can get a token [here](https://discord.com/developers/applications)).
+2. Download [Python 3](https://python.org/downloads), and then run `pip install -r resources/requirements.txt`.
 
-3. Place the token file in the resources folder.
+3. Create a file named "token.txt" that contains your Discord API token (you can get a token [here](https://discord.com/developers/applications)).
+
+4. Place the token file in the resources folder.
 
 Alternatively, if you just want to add the bot to your own Discord server while I host it, you can simply [click this link](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot), then skip down to [Setup](#setup).
-
-### Dependencies
-
-* Python 3. To install, visit https://python.org/downloads/ and follow the instructions for your OS.
-
-* Run `pip install -r requirements.txt`.
 
 ## Setup
 
@@ -34,6 +30,7 @@ Alternatively, if you just want to add the bot to your own Discord server while 
 * To use special colors, create roles named special red, special blue, special pink, and special orange.
 
 ## License
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or

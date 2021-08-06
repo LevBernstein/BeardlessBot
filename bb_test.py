@@ -155,7 +155,7 @@ def test_logDeleteChannel():
 
 def test_logCreateChannel():
     channel = TestChannel()
-    assert logCreateChannel(channel).description == "Channel " + channel.mention + " created."
+    assert logCreateChannel(channel).description == "Channel " + channel.name + " created."
 
 def test_logMemberJoin():
     member = TestUser()
@@ -221,7 +221,7 @@ def test_register():
     assert register(text).description == "You are already in the system! Hooray! You have 200 BeardlessBucks, " + text.author.mention + "."
     text.author.name = ",badname,"
     text.author.id = 999999999999999999
-    assert balance(text).description == "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + "."
+    assert register(text).description == "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + "."
 
 def test_balance():
     text = TestMessage("!bal")
@@ -267,6 +267,9 @@ def test_blackjack_deal():
 def test_blackjack_cardName():
     game = Instance(TestUser(), 10)
     assert game.cardName(10) in ("a 10", "a Jack", "a Queen", "a King")
+    assert game.cardName(11) == "an Ace"
+    assert game.cardName(8) == "an 8"
+    assert game.cardName(5) == "a 5"
 
 def test_blackjack_checkBust():
     game = Instance(TestUser(), 10)
@@ -329,3 +332,13 @@ def test_commands():
     text = TestMessage()
     text.guild = None
     assert len(commands(text).fields) == 15
+
+def test_join():
+    assert join().title == "Want to add this bot to your server?"
+
+def test_animals():
+    assert len(animals().fields) == 10
+
+def test_hints():
+    with open("resources/hints.txt", "r") as f:
+        assert len(hints().fields) == len(f.read().splitlines())

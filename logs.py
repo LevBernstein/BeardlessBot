@@ -34,7 +34,7 @@ def logDeleteChannel(channel):
     return emb
 
 def logCreateChannel(channel):
-    emb = discord.Embed(description = "Channel " + channel.mention + " created.", color = 0x00ff00)
+    emb = discord.Embed(description = "Channel " + channel.name + " created.", color = 0x00ff00)
     emb.set_author(name = "Channel created", icon_url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
     return emb
 
