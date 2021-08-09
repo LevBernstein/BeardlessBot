@@ -1,12 +1,13 @@
 # Beardless Bot Unit Tests
 
 import discord
+import pytest
 import requests
 
 from animals import *
 from blackjack import *
+from brawl import *
 from bucks import *
-from eggTweet import *
 from logs import *
 from misc import *
 
@@ -100,6 +101,10 @@ def test_lizard():
 def test_duck():
     r = requests.head(animal("duck"))
     assert r.ok and r.headers["content-type"] in IMAGETYPES
+
+def test_invalid_animal():
+    with pytest.raises(Exception):
+        animal("invalidAnimal")
 
 def test_fact():
     with open("resources/facts.txt", "r") as f:
@@ -342,3 +347,10 @@ def test_animals():
 def test_hints():
     with open("resources/hints.txt", "r") as f:
         assert len(hints().fields) == len(f.read().splitlines())
+
+def test_fetchBrawlID():
+    assert fetchBrawlID(196354892208537600) == 7032472
+    assert not fetchBrawlID(654133911558946837)
+
+def test_fetchLegends():
+    assert len(fetchLegends()) == 53

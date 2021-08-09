@@ -1,9 +1,10 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.2.2
+# Version: Full Release 1.3.0
 
 import asyncio
 import csv
+import json
 from datetime import datetime
 from random import choice, randint
 from sys import exit as sysExit
@@ -15,27 +16,34 @@ from discord.utils import get
 
 from animals import *
 from blackjack import *
+from brawl import *
 from bucks import *
-from eggTweet import *
 from logs import *
 from misc import *
 
 try:
     with open("resources/token.txt", "r") as f: # in token.txt, paste in your own Discord API token
         token = f.readline()
-except Exception as err:
-    print(err)
+except:
+    print("Fatal error: no Discord API token. Shutting down.")
     sysExit(-1)
+
+try:
+    with open("resources/brawlhallaKey.txt", "r") as f: # in brawlhallaKey.txt, paste in your own Brawlhalla API key
+        brawlKey = f.readline()
+except:
+    print("No Brawlhalla API key. Brawlhalla-specific commands will not be active.")
+    brawlKey = None
 
 try:
     with open("resources/secretWord.txt") as f:
         secretWord = f.readline()
         if len(secretWord) < 2:
-            raise Exception("No secret word!")
+            raise Exception
+    secretFound = False
 except:
-    secretWord = "".join(str(randint(0, 9)) for n in range(20))
-
-secretFound = False
+    print("Secret word has not been defined. Continuing as normal.")
+    secretWord = None
 
 # This dictionary is for keeping track of pings in the various looking-for-spar channels.
 sparPings = {}
@@ -54,9 +62,8 @@ class DiscordClass(client):
         except discord.HTTPException:
             print("Failed to update status! You might be restarting the bot too many times.")
         try:
-            with open("images/prof.png", "rb") as g:
-                pic = g.read()
-                await client.user.edit(avatar = pic)
+            with open("images/prof.png", "rb") as f:
+                await client.user.edit(avatar = f.read())
                 print("Avatar live!")
         except discord.HTTPException:
             print("Avatar failed to update! You might be sending requests too quickly.")
@@ -88,7 +95,7 @@ class DiscordClass(client):
                 except:
                     pass
             await guild.leave()
-            print("Left " + guild.name + ". Beardless Bot is now in " + str(len(client.guilds)) + " servers.")
+            print("Left {}. Beardless Bot is now in {} servers.".format(guild.name, len(client.guilds)))
         return
     
     @client.event
@@ -200,7 +207,7 @@ class DiscordClass(client):
     async def on_message(text):
         if not text.author.bot:
             msg = text.content.lower()
-            if msg.startswith('!bj') or msg.startswith('!bl'):
+            if msg.startswith('!bj') or msg.startswith('!bl'): # for command: alias blackjack !bj, bet
                 if ',' in text.author.name:
                     report = "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + "."
                 else:
@@ -279,67 +286,57 @@ class DiscordClass(client):
                 return
             
             if msg in ('!stay', '!stand'):
-                if ',' in text.author.name:
-                    report = "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + "."
-                else:
-                    report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
-                    for i in range(len(games)):
-                        if games[i].getUser() == text.author:
-                            gamer = games[i]
-                            bet = gamer.bet
-                            result = gamer.stay()
-                            report = "The dealer has a total of " + str(gamer.dealerSum) + "."
-                            if result == -3:
-                                report += " That's closer to 21 than your sum of " + str(sum(gamer.cards)) + ". You lose"
-                                bet *= -1
-                                if bet:
-                                    report += ". Your loss has been deducted from your balance"
-                            elif result == 0:
-                                report += " That ties your sum of " + str(sum(gamer.cards))
-                                if bet:
-                                    report += ". Your money has been returned"
-                            elif result == 3:
-                                report += " You're closer to 21 with a sum of " + str(sum(gamer.cards))
-                            elif result == 4:
-                                report += " You have a sum of " + str(sum(gamer.cards)) + ". The dealer busts"
-                            if result >= 3 and bet:
-                                report += ". You win! Your winnings have been added to your balance"
-                            if result and bet:
-                                writeMoney(text.author, bet, True, True)
-                            elif not bet:
-                                report += ". {}ou bet nothing, so your balance has not changed".format("Y" if not result else "However, y")
-                            report += ", " + text.author.mention + "."
-                            games.pop(i)
-                            break
+                report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
+                for i in range(len(games)):
+                    if games[i].getUser() == text.author:
+                        gamer = games[i]
+                        bet = gamer.bet
+                        result = gamer.stay()
+                        report = "The dealer has a total of {}."
+                        if result == -3:
+                            report += " That's closer to 21 than your sum of {}. You lose. Your loss has been deducted from your balance, {}."
+                            if bet:
+                                bet = -bet
+                        elif result == 0:
+                            report += " That ties your sum of {}. Your bet has been returned, {}."
+                        elif result == 3:
+                            report += " You're closer to 21 with a sum of {}. You win! Your winnings have been added to your balance, {}."
+                        elif result == 4:
+                            report += " You have a sum of {}. The dealer busts. You win! Your winnings have been added to your balance, {}."
+                        report = report.format(str(gamer.dealerSum), str(sum(gamer.cards)), text.author.mention)
+                        if not bet:
+                            report += " Except, you bet nothing, so this was all pointless."
+                        elif result:
+                            written, bonus = writeMoney(text.author, bet, True, True)
+                            if written == -1:
+                                report = bonus
+                        games.pop(i)
+                        break
                 await text.channel.send(embed = discord.Embed(title = "Beardless Bot Blackjack", description = report, color = 0xfff994))
                 return
             
-            if secretWord in msg.split(" "):
-                global secretFound
-                if not secretFound:
-                    secretFound = True
-                    report = "Ping Captain No-Beard for your prize, " + text.author.mention + "!"
-                    if not "," in text.author.name:
-                        report = "100000 BeardlessBucks have been added to your account, " + text.author.mention + "!"
-                        print("Secret word found by " + str(text.author))
-                        writeMoney(text.author, 100000, True, True)
-                    await text.channel.send(embed = discord.Embed(title = "Well done! You found the secret word, " + secretWord + "!", description = report,  color = 0xfff994))
-                    return
+            if secretWord:
+                if secretWord in msg.split(" "):
+                    global secretFound
+                    if not secretFound:
+                        secretFound = True
+                        print("Secret word found by {} in {}.".format(text.author.name, text.guild.name))
+                        result, bonus = writeMoney(text.author, 100000, True, True)
+                        report = "Ping Captain No-Beard for your prize, {}!" if result == -1 else "100000 BeardlessBucks have been added to your account, {}!"
+                        await text.channel.send(embed = discord.Embed(title = "Well done! You found the secret word, " + secretWord + "!", description = report.format(text.author.mention),  color = 0xfff994))
+                        return
             
             if msg in ("!hint", "!hints"):
-                if not secretWord.isnumeric():
+                if secretWord:
                     await text.channel.send(embed = hints())
                 else:
-                    await text.channel.send("Secret word has not been defined!")
+                    await text.channel.send("Secret word has not been defined.")
                 return
             
             if msg.startswith('!flip'):
-                report = ""
-                for i in range(len(games)):
-                    if games[i].getUser() == text.author:
-                        report = "Please finish your game of blackjack first, {}."
-                        break
-                if not report:
+                if any(text.author == game.getUser() for game in games):
+                    report = "Please finish your game of blackjack first, {}." 
+                else:
                     heads = randint(0, 1)
                     strBet = msg.split('!flip ',1)[1] if len(msg) > 6 else 10
                     if msg == "!flip":
@@ -355,7 +352,7 @@ class DiscordClass(client):
                     report = "Invalid bet amount. Please choose a number >-1, {}."
                     if (isinstance(bet, str) and "all" in bet) or (isinstance(bet, int) and bet >= 0):
                         if isinstance(bet, int) and not heads:
-                            bet *= -1
+                            bet = -bet
                         result, bonus = writeMoney(text.author, bet, True, True)
                         report = ("Heads! You win! Your winnings have been added to" if heads else "Tails! You lose! Your loss has been deducted from") + " your balance, {}."
                         if result == -1:
@@ -364,15 +361,64 @@ class DiscordClass(client):
                             report = "You do not have enough BeardlessBucks to bet that much, {}!"
                         elif result == 2:
                             report = "You were not registered for BeardlessBucks gambling, so I have automatically registered you. You now have 300 BeardlessBucks, {}."
+                        elif result == 0:
+                            report += " Or, they would have been, if you had actually bet anything."
                 await text.channel.send(embed = discord.Embed(title = "Beardless Bot Coin Flip", description = report.format(text.author.mention), color = 0xfff994))
                 return
             
+            if brawlKey:
+                if msg.startswith("!brawlclaim"):
+                    brawlID = None
+                    try:
+                        profUrl = msg.split(" ")[1]
+                        brawlID = int(profUrl) if profUrl.isnumeric() else getBrawlID(brawlKey, profUrl)
+                        if not brawlID:
+                            raise Exception
+                    except:
+                        report = "Invalid profile URL/Brawlhalla ID! Please do !brawlclaim followed by the URL of your steam profile.\nExample: !brawlclaim https://steamcommunity.com/id/beardless\nAlternatively, you can claim via your Brawlhalla ID, which you can find in the top right corner of your inventory.\nExample: !brawlclaim 7032472."
+                    if brawlID:
+                        try:
+                            claimProfile(brawlKey, text.author.id, brawlID)
+                            report = "Profile claimed."
+                        except Exception as err:
+                            print(err)
+                            report = "Oops, I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
+                    await text.channel.send(embed = discord.Embed(title = "Beardless Bot Brawlhalla Rank", description = report, color = 0xfff994))
+                    return
+                
+                if msg.startswith("!brawlrank"):
+                    target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(msg)
+                    try:
+                        rank = getRank(target, brawlKey)
+                        if not rank:
+                            report = "You need to claim your profile first! Do !brawlclaim."
+                        elif rank == -1:
+                            report = "You haven't played ranked yet this season."
+                        else:
+                            await text.channel.send(embed = rank)
+                            return
+                    except Exception as err:
+                        print(err)
+                        report = "Oops, I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
+                    await text.channel.send(report)
+                    return
+                '''
+                if msg == "!brawlstats":
+                    try:
+                        report = getStats(text.author.id, brawlKey)
+                        if not report:
+                            report = "You need to claim your profile first! Do !brawlclaim."
+                    except:
+                        report = "Oops, I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
+                    await text.channel.send(report)
+                    return
+                '''
             if msg.startswith('!av'):
                 await text.channel.send(embed = av(text))
                 return
             
             if msg in ('!playlist', '!music'):
-                await text.channel.send('Here\'s my playlist (discord will only show the first hundred songs): https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg')
+                await text.channel.send("Here's my playlist (discord will only show the first hundred songs): https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg")
                 return
             
             if msg in ("!leaderboard", "!leaderboards", "!lb"):
@@ -429,7 +475,7 @@ class DiscordClass(client):
             animalName = msg[1:].split(" ", 1)[0]
             if animalName in ("dog", "moose"):
                 if msg in ("!dog moose", "!moose"):
-                    mooseNum = randint(1, 36)
+                    mooseNum = randint(1, 38)
                     await text.channel.send(file = discord.File('images/moose/moose' + str(mooseNum) + (".gif" if mooseNum < 4 else ".jpg")))
                     return
                 try:
@@ -438,7 +484,7 @@ class DiscordClass(client):
                         await text.channel.send(dogUrl)
                         return
                     breed = "Hound" if "hound" in dogUrl else dogUrl.split("/")[-2]
-                    emb = discord.Embed(title = "Random " + breed.title() + " Picture", description = "", color = 0xfff994)
+                    emb = discord.Embed(title = "Random " + breed.title(), description = "", color = 0xfff994)
                     emb.set_image(url = dogUrl)
                     await text.channel.send(embed = emb)
                 except:
@@ -447,7 +493,7 @@ class DiscordClass(client):
             
             if msg.startswith("!") and animalName in ("cat", "duck", "fish", "fox", "rabbit", "bunny", "panda", "bird", "koala", "lizard"):
                 try:
-                    emb = discord.Embed(title = "Random " + animalName.title() + " Picture", description = "", color = 0xfff994)
+                    emb = discord.Embed(title = "Random " + animalName.title(), description = "", color = 0xfff994)
                     emb.set_image(url = animal(animalName))
                     await text.channel.send(embed = emb)
                 except Exception as err:
@@ -552,14 +598,14 @@ class DiscordClass(client):
                         await text.channel.send("You do not have permission to use this command, " + text.author.mention + ".")
                         return
                     try:
-                        await text.channel.purge(limit = int(msg.split(" ", 1)[1]) + 1, check = lambda msg: not msg.pinned)
+                        await text.channel.purge(limit = int(msg.split(" ", 1)[1]) + 1, check = lambda message: not message.pinned)
                     except:
                         await text.channel.send("Invalid message number!")
                     return
                 
                 if msg.startswith('!buy'): # Requires roles named special blue, special pink, special orange, and special red.
                     report = "Invalid color. Choose blue, red, orange, or pink, {}."
-                    if message != "!buy":
+                    if msg != "!buy":
                         color = msg.split(" ", 1)[1]
                         role = get(text.guild.roles, name = 'special ' + color)
                         if color not in ("blue", "pink", "orange", "red"):
@@ -586,7 +632,7 @@ class DiscordClass(client):
                     await text.channel.send(embed = info(text))
                     return
                 
-                if msg.startswith('!spar '):
+                if msg.startswith('!spar '): # command rewrite uses region, *
                     if text.channel.name == "looking-for-spar":
                         report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. If you need help, try doing !pins."
                         tooRecent = None

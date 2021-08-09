@@ -16,7 +16,7 @@ def define(msg):
         r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
         if r.status_code == 200:
             try:
-                emb = discord.Embed(title = word.upper(), description = "Audio: " + r.json()[0]['phonetics'][0]['audio'], color = 0xfff994)
+                emb = discord.Embed(title = word.upper(), description = "Audio: https:" + r.json()[0]['phonetics'][0]['audio'], color = 0xfff994)
                 i = 0
                 for entry in r.json():
                     for meaning in entry["meanings"]:
@@ -48,18 +48,6 @@ def rollReport(text):
 def fact():
     with open("resources/facts.txt", "r") as f:
         return choice(f.read().splitlines())
-
-def randomBrawl(msg):
-    try:
-        ranType = msg.split(' ', 1)[1]
-        if ranType in ("legend", "weapon"):
-            legends = ("Bodvar", "Cassidy", "Orion", "Lord Vraxx", "Gnash", "Queen Nai", "Hattori", "Sir Roland", "Scarlet", "Thatch", "Ada", "Sentinel", "Lucien", "Teros", "Brynn", "Asuri", "Barraza", "Ember", "Azoth", "Koji", "Ulgrim", "Diana", "Jhala", "Kor", "Wu Shang", "Val", "Ragnir", "Cross", "Mirage", "Nix", "Mordex", "Yumiko", "Artemis", "Caspian", "Sidra", "Xull", "Kaya", "Isaiah", "Jiro", "Lin Fei", "Zariel", "Rayman", "Dusk", "Fait", "Thor", "Petra", "Vector", "Volkov", "Onyx", "Jaeyun", "Mako", "Magyar", "Reno")
-            weapons = ("Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe")
-            return discord.Embed(title = "Random " + ranType.title(), description = "Your {} is {}.".format(ranType, choice(legends if ranType == "legend" else weapons)), color = 0xfff994)
-        else:
-            return discord.Embed(title = "Invalid random!", description = "Please do !random legend or !random weapon.", color = 0xfff994)
-    except:
-        return discord.Embed(title = "Brawlhalla Randomizer", description = "Please do !random legend or !random weapon to get a random legend or weapon.", color = 0xfff994)
 
 def info(text):
     try:
@@ -144,3 +132,30 @@ def hints():
         for i in range(len(hints)):
             emb.add_field(name = str(i + 1), value = hints[i])
         return emb
+
+# The following Markov chain code was originally provided by CSTUY SHIP.
+def tweet():
+    with open('resources/eggtweets_clean.txt', 'r') as f:
+        words = f.read().split()
+    chains = {}
+    keySize = randint(1, 2)
+    for i in range(len(words) - keySize):
+        key = ' '.join(words[i : i + keySize]) 
+        value = words[i + keySize]
+        if key in chains:
+            chains[key].append(value)
+        else:
+            chains[key] = [value]
+    key = choice(list(chains.keys()))
+    s = key
+    for i in range(randint(10, 35)):
+        word = choice(chains[key])
+        s += ' ' + word
+        key = ' '.join(key.split()[1:keySize + 1]) + ' ' + word if keySize > 1 else word
+    return s[0].title() + s[1:]
+
+def formattedTweet(tweet):
+    for i in range(len(tweet)):
+        if tweet[len(tweet) - i - 1] in (".", "!", "?"):
+            return (tweet[:(len(tweet) - i - 1)])
+    return tweet

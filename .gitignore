@@ -4,3 +4,6 @@ secretWord.txt
 __pycache__
 testResults.md
 .coverage
+htmlcov/*
+brawlhallaKey.txt
+weatherKey.txt

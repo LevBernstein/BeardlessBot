@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release v1.2.2
+### Full Release v1.3.0
 
 ### Lev Bernstein
 
@@ -18,6 +18,8 @@ Originally created for use in eggsoup's discord server.
 3. Create a file named "token.txt" that contains your Discord API token (you can get a token [here](https://discord.com/developers/applications)).
 
 4. Place the token file in the resources folder.
+
+5. As of Full Release v1.3.0, Beardless Bot supports calls to the Brawlhalla API. If you don't have [an API key](https://dev.brawlhalla.com/), those commands will simply be disabled; the Bot will work fine. If you do have an API key, place it in a file named "brawlhallaKey.txt" in the resources folder.
 
 Alternatively, if you just want to add the bot to your own Discord server while I host it, you can simply [click this link](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot), then skip down to [Setup](#setup).
 

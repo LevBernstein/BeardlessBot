@@ -5,6 +5,7 @@ import requests
 from random import randint
 
 def animal(animalType):
+    r = None
     if animalType == "cat":
         # cat API has been throwing 503 errors every other call, likely due to rate limiting
         for i in range(10):
@@ -57,5 +58,8 @@ def animal(animalType):
         if r.status_code == 200:
             return r.json()['url']
     
-    print(str(r.status_code) + "; " + r.reason + "; " + animalType)
-    raise Exception("Error with the " + animalType + "API!")
+    if r:
+        print(str(r.status_code) + "; " + r.reason + "; " + animalType)
+        raise Exception("Error with the " + animalType + "API!")
+    else:
+        raise Exception("Invalid animal!")
