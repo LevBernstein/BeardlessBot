@@ -44,6 +44,7 @@ class Instance:
             for i in range(len(self.cards)):
                 if self.cards[i] == 11:
                     self.cards[i] = 1
+                    self.bet *= -1
                     break
             self.message += "Because you would have busted, your Ace has been changed from an 11 to 1 . Your new total is " + str(sum(self.cards)) + ". "
         self.message += "Your card values are " + ", ".join(str(card) for card in self.cards) + ". The dealer is showing " + str(self.dealerUp) + ", with one card face down."

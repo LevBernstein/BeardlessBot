@@ -53,12 +53,11 @@ def info(text):
     try:
         target = text.mentions[0] if text.mentions else (text.author if not " " in text.content else memSearch(text))
         if target:
-            emb = discord.Embed(description = target.activity.name if target.activity else "", color = target.color)
             # Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
-            emb.set_author(name = str(target), icon_url = target.avatar_url)
-            emb.set_thumbnail(url = target.avatar_url)
-            emb.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7] + " UTC")
-            emb.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7] + " UTC")
+            emb = (discord.Embed(description = target.activity.name if target.activity else "", color = target.color)
+            .set_author(name = str(target), icon_url = target.avatar_url).set_thumbnail(url = target.avatar_url)
+            .add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7] + " UTC")
+            .add_field(name = "Joined this server on", value = str(target.joined_at)[:-7] + " UTC"))
             if len(target.roles) > 1: # Every user has the "@everyone" role, so check if they have more roles than that
                 emb.add_field(name = "Roles", value = ", ".join(role.mention for role in target.roles[:0:-1]), inline = False)
                 # Reverse target.roles in order to make them display in decreasing order of power
@@ -77,9 +76,7 @@ def av(text):
     try:
         target = text.mentions[0] if text.mentions else (text.author if not text.guild or not " " in text.content else memSearch(text))
         if target:
-            emb = discord.Embed(title = "", description = "", color = target.color)
-            emb.set_author(name = str(target), icon_url = target.avatar_url)
-            emb.set_image(url = target.avatar_url)
+            emb = discord.Embed(color = target.color).set_author(name = str(target), icon_url = target.avatar_url).set_image(url = target.avatar_url)
             return emb
     except:
         pass
@@ -113,14 +110,13 @@ def commands(text):
     return emb
 
 def join():
-    emb = discord.Embed(title = "Want to add this bot to your server?", description = "[Click this link!](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot)", color = 0xfff994)
-    emb.set_thumbnail(url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
-    emb.add_field(name = "If you like Beardless Bot...", value = "Please leave a review on [top.gg](https://top.gg/bot/654133911558946837).", inline = False)
+    emb = (discord.Embed(title = "Want to add this bot to your server?", description = "[Click this link!](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot)", color = 0xfff994)
+    .set_thumbnail(url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
+    .add_field(name = "If you like Beardless Bot...", value = "Please leave a review on [top.gg](https://top.gg/bot/654133911558946837).", inline = False))
     return emb
 
 def animals():
-    emb = discord.Embed(title = "Animal Photo Commands:", description = "", color = 0xfff994)
-    emb.add_field(name = "!dog", value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>", inline = False)
+    emb = discord.Embed(title = "Animal Photo Commands:", color = 0xfff994).add_field(name = "!dog", value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>", inline = False)
     for animalName in ("cat", "duck", "fish", "fox", "rabbit", "panda", "bird", "koala", "lizard"):
         emb.add_field(name = "!" + animalName, value = "_ _")
     return emb

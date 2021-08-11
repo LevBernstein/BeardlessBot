@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.3.0
+# Version: Full Release 1.3.1
 
 import asyncio
 import csv
@@ -48,8 +48,8 @@ except:
 # This dictionary is for keeping track of pings in the various looking-for-spar channels.
 sparPings = {}
 
-games = [] # Stores the active instances of blackjack. A list works for storing these, but once the Bot reaches verified status
-# (more than 75 servers), will have to switch to a more efficient data structure
+games = [] # Stores the active instances of blackjack. A list works for storing these, but once the Bot
+# reaches verified status (more than 75 servers), will have to switch to a more efficient data structure
 
 client = discord.Client(intents = discord.Intents.all())
 class DiscordClass(client):
@@ -88,15 +88,15 @@ class DiscordClass(client):
             print("Not given admin perms in " + guild.name + "...")
             for channel in guild.channels:
                 try:
-                    emb = discord.Embed(title = "I need admin perms!", description = "Beardless Bot requires permissions in order to do just about anything. Without them, I can't do much, so I'm leaving. If you add me back to this server, please make sure to leave checked the box that grants me the Administrator permission.\nIf you have any questions, feel free to contact my creator, Captain No-Beard#7511.", color = 0xff0000)
-                    emb.set_author(name = "Beardless Bot", icon_url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
-                    await channel.send(embed = emb)
+                    await channel.send(embed = (discord.Embed(title = "I need admin perms!", description = "Beardless Bot requires permissions in order to do just \
+                    about anything. Without them, I can't do much, so I'm leaving. If you add me back to this server, please make sure to leave checked the box that \
+                    grants me the Administrator permission.\nIf you have any questions, feel free to contact my creator, Captain No-Beard#7511.", color = 0xff0000)
+                    .set_author(name = "Beardless Bot", icon_url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")))
                     break
                 except:
                     pass
             await guild.leave()
             print("Left {}. Beardless Bot is now in {} servers.".format(guild.name, len(client.guilds)))
-        return
     
     @client.event
     async def on_message_delete(text):
@@ -104,8 +104,7 @@ class DiscordClass(client):
             for channel in text.guild.channels:
                 if channel.name == "bb-log":
                     await channel.send(embed = logDeleteMsg(text))
-                    break
-        return
+                    return
     
     @client.event
     async def on_bulk_message_delete(textArr):
@@ -115,9 +114,8 @@ class DiscordClass(client):
                     try:
                         await channel.send(embed = logPurge(textArr[0], textArr))
                     except:
-                        pass
-                    break
-        return
+                        return
+                    return
     
     @client.event
     async def on_message_edit(before, after):
@@ -127,9 +125,8 @@ class DiscordClass(client):
                     try:
                         await channel.send(embed = logEditMsg(before, after))
                     except:
-                        pass
-                    break
-        return
+                        return
+                    return
     
     @client.event
     async def on_reaction_clear(text, reactions):
@@ -139,41 +136,36 @@ class DiscordClass(client):
                     try:
                         await channel.send(embed = logClearReacts(text, reactions))
                     except:
-                        pass
-                    break
-        return
+                        return
+                    return
     
     @client.event
     async def on_guild_channel_delete(ch):
         for channel in ch.guild.channels:
             if channel.name == "bb-log":
                 await channel.send(embed = logDeleteChannel(ch))
-                break
-        return
+                return
     
     @client.event
     async def on_guild_channel_create(ch):
         for channel in ch.guild.channels:
             if channel.name == "bb-log":
                 await channel.send(embed = logCreateChannel(ch))
-                break
-        return
+                return
     
     @client.event
     async def on_member_join(member):
         for channel in member.guild.channels:
             if channel.name == "bb-log":
                 await channel.send(embed = logMemberJoin(member))
-                break
-        return
+                return
     
     @client.event
     async def on_member_remove(member):
         for channel in member.guild.channels:
             if channel.name == "bb-log":
                 await channel.send(embed = logMemberRemove(member))
-                break
-        return
+                return
     
     @client.event
     async def on_member_update(before, after):
@@ -183,24 +175,21 @@ class DiscordClass(client):
                     await channel.send(embed = logMemberNickChange(before, after))
                 elif before.roles != after.roles:
                     await channel.send(embed = logMemberRolesChange(before, after))
-                break
-        return
+                return
     
     @client.event
     async def on_member_ban(guild, member):
         for channel in guild.channels:
             if channel.name == "bb-log":
                 await channel.send(embed = logBan(member))
-                break
-        return
+                return
     
     @client.event
     async def on_member_unban(guild, member):
         for channel in guild.channels:
             if channel.name == "bb-log":
                 await channel.send(embed = logUnban(member))
-                break
-        return
+                return
     
     # TODO: switch to command event instead of on_message for most commands
     @client.event
@@ -352,7 +341,7 @@ class DiscordClass(client):
                     report = "Invalid bet amount. Please choose a number >-1, {}."
                     if (isinstance(bet, str) and "all" in bet) or (isinstance(bet, int) and bet >= 0):
                         if isinstance(bet, int) and not heads:
-                            bet = -bet
+                            bet *= -1
                         result, bonus = writeMoney(text.author, bet, True, True)
                         report = ("Heads! You win! Your winnings have been added to" if heads else "Tails! You lose! Your loss has been deducted from") + " your balance, {}."
                         if result == -1:
@@ -375,10 +364,10 @@ class DiscordClass(client):
                         if not brawlID:
                             raise Exception
                     except:
-                        report = "Invalid profile URL/Brawlhalla ID! Please do !brawlclaim followed by the URL of your steam profile.\nExample: !brawlclaim https://steamcommunity.com/id/beardless\nAlternatively, you can claim via your Brawlhalla ID, which you can find in the top right corner of your inventory.\nExample: !brawlclaim 7032472."
+                        report = ("" if msg == "!brawlclaim" else "Invalid profile URL/Brawlhalla ID! ") + "Please do !brawlclaim followed by the URL of your steam profile.\nExample: !brawlclaim https://steamcommunity.com/id/beardless\nAlternatively, you can claim via your Brawlhalla ID, which you can find in the top right corner of your inventory.\nExample: !brawlclaim 7032472."
                     if brawlID:
                         try:
-                            claimProfile(brawlKey, text.author.id, brawlID)
+                            claimProfile(text.author.id, brawlID)
                             report = "Profile claimed."
                         except Exception as err:
                             print(err)
@@ -387,7 +376,7 @@ class DiscordClass(client):
                     return
                 
                 if msg.startswith("!brawlrank"):
-                    target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(msg)
+                    target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(text)
                     try:
                         rank = getRank(target, brawlKey)
                         if not rank:
@@ -400,19 +389,30 @@ class DiscordClass(client):
                     except Exception as err:
                         print(err)
                         report = "Oops, I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
-                    await text.channel.send(report)
+                    await text.channel.send(embed = discord.Embed(title = "Beardless Bot Brawlhalla Rank", description = report, color = 0xfff994))
                     return
                 '''
                 if msg == "!brawlstats":
+                    target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(text)
                     try:
-                        report = getStats(text.author.id, brawlKey)
-                        if not report:
-                            report = "You need to claim your profile first! Do !brawlclaim."
+                        report = getStats(target, brawlKey)
+                        if report:
+                            await text.channel.send(embed = report)
+                            return
+                        report = "You need to claim your profile first! Do !brawlclaim."
                     except:
                         report = "Oops, I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
                     await text.channel.send(report)
                     return
                 '''
+                if msg.startswith("!legend") or msg.startswith("!brawllegend"):
+                    legendName = msg.split("legend ", 1)[1]
+                    try:
+                        return legendInfo(brawlkey, legendName)
+                    except:
+                        pass
+                    return
+                
             if msg.startswith('!av'):
                 await text.channel.send(embed = av(text))
                 return
@@ -471,6 +471,7 @@ class DiscordClass(client):
             
             if msg == "!animals":
                 await text.channel.send(embed = animals())
+                return
             
             animalName = msg[1:].split(" ", 1)[0]
             if animalName in ("dog", "moose"):
@@ -484,18 +485,14 @@ class DiscordClass(client):
                         await text.channel.send(dogUrl)
                         return
                     breed = "Hound" if "hound" in dogUrl else dogUrl.split("/")[-2]
-                    emb = discord.Embed(title = "Random " + breed.title(), description = "", color = 0xfff994)
-                    emb.set_image(url = dogUrl)
-                    await text.channel.send(embed = emb)
+                    await text.channel.send(embed = discord.Embed(title = "Random " + breed.title(), color = 0xfff994).set_image(url = dogUrl))
                 except:
                     await text.channel.send("Something's gone wrong with the dog API! Please ping my creator and he'll see what's going on.")
                 return
             
             if msg.startswith("!") and animalName in ("cat", "duck", "fish", "fox", "rabbit", "bunny", "panda", "bird", "koala", "lizard"):
                 try:
-                    emb = discord.Embed(title = "Random " + animalName.title(), description = "", color = 0xfff994)
-                    emb.set_image(url = animal(animalName))
-                    await text.channel.send(embed = emb)
+                    await text.channel.send(embed = discord.Embed(title = "Random " + animalName.title(), color = 0xfff994).set_image(url = animal(animalName)))
                 except Exception as err:
                     print(err)
                     if animalName == "fish":
@@ -510,10 +507,9 @@ class DiscordClass(client):
             
             if msg == "!ping":
                 startTime = datetime.now()
-                message = await text.channel.send(embed = discord.Embed(title = "Pinging...", description = "", color = 0xfff994))
-                emb = discord.Embed(title = "Pinged!", description = "Beardless Bot's latency is " + str(int((datetime.now() - startTime).total_seconds() * 1000)) + "ms.", color = 0xfff994)
-                emb.set_thumbnail(url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
-                await message.edit(embed = emb)
+                message = await text.channel.send(embed = discord.Embed(title = "Pinging...", color = 0xfff994))
+                await message.edit(embed = discord.Embed(title = "Pinged!", description = "Beardless Bot's latency is " + str(int((datetime.now() - startTime).total_seconds() * 1000)) + "ms.", color = 0xfff994)
+                .set_thumbnail(url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"))
                 return
             
             if msg.startswith('!d') and ((msg.split('!d',1)[1])[0]).isnumeric() and len(msg) < 12:
@@ -556,15 +552,15 @@ class DiscordClass(client):
                                 if duration != "1":
                                     mString += "s"
                             await target.add_roles(role)
-                            emb = discord.Embed(title = "Beardless Bot Mute", description = "Muted " + target.mention + ((" for " + duration + mString + ".") if mTime else "."), color = 0xfff994)
-                            emb.set_author(name = str(text.author), icon_url = text.author.avatar_url)
-                            await text.channel.send(embed = emb)
+                            report = "Muted " + target.mention + ((" for " + duration + mString + ".") if mTime else ".")
+                            await text.channel.send(embed = discord.Embed(title = "Beardless Bot Mute", description = report, color = 0xfff994)
+                            .set_author(name = str(text.author), icon_url = text.author.avatar_url))
                             for channel in text.guild.channels:
                                 if channel.name == "bb-log":
                                     await channel.send(embed = logMute(target, text, duration, mString, mTime))
                                     break
                             if mTime: # Autounmute:
-                                print("Muted " + str(target) + " for " + str(mTime))
+                                print("Muted {} for {} in {}.".format(target, mTime, text.guild.name))
                                 await asyncio.sleep(mTime)
                                 await target.remove_roles(role)
                                 print("Autounmuted " + target.name)
@@ -678,35 +674,29 @@ class DiscordClass(client):
                     await text.channel.send(report)
                     return
                 
-                if text.channel.name == "looking-for-spar":
-                    if msg in ('!pins', '!rules', '!spar'):
-                        await text.channel.send(embed = sparPins())
-                        return
-                
-                if msg == '!twitch':
-                    emb = discord.Embed(title = "Captain No-Beard's Twitch Stream", description = "https://twitch.tv/capnnobeard", color = 0xfff994)
-                    emb.set_thumbnail(url = "https://yt3.ggpht.com/ytc/AKedOLStPqU8W7FinOREV9HpU1P9Zm23O9qOlbmbPWoZ=s88-c-k-c0x00ffffff-no-rj")
-                    await text.channel.send(embed = emb)
+                if text.channel.name == "looking-for-spar" and msg in ('!pins', '!rules', '!spar'):
+                    await text.channel.send(embed = sparPins())
                     return
                 
-                if text.guild.id == 797140390993068035: # Commands for Jetspec's Discord server.
-                    if msg == '!file':
-                        jet = await text.guild.fetch_member("579316676642996266")
-                        await text.channel.send(jet.mention)
-                        print("Pinging Jetspec.")
-                        return
+                if msg == '!twitch':
+                    await text.channel.send(embed = discord.Embed(title = "Captain No-Beard's Twitch Stream", description = "https://twitch.tv/capnnobeard", color = 0xfff994)
+                    .set_thumbnail(url = "https://yt3.ggpht.com/ytc/AKedOLStPqU8W7FinOREV9HpU1P9Zm23O9qOlbmbPWoZ=s88-c-k-c0x00ffffff-no-rj"))
+                    return
+                
+                if text.guild.id == 797140390993068035 and msg == '!file': # Command for Jetspec's Discord server.
+                    jet = await text.guild.fetch_member("579316676642996266")
+                    await text.channel.send(jet.mention)
+                    print("Pinging Jetspec.")
+                    return
                 
                 if text.guild.id == 442403231864324119: # Commands for eggsoup's Discord server.
                     if msg in ('!tweet', '!eggtweet'):
-                        emb = discord.Embed(title = "eggsoup(@eggsouptv)", description = "", color = 0x1da1f2)
-                        emb.add_field(name = "_ _", value = formattedTweet(tweet()))
-                        await text.channel.send(embed = emb)
+                        await text.channel.send(embed = discord.Embed(title = "eggsoup(@eggsouptv)", description = formattedTweet(tweet()), color = 0x1da1f2))
                         return
                     
                     if msg == '!reddit':
-                        emb = discord.Embed(title = "The Official Eggsoup Subreddit", description = "https://www.reddit.com/r/eggsoup/", color = 0xfff994)
-                        emb.set_thumbnail(url = "https://styles.redditmedia.com/t5_2m5xhn/styles/communityIcon_0yqex29y6lu51.png?width=256&s=fcf916f19b8f0bffff91d512691837630b378d80")
-                        await text.channel.send(embed = emb)
+                        await text.channel.send(embed = discord.Embed(title = "The Official Eggsoup Subreddit", description = "https://www.reddit.com/r/eggsoup/", color = 0xfff994)
+                        .set_thumbnail(url = "https://styles.redditmedia.com/t5_2m5xhn/styles/communityIcon_0yqex29y6lu51.png?width=256&s=fcf916f19b8f0bffff91d512691837630b378d80"))
                         return
                     
                     if msg == '!guide':

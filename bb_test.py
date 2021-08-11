@@ -309,7 +309,7 @@ def test_randomBrawl():
     assert randomBrawl("!random legend").title == "Random Legend"
     assert randomBrawl("!random weapon").title == "Random Weapon"
     assert randomBrawl("!randominvalidrandom").title == "Brawlhalla Randomizer"
-    assert randomBrawl("!random invalidrandom").title == "Invalid random!"
+    assert randomBrawl("!random invalidrandom").title == "Brawlhalla Randomizer"
 
 def test_info():
     text = TestMessage("!info searchterm")

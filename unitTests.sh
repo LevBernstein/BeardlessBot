@@ -2,3 +2,4 @@
 echo "# Beardless Bot Unit Test Results" > testResults.md;
 coverage run -m pytest -Wignore --tb=line |& tee -a testResults.md;
 coverage report -m --include=$(echo $PWD)/* |& tee -a testResults.md;
+rm .coverage
