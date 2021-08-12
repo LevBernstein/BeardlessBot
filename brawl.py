@@ -56,14 +56,22 @@ def getLegends(brawlKey):
         dump(r.json(), f, indent = 4)
 
 def legendInfo(brawlKey, legendName):
-    # see https://github.com/BrawlDB/gerard3/blob/master/src/commands/bhInfo.js#L124 for formatting
+    # TODO: add legend images as thumbnail
     for legend in fetchLegends():
         if legendName in legend["legend_name_key"]:
-            return requests.get("https://api.brawlhalla.com/legend/{}/?api_key={}"
-            .format(legend["legend_id"], brawlKey)).json()
+            r = requests.get("https://api.brawlhalla.com/legend/{}/?api_key={}".format(legend["legend_id"], brawlKey)).json()
+            bio = r["bio_text"].replace("\n", "\n\n") + "\n\n"
+            spaceCheck = -2 if legendName in ("reno", "teros") else -1
+            quoteOne = r["bio_quote"] + " *" + (r["bio_quote_about_attrib"])[1:-1] + "*"
+            quoteTwo = r["bio_quote_from"] + " *" + (r["bio_quote_from_attrib"])[1:spaceCheck] + "*"
+            quotes = "\n\n".join(("**Quotes**", quoteOne.replace("\\n", " "), quoteTwo.replace("\\n", " ")))
+            return (discord.Embed(title = r["bio_name"] + ", " + r["bio_aka"], description = bio + quotes, color = 0xfff994)
+            .add_field(name = "Weapons", value = (r["weapon_one"] + ", " + r["weapon_two"]).replace("Fists", "Gauntlets").replace("Pistol", "Blasters"))
+            .add_field(name = "Stats", value = "{} Str, {} Dex, {} Def, {} Spd".format(r["strength"], r["dexterity"], r["defense"], r["speed"])))
     return "Invalid legend!"
 
 def getRank(target, brawlKey):
+    # TODO: add rank images as thumbnail
     brawlID = fetchBrawlID(target.id)
     if not brawlID:
         return None
@@ -106,6 +114,7 @@ def getRank(target, brawlKey):
     return emb
 
 def getStats(discordID, brawlKey):
+    # TODO: convert json into embed
     brawlID = fetchBrawlID(discordID)
     if not brawlID:
         return "You need to do !claim first!"
@@ -113,6 +122,7 @@ def getStats(discordID, brawlKey):
     return r.json()
 
 def getClan(discordID, brawlKey):
+    # TODO: convert json into embed
     brawlID = fetchBrawlID(discordID)
     if not brawlID:
         return "You need to do !claim first!"

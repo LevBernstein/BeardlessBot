@@ -153,5 +153,5 @@ def tweet():
 def formattedTweet(tweet):
     for i in range(len(tweet)):
         if tweet[len(tweet) - i - 1] in (".", "!", "?"):
-            return (tweet[:(len(tweet) - i - 1)])
-    return tweet
+            return "\n" + tweet[:(len(tweet) - i - 1)]
+    return "\n" + tweet

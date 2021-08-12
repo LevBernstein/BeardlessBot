@@ -1,5 +1,7 @@
 # Beardless Bot Unit Tests
 
+from json import dump, load
+
 import discord
 import pytest
 import requests
@@ -116,7 +118,7 @@ def test_tweet():
 
 def test_egg_formatted_tweet():
     eggTweet = tweet()
-    assert eggTweet.startswith(formattedTweet(eggTweet))
+    assert ("\n" + eggTweet).startswith(formattedTweet(eggTweet))
     assert not "." in formattedTweet("test.")
     assert not "." in formattedTweet("test")
 
@@ -354,3 +356,13 @@ def test_fetchBrawlID():
 
 def test_fetchLegends():
     assert len(fetchLegends()) == 53
+
+def test_claimProfile():
+    with open("resources/claimedProfs.json", "r") as f:
+        profsLen = len(load(f))
+    #"196354892208537600": 7032472
+    claimProfile(196354892208537600, 1)
+    with open("resources/claimedProfs.json", "r") as f:
+        assert profsLen == len(load(f))
+    assert fetchBrawlID(196354892208537600) == 1
+    claimProfile(196354892208537600, 7032472)

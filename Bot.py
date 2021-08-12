@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.3.1
+# Version: Full Release 1.3.2
 
 import asyncio
 import csv
@@ -408,9 +408,9 @@ class DiscordClass(client):
                 if msg.startswith("!legend") or msg.startswith("!brawllegend"):
                     legendName = msg.split("legend ", 1)[1]
                     try:
-                        return legendInfo(brawlkey, legendName)
+                        await text.channel.send(embed = legendInfo(brawlKey, legendName))
                     except:
-                        pass
+                        await text.channel.send("Invalid legend!")
                     return
                 
             if msg.startswith('!av'):
