@@ -1,12 +1,12 @@
 # Beardless Bot Brawlhalla Commands
 
+from datetime import datetime
 from json import dump, load
 from random import choice
 
 import discord
 import requests
 import steam
-
 from steam.steamid import SteamID
 
 def randomBrawl(msg):
@@ -51,27 +51,25 @@ def getBrawlID(brawlKey, profileURL):
         return None
 
 def getLegends(brawlKey):
-    r = requests.get("https://api.brawlhalla.com/legend/all/?api_key={}".format(brawlKey))
     with open("resources/legends.json", "w") as f:
-        dump(r.json(), f, indent = 4)
+        dump(requests.get("https://api.brawlhalla.com/legend/all/?api_key={}".format(brawlKey)).json(), f, indent = 4)
 
 def legendInfo(brawlKey, legendName):
     # TODO: add legend images as thumbnail
     for legend in fetchLegends():
         if legendName in legend["legend_name_key"]:
             r = requests.get("https://api.brawlhalla.com/legend/{}/?api_key={}".format(legend["legend_id"], brawlKey)).json()
-            bio = r["bio_text"].replace("\n", "\n\n") + "\n\n"
-            spaceCheck = -2 if legendName in ("reno", "teros") else -1
+            spaceCheck = -2 if legendName in ("reno", "teros", "hattori") else -1 # problematic extra space in 2nd quote for these legends
             quoteOne = r["bio_quote"] + " *" + (r["bio_quote_about_attrib"])[1:-1] + "*"
             quoteTwo = r["bio_quote_from"] + " *" + (r["bio_quote_from_attrib"])[1:spaceCheck] + "*"
-            quotes = "\n\n".join(("**Quotes**", quoteOne.replace("\\n", " "), quoteTwo.replace("\\n", " ")))
-            return (discord.Embed(title = r["bio_name"] + ", " + r["bio_aka"], description = bio + quotes, color = 0xfff994)
+            bio = "\n\n".join((r["bio_text"].replace("\n", "\n\n"), "**Quotes**", quoteOne.replace("\\n", " "), quoteTwo.replace("\\n", " ")))
+            return (discord.Embed(title = r["bio_name"] + ", " + r["bio_aka"], description = bio, color = 0xfff994)
             .add_field(name = "Weapons", value = (r["weapon_one"] + ", " + r["weapon_two"]).replace("Fists", "Gauntlets").replace("Pistol", "Blasters"))
             .add_field(name = "Stats", value = "{} Str, {} Dex, {} Def, {} Spd".format(r["strength"], r["dexterity"], r["defense"], r["speed"])))
-    return "Invalid legend!"
+    return None
 
 def getRank(target, brawlKey):
-    # TODO: add rank images as thumbnail
+    # TODO: add rank images as thumbnail, clan below name
     brawlID = fetchBrawlID(target.id)
     if not brawlID:
         return None
@@ -83,7 +81,7 @@ def getRank(target, brawlKey):
     .set_footer(text = "Brawl ID {}".format(brawlID)).set_author(name = str(target), icon_url = target.avatar_url))
     if r["games"]:
         embVal = "**{}** ({}/{} Peak)\n{} W / {} L / {}% winrate".format(r["tier"], r["rating"], 
-        r["peak_rating"], r["wins"], r["games"] - r["wins"], round(r["wins"]/r["games"] * 100, 1))
+        r["peak_rating"], r["wins"], r["games"] - r["wins"], round(r["wins"] / r["games"] * 100, 1))
         if r["legends"]:
             topLegend = None
             for legend in r["legends"]:
@@ -92,47 +90,71 @@ def getRank(target, brawlKey):
             if topLegend:
                 embVal += "\nTop Legend: {}, {} ELO".format(topLegend[0].title(), topLegend[1])
         emb.add_field(name = "Ranked 1s", value = embVal)
-        if emb.color == discord.Color(0xfff994):
-            for key, value in rankColors.items():
-                if key in r["tier"]:
-                    emb.color = value
-                    break
-    twosTeam = None
+        for key, value in rankColors.items():
+            if key in r["tier"]:
+                emb.color = value
+                break
     if r["2v2"]:
+        twosTeam = None
         for team in r["2v2"]:
             if not twosTeam or twosTeam["rating"] < team["rating"]:
                 twosTeam = team
-    if twosTeam:
-        emb.add_field(name = "Ranked 2s", value = "**{}\n{}** ({} / {} Peak)\n{} W / {} L / {}% winrate"
-        .format(twosTeam["teamname"], twosTeam["tier"], twosTeam["rating"], twosTeam["peak_rating"],
-        twosTeam["wins"], twosTeam["games"] - twosTeam["wins"], round(twosTeam["wins"]/twosTeam["games"] * 100, 1)))
-        if emb.color == discord.Color(0xfff994):
-            for key, value in rankColors.items():
-                if key in twosTeam["tier"]:
-                    emb.color = value
-                    break
+        if twosTeam:
+            emb.add_field(name = "Ranked 2s", value = "**{}\n{}** ({} / {} Peak)\n{} W / {} L / {}% winrate"
+            .format(twosTeam["teamname"], twosTeam["tier"], twosTeam["rating"], twosTeam["peak_rating"],
+            twosTeam["wins"], twosTeam["games"] - twosTeam["wins"], round(twosTeam["wins"] / twosTeam["games"] * 100, 1)))
+            if emb.color == discord.Color(0xfff994) or twosTeam["rating"] > r["rating"]:
+                for key, value in rankColors.items():
+                    if key in twosTeam["tier"]:
+                        emb.color = value
+                        break
     return emb
 
-def getStats(discordID, brawlKey):
-    # TODO: convert json into embed
-    brawlID = fetchBrawlID(discordID)
+def getStats(target, brawlKey):
+    # TODO: add clan below name
+    brawlID = fetchBrawlID(target.id)
     if not brawlID:
-        return "You need to do !claim first!"
-    r = requests.get("https://api.brawlhalla.com/player/{}/stats?api_key={}".format(brawlID, brawlKey))
-    return r.json()
+        return None
+    r = requests.get("https://api.brawlhalla.com/player/{}/stats?api_key={}".format(brawlID, brawlKey)).json()
+    emb = (discord.Embed(title = "Brawlhalla Stats for {}".format(r["name"]), color = 0xfff994)
+    .set_footer(text = "Brawl ID {}".format(brawlID)).set_author(name = str(target), icon_url = target.avatar_url)
+    .add_field(name = "Name", value = r["name"]).add_field(name = "Overall W/L",value = "{} Wins / {} Losses\n{} Games\n{}% Winrate"
+    .format(r["wins"], r["games"] - r["wins"], r["games"], round(r["wins"] / r["games"] * 100, 1))))
+    if r["legends"]:
+        topUsed = topWinrate = topDPS = topTTK = None
+        for legend in r["legends"]:
+            if not topUsed or topUsed[1] < legend["xp"]:
+                topUsed = (legend["legend_name_key"].title(), legend["xp"])
+            if not topWinrate or topWinrate[1] < round(legend["wins"] / legend["games"] * 100, 1):
+                topWinrate = (legend["legend_name_key"].title(), round(legend["wins"] / legend["games"] * 100, 1))
+            if not topDPS or topDPS[1] < round(int(legend["damagedealt"]) / legend["matchtime"], 1):
+                topDPS = (legend["legend_name_key"].title(), round(int(legend["damagedealt"]) / legend["matchtime"], 1))
+            if not topTTK or topTTK[1] > round(legend["matchtime"] / legend["kos"], 1):
+                topTTK = (legend["legend_name_key"].title(), round(legend["matchtime"] / legend["kos"], 1))
+        if all((topUsed, topWinrate, topDPS, topTTK)):
+            emb.add_field(value = "**Most Played:** {}\n**Highest Winrate:** {}, {}%\n**Highest Avg DPS:** {}, {}\n**Shortest Avg TTK:** {}, {}s"
+            .format(topUsed[0], topWinrate[0], topWinrate[1], topDPS[0], topDPS[1], topTTK[0], topTTK[1]), name = "Legend Stats (20 game min)")
+    return emb
 
 def getClan(discordID, brawlKey):
-    # TODO: convert json into embed
     brawlID = fetchBrawlID(discordID)
     if not brawlID:
-        return "You need to do !claim first!"
+        return None
     # takes two API calls: one to get clan ID from player stats, one to get clan from clan ID
     r = requests.get("https://api.brawlhalla.com/player/{}/stats?api_key={}".format(brawlID, brawlKey))
+    if not r.json()["clan"]:
+        return -1
     clanID = r.json()["clan"]["clan_id"]
-    r = requests.get("https://api.brawlhalla.com/clan/{}/?api_key={}".format(clanID, brawlKey))
-    return r.json()
+    r = requests.get("https://api.brawlhalla.com/clan/{}/?api_key={}".format(clanID, brawlKey)).json()
+    emb = (discord.Embed(title = r["clan_name"], color = 0xfff994, description = "**Clan Created:** {}\n**Experience:** {}\n**Members:** {}"
+    .format(str(datetime.fromtimestamp(r["clan_create_date"]))[:-9], r["clan_xp"], len(r["clan"]))).set_footer(text = "Clan ID {}".format(r["clan_id"])))
+    for i in range(min(len(r["clan"]), 10)):
+        member = r["clan"][i]
+        emb.add_field(name = member["name"], value = "{} ({} xp)\nJoined {}"
+        .format(member["rank"], member["xp"], str(datetime.fromtimestamp(member["join_date"]))[:-9]))
+    return emb
 
-# maybe implement leaderboard; glory https://github.com/BrawlDB/gerard3/blob/master/src/utils/glory.js
+# maybe implement leaderboard, glory https://github.com/BrawlDB/gerard3/blob/master/src/utils/glory.js
 
 if __name__ == "__main__":
     try:
@@ -141,13 +163,3 @@ if __name__ == "__main__":
     except Exception as err:
         print(err)
         brawlKey = None
-    
-    #print(legendInfo(brawlKey, "thor"))
-    #print(getBrawlID(brawlKey, "https://steamcommunity.com/profiles/76561198347389883/"))
-    #claimProfile(196354892208537600, 7032472)
-    #claimProfile(195467081137782786, getBrawlID(brawlKey, "https://steamcommunity.com/id/SharkySharkinson/"))
-    #print(fetchBrawlID(196354892208537600))
-    #print(getRank(196354892208537600, brawlKey))
-    #print(getStats(196354892208537600, brawlKey))
-    #print(getClan(196354892208537600, brawlKey))
-    getLegends(brawlKey)

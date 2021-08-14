@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.3.2
+# Version: Full Release 1.3.3
 
 import asyncio
 import csv
@@ -356,6 +356,19 @@ class DiscordClass(client):
                 return
             
             if brawlKey:
+                if msg == "!brawl":
+                    brawlCommands = (("!brawlclaim", "Claims a Brawlhalla account, allowing the other commands."),
+                        ("!brawlrank", "Displays a user's ranked information."),
+                        ("!brawlstats", "Displays a user's general stats."),
+                        ("!brawlclan", "Displays a user's clan information."),
+                        ("!brawllegend", "Displays lore and stats for a legend."),
+                        ("!random legend/weapon", "Randomly chooses a legend or weapon for you to play."))
+                    emb = discord.Embed(title = "Beardless Bot Brawlhalla Commands", color = 0xfff994)
+                    for command in brawlCommands:
+                        emb.add_field(name = command[0], value = command[1])
+                    await text.channel.send(embed = emb)
+                    return
+                
                 if msg.startswith("!brawlclaim"):
                     brawlID = None
                     try:
@@ -376,8 +389,8 @@ class DiscordClass(client):
                     return
                 
                 if msg.startswith("!brawlrank"):
-                    target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(text)
                     try:
+                        target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(text)
                         rank = getRank(target, brawlKey)
                         if not rank:
                             report = "You need to claim your profile first! Do !brawlclaim."
@@ -391,26 +404,48 @@ class DiscordClass(client):
                         report = "Oops, I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
                     await text.channel.send(embed = discord.Embed(title = "Beardless Bot Brawlhalla Rank", description = report, color = 0xfff994))
                     return
-                '''
-                if msg == "!brawlstats":
-                    target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(text)
+                
+                if msg.startswith("!brawlstats"):
                     try:
+                        target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(text)
                         report = getStats(target, brawlKey)
                         if report:
                             await text.channel.send(embed = report)
                             return
-                        report = "You need to claim your profile first! Do !brawlclaim."
-                    except:
+                        report = "You need to claim your profile first! Please do !brawlclaim."
+                    except Exception as err:
+                        print(err)
                         report = "Oops, I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
                     await text.channel.send(report)
                     return
-                '''
-                if msg.startswith("!legend") or msg.startswith("!brawllegend"):
-                    legendName = msg.split("legend ", 1)[1]
+                
+                if msg.startswith("!brawllegend "):
                     try:
-                        await text.channel.send(embed = legendInfo(brawlKey, legendName))
-                    except:
-                        await text.channel.send("Invalid legend!")
+                        legend = legendInfo(brawlKey, msg.split("!brawllegend ", 1)[1])
+                        if legend:
+                            await text.channel.send(embed = legend)
+                        else:
+                            await text.channel.send("Invalid legend! Please do !brawllegend followed by a legend name.")
+                    except Exception as err:
+                        print(err)
+                        await text.channel.send("Oops, I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later.")
+                    return
+                
+                if msg.startswith("!brawlclan"):
+                    try:
+                        target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(text)
+                        report = getClan(target.id, brawlKey)
+                        if not report:
+                            report = "You need to claim your profile first! Do !brawlclaim."
+                        elif report == -1:
+                            report = "You are not in a clan!"
+                        else:
+                            await text.channel.send(embed = report)
+                            return
+                    except Exception as err:
+                        print(err)
+                        report = "Oops, I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
+                    await text.channel.send(report)
                     return
                 
             if msg.startswith('!av'):

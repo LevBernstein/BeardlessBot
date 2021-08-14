@@ -94,7 +94,7 @@ def commands(text):
         ("!flip [number]", "Bets a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10."),
         ("!blackjack [number]", "Starts up a game of blackjack. Once you're in a game, you can use !hit and !stay to play."),
         ("!d[number][+/-][modifier]", "Rolls a [number]-sided die and adds or subtracts the modifier. Example: !d8+3, or !d100-17."),
-        ("!random legend/weapon", "Randomly selects a Brawlhalla legend or weapon for you."),
+        ("!brawl", "Displays Beardless Bot's Brawlhalla-specific commands."),
         ("!add", "Gives you a link to add this bot to your server."),
         ("!av [user/username]", "Display a user's avatar. Write just !av if you want to see your own avatar."),
         ("![animal name]", "Gets a random cat/dog/duck/fish/fox/rabbit/panda/lizard/koala/bird picture. Example: !duck"),

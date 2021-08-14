@@ -16,7 +16,9 @@ def memSearch(text):
             if not "#" in term:
                 return member
             semiMatch = member
-        if not semiMatch and term in member.name.lower():
+        if member.nick and term == member.nick.lower() and not semiMatch:
+            looseMatch = member
+        if not semiMatch and not looseMatch and term in member.name.lower():
             looseMatch = member
     return semiMatch if semiMatch else looseMatch
 
