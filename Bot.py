@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.3.3
+# Version: Full Release 1.3.4
 
 import asyncio
 import csv
@@ -357,15 +357,15 @@ class DiscordClass(client):
             
             if brawlKey:
                 if msg == "!brawl":
+                    emb = discord.Embed(title = "Beardless Bot Brawlhalla Commands", color = 0xfff994)
                     brawlCommands = (("!brawlclaim", "Claims a Brawlhalla account, allowing the other commands."),
                         ("!brawlrank", "Displays a user's ranked information."),
                         ("!brawlstats", "Displays a user's general stats."),
                         ("!brawlclan", "Displays a user's clan information."),
                         ("!brawllegend", "Displays lore and stats for a legend."),
                         ("!random legend/weapon", "Randomly chooses a legend or weapon for you to play."))
-                    emb = discord.Embed(title = "Beardless Bot Brawlhalla Commands", color = 0xfff994)
-                    for command in brawlCommands:
-                        emb.add_field(name = command[0], value = command[1])
+                    for commandPair in brawlCommands:
+                        emb.add_field(name = commandPair[0], value = commandPair[1])
                     await text.channel.send(embed = emb)
                     return
                 
@@ -739,7 +739,11 @@ class DiscordClass(client):
                         return
                     
                     if msg == "!notify":
-                        report = "On " + choice(("Youtube, sub -> eggsoup", "Twitch, Subscribe -> Eggsoup", "r/eggsoup, join -> now", "Twitter, follow -> eggsoup", "brawlhalla, settings -> quit", "brawlhalla, scythe -> miss", "Unarmed, dlight -> everything", "Sword, dlight -> sair", "all legends, design rework -> ugly", "Toilet, poop -> flush", "Microsoft Word, ctrl c -> ctrl v", )) + " is true. He might get mad if I randomly ping him, so I’d rather somebody more important than me tell him this. This could be in a future brawlhalla guide or something do I just wanted to let him know"
+                        memes = ("Youtube, sub -> eggsoup", "Twitch, Subscribe -> Eggsoup", "r/eggsoup, join -> now",
+                            "Twitter, follow -> eggsoup", "brawlhalla, settings -> quit", "brawlhalla, scythe -> miss",
+                            "Unarmed, dlight -> everything", "Sword, dlight -> sair", "all legends, design rework -> ugly",
+                            "Toilet, poop -> flush", "Microsoft Word, ctrl c -> ctrl v")
+                        report = "On " + choice(memes) + " is true. He might get mad if I randomly ping him, so I’d rather somebody more important than me tell him this. This could be in a future brawlhalla guide or something do I just wanted to let him know"
                         await text.channel.send(embed = discord.Embed(title = "Hey can someone notify egg about this?", description = report, color = 0xfff994))
                         return
                     

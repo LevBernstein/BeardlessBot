@@ -74,7 +74,8 @@ def logUnban(member):
     .set_author(name = "Member unbanned", icon_url = member.avatar_url).set_thumbnail(url = member.avatar_url))
 
 def logMute(member, message, duration, mString, mTime):
-    return (discord.Embed(title = "Beardless Bot Mute", description = "Muted " + member.mention + ((" for " + duration + mString) if mTime else "") + " in " + message.channel.mention + ".", color = 0xff0000)
+    return (discord.Embed(title = "Beardless Bot Mute", color = 0xff0000,
+    description = "Muted " + member.mention + ((" for " + duration + mString) if mTime else "") + " in " + message.channel.mention + ".")
     .set_author(name = str(message.author), icon_url = message.author.avatar_url))
 
 def logUnmute(member, author):

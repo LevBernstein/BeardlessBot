@@ -1,8 +1,8 @@
 # Animal images for Beardless Bot
 
-import requests
-
 from random import randint
+
+import requests
 
 def animal(animalType):
     r = None
@@ -22,7 +22,7 @@ def animal(animalType):
         breed = animalType.split(" ", 1)[1]
         if breed.startswith("breeds"):
             r = requests.get("https://dog.ceo/api/breeds/list/all")
-            return "Dog breeds: " + (", ".join(breed for breed in r.json()["message"])) + "."
+            return "Dog breeds: " + ", ".join(br for br in r.json()["message"]) + "."
         if breed.isalnum():
             r = requests.get("https://dog.ceo/api/breed/" + breed + "/images/random")
             if not r.json()['message'].startswith("Breed not found"):
@@ -49,7 +49,6 @@ def animal(animalType):
         return "https://bunnies.media/gif/" + str(randint(2, 163)) + ".gif"
     
     if animalType in ("panda", "koala", "bird"):
-        # panda API has had some performance issues lately
         r = requests.get("https://some-random-api.ml/img/" + ("birb" if animalType == "bird" else animalType))
         if r.status_code == 200:
             return r.json()['link']
@@ -60,6 +59,8 @@ def animal(animalType):
             return r.json()['url']
     
     if r:
+        if isinstance(r, str):
+            raise Exception(r)
         print(str(r.status_code) + "; " + r.reason + "; " + animalType)
         raise Exception("Error with the " + animalType + "API!")
     else:

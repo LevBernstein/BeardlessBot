@@ -20,29 +20,29 @@ def define(msg):
                 i = 0
                 for entry in r.json():
                     for meaning in entry["meanings"]:
-                        for definition in meaning["definitions"]:
-                            i += 1
-                            emb.add_field(name = "Definition " + str(i) + ":", value = definition["definition"])
+                        for i in range(len(meaning["definitions"])):
+                            emb.add_field(name = "Definition " + str(i + 1) + ":", value = meaning["definitions"][i]["definition"])
                 return emb
             except:
                 pass
     return discord.Embed(title = "Beardless Bot Definitions", description = report, color = 0xfff994)
 
-def roll(message): # takes a string of the format !dn+b and rolls one n-sided die with a modifier of b.
+def roll(message):
+    # Takes a string of the format !dn+b and rolls one n-sided die with a modifier of b. Modifier is optional.
     command = message.split('!d', 1)[1]
     modifier = -1 if "-" in command else 1
-    sides = (4, 6, 8, 10, 12, 20, 100)
-    if command.startswith("4") or command.startswith("6") or command.startswith("8"):
-        return randint(1, int(command[0])) + modifier * int(command[2:]) if len(command) != 1 and (command[1] == "+" or command[1] == "-") else randint(1, int(command[0])) if int(command) in sides else None
-    elif command.startswith("100"):
-        return randint(1, 100) + modifier*int(command[4:]) if len(command) != 3 and (command[3] == "+" or command[3] == "-") else randint(1, 100) if int(command) in sides else None
-    elif command.startswith("10") or command.startswith("12") or command.startswith("20"):
-        return randint(1, int(command[:2])) + modifier * int(command[3:]) if len(command) != 2 and (command[2] == "+" or command[2] == "-") else randint(1, int(command[:2])) if int(command) in sides else None
-    return None
+    sides = ("4", "6", "8", "100", "10", "12", "20")
+    for side in sides:
+        if command.startswith(side):
+            if len(command) > len(side) and command[len(side)] == modifier:
+                return randint(1, int(side)) + modifier * int(command[1 + len(side):])
+            return randint(1, int(side)) if command == side else None
 
 def rollReport(text):
     result = roll(text.content.lower())
-    report = "You got " + str(result) + ", " + text.author.mention + "." if result else "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
+    report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
+    if result:
+        report = "You got {}, {}.".format(result, text.author.mention)
     return discord.Embed(title = "Beardless Bot Dice", description = report, color = 0xfff994)
 
 def fact():
@@ -67,17 +67,23 @@ def info(text):
     return discord.Embed(title = "Invalid target!", description = "Please choose a valid target. Valid targets are either a ping or a username.", color = 0xff0000)
 
 def sparPins():
-    emb = discord.Embed(title = "How to use this channel.", description = "", color = 0xfff994)
-    emb.add_field(name = "To spar someone from your region:", value = "Do the command !spar <region> <other info>. For instance, to find a diamond from US-E to play 2s with, I would do:\n!spar US-E looking for a diamond 2s partner.\nValid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA. !spar has a 2 hour cooldown. Please use the roles channel to give yourself the correct roles.", inline = False)
-    emb.add_field(name = "If you don't want to get pings:", value = "Remove your region role. Otherwise, responding 'no' to calls to spar is annoying and counterproductive, and will earn you a warning.", inline = False)
-    return emb
+    sparDesc = ("Do the command !spar <region> <other info>.",
+        "For instance, to find a diamond from US-E to play 2s with, I would do:",
+        "!spar US-E looking for a diamond 2s partner.",
+        "Valid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA.",
+        "!spar has a 2 hour cooldown.",
+        "Please use the roles channel to give yourself the correct roles.")
+    return (discord.Embed(title = "How to use this channel.", description = "", color = 0xfff994)
+    .add_field(name = "To spar someone from your region:", value = "\n".join(sparDesc), inline = False)
+    .add_field(name = "If you don't want to get pings:", inline = False,
+    value = "Remove your region role. Otherwise, responding 'no' to calls to spar is annoying and counterproductive, and will earn you a warning."))
 
 def av(text):
     try:
         target = text.mentions[0] if text.mentions else (text.author if not text.guild or not " " in text.content else memSearch(text))
         if target:
-            emb = discord.Embed(color = target.color).set_author(name = str(target), icon_url = target.avatar_url).set_image(url = target.avatar_url)
-            return emb
+            return (discord.Embed(color = target.color).set_image(url = target.avatar_url)
+            .set_author(name = str(target), icon_url = target.avatar_url))
     except:
         pass
     return discord.Embed(title = "Invalid target!", description = "Please choose a valid target. Valid targets are either a ping or a username.", color = 0xff0000)
@@ -85,7 +91,7 @@ def av(text):
 def commands(text):
     emb = discord.Embed(title = "Beardless Bot Commands", description = "!commands to pull up this list", color = 0xfff994)
     commandNum = 15 if not text.guild else 20 if text.author.guild_permissions.manage_messages else 17
-    commands = (("!register", "Registers you with the currency system."),
+    commandList = (("!register", "Registers you with the currency system."),
         ("!balance", "Checks your BeardlessBucks balance. You can write !balance <@someone>/<username> to see that person's balance."),
         ("!bucks", "Shows you an explanation for how BeardlessBucks work."),
         ("!reset", "Resets you to 200 BeardlessBucks."),
@@ -105,18 +111,19 @@ def commands(text):
         ("!purge [number]", "Mass-deletes messages"),
         ("!mute [target] [duration]", "Mutes someone for an amount of time. Accepts either seconds, minutes, or hours."),
         ("!unmute [target]", "Unmutes the target."))
-    for command in commands[:commandNum]:
-        emb.add_field(name = command[0], value = command[1])
+    for commandPair in commandList[:commandNum]:
+        emb.add_field(name = commandPair[0], value = commandPair[1])
     return emb
 
 def join():
-    emb = (discord.Embed(title = "Want to add this bot to your server?", description = "[Click this link!](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot)", color = 0xfff994)
+    return (discord.Embed(title = "Want to add this bot to your server?", color = 0xfff994,
+    description = "[Click this link!](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot)")
     .set_thumbnail(url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
     .add_field(name = "If you like Beardless Bot...", value = "Please leave a review on [top.gg](https://top.gg/bot/654133911558946837).", inline = False))
-    return emb
 
 def animals():
-    emb = discord.Embed(title = "Animal Photo Commands:", color = 0xfff994).add_field(name = "!dog", value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>", inline = False)
+    emb = discord.Embed(title = "Animal Photo Commands:", color = 0xfff994).add_field(name = "!dog",
+    value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>", inline = False)
     for animalName in ("cat", "duck", "fish", "fox", "rabbit", "panda", "bird", "koala", "lizard"):
         emb.add_field(name = "!" + animalName, value = "_ _")
     return emb
@@ -151,6 +158,7 @@ def tweet():
     return s[0].title() + s[1:]
 
 def formattedTweet(tweet):
+    # Remove the last piece of punctuation to create a more realistic tweet
     for i in range(len(tweet)):
         if tweet[len(tweet) - i - 1] in (".", "!", "?"):
             return "\n" + tweet[:(len(tweet) - i - 1)]
