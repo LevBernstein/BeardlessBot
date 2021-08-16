@@ -165,7 +165,7 @@ def test_logEditMsg():
 def test_logClearReacts():
     msg = TestMessage()
     emb = logClearReacts(msg, (1, 2, 3))
-    assert emb.description == "Reactions cleared from message sent by" + msg.author.mention + " in " + msg.channel.mention + "."
+    assert emb.description == "Reactions cleared from message sent by " + msg.author.mention + " in " + msg.channel.mention + "."
     assert emb.fields[0].value == msg.content
     assert emb.fields[1].value == "1, 2, 3"
 

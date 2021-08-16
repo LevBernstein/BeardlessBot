@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.3.6
+# Version: Full Release 1.3.7
 
 import asyncio
 import csv

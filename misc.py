@@ -39,7 +39,7 @@ def roll(message):
             return randint(1, int(side)) if command == side else None
 
 def rollReport(text):
-    result = roll(text.content.lower())
+    result = str(roll(text.content.lower()))
     report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
     if result.isnumeric():
         report = "You got {}, {}.".format(result, text.author.mention)
