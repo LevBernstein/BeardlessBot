@@ -64,6 +64,7 @@ def legendInfo(brawlKey, legendName):
             quoteOne = (r["bio_quote"] + " *" + (r["bio_quote_about_attrib"])[1:-1] + "*").replace("\\n", " ")
             quoteTwo = (r["bio_quote_from"] + " *" + (r["bio_quote_from_attrib"])[1:spaceCheck] + "*").replace("\\n", " ")
             bio = "\n\n".join((r["bio_text"].replace("\n", "\n\n"), "**Quotes**", quoteOne, quoteTwo))
+            legendLinkName = r["bio_name"].replace(" ", "_")
             return (discord.Embed(title = r["bio_name"] + ", " + r["bio_aka"], description = bio, color = 0xfff994)
             .add_field(name = "Weapons", value = (r["weapon_one"] + ", " + r["weapon_two"]).replace("Fists", "Gauntlets").replace("Pistol", "Blasters"))
             .add_field(name = "Stats", value = "{} Str, {} Dex, {} Def, {} Spd".format(r["strength"], r["dexterity"], r["defense"], r["speed"])))

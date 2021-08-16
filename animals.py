@@ -13,13 +13,13 @@ def animal(animalType):
             r = requests.get("https://aws.random.cat/meow")
             if r.status_code == 200:
                 return r.json()['file']
-            print(str(r.status_code) + "; " + r.reason + "; cat")
+            print("{}; {}; cat; count {}".format(r.status_code, r.reason, i))
     
     if animalType.startswith("dog"):
         if len(animalType) == 4 or not (" " in animalType):
             r = requests.get("https://dog.ceo/api/breeds/image/random")
             return r.json()['message']
-        breed = animalType.split(" ", 1)[1]
+        breed = animalType.split(" ", 1)[1].replace(" ", "")
         if breed.startswith("breeds"):
             r = requests.get("https://dog.ceo/api/breeds/list/all")
             return "Dog breeds: " + ", ".join(br for br in r.json()["message"]) + "."
@@ -61,7 +61,7 @@ def animal(animalType):
     if r:
         if isinstance(r, str):
             raise Exception(r)
-        print(str(r.status_code) + "; " + r.reason + "; " + animalType)
+        print("{}; {}; {}".format(r.status_code, r.reason, animalType))
         raise Exception("Error with the " + animalType + "API!")
     else:
         raise Exception("Invalid animal!")

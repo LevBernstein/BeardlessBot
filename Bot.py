@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.3.4
+# Version: Full Release 1.3.5
 
 import asyncio
 import csv
@@ -100,7 +100,8 @@ class DiscordClass(client):
     
     @client.event
     async def on_message_delete(text):
-        if text.guild and (text.content or text.author.id != 654133911558946837 or text.channel.name != "bb-log"): # Prevents embeds from causing a loop
+        if text.guild and any((text.content, text.author.id != 654133911558946837, text.channel.name != "bb-log")):
+            # Prevents embeds from causing a loop
             for channel in text.guild.channels:
                 if channel.name == "bb-log":
                     await channel.send(embed = logDeleteMsg(text))
@@ -228,7 +229,7 @@ class DiscordClass(client):
                     if bet < 0:
                         report = "Invalid bet. Please choose a number greater than or equal to 0."
                     else:
-                        with open('resources/money.csv', 'r') as csvfile: # In future, maybe switch to some kind of NoSQL db like Mongo instead of storing in a csv
+                        with open('resources/money.csv', 'r') as csvfile:
                             for row in csv.reader(csvfile, delimiter = ','):
                                 if str(text.author.id) == row[0]:
                                     bank = int(row[1])
@@ -312,8 +313,9 @@ class DiscordClass(client):
                         print("Secret word found by {} in {}.".format(text.author.name, text.guild.name))
                         result, bonus = writeMoney(text.author, 100000, True, True)
                         report = "Ping Captain No-Beard for your prize, {}!" if result == -1 else "100000 BeardlessBucks have been added to your account, {}!"
-                        await text.channel.send(embed = discord.Embed(title = "Well done! You found the secret word, " + secretWord + "!", description = report.format(text.author.mention),  color = 0xfff994))
-                        return
+                        await text.channel.send(embed = discord.Embed(title = "Well done! You found the secret word, " + secretWord + "!",
+                        description = report.format(text.author.mention),  color = 0xfff994))
+                    return
             
             if msg in ("!hint", "!hints"):
                 if secretWord:
@@ -352,7 +354,8 @@ class DiscordClass(client):
                             report = "You were not registered for BeardlessBucks gambling, so I have automatically registered you. You now have 300 BeardlessBucks, {}."
                         elif result == 0:
                             report += " Or, they would have been, if you had actually bet anything."
-                await text.channel.send(embed = discord.Embed(title = "Beardless Bot Coin Flip", description = report.format(text.author.mention), color = 0xfff994))
+                await text.channel.send(embed = discord.Embed(title = "Beardless Bot Coin Flip",
+                description = report.format(text.author.mention), color = 0xfff994))
                 return
             
             if brawlKey:
@@ -447,7 +450,7 @@ class DiscordClass(client):
                         report = "Oops, I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
                     await text.channel.send(report)
                     return
-                
+            
             if msg.startswith('!av'):
                 await text.channel.send(embed = av(text))
                 return
@@ -461,7 +464,8 @@ class DiscordClass(client):
                 return
             
             if msg.startswith('!dice'):
-                await text.channel.send(embed = discord.Embed(title = "Beardless Bot Dice", description = "Enter !d[number][+/-][modifier] to roll a [number]-sided die and add or subtract a modifier. For example: !d8+3, or !d100-17, or !d6.", color = 0xfff994))
+                await text.channel.send(embed = discord.Embed(title = "Beardless Bot Dice", color = 0xfff994,
+                description = "Enter !d[number][+/-][modifier] to roll a [number]-sided die and add or subtract a modifier. For example: !d8+3, or !d100-17, or !d6."))
                 return
             
             if msg == '!reset':
@@ -477,7 +481,8 @@ class DiscordClass(client):
                 return
             
             if msg == "!bucks":
-                await text.channel.send(embed = discord.Embed(title = "BeardlessBucks", description = "BeardlessBucks are this bot's special currency. You can earn them by playing games. First, do !register to get yourself started with a balance.", color = 0xfff994))
+                await text.channel.send(embed = discord.Embed(title = "BeardlessBucks", color = 0xfff994,
+                description = "BeardlessBucks are this bot's special currency. You can earn them by playing games. First, do !register to get yourself started with a balance."))
                 return
             
             if msg in ("!hello", "!hi"):
@@ -485,7 +490,8 @@ class DiscordClass(client):
                 return
             
             if msg == "!source":
-                await text.channel.send(embed = discord.Embed(title = "Beardless Bot Fun Facts", description = "Most facts taken from [this website](https://www.thefactsite.com/1000-interesting-facts/).", color = 0xfff994))
+                await text.channel.send(embed = discord.Embed(title = "Beardless Bot Fun Facts", color = 0xfff994,
+                description = "Most facts taken from [this website](https://www.thefactsite.com/1000-interesting-facts/)."))
                 return
             
             if msg in ("!add", "!join"):
@@ -501,7 +507,8 @@ class DiscordClass(client):
                 return
             
             if msg == "!fact":
-                await text.channel.send(embed = discord.Embed(title = "Beardless Bot Fun Fact #" + str(randint(1,111111111)), description = fact(), color = 0xfff994))
+                await text.channel.send(embed = discord.Embed(description = fact(),
+                title = "Beardless Bot Fun Fact #" + str(randint(1,111111111)), color = 0xfff994))
                 return
             
             if msg == "!animals":
@@ -511,7 +518,7 @@ class DiscordClass(client):
             animalName = msg[1:].split(" ", 1)[0]
             if animalName in ("dog", "moose"):
                 if msg in ("!dog moose", "!moose"):
-                    mooseNum = randint(1, 38)
+                    mooseNum = randint(1, 39)
                     await text.channel.send(file = discord.File('images/moose/moose' + str(mooseNum) + (".gif" if mooseNum < 4 else ".jpg")))
                     return
                 try:
@@ -543,7 +550,8 @@ class DiscordClass(client):
             if msg == "!ping":
                 startTime = datetime.now()
                 message = await text.channel.send(embed = discord.Embed(title = "Pinging...", color = 0xfff994))
-                await message.edit(embed = discord.Embed(title = "Pinged!", description = "Beardless Bot's latency is " + str(int((datetime.now() - startTime).total_seconds() * 1000)) + "ms.", color = 0xfff994)
+                await message.edit(embed = discord.Embed(title = "Pinged!", color = 0xfff994,
+                description = "Beardless Bot's latency is " + str(int((datetime.now() - startTime).total_seconds() * 1000)) + "ms.")
                 .set_thumbnail(url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"))
                 return
             
@@ -566,8 +574,9 @@ class DiscordClass(client):
                                 await text.channel.send("I am too powerful to be muted. Stop trying.")
                                 return
                             role = get(text.guild.roles, name = 'Muted')
-                            if not role:
-                                role = await text.guild.create_role(name = "Muted", colour = discord.Colour(0x818386), permissions = discord.Permissions(send_messages = False, read_messages = True))
+                            if not role: # Creates a Muted role
+                                role = await text.guild.create_role(name = "Muted", colour = discord.Color(0x818386),
+                                permissions = discord.Permissions(send_messages = False, read_messages = True))
                             mTime = 0.0
                             mString = None
                             if len(duration) > 1:
@@ -588,8 +597,8 @@ class DiscordClass(client):
                                     mString += "s"
                             await target.add_roles(role)
                             report = "Muted " + target.mention + ((" for " + duration + mString + ".") if mTime else ".")
-                            await text.channel.send(embed = discord.Embed(title = "Beardless Bot Mute", description = report, color = 0xfff994)
-                            .set_author(name = str(text.author), icon_url = text.author.avatar_url))
+                            await text.channel.send(embed = discord.Embed(title = "Beardless Bot Mute", description = report,
+                            color = 0xfff994).set_author(name = str(text.author), icon_url = text.author.avatar_url))
                             for channel in text.guild.channels:
                                 if channel.name == "bb-log":
                                     await channel.send(embed = logMute(target, text, duration, mString, mTime))
@@ -656,14 +665,15 @@ class DiscordClass(client):
                                     report = bonus
                                 if result == 2:
                                     report = "You were not registered for BeardlessBucks gambling, so I have automatically registered you. You now have 300 BeardlessBucks, {}."
-                    await text.channel.send(embed = discord.Embed(title = "Beardless Bot Special Colors", description = report.format(text.author.mention), color = 0xfff994))
+                    await text.channel.send(embed = discord.Embed(title = "Beardless Bot Special Colors",
+                    description = report.format(text.author.mention), color = 0xfff994))
                     return
                 
                 if msg.startswith("!info"):
                     await text.channel.send(embed = info(text))
                     return
                 
-                if msg.startswith('!spar '): # command rewrite uses region, *
+                if msg.startswith('!spar '): # command rewrite will use region, *
                     if text.channel.name == "looking-for-spar":
                         report = "Please specify a valid region, " + text.author.mention + "! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. If you need help, try doing !pins."
                         tooRecent = None
@@ -735,20 +745,13 @@ class DiscordClass(client):
                         return
                     
                     if msg == '!guide':
-                        await text.channel.send(embed = discord.Embed(title = "The Eggsoup Improvement Guide", description = "https://www.youtube.com/watch?v=nH0TOoJIU80", color = 0xfff994))
-                        return
-                    
-                    if msg == "!notify":
-                        memes = ("Youtube, sub -> eggsoup", "Twitch, Subscribe -> Eggsoup", "r/eggsoup, join -> now",
-                            "Twitter, follow -> eggsoup", "brawlhalla, settings -> quit", "brawlhalla, scythe -> miss",
-                            "Unarmed, dlight -> everything", "Sword, dlight -> sair", "all legends, design rework -> ugly",
-                            "Toilet, poop -> flush", "Microsoft Word, ctrl c -> ctrl v")
-                        report = "On " + choice(memes) + " is true. He might get mad if I randomly ping him, so I’d rather somebody more important than me tell him this. This could be in a future brawlhalla guide or something do I just wanted to let him know"
-                        await text.channel.send(embed = discord.Embed(title = "Hey can someone notify egg about this?", description = report, color = 0xfff994))
+                        await text.channel.send(embed = discord.Embed(title = "The Eggsoup Improvement Guide",
+                        description = "https://www.youtube.com/watch?v=nH0TOoJIU80", color = 0xfff994))
                         return
                     
                     if all((msg.startswith('!warn'), text.channel.id != 705098150423167059, len(msg) > 6, text.author.guild_permissions.manage_messages)):
-                        await text.channel.send(embed = discord.Embed(title = "Infraction Logged.", description = "Mods can view the infraction details in <#705098150423167059>.", color = 0xfff994))
+                        await text.channel.send(embed = discord.Embed(title = "Infraction Logged.", color = 0xfff994),
+                        description = "Mods can view the infraction details in <#705098150423167059>.")
                         return
                 
                 if text.guild.id == 781025281590165555: # Commands for the Day Care Discord server.

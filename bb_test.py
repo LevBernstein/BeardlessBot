@@ -1,6 +1,7 @@
 # Beardless Bot Unit Tests
 
 from json import dump, load
+from random import randint
 
 import discord
 import pytest
@@ -21,7 +22,7 @@ class TestUser(discord.User):
         self.discriminator = discriminator
         self.bot = False
         self.avatar = self.default_avatar
-        self.roles = []
+        self.roles = ()
         self.joined_at = self.created_at
         self.activity = None
     
@@ -48,11 +49,19 @@ class TestMessage(discord.Message):
         self.id = 123456789
         self.channel = TestChannel()
         self.type = discord.MessageType.default
-        self.flags = discord.MessageFlags(crossposted = False, is_crossposted = False, suppress_embeds = False, source_message_deleted = False, urgent = False)
-        self.mentions = []
+        self.flags = discord.MessageFlags(crossposted = False, is_crossposted = False,
+        suppress_embeds = False, source_message_deleted = False, urgent = False)
+        self.mentions = ()
 
 IMAGETYPES = ("image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp")
 IMAGESIGS = ("b'\\xff\\xd8\\xff\\xe0\\x00\\x10JFIF", "b'\\x89\\x50\\x4e\\x47\\x0d\\x", "b'\\xff\\xd8\\xff\\xe2\\x024ICC_PRO")
+
+try:
+    with open("resources/brawlhallaKey.txt", "r") as f: # in brawlhallaKey.txt, paste in your own Brawlhalla API key
+        brawlKey = f.readline()
+except:
+    print("No Brawlhalla API key. Brawlhalla-specific tests will not fire.")
+    brawlKey = None
 
 def test_cat():
     r = requests.head(animal("cat"))
@@ -114,7 +123,7 @@ def test_fact():
 
 def test_tweet():
     eggTweet = tweet().split(" ")
-    assert len(eggTweet) >= 12 and len(eggTweet) <= 37
+    assert len(eggTweet) >= 11 and len(eggTweet) <= 37
 
 def test_egg_formatted_tweet():
     eggTweet = tweet()
@@ -128,10 +137,14 @@ def test_dice():
         message.content = "!d" + str(sideNum)
         sideRoll = roll(message.content)
         assert 1 <= sideRoll and sideRoll <= sideNum
-        assert isinstance(rollReport(message), discord.Embed)
+        assert rollReport(message).description.startswith("You got")
+    message.content = "!d20-4"
+    sideRoll = roll(message.content)
+    assert -3 <= sideRoll and sideRoll <= 16
+    assert rollReport(message).description.startswith("You got")
     message.content = "!d9"
     assert not roll(message.content)
-    assert isinstance(rollReport(message), discord.Embed)
+    assert rollReport(message).description.startswith("Invalid side number.")
 
 def test_logDeleteMsg():
     msg = TestMessage()
@@ -171,14 +184,14 @@ def test_logMemberJoin():
 def test_logMemberRemove():
     member = TestUser()
     assert logMemberRemove(member).description == "Member " + member.mention + " left\nID: " + str(member.id)
-    member.roles = [TestUser(), TestUser()]
+    member.roles = (TestUser(), TestUser()) # hacky but works; TODO create test roles
     assert logMemberRemove(member).fields[0].value == member.roles[1].mention
 
 def test_logMemberNickChange():
     before = TestUser()
     after = TestUser("testuser", "newnick")
     emb = logMemberNickChange(before, after)
-    assert emb.description == "Nickname of" + after.mention + " changed"
+    assert emb.description == "Nickname of" + after.mention + " changed."
     assert emb.fields[0].value == before.nick
     assert emb.fields[1].value == after.nick
 
@@ -186,8 +199,8 @@ def test_logMemberRolesChange():
     before = TestUser()
     after = TestUser()
     after.roles = [TestUser()]
-    assert logMemberRolesChange(before, after).description == "Role " + after.roles[0].mention + " added to " + after.mention
-    assert logMemberRolesChange(after, before).description == "Role " + after.roles[0].mention + " removed from " + before.mention
+    assert logMemberRolesChange(before, after).description == "Role " + after.roles[0].mention + " added to " + after.mention + "."
+    assert logMemberRolesChange(after, before).description == "Role " + after.roles[0].mention + " removed from " + before.mention + "."
 
 def test_logBan():
     member = TestUser()
@@ -202,7 +215,7 @@ def test_logMute():
     member = TestUser()
     duration = "5"
     mString = "hours"
-    assert logMute(member, message, duration, mString, 18000).description == "Muted " + member.mention + " for " + duration + mString + " in " + message.channel.mention + "."
+    assert logMute(member, message, duration, mString, 18000).description == "Muted " + member.mention + " for " + duration + " " + mString + " in " + message.channel.mention + "."
     assert logMute(member, message, None, None, None).description == "Muted " + member.mention + " in " + message.channel.mention + "."
 
 def test_logUnmute():
@@ -233,7 +246,7 @@ def test_register():
 def test_balance():
     text = TestMessage("!bal")
     text.author.id = 654133911558946837
-    assert balance(text).description == "Your balance is 200 BeardlessBucks, " + text.author.mention + "."
+    assert balance(text).description == text.author.mention + "'s balance is 200 BeardlessBucks."
     text.author.name = ",badname,"
     assert balance(text).description == "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + "."
 
@@ -258,7 +271,7 @@ def test_define():
 
 def test_blackjack_perfect():
     game = Instance(TestUser(), 10)
-    game.cards = [10, 11]
+    game.cards = (10, 11)
     assert game.perfect() == True
 
 def test_blackjack_deal():
@@ -280,7 +293,7 @@ def test_blackjack_cardName():
 
 def test_blackjack_checkBust():
     game = Instance(TestUser(), 10)
-    game.cards = [10, 10, 10]
+    game.cards = (10, 10, 10)
     assert game.checkBust() == True
 
 def test_blackjack_getUser():
@@ -297,7 +310,7 @@ def test_blackjack_stay():
     assert game.stay() == 3
     game.deal()
     assert game.stay() == -3
-    game.cards = [10, 10]
+    game.cards = (10, 10)
     assert game.stay() == 0
 
 def test_blackjack_startingHand():
@@ -316,8 +329,8 @@ def test_randomBrawl():
 def test_info():
     text = TestMessage("!info searchterm")
     namedUser = TestUser("searchterm")
-    text.guild.members = [TestUser(), namedUser]
-    namedUser.roles = [namedUser, namedUser]
+    text.guild.members = (TestUser(), namedUser)
+    namedUser.roles = (namedUser, namedUser)
     namedUserInfo = info(text)
     assert namedUserInfo.fields[0].value == str(namedUser.created_at)[:-7] + " UTC"
     assert namedUserInfo.fields[1].value == str(namedUser.joined_at)[:-7] + " UTC"
@@ -331,7 +344,7 @@ def test_sparPins():
 def test_av():
     text = TestMessage("!av searchterm")
     namedUser = TestUser("searchterm")
-    text.guild.members = [TestUser(), namedUser]
+    text.guild.members = (TestUser(), namedUser)
     assert av(text).image.url == namedUser.avatar_url
     assert av("!averror").title == "Invalid target!"
 
@@ -360,9 +373,44 @@ def test_fetchLegends():
 def test_claimProfile():
     with open("resources/claimedProfs.json", "r") as f:
         profsLen = len(load(f))
-    #"196354892208537600": 7032472
     claimProfile(196354892208537600, 1)
     with open("resources/claimedProfs.json", "r") as f:
         assert profsLen == len(load(f))
     assert fetchBrawlID(196354892208537600) == 1
     claimProfile(196354892208537600, 7032472)
+    assert fetchBrawlID(196354892208537600) == 7032472
+
+if brawlKey:
+    def test_getBrawlID():
+        assert getBrawlID(brawlKey, "https://steamcommunity.com/id/beardless") == 7032472
+        assert not getBrawlID(brawlKey, "badurl")
+        assert not getBrawlID(brawlKey, "https://steamcommunity.com/badurl")
+    
+    def test_getLegends():
+        oldLegends = fetchLegends()
+        getLegends(brawlKey)
+        assert fetchLegends() == oldLegends
+    
+    def test_legendInfo():
+        assert legendInfo(brawlKey, "sidra").title == "Sidra, The Corsair Queen"
+        assert not legendInfo(brawlKey, "invalidname")
+    
+    def test_getRank():
+        user = TestUser()
+        user.id = 0
+        assert not getRank(user, brawlKey)
+        user.id = 196354892208537600
+        assert getRank(user, brawlKey).footer.text == "Brawl ID 7032472"
+    
+    def test_getStats():
+        user = TestUser()
+        user.id = 0
+        assert not getStats(user, brawlKey)
+        user.id = 196354892208537600
+        emb = getStats(user, brawlKey)
+        assert emb.footer.text == "Brawl ID 7032472"
+        assert len(emb.fields) == 3
+    
+    def test_getClan():
+        assert not getClan(0, brawlKey)
+        assert getClan(196354892208537600, brawlKey).title == "DinersDriveInsDives"

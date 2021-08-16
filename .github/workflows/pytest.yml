@@ -15,6 +15,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - shell: bash
+      env:
+          BRAWLKEY = ${{ secrets.BRAWLHALLAKEY }}
+      run: |
+        echo "$BRAWLKEY" > resources/brawlhallaKey.txt
     - uses: actions/checkout@v2
     - name: Set up Python 3.9
       uses: actions/setup-python@v2

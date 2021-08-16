@@ -45,7 +45,7 @@ def logMemberRemove(member):
     return emb
 
 def logMemberNickChange(before, after):
-    return (discord.Embed(description = "Nickname of" + after.mention + " changed", color = 0xffff00)
+    return (discord.Embed(description = "Nickname of" + after.mention + " changed.", color = 0xffff00)
     .set_author(name = str(after), icon_url = after.avatar_url)
     .add_field(name = "Before:", value = before.nick, inline = False)
     .add_field(name = "After:", value = after.nick, inline = False))
@@ -62,7 +62,7 @@ def logMemberRolesChange(before, after):
                 newRole = role
                 break
     tup = (" removed from ", 0xff0000) if len(before.roles) > len(after.roles) else (" added to ", 0x00ff00)
-    return (discord.Embed(description = "Role " + newRole.mention + tup[0]  + after.mention, color = tup[1])
+    return (discord.Embed(description = "Role " + newRole.mention + tup[0]  + after.mention + ".", color = tup[1])
     .set_author(name = str(after), icon_url = after.avatar_url))
 
 def logBan(member):
@@ -75,7 +75,7 @@ def logUnban(member):
 
 def logMute(member, message, duration, mString, mTime):
     return (discord.Embed(title = "Beardless Bot Mute", color = 0xff0000,
-    description = "Muted " + member.mention + ((" for " + duration + mString) if mTime else "") + " in " + message.channel.mention + ".")
+    description = "Muted " + member.mention + ((" for " + duration + " " + mString) if mTime else "") + " in " + message.channel.mention + ".")
     .set_author(name = str(message.author), icon_url = message.author.avatar_url))
 
 def logUnmute(member, author):

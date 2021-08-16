@@ -57,7 +57,7 @@ def register(text):
 
 def balance(text):
     if text.content.lower() in ("!balance", "!bal"):
-            target = text.author
+        target = text.author
     else:
         target = text.mentions[0] if text.mentions else (text.author if not text.guild or not " " in text.content else memSearch(text))
         if not target:
@@ -65,7 +65,7 @@ def balance(text):
     if target:
         result, bonus = writeMoney(target, 300, False, False)
         if result == 0:
-            report = ("Your balance is " + str(bonus) + " BeardlessBucks, " + target.mention + ".") if target == text.author else (target.mention + "'s balance is " + str(bonus) + " BeardlessBucks.")
+            report = target.mention + "'s balance is " + str(bonus) + " BeardlessBucks."
         elif result == 2:
             report = "Successfully registered. You now have 300 BeardlessBucks, " + text.author.mention + "."
         else:

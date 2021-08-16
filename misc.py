@@ -1,23 +1,23 @@
 # Miscellaneous commands for Beardless Bot
 
+from random import choice, randint
+
 import discord
 import requests
-
-from random import choice, randint
 
 from bucks import memSearch
 
 def define(msg):
-    word = msg.split(' ', 1)[1]
     report = "Invalid word!"
+    word = msg.split(' ', 1)[1]
     if " " in word:
         report = "Please only look up individual words."
     else:
         r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
         if r.status_code == 200:
             try:
-                emb = discord.Embed(title = word.upper(), description = "Audio: https:" + r.json()[0]['phonetics'][0]['audio'], color = 0xfff994)
-                i = 0
+                emb = discord.Embed(title = word.upper(), color = 0xfff994,
+                description = "Audio: https:" + r.json()[0]['phonetics'][0]['audio'])
                 for entry in r.json():
                     for meaning in entry["meanings"]:
                         for i in range(len(meaning["definitions"])):
@@ -34,7 +34,7 @@ def roll(message):
     sides = ("4", "6", "8", "100", "10", "12", "20")
     for side in sides:
         if command.startswith(side):
-            if len(command) > len(side) and command[len(side)] == modifier:
+            if len(command) > len(side) and command[len(side)] in ("+", "-"):
                 return randint(1, int(side)) + modifier * int(command[1 + len(side):])
             return randint(1, int(side)) if command == side else None
 
@@ -51,7 +51,7 @@ def fact():
 
 def info(text):
     try:
-        target = text.mentions[0] if text.mentions else (text.author if not " " in text.content else memSearch(text))
+        target = text.mentions[0] if text.mentions else text.author if not " " in text.content else memSearch(text)
         if target:
             # Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
             emb = (discord.Embed(description = target.activity.name if target.activity else "", color = target.color)
@@ -64,7 +64,8 @@ def info(text):
             return emb
     except:
         pass
-    return discord.Embed(title = "Invalid target!", description = "Please choose a valid target. Valid targets are either a ping or a username.", color = 0xff0000)
+    return discord.Embed(title = "Invalid target!", color = 0xff0000,
+    description = "Please choose a valid target. Valid targets are either a ping or a username.")
 
 def sparPins():
     sparDesc = ("Do the command !spar <region> <other info>.",
@@ -86,7 +87,8 @@ def av(text):
             .set_author(name = str(target), icon_url = target.avatar_url))
     except:
         pass
-    return discord.Embed(title = "Invalid target!", description = "Please choose a valid target. Valid targets are either a ping or a username.", color = 0xff0000)
+    return discord.Embed(title = "Invalid target!", color = 0xff0000,
+    description = "Please choose a valid target. Valid targets are either a ping or a username.")
 
 def commands(text):
     emb = discord.Embed(title = "Beardless Bot Commands", description = "!commands to pull up this list", color = 0xfff994)
@@ -119,7 +121,8 @@ def join():
     return (discord.Embed(title = "Want to add this bot to your server?", color = 0xfff994,
     description = "[Click this link!](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot)")
     .set_thumbnail(url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
-    .add_field(name = "If you like Beardless Bot...", value = "Please leave a review on [top.gg](https://top.gg/bot/654133911558946837).", inline = False))
+    .add_field(name = "If you like Beardless Bot...", inline = False,
+    value = "Please leave a review on [top.gg](https://top.gg/bot/654133911558946837)."))
 
 def animals():
     emb = discord.Embed(title = "Animal Photo Commands:", color = 0xfff994).add_field(name = "!dog",
@@ -158,7 +161,7 @@ def tweet():
     return s[0].title() + s[1:]
 
 def formattedTweet(tweet):
-    # Remove the last piece of punctuation to create a more realistic tweet
+    # Removes the last piece of punctuation to create a more realistic tweet
     for i in range(len(tweet)):
         if tweet[len(tweet) - i - 1] in (".", "!", "?"):
             return "\n" + tweet[:(len(tweet) - i - 1)]
