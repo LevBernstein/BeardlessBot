@@ -17,7 +17,7 @@ jobs:
     steps:
     - shell: bash
       env:
-          BRAWLKEY = ${{ secrets.BRAWLHALLAKEY }}
+          BRAWLKEY: ${{ secrets.BRAWLHALLAKEY }}
       run: |
         echo "$BRAWLKEY" > resources/brawlhallaKey.txt
     - uses: actions/checkout@v2
