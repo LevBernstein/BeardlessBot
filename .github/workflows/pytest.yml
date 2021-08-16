@@ -19,6 +19,7 @@ jobs:
       env:
           BRAWLKEY: ${{ secrets.BRAWLHALLAKEY }}
       run: |
+        touch resources/brawlhallaKey.txt
         echo "$BRAWLKEY" > resources/brawlhallaKey.txt
     - uses: actions/checkout@v2
     - name: Set up Python 3.9
