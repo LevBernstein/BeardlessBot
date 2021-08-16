@@ -41,7 +41,7 @@ def roll(message):
 def rollReport(text):
     result = roll(text.content.lower())
     report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
-    if result:
+    if result.isnumeric():
         report = "You got {}, {}.".format(result, text.author.mention)
     return discord.Embed(title = "Beardless Bot Dice", description = report, color = 0xfff994)
 

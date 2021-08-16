@@ -23,6 +23,7 @@ def memSearch(text):
     return semiMatch if semiMatch else looseMatch
 
 def writeMoney(member, amount, writing, adding):
+    # "writing" is True if you want to modify money.csv; "adding" is True if you want to add/subtract an amount to a member's balance
     if "," in member.name:
         return -1, "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + member.mention + "."
     else:
@@ -43,7 +44,7 @@ def writeMoney(member, amount, writing, adding):
                         return 1, newBank
                     return 0, int(row[1]) # no change in balance
             with open('resources/money.csv', 'a') as money:
-                money.write("\r\n" + str(member.id) + ",300," + str(member))
+                money.write("\r\n{},300,{}".format(member.id, member))
                 return 2, None
 
 def register(text):
@@ -59,7 +60,7 @@ def balance(text):
     if text.content.lower() in ("!balance", "!bal"):
         target = text.author
     else:
-        target = text.mentions[0] if text.mentions else (text.author if not text.guild or not " " in text.content else memSearch(text))
+        target = text.mentions[0] if text.mentions else text.author if not text.guild or not " " in text.content else memSearch(text)
         if not target:
             report = "Invalid user! Please @ a user when you do !balance (or enter their username), or do !balance without a target to see your own balance, " + text.author.mention + "."
     if target:
@@ -88,7 +89,8 @@ def leaderboard():
         for row in csv.reader(csvfile, delimiter = ','):
             if int(row[1]): # Don't bother displaying info for people with 0 BeardlessBucks
                 diction[(row[2])[:-5]] = int(row[1])
-    sortedDict = OrderedDict(sorted(diction.items(), key = itemgetter(1))) # Sort by value for each key in diction, which is BeardlessBucks balance
+    # Sort by value for each key in diction, which is BeardlessBucks balance
+    sortedDict = OrderedDict(sorted(diction.items(), key = itemgetter(1)))
     for i in range(min(len(sortedDict), 10)):
         tup = sortedDict.popitem()
         emb.add_field(name = (str(i + 1) + ". " + tup[0]), value = str(tup[1]))

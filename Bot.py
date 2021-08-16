@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.3.5
+# Version: Full Release 1.3.6
 
 import asyncio
 import csv
@@ -69,7 +69,7 @@ class DiscordClass(client):
             print("Avatar failed to update! You might be sending requests too quickly.")
         except FileNotFoundError:
             print("Avatar file not found! Check your directory structure.")
-        print("Beardless Bot is in " + str(len(client.guilds)) + " servers.")
+        print("Beardless Bot is in {} servers".format(len(client.guilds)))
         global sparPings
         for guild in client.guilds:
             sparPings[guild.id] = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}

@@ -5,8 +5,8 @@ import discord
 # TODO: Implement logging for threads, once discord.py updates to include support for them
 
 def logDeleteMsg(text):
-    return (discord.Embed(description = "**Deleted message sent by " + text.author.mention + " in **" + text.channel.mention + "\n" + text.content, color = 0xff0000)
-    .set_author(name = str(text.author), icon_url = text.author.avatar_url))
+    return (discord.Embed(color = 0xff0000, description = "**Deleted message sent by {} in **{}\n{}"
+    .format(text.author.mention, text.channel.mention, text.content)).set_author(name = str(text.author), icon_url = text.author.avatar_url))
 
 def logPurge(text, textArr):
     return (discord.Embed(description = "Purged " + str(len(textArr) - 1) + " messages in " + text.channel.mention + ".", color = 0xff0000)
@@ -14,15 +14,13 @@ def logPurge(text, textArr):
 
 def logEditMsg(before, after):
     return (discord.Embed(description = "Messaged edited by" + before.author.mention + " in " + before.channel.mention + ".", color = 0xffff00)
-    .set_author(name = str(before.author), icon_url = before.author.avatar_url)
-    .add_field(name = "Before:", value = before.content, inline = False)
+    .set_author(name = str(before.author), icon_url = before.author.avatar_url).add_field(name = "Before:", value = before.content, inline = False)
     .add_field(name = "After:", value = after.content + "\n[Jump to Message](" + after.jump_url + ")", inline = False))
 
 def logClearReacts(text, reactions):
-    return (discord.Embed(description = "Reactions cleared from message sent by" + text.author.mention + " in " + text.channel.mention + ".", color = 0xff0000)
-    .set_author(name = str(text.author), icon_url = text.author.avatar_url)
-    .add_field(name = "Message content:", value = text.content)
-    .add_field(name = "Reactions:", value = ", ".join(str(reaction) for reaction in reactions)))
+    return (discord.Embed(description = "Reactions cleared from message sent by {} in {}."
+    .format(text.author.mention, text.channel.mention), color = 0xff0000).set_author(name = str(text.author), icon_url = text.author.avatar_url)
+    .add_field(name = "Message content:", value = text.content).add_field(name = "Reactions:", value = ", ".join(str(reaction) for reaction in reactions)))
 
 def logDeleteChannel(channel):
     return (discord.Embed(description = "Channel \"" + channel.name + "\" deleted.", color = 0xff0000)
@@ -45,10 +43,8 @@ def logMemberRemove(member):
     return emb
 
 def logMemberNickChange(before, after):
-    return (discord.Embed(description = "Nickname of" + after.mention + " changed.", color = 0xffff00)
-    .set_author(name = str(after), icon_url = after.avatar_url)
-    .add_field(name = "Before:", value = before.nick, inline = False)
-    .add_field(name = "After:", value = after.nick, inline = False))
+    return (discord.Embed(description = "Nickname of" + after.mention + " changed.", color = 0xffff00).set_author(name = str(after), icon_url = after.avatar_url)
+    .add_field(name = "Before:", value = before.nick, inline = False).add_field(name = "After:", value = after.nick, inline = False))
 
 def logMemberRolesChange(before, after):
     newRole = None
