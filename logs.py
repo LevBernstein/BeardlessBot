@@ -20,15 +20,17 @@ def logEditMsg(before, after):
 def logClearReacts(text, reactions):
     return (discord.Embed(description = "Reactions cleared from message sent by {} in {}."
     .format(text.author.mention, text.channel.mention), color = 0xff0000).set_author(name = str(text.author), icon_url = text.author.avatar_url)
-    .add_field(name = "Message content:", value = text.content).add_field(name = "Reactions:", value = ", ".join(str(reaction) for reaction in reactions)))
+    .add_field(name = "Message content:", value = text.content).add_field(name = "Reactions:", value = ", ".join(str(react) for react in reactions)))
 
 def logDeleteChannel(channel):
+    image = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"
     return (discord.Embed(description = "Channel \"" + channel.name + "\" deleted.", color = 0xff0000)
-    .set_author(name = "Channel deleted", icon_url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"))
+    .set_author(name = "Channel deleted", icon_url = image))
 
 def logCreateChannel(channel):
+    image = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"
     return (discord.Embed(description = "Channel " + channel.name + " created.", color = 0x00ff00)
-    .set_author(name = "Channel created", icon_url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"))
+    .set_author(name = "Channel created", icon_url = image))
 
 def logMemberJoin(member):
     return (discord.Embed(description = "Member {} joined\nAccount registered on {}\nID: {}"
@@ -43,8 +45,9 @@ def logMemberRemove(member):
     return emb
 
 def logMemberNickChange(before, after):
-    return (discord.Embed(description = "Nickname of" + after.mention + " changed.", color = 0xffff00).set_author(name = str(after), icon_url = after.avatar_url)
-    .add_field(name = "Before:", value = before.nick, inline = False).add_field(name = "After:", value = after.nick, inline = False))
+    return (discord.Embed(description = "Nickname of" + after.mention + " changed.", color = 0xffff00)
+    .set_author(name = str(after), icon_url = after.avatar_url).add_field(name = "Before:", value = before.nick, inline = False)
+    .add_field(name = "After:", value = after.nick, inline = False))
 
 def logMemberRolesChange(before, after):
     newRole = None
@@ -71,7 +74,7 @@ def logUnban(member):
 
 def logMute(member, message, duration, mString, mTime):
     return (discord.Embed(title = "Beardless Bot Mute", color = 0xff0000,
-    description = "Muted " + member.mention + ((" for " + duration + " " + mString) if mTime else "") + " in " + message.channel.mention + ".")
+    description = "Muted {}{} in {}.".format(member.mention, ((" for " + duration + " " + mString) if mTime else ""), message.channel.mention))
     .set_author(name = str(message.author), icon_url = message.author.avatar_url))
 
 def logUnmute(member, author):

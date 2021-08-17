@@ -25,7 +25,9 @@ def memSearch(text):
 def writeMoney(member, amount, writing, adding):
     # "writing" is True if you want to modify money.csv; "adding" is True if you want to add/subtract an amount to a member's balance
     if "," in member.name:
-        return -1, "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + member.mention + "."
+        report = ("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a " +
+        "comma in their username. Please remove the comma from your username, " + member.mention + ".")
+        return -1, report
     else:
         with open("resources/money.csv") as csvfile:
             for row in csv.reader(csvfile, delimiter = ","):
@@ -62,7 +64,8 @@ def balance(text):
     else:
         target = text.mentions[0] if text.mentions else text.author if not text.guild or not " " in text.content else memSearch(text)
         if not target:
-            report = "Invalid user! Please @ a user when you do !balance (or enter their username), or do !balance without a target to see your own balance, " + text.author.mention + "."
+            report = ("Invalid user! Please @ a user when you do !balance (or enter their username)," +
+            " or do !balance without a target to see your own balance, " + text.author.mention + ".")
     if target:
         result, bonus = writeMoney(target, 300, False, False)
         if result == 0:

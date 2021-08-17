@@ -7,6 +7,61 @@ import requests
 
 from bucks import memSearch
 
+def animal(animalType):
+    r = None
+    if animalType == "cat":
+        # cat API has been throwing 503 errors every other call, likely due to rate limiting
+        for i in range(10):
+            # the loop is to try to make another request if one pulls a 503.
+            r = requests.get("https://aws.random.cat/meow")
+            if r.status_code == 200:
+                return r.json()["file"]
+            print("{}; {}; cat; count {}".format(r.status_code, r.reason, i))
+    
+    if animalType.startswith("dog"):
+        if len(animalType) == 4 or not (" " in animalType):
+            r = requests.get("https://dog.ceo/api/breeds/image/random")
+            return r.json()["message"]
+        breed = animalType.split(" ", 1)[1].replace(" ", "")
+        if breed.startswith("breeds"):
+            r = requests.get("https://dog.ceo/api/breeds/list/all")
+            return "Dog breeds: " + ", ".join(br for br in r.json()["message"]) + "."
+        if breed.isalnum():
+            r = requests.get("https://dog.ceo/api/breed/" + breed + "/images/random")
+            if not r.json()["message"].startswith("Breed not found"):
+                return r.json()["message"]
+        return "Breed not found! Do !dog breeds to see all the breeds."
+    
+    if animalType == "fish": # fish API is experiencing a server outage
+        for i in range(10):
+            fishID = str(randint(2, 1969)) # valid range of species by id on fishbase.
+            #print("Fish id: " + fishID)
+            r = requests.get("https://fishbase.ropensci.org/species/" + fishID)
+            # there appear to be gaps in the valid range, so try some more numbers if you random into an invalid fish
+            if r.status_code == 200:
+                return r.json()["data"][0]["image"]
+            #print("Invalid fish ID " + fishID)
+    
+    if animalType in ("bunny", "rabbit"):
+        r = requests.get("https://api.bunnies.io/v2/loop/random/?media=gif")
+        if r.status_code == 200:
+            return r.json()["media"]["gif"]
+    
+    if animalType in ("panda", "koala", "bird", "raccoon", "kangaroo", "fox"):
+        r = requests.get("https://randomfox.ca/floof/" if animalType == "fox" else "https://some-random-api.ml/animal/" + animalType)
+        if r.status_code == 200:
+            return r.json()["image"]
+    
+    if animalType in ("duck", "lizard"):
+        r = requests.get("https://nekos.life/api/v2/img/lizard" if animalType == "lizard" else "https://random-d.uk/api/quack")
+        if r.status_code == 200:
+            return r.json()["url"]
+    
+    if r:
+        raise Exception(r)
+    else:
+        raise Exception("Invalid animal!")
+
 def define(msg):
     report = "Invalid word!"
     word = msg.split(' ', 1)[1]
@@ -18,10 +73,12 @@ def define(msg):
             try:
                 emb = discord.Embed(title = word.upper(), color = 0xfff994,
                 description = "Audio: https:" + r.json()[0]['phonetics'][0]['audio'])
+                i = 0
                 for entry in r.json():
                     for meaning in entry["meanings"]:
-                        for i in range(len(meaning["definitions"])):
-                            emb.add_field(name = "Definition " + str(i + 1) + ":", value = meaning["definitions"][i]["definition"])
+                        for definition in meaning["definitions"]:
+                            i += 1
+                            emb.add_field(name = "Definition {}:".format(i), value = definition["definition"])
                 return emb
             except:
                 pass
@@ -37,11 +94,12 @@ def roll(message):
             if len(command) > len(side) and command[len(side)] in ("+", "-"):
                 return randint(1, int(side)) + modifier * int(command[1 + len(side):])
             return randint(1, int(side)) if command == side else None
+    return None
 
 def rollReport(text):
     result = str(roll(text.content.lower()))
     report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
-    if result.isnumeric():
+    if result != "None":
         report = "You got {}, {}.".format(result, text.author.mention)
     return discord.Embed(title = "Beardless Bot Dice", description = report, color = 0xfff994)
 
@@ -68,12 +126,9 @@ def info(text):
     description = "Please choose a valid target. Valid targets are either a ping or a username.")
 
 def sparPins():
-    sparDesc = ("Do the command !spar <region> <other info>.",
-        "For instance, to find a diamond from US-E to play 2s with, I would do:",
-        "!spar US-E looking for a diamond 2s partner.",
-        "Valid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA.",
-        "!spar has a 2 hour cooldown.",
-        "Please use the roles channel to give yourself the correct roles.")
+    sparDesc = ("Do the command !spar <region> <other info>.", "For instance, to find a diamond from US-E to play 2s with, I would do:",
+        "**!spar US-E looking for a diamond 2s partner**.", "Valid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA.",
+        "!spar has a 2 hour cooldown.", "Please use the roles channel to give yourself the correct roles.")
     return (discord.Embed(title = "How to use this channel.", description = "", color = 0xfff994)
     .add_field(name = "To spar someone from your region:", value = "\n".join(sparDesc), inline = False)
     .add_field(name = "If you don't want to get pings:", inline = False,
@@ -127,7 +182,7 @@ def join():
 def animals():
     emb = discord.Embed(title = "Animal Photo Commands:", color = 0xfff994).add_field(name = "!dog",
     value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>", inline = False)
-    for animalName in ("cat", "duck", "fish", "fox", "rabbit", "panda", "bird", "koala", "lizard"):
+    for animalName in ("cat", "duck", "fish", "fox", "rabbit", "bunny", "panda", "lizard", "bird", "koala", "raccoon", "kangaroo"):
         emb.add_field(name = "!" + animalName, value = "_ _")
     return emb
 

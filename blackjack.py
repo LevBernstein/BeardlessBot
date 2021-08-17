@@ -20,11 +20,13 @@ class Instance:
     def startingHand(self):
         self.cards.append(choice(self.vals))
         self.cards.append(choice(self.vals))
-        message = "Your starting hand consists of " + self.cardName(self.cards[0]) + " and " + self.cardName(self.cards[1]) + ". Your total is " + str(sum(self.cards)) + ". "
+        message = ("Your starting hand consists of {} and {}. Your total is {}. "
+        .format(self.cardName(self.cards[0]), self.cardName(self.cards[1]), sum(self.cards)))
         if self.perfect():
             message += "You hit 21! You win, " + self.user.mention + "!"
         else:
-            message += "The dealer is showing " + str(self.dealerUp) + ", with one card face down. Type !hit to deal another card to yourself, or !stay to stop at your current total, " + self.user.mention + "."
+            message += ("The dealer is showing " + str(self.dealerUp) + ", with one card face down. Type !hit \
+            to deal another card to yourself, or !stay to stop at your current total, " + self.user.mention + ".")
         return message
     
     def cardName(self, card):
@@ -46,8 +48,9 @@ class Instance:
                     self.cards[i] = 1
                     self.bet *= -1
                     break
-            self.message += "Because you would have busted, your Ace has been changed from an 11 to 1 . Your new total is " + str(sum(self.cards)) + ". "
-        self.message += "Your card values are " + ", ".join(str(card) for card in self.cards) + ". The dealer is showing " + str(self.dealerUp) + ", with one card face down."
+            self.message += "Because you would have busted, your Ace has been changed from an 11 to a 1. Your new total is {}.".format(sum(self.cards))
+        self.message += ("Your card values are {}. The dealer is showing {}, with one card face down."
+        .format(", ".join(str(card) for card in self.cards), self.dealerUp))
         if self.checkBust():
             self.message += " You busted. Game over, " + self.user.mention + "."
         elif self.perfect():

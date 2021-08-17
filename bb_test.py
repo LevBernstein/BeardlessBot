@@ -7,7 +7,6 @@ import discord
 import pytest
 import requests
 
-from animals import *
 from blackjack import *
 from brawl import *
 from bucks import *
@@ -53,9 +52,6 @@ class TestMessage(discord.Message):
         suppress_embeds = False, source_message_deleted = False, urgent = False)
         self.mentions = ()
 
-IMAGETYPES = ("image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp")
-IMAGESIGS = ("b'\\xff\\xd8\\xff\\xe0\\x00\\x10JFIF", "b'\\x89\\x50\\x4e\\x47\\x0d\\x", "b'\\xff\\xd8\\xff\\xe2\\x024ICC_PRO")
-
 try:
     with open("resources/brawlhallaKey.txt", "r") as f: # in brawlhallaKey.txt, paste in your own Brawlhalla API key
         brawlKey = f.readline()
@@ -63,57 +59,29 @@ except:
     print("No Brawlhalla API key. Brawlhalla-specific tests will not fire.")
     brawlKey = None
 
-def test_cat():
-    r = requests.head(animal("cat"))
-    assert r.ok and r.headers["content-type"] in IMAGETYPES
+def test_animals():
+    assert len(animals().fields) == 13
 
-def test_dog():
-    r = requests.head(animal("dog"))
-    assert r.ok and r.headers["content-type"] in IMAGETYPES
-
-def test_dog_breeds():
+def test_animal():
+    imageTypes = ("image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp")
+    imageSigs = ("b'\\xff\\xd8\\xff\\xe0\\x00\\x10JFIF", "b'\\x89\\x50\\x4e\\x47\\x0d\\x", "b'\\xff\\xd8\\xff\\xe2\\x024ICC_PRO")
+    for animalName in animals().fields[:-4]:
+        if not "fish" in animalName.name: # fish API is experiencing a server outage
+            r = requests.get(animal(animalName.name[1:]))
+            assert r.ok and r.headers["content-type"] in imageTypes
+    
+    for animalName in animals().fields[-4:]: # Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field; check if URL points to an image instead
+        r = requests.get(animal(animalName.name[1:]))
+        assert r.ok and any(str(r.content).startswith(signature) for signature in imageSigs)
+    
     assert animal("dog breeds").startswith("Dog breeds:")
     assert len(animal("dog breeds")[12:-1].split(", ")) == 95
-
-def test_dog_breed(): 
+    
     for breed in animal("dog breeds")[12:-1].split(", "):
         r = requests.head(animal("dog " + breed))
-        assert r.ok and r.headers["content-type"] in IMAGETYPES
+        assert r.ok and r.headers["content-type"] in imageTypes
     assert animal("dog invalid breed") == "Breed not found! Do !dog breeds to see all the breeds."
-
-#def test_fish(): # fish API is experiencing a server outage
-    #r = requests.head(animal("fish"))
-    #assert r.ok and r.headers["content-type"] in IMAGETYPES
-
-def test_fox():
-    r = requests.head(animal("fox"))
-    assert r.ok and r.headers["content-type"] in IMAGETYPES
-
-def test_rabbit():
-    r = requests.head(animal("rabbit"))
-    assert r.ok and r.headers["content-type"] in IMAGETYPES
-
-def test_panda():
-    r = requests.head(animal("panda"))
-    assert r.ok and r.headers["content-type"] in IMAGETYPES
-
-def test_koala(): # Koala API headers lack a content-type field, so check if the URL points to a jpg or png instead
-    r = requests.get(animal("koala"))
-    assert r.ok and any(str(r.content).startswith(signature) for signature in IMAGESIGS)
-
-def test_bird():# Bird API headers lack a content-type field, so check if the URL points to a jpg or png instead
-    r = requests.get(animal("bird"))
-    assert r.ok and any(str(r.content).startswith(signature) for signature in IMAGESIGS)
-
-def test_lizard():
-    r = requests.head(animal("lizard"))
-    assert r.ok and r.headers["content-type"] in IMAGETYPES
-
-def test_duck():
-    r = requests.head(animal("duck"))
-    assert r.ok and r.headers["content-type"] in IMAGETYPES
-
-def test_invalid_animal():
+    
     with pytest.raises(Exception):
         animal("invalidAnimal")
 
@@ -148,7 +116,7 @@ def test_dice():
 
 def test_logDeleteMsg():
     msg = TestMessage()
-    assert logDeleteMsg(msg).description == "**Deleted message sent by " + msg.author.mention + " in **" + msg.channel.mention + "\n" + msg.content
+    assert logDeleteMsg(msg).description == "**Deleted message sent by {} in **{}\n{}".format(msg.author.mention, msg.channel.mention, msg.content)
 
 def test_logPurge():
     msg = TestMessage()
@@ -179,7 +147,8 @@ def test_logCreateChannel():
 
 def test_logMemberJoin():
     member = TestUser()
-    assert logMemberJoin(member).description == "Member " + member.mention + " joined\nAccount registered on " + str(member.created_at)[:-7] + "\nID: " + str(member.id)
+    assert logMemberJoin(member).description == ("Member {} joined\nAccount registered on {}\nID: {}"
+    .format(member.mention, str(member.created_at)[:-7], member.id))
 
 def test_logMemberRemove():
     member = TestUser()
@@ -213,9 +182,7 @@ def test_logUnban():
 def test_logMute():
     message = TestMessage()
     member = TestUser()
-    duration = "5"
-    mString = "hours"
-    assert logMute(member, message, duration, mString, 18000).description == "Muted " + member.mention + " for " + duration + " " + mString + " in " + message.channel.mention + "."
+    assert logMute(member, message, "5", "hours", 18000).description == "Muted " + member.mention + " for 5 hours in " + message.channel.mention + "."
     assert logMute(member, message, None, None, None).description == "Muted " + member.mention + " in " + message.channel.mention + "."
 
 def test_logUnmute():
@@ -233,7 +200,7 @@ def test_memSearch():
     text.content = "!bal search"
     assert memSearch(text) == namedUser
     text.content = "!info invalidterm"
-    assert memSearch(text) == None
+    assert not memSearch(text)
 
 def test_register():
     text = TestMessage("!register")
@@ -241,21 +208,24 @@ def test_register():
     assert register(text).description == "You are already in the system! Hooray! You have 200 BeardlessBucks, " + text.author.mention + "."
     text.author.name = ",badname,"
     text.author.id = 999999999999999999
-    assert register(text).description == "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + "."
+    assert register(text).description == ("For the sake of safety, Beardless Bot gambling is not usable by Discord " +
+    "users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
 
 def test_balance():
     text = TestMessage("!bal")
     text.author.id = 654133911558946837
     assert balance(text).description == text.author.mention + "'s balance is 200 BeardlessBucks."
     text.author.name = ",badname,"
-    assert balance(text).description == "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + "."
+    assert register(text).description == ("For the sake of safety, Beardless Bot gambling is not usable by Discord " +
+    "users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
 
 def test_reset():
     text = TestMessage("!reset")
     text.author.id = 654133911558946837
     assert reset(text).description == "You have been reset to 200 BeardlessBucks, " + text.author.mention + "."
     text.author.name = ",badname,"
-    assert reset(text).description == "For the sake of safety, Beardless Bot gambling is not usable by Discord users with a comma in their username. Please remove the comma from your username, " + text.author.mention + "."
+    assert register(text).description == ("For the sake of safety, Beardless Bot gambling is not usable by Discord " +
+    "users with a comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
 
 def test_leaderboard():
     lb = leaderboard()
@@ -338,8 +308,9 @@ def test_info():
     assert info("!infoerror").title == "Invalid target!"
 
 def test_sparPins():
-    assert sparPins().title == "How to use this channel."
-    assert len(sparPins().fields) == 2
+    emb = sparPins()
+    assert emb.title == "How to use this channel."
+    assert len(emb.fields) == 2
 
 def test_av():
     text = TestMessage("!av searchterm")
@@ -355,9 +326,6 @@ def test_commands():
 
 def test_join():
     assert join().title == "Want to add this bot to your server?"
-
-def test_animals():
-    assert len(animals().fields) == 10
 
 def test_hints():
     with open("resources/hints.txt", "r") as f:

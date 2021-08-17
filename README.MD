@@ -1,16 +1,18 @@
 # Beardless Bot
 
-### Full Release v1.3.7
+### Full Release v1.3.8
 
 ### Lev Bernstein
 
 A Discord bot supporting gambling (coin flips and blackjack),
 a currency system, fun facts, and more.
 
-Originally created for use in eggsoup's discord server. 
+Originally created for use in eggsoup's discord server.
 
-If you just want to add the bot to your own Discord server while I host it, you can simply [click this link](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot), then skip down to [Setup](#setup).
-If you want to run your own instance of Beardless Bot, follow the steps outlined in [Installation](#installation).
+If you just want to add the bot to your own Discord server while I host it, you can simply
+[click this link](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot),
+then skip down to [Setup](#setup). If you want to run your own instance of Beardless Bot,
+follow the steps outlined in [Installation](#installation).
 
 ## Installation
 
@@ -22,10 +24,10 @@ If you want to run your own instance of Beardless Bot, follow the steps outlined
 
 4. Place the token file in the resources folder.
 
-5. As of Full Release v1.3.0, Beardless Bot supports calls to the Brawlhalla API. If you don't have [an API key](https://dev.brawlhalla.com/), those commands will simply be disabled; the Bot will work fine.
-If you do have an API key, place it in a file named "brawlhallaKey.txt" in the resources folder.
-If you want to fork this repo and use Brawlhalla commands, you'll need to define a repository secret with the name BRAWLHALLAKEY.
-For more information, see [this guide.](https://docs.github.com/en/actions/reference/encrypted-secrets)
+5. As of Full Release v1.3.0, Beardless Bot supports calls to the Brawlhalla API. If you don't have [an API key](https://dev.brawlhalla.com/),
+those commands will simply be disabled; the Bot will work fine. If you do have an API key, place it in a file named "brawlhallaKey.txt"
+in the resources folder. If you want to fork this repo and use Brawlhalla commands, you'll need to define a repository secret with the
+name BRAWLHALLAKEY. For more information, see [this guide.](https://docs.github.com/en/actions/reference/encrypted-secrets)
 
 ## Setup
 
