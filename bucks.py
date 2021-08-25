@@ -23,31 +23,30 @@ def memSearch(text):
 	return semiMatch if semiMatch else looseMatch
 
 def writeMoney(member, amount, writing, adding):
-	# "writing" is True if you want to modify money.csv; "adding" is True if you want to add/subtract an amount to a member's balance
+	# "writing" is True if you want to modify money.csv; "adding" is True if you want to add an amount to a member's balance
 	if "," in member.name:
-		report = ("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a " +
-		"comma in their username. Please remove the comma from your username, " + member.mention + ".")
+		report = ("For the sake of safety, Beardless Bot gambling is not usable by Discord users with " +
+		"a comma in their username. Please remove the comma from your username, " + member.mention + ".")
 		return -1, report
-	else:
-		with open("resources/money.csv") as csvfile:
-			for row in csv.reader(csvfile, delimiter = ","):
-				if str(member.id) == row[0]: # found member
-					if isinstance(amount, str): # for people betting all
-						amount = int(row[1]) * (-1 if amount == "-all" else 1)
-					if row[1] != str(int(row[1]) + amount if adding else amount) and writing:
-						if int(row[1]) + amount < 0: # don't have enough to bet that much
-							return -2, None
-						newBank = amount if not adding else (int(row[1]) + amount)
-						newLine = ",".join((row[0], str(newBank), str(member)))
-						with open("resources/money.csv", "r") as oldMoney:
-							oldMoney = ''.join([i for i in oldMoney]).replace(",".join(row), newLine)
-							with open("resources/money.csv", "w") as money:
-								money.writelines(oldMoney)
-						return 1, newBank
-					return 0, int(row[1]) # no change in balance
-			with open('resources/money.csv', 'a') as money:
-				money.write("\r\n{},300,{}".format(member.id, member))
-				return 2, None
+	with open("resources/money.csv") as csvfile:
+		for row in csv.reader(csvfile, delimiter = ","):
+			if str(member.id) == row[0]: # found member
+				if isinstance(amount, str): # for people betting all
+					amount = int(row[1]) * (-1 if amount == "-all" else 1)
+				if row[1] != str(int(row[1]) + amount if adding else amount) and writing:
+					if int(row[1]) + amount < 0: # don't have enough to bet that much
+						return -2, None
+					newBank = amount if not adding else (int(row[1]) + amount)
+					newLine = ",".join((row[0], str(newBank), str(member)))
+					with open("resources/money.csv", "r") as oldMoney:
+						oldMoney = ''.join([i for i in oldMoney]).replace(",".join(row), newLine)
+						with open("resources/money.csv", "w") as money:
+							money.writelines(oldMoney)
+					return 1, newBank
+				return 0, int(row[1]) # no change in balance
+		with open('resources/money.csv', 'a') as money:
+			money.write("\r\n{},300,{}".format(member.id, member))
+			return 2, None
 
 def register(text):
 	result, bonus = writeMoney(text.author, 300, False, False)
@@ -70,7 +69,7 @@ def balance(text):
 		if result == 0:
 			report = "{}'s balance is {} BeardlessBucks.".format(target.mention, bonus)
 		elif result == 2:
-			report = "Successfully registered. You now have 300 BeardlessBucks, " + text.author.mention + "."
+			report = "Successfully registered. You now have 300 BeardlessBucks, " + target.mention + "."
 		else:
 			report = bonus if result == -1 else "Error!"
 	return discord.Embed(title = "BeardlessBucks Balance", description = report, color = 0xfff994)

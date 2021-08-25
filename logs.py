@@ -39,7 +39,7 @@ def logMemberJoin(member):
 
 def logMemberRemove(member):
 	emb = (discord.Embed(description = "Member " + member.mention + " left\nID: " + str(member.id), color = 0xff0000)
-	.set_author(name = str(member) +" left the server", icon_url = member.avatar_url))
+	.set_author(name = str(member) + " left the server", icon_url = member.avatar_url))
 	if len(member.roles) > 1:
 		emb.add_field(name = "Roles:", value = ", ".join(role.mention for role in member.roles[:0:-1]))
 	return emb

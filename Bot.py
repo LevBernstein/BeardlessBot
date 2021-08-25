@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.3.9
+# Version: Full Release 1.3.10
 
 import asyncio
 import csv
@@ -77,7 +77,7 @@ class DiscordClass(client):
 	@client.event
 	async def on_guild_join(guild):
 		global sparPings
-		sparPings[guild.id] = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
+		sparPings[guild.id] = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'aus': 0, 'sea': 0, 'eu': 0}
 		print("Just joined " + guild.name + "!")
 		try:
 			for key, value in sparPings[guild.id].items():
@@ -379,11 +379,15 @@ class DiscordClass(client):
 				if msg.startswith("!brawlrank"):
 					try:
 						target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(text)
-						rank = getRank(target, brawlKey)
-						if isinstance(rank, discord.Embed):
-							await text.channel.send(embed = rank)
-							return
-						report = "You need to claim your profile first! Do !brawlclaim." if not rank else "You haven't played ranked yet this season."
+						report = "Invalid target!"
+						if target:
+							rank = getRank(target, brawlKey)
+							if isinstance(rank, discord.Embed):
+								await text.channel.send(embed = rank)
+								return
+							report = target.mention + " needs to claim their profile first! Do !brawlclaim."
+							if rank:
+								report = "You haven't played ranked yet this season."
 					except Exception as err:
 						print(err)
 						report = "I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
@@ -391,13 +395,15 @@ class DiscordClass(client):
 					return
 				
 				if msg.startswith("!brawlstats"):
-					report = "You need to claim your profile first! Please do !brawlclaim."
 					try:
 						target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(text)
-						stats = getStats(target, brawlKey)
-						if stats:
-							await text.channel.send(embed = stats)
-							return
+						report = "Invalid target!"
+						if target:
+							stats = getStats(target, brawlKey)
+							if stats:
+								await text.channel.send(embed = stats)
+								return
+							report = target.mention + " needs to claim their profile first! Do !brawlclaim."
 					except Exception as err:
 						print(err)
 						report = "I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
@@ -420,11 +426,13 @@ class DiscordClass(client):
 				if msg.startswith("!brawlclan"):
 					try:
 						target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(text)
-						clan = getClan(target.id, brawlKey)
-						if isinstance(clan, discord.Embed):
-							await text.channel.send(embed = clan)
-							return
-						report = "You need to claim your profile first! Do !brawlclaim." if not clan else "You are not in a clan!"
+						report = "Invalid target!"
+						if target:
+							clan = getClan(target.id, brawlKey)
+							if isinstance(clan, discord.Embed):
+								await text.channel.send(embed = clan)
+								return
+							report = target.mention + " needs to claim their profile first! Do !brawlclaim." if not clan else "You are not in a clan!"
 					except Exception as err:
 						print(err)
 						report = "I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
@@ -436,7 +444,7 @@ class DiscordClass(client):
 				return
 			
 			if msg in ('!playlist', '!music'):
-				report = ("Here's my playlist (discord will only show the first hundred songs):" +
+				report = ("Here's my playlist (discord will only show the first hundred songs):\n" +
 				"https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg")
 				await text.channel.send(report)
 				return
@@ -584,6 +592,7 @@ class DiscordClass(client):
 									mString += "s"
 							await target.add_roles(role)
 							report = "Muted " + target.mention + ((" for " + duration + mString + ".") if mTime else ".")
+							
 							await text.channel.send(embed = discord.Embed(title = "Beardless Bot Mute", description = report,
 							color = 0xfff994).set_author(name = str(text.author), icon_url = text.author.avatar_url))
 							for channel in text.guild.channels:
@@ -663,10 +672,9 @@ class DiscordClass(client):
 				
 				if msg.startswith('!spar '): # command rewrite will use region, *
 					if text.channel.name == "looking-for-spar":
-						report = ("Please specify a valid region, " + text.author.mention + "! Valid regions" +
-						" are US-E, US-W, EU, AUS, SEA, BRZ, JPN. If you need help, try doing !pins.")
-						tooRecent = None
-						role = None
+						report = ("Please specify a valid region, " + text.author.mention + "! Valid " +
+						"regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. If you need help, try doing !pins.")
+						tooRecent = role = None
 						global sparPings
 						splitMsg = msg.split(" ")
 						for guild, pings in sparPings.items():
