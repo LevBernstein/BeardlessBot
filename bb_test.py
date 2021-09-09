@@ -226,7 +226,7 @@ def test_balance():
 	text.author.name = ",badname,"
 	assert balance(text).description == commaWarn.format(text.author.mention)
 	text.content = "!balance invaliduser"
-	assert balance(text).description == commaWarn.format(text.author.mention)
+	assert balance(text).description.startswith("Invalid user!")
 
 def test_reset():
 	text = TestMessage("!reset")
