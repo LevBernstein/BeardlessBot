@@ -143,7 +143,7 @@ def getClan(discordID, brawlKey):
 	if not brawlID:
 		return None
 	# takes two API calls: one to get clan ID from player stats, one to get clan from clan ID
-	# as a result, this command is very slow. Try to find a way around this.
+	# as a result, this command is very slow. TODO: Try to find a way around this.
 	r = requests.get("https://api.brawlhalla.com/player/{}/stats?api_key={}".format(brawlID, brawlKey)).json()
 	if not "clan" in r:
 		return -1
@@ -156,6 +156,18 @@ def getClan(discordID, brawlKey):
 		member = r["clan"][i]
 		emb.add_field(name = member["name"], value = "{} ({} xp)\nJoined {}"
 		.format(member["rank"], member["xp"], str(datetime.fromtimestamp(member["join_date"]))[:-9]))
+	return emb
+
+def brawlCommands():
+	emb = discord.Embed(title = "Beardless Bot Brawlhalla Commands", color = 0xfff994)
+	comms = (("!brawlclaim", "Claims a Brawlhalla account, allowing the other commands."),
+		("!brawlrank", "Displays a user's ranked information."),
+		("!brawlstats", "Displays a user's general stats."),
+		("!brawlclan", "Displays a user's clan information."),
+		("!brawllegend", "Displays lore and stats for a legend."),
+		("!random legend/weapon", "Randomly chooses a legend or weapon for you to play."))
+	for commandPair in comms:
+		emb.add_field(name = commandPair[0], value = commandPair[1])
 	return emb
 
 # maybe implement leaderboard, glory https://github.com/BrawlDB/gerard3/blob/master/src/utils/glory.js

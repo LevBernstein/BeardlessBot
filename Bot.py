@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.3.10
+# Version: Full Release 1.3.11
 
 import asyncio
 import csv
@@ -73,7 +73,7 @@ class DiscordClass(client):
 		global sparPings
 		for guild in client.guilds:
 			sparPings[guild.id] = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
-	
+
 	@client.event
 	async def on_guild_join(guild):
 		global sparPings
@@ -228,7 +228,7 @@ class DiscordClass(client):
 						report = "Invalid bet. Please choose a number greater than or equal to 0."
 					elif any(text.author == game.getUser() for game in games):
 						report = "You already have an active game, " + text.author.mention + "."
-					else:
+					else: # TODO: rewrite to use writeMoney to find bank
 						with open('resources/money.csv', 'r') as csvfile:
 							for row in csv.reader(csvfile, delimiter = ','):
 								if str(text.author.id) == row[0]:
@@ -322,37 +322,30 @@ class DiscordClass(client):
 							bet = -1
 					report = "Invalid bet amount. Please choose a number >-1, {}."
 					if (isinstance(bet, str) and "all" in bet) or (isinstance(bet, int) and bet >= 0):
-						if isinstance(bet, int) and not heads:
-							bet *= -1
-						result, bonus = writeMoney(text.author, bet, True, True)
-						report = "Tails! You lose! Your loss has been deducted from your balance, {}."
-						if heads:
-							report = "Heads! You win! Your winnings have been added to your balance, {}."
-						if result == -1:
-							report = bonus
-						elif result == -2:
+						result, bank = writeMoney(text.author, 300, False, False)
+						if not (isinstance(bet, str) or (isinstance(bet, int) and result == 0 and bet <= bank)):
 							report = "You do not have enough BeardlessBucks to bet that much, {}!"
-						elif result == 2:
-							report = ("You were not registered for BeardlessBucks gambling, so I have " +
-							"automatically registered you. You now have 300 BeardlessBucks, {}.")
-						elif result == 0:
-							report += " Or, they would have been, if you had actually bet anything."
+						else:
+							if isinstance(bet, int) and not heads:
+								bet *= -1
+							result, bonus = writeMoney(text.author, bet, True, True)
+							report = "Tails! You lose! Your loss has been deducted from your balance, {}."
+							if heads:
+								report = "Heads! You win! Your winnings have been added to your balance, {}."
+							if result == -1:
+								report = bonus
+							elif result == 2:
+								report = ("You were not registered for BeardlessBucks gambling, so I have " +
+								"automatically registered you. You now have 300 BeardlessBucks, {}.")
+							elif result == 0:
+								report += " Or, they would have been, if you had actually bet anything."
 				await text.channel.send(embed = discord.Embed(title = "Beardless Bot Coin Flip",
 				description = report.format(text.author.mention), color = 0xfff994))
 				return
 			
 			if brawlKey:
 				if msg == "!brawl":
-					emb = discord.Embed(title = "Beardless Bot Brawlhalla Commands", color = 0xfff994)
-					brawlCommands = (("!brawlclaim", "Claims a Brawlhalla account, allowing the other commands."),
-						("!brawlrank", "Displays a user's ranked information."),
-						("!brawlstats", "Displays a user's general stats."),
-						("!brawlclan", "Displays a user's clan information."),
-						("!brawllegend", "Displays lore and stats for a legend."),
-						("!random legend/weapon", "Randomly chooses a legend or weapon for you to play."))
-					for commandPair in brawlCommands:
-						emb.add_field(name = commandPair[0], value = commandPair[1])
-					await text.channel.send(embed = emb)
+					await text.channel.send(embed = brawlCommands())
 					return
 				
 				if msg.startswith("!brawlclaim"):
@@ -454,8 +447,8 @@ class DiscordClass(client):
 				return
 			
 			if msg.startswith('!dice'):
-				report = "Enter !d[number][+/-][modifier] to roll a [number]-sided die and add or \
-				subtract a modifier. For example: !d8+3, or !d100-17, or !d6."
+				report = ("Enter !d[number][+/-][modifier] to roll a [number]-sided die " +
+				"and add or subtract a modifier. For example: !d8+3, or !d100-17, or !d6.")
 				await text.channel.send(embed = discord.Embed(title = "Beardless Bot Dice", color = 0xfff994, description = report))
 				return
 			
@@ -463,7 +456,7 @@ class DiscordClass(client):
 				await text.channel.send(embed = reset(text))
 				return
 			
-			if msg.startswith("!balance") or msg.startswith("!bal"):
+			if (msg.startswith("!balance") or msg.startswith("!bal")) and any((msg == "!bal", msg == "!balance", msg.count(" ") > 0)):
 				await text.channel.send(embed = balance(text))
 				return
 			
@@ -483,8 +476,8 @@ class DiscordClass(client):
 				return
 			
 			if msg == "!source":
-				await text.channel.send(embed = discord.Embed(title = "Beardless Bot Fun Facts", color = 0xfff994,
-				description = "Most facts taken from [this website](https://www.thefactsite.com/1000-interesting-facts/)."))
+				report = "Most facts taken from [this website](https://www.thefactsite.com/1000-interesting-facts/)."
+				await text.channel.send(embed = discord.Embed(title = "Beardless Bot Fun Facts", color = 0xfff994, description = report))
 				return
 			
 			if msg in ("!add", "!join"):
@@ -500,8 +493,8 @@ class DiscordClass(client):
 				return
 			
 			if msg == "!fact":
-				await text.channel.send(embed = discord.Embed(description = fact(),
-				title = "Beardless Bot Fun Fact #" + str(randint(1,111111111)), color = 0xfff994))
+				header = "Beardless Bot Fun Fact #" + str(randint(1,111111111))
+				await text.channel.send(embed = discord.Embed(title = header, description = fact(), color = 0xfff994))
 				return
 			
 			if msg in ("!animals", "!pets"):
@@ -511,8 +504,7 @@ class DiscordClass(client):
 			animalName = msg[1:].split(" ", 1)[0]
 			if animalName in ("dog", "moose"):
 				if "moose" in msg:
-					mooseNum = randint(1, 40)
-					await text.channel.send(file = discord.File("images/moose/moose{}.jpg".format(mooseNum)))
+					await text.channel.send(file = discord.File("images/moose/moose{}.jpg".format(randint(1, 45))))
 					return
 				try:
 					dogUrl = animal(msg[1:])
@@ -532,10 +524,10 @@ class DiscordClass(client):
 					.set_image(url = animal(animalName)))
 				except Exception as err:
 					print(err)
+					report = "Something's gone wrong! Please ping my creator and he'll see what's going on."
 					if animalName == "fish":
-						await text.channel.send("The fish API is currently down. I do not know when it will come back up.")
-					else:
-						await text.channel.send("Something's gone wrong! Please ping my creator and he'll see what's going on.")
+						report = "The fish API is currently down. I do not know when it will come back up."
+					await text.channel.send(report)
 				return
 			
 			if msg.startswith("!define "):
@@ -545,12 +537,12 @@ class DiscordClass(client):
 			if msg == "!ping":
 				startTime = datetime.now()
 				message = await text.channel.send(embed = discord.Embed(title = "Pinging...", color = 0xfff994))
-				await message.edit(embed = discord.Embed(title = "Pinged!", color = 0xfff994,
-				description = "Beardless Bot's latency is " + str(int((datetime.now() - startTime).total_seconds() * 1000)) + "ms.")
-				.set_thumbnail(url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"))
+				report = "Beardless Bot's latency is {} ms.".format(int((datetime.now() - startTime).total_seconds() * 1000))
+				link = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"
+				await message.edit(embed = discord.Embed(title = "Pinged!", description = report, color = 0xfff994).set_thumbnail(url = link))
 				return
 			
-			if msg.startswith('!d') and ((msg.split('!d',1)[1])[0]).isnumeric() and len(msg) < 12:
+			if msg.startswith('!d') and len(msg) > 2 and ((msg.split('!d',1)[1])[0]).isnumeric() and len(msg) < 12:
 				# The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
 				await text.channel.send(embed = rollReport(text))
 				return
@@ -572,7 +564,7 @@ class DiscordClass(client):
 							if not role: # Creates a Muted role
 								role = await text.guild.create_role(name = "Muted", colour = discord.Color(0x818386),
 								permissions = discord.Permissions(send_messages = False, read_messages = True))
-							mTime = 0.0
+							mTime = 0.0 # TODO: iterate through channels, make Muted unable to send msgs
 							mString = None
 							if len(duration) > 1:
 								duration = duration[1:]
@@ -722,9 +714,9 @@ class DiscordClass(client):
 					return
 				
 				if msg == '!twitch':
+					link = "https://yt3.ggpht.com/ytc/AKedOLStPqU8W7FinOREV9HpU1P9Zm23O9qOlbmbPWoZ=s88-c-k-c0x00ffffff-no-rj"
 					await text.channel.send(embed = discord.Embed(title = "Captain No-Beard's Twitch Stream",
-					description = "https://twitch.tv/capnnobeard", color = 0xfff994)
-					.set_thumbnail(url = "https://yt3.ggpht.com/ytc/AKedOLStPqU8W7FinOREV9HpU1P9Zm23O9qOlbmbPWoZ=s88-c-k-c0x00ffffff-no-rj"))
+					description = "https://twitch.tv/capnnobeard", color = 0xfff994).set_thumbnail(url = link))
 					return
 				
 				if text.guild.id == 797140390993068035 and msg == '!file': # Command for Jetspec's Discord server.

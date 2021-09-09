@@ -25,8 +25,12 @@ class Instance:
 		if self.perfect():
 			message += "You hit 21! You win, " + self.user.mention + "!"
 		else:
-			message += ("The dealer is showing " + str(self.dealerUp) + ", with one card face down. Type !hit \
-			to deal another card to yourself, or !stay to stop at your current total, " + self.user.mention + ".")
+			message += "The dealer is showing {}, with one card face down. ".format(self.dealerUp)
+			if self.checkBust():
+				self.cards[1] = 1
+				self.bet *= -1
+				message = "Your starting hand consists of two Aces. One of them will act as a 1. Your total is 12. "
+			message += "Type !hit to deal another card to yourself, or !stay to stop at your current total, " + self.user.mention + "."
 		return message
 	
 	def cardName(self, card):

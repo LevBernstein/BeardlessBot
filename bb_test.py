@@ -76,7 +76,7 @@ def test_animal():
 		assert r.ok and any(str(r.content).startswith(signature) for signature in imageSigs)
 	
 	breeds = animal("dog breeds")[12:-1].split(", ")
-	assert len(breeds) == 95
+	assert len(breeds) >= 94
 	for breed in breeds:
 		r = requests.head(animal("dog " + breed))
 		assert r.ok and r.headers["content-type"] in imageTypes
@@ -402,3 +402,6 @@ if brawlKey:
 		claimProfile(196354892208537600, 5895238)
 		assert getClan(196354892208537600, brawlKey) == -1
 		claimProfile(196354892208537600, 7032472)
+
+	def test_brawlCommands():
+		assert len(brawlCommands().fields) == 6
