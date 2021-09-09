@@ -84,7 +84,7 @@ class DiscordClass(client):
 				if not get(guild.roles, name = key.upper()):
 					await guild.create_role(name = key.upper(), mentionable = False)
 		except:
-			print("Not given admin perms in " + guild.name + "...")
+			print("Not given admin perms in " + guild.name + ".")
 			for channel in guild.channels:
 				try:
 					await channel.send(embed = noPerms())
