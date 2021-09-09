@@ -196,8 +196,7 @@ class DiscordClass(client):
 			msg = text.content.lower()
 			if msg.startswith('!bj') or msg.startswith('!bl'): # for command: alias blackjack !bj, bet
 				if ',' in text.author.name:
-					report = ("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a " +
-					"comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
+					report = commaWarn.format(text.author.mention)
 				else:
 					report = "You need to register first! Type !register to get started, " + text.author.mention + "."
 					strbet = '10' # Bets default to 10. If someone just types !blackjack, they will bet 10 by default.
@@ -253,8 +252,7 @@ class DiscordClass(client):
 			
 			if msg in ('!deal', '!hit'):
 				if ',' in text.author.name:
-					report = ("For the sake of safety, Beardless Bot gambling is not usable by Discord users with a " +
-					"comma in their username. Please remove the comma from your username, " + text.author.mention + ".")
+					report = commaWarn.format(text.author.mention)
 				else:
 					report = "You do not currently have a game of blackjack going, " + text.author.mention + ". Type !blackjack to start one."
 					for i in range(len(games)):

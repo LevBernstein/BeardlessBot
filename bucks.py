@@ -5,6 +5,8 @@ from operator import itemgetter
 import discord
 from discord.utils import find
 
+commaWarn = "Beardless Bot gambling is available to Discord users with a comma in their username. Please remove the comma from your username, {}."
+
 def memSearch(text):
 	# method for finding a user based on username and, possibly, discriminator (#1234)
 	term = text.content.split(" ", 1)[1].lower()
@@ -25,9 +27,7 @@ def memSearch(text):
 def writeMoney(member, amount, writing, adding):
 	# "writing" is True if you want to modify money.csv; "adding" is True if you want to add an amount to a member's balance
 	if "," in member.name:
-		report = ("For the sake of safety, Beardless Bot gambling is not usable by Discord users with " +
-		"a comma in their username. Please remove the comma from your username, " + member.mention + ".")
-		return -1, report
+		return -1, commaWarn.format(member.mention)
 	with open("resources/money.csv") as csvfile:
 		for row in csv.reader(csvfile, delimiter = ","):
 			if str(member.id) == row[0]: # found member
