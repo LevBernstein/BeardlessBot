@@ -208,7 +208,7 @@ def test_register():
 	text.author.id = 654133911558946837
 	assert register(text).description == "You are already in the system! Hooray! You have 200 BeardlessBucks, " + text.author.mention + "."
 	text.author.name = ",badname,"
-	assert register(text).description.startswith("For the sake of safety")
+	assert register(text).description == commaWarn.format(text.author.mention)
 
 def test_balance():
 	text = TestMessage("!bal")
@@ -224,16 +224,16 @@ def test_balance():
 	text.mentions = ()
 	text.content = "!balance"
 	text.author.name = ",badname,"
-	assert balance(text).description.startswith("For the sake of safety")
+	assert balance(text).description == commaWarn.format(text.author.mention)
 	text.content = "!balance invaliduser"
-	assert balance(text).description.startswith("Invalid user! Please @")
+	assert balance(text).description == commaWarn.format(text.author.mention)
 
 def test_reset():
 	text = TestMessage("!reset")
 	text.author.id = 654133911558946837
 	assert reset(text).description == "You have been reset to 200 BeardlessBucks, " + text.author.mention + "."
 	text.author.name = ",badname,"
-	assert reset(text).description.startswith("For the sake of safety")
+	assert reset(text).description == commaWarn.format(text.author.mention)
 
 def test_writeMoney():
 	user = TestUser()
