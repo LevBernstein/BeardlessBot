@@ -49,12 +49,27 @@ def animal(animalType):
 		if r.status_code == 200:
 			return r.json()["image"]
 	
-	if animalType in ("duck", "lizard"):
-		r = requests.get("https://nekos.life/api/v2/img/lizard" if animalType == "lizard" else "https://random-d.uk/api/quack")
+	if animalType in ("duck", "lizard", "axolotl"):
+		if animalType == "duck":
+			r = requests.get("https://random-d.uk/api/quack")
+		elif animalType == "lizard":
+			r = requests.get("https://nekos.life/api/v2/img/lizard")
+		else:
+			r = requests.get("https://axoltlapi.herokuapp.com/")
 		if r.status_code == 200:
 			return r.json()["url"]
 	
+	if animalType == "bear":
+		return "https://placebear.com/{}/{}".format(randint(200, 400), randint(200,400))
+
 	raise Exception(r)
+
+def animals():
+	emb = discord.Embed(title = "Animal Photo Commands:", color = 0xfff994).add_field(name = "!dog",
+	value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>", inline = False)
+	for animalName in "cat", "duck", "fox", "rabbit", "bunny", "panda", "lizard", "axolotl", "bear", "bird", "koala", "raccoon", "kangaroo", "fish":
+		emb.add_field(name = "!" + animalName, value = "_ _")
+	return emb
 
 def define(msg):
 	report = "Invalid word!"
@@ -170,13 +185,6 @@ def join():
 	.add_field(name = "If you like Beardless Bot...", inline = False,
 	value = "Please leave a review on [top.gg](https://top.gg/bot/654133911558946837)."))
 
-def animals():
-	emb = discord.Embed(title = "Animal Photo Commands:", color = 0xfff994).add_field(name = "!dog",
-	value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>", inline = False)
-	for animalName in "cat", "duck", "fox", "rabbit", "bunny", "panda", "lizard", "bird", "koala", "raccoon", "kangaroo", "fish":
-		emb.add_field(name = "!" + animalName, value = "_ _")
-	return emb
-
 def hints():
 	with open("resources/hints.txt", "r") as f:
 		hints = f.read().splitlines()
@@ -193,7 +201,7 @@ def tweet():
 	keySize = randint(1, 2)
 	for i in range(len(words) - keySize):
 		key = ' '.join(words[i : i + keySize])
-		if not key in chains:
+		if key not in chains:
 			chains[key] = []
 		chains[key].append(words[i + keySize])
 	key = s = choice(list(chains.keys()))
@@ -203,12 +211,12 @@ def tweet():
 		key = ' '.join(key.split()[1:keySize + 1]) + ' ' + word if keySize > 1 else word
 	return s[0].title() + s[1:]
 
-def formattedTweet(tweet):
+def formattedTweet(eggTweet):
 	# Removes the last piece of punctuation to create a more realistic tweet
-	for i in range(len(tweet)):
-		if tweet[len(tweet) - i - 1] in (".", "!", "?"):
-			return "\n" + tweet[:(len(tweet) - i - 1)]
-	return "\n" + tweet
+	for i in range(len(eggTweet) - 1, -1, -1):
+		if eggTweet[i] in (".", "!", "?"):
+			return "\n" + eggTweet[:i]
+	return "\n" + eggTweet
 
 def noPerms():
 	image = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"

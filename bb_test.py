@@ -61,7 +61,7 @@ except:
 	brawlKey = None
 
 def test_animals():
-	assert len(animals().fields) == 13
+	assert len(animals().fields) == 15
 
 def test_animal():
 	imageTypes = "image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"
@@ -187,7 +187,7 @@ def test_logMute():
 
 def test_logUnmute():
 	member = TestUser()
-	assert logUnmute(member, TestUser()).description == "Autounmuted " + member.mention + "."
+	assert logUnmute(member, TestUser()).description == "Unmuted " + member.mention + "."
 
 def test_memSearch():
 	text = TestMessage()
@@ -266,7 +266,7 @@ def test_blackjack_deal():
 	game.cards = [11, 9]
 	game.deal()
 	assert sum(game.cards) <= 21
-	assert "your Ace has been changed" in game.message
+	assert "will be treated as a 1" in game.message
 
 def test_blackjack_cardName():
 	game = Instance(TestUser(), 10)

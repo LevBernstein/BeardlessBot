@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.3.12
+# Version: Full Release 1.3.13
 
 import asyncio
 import csv
@@ -199,25 +199,25 @@ class DiscordClass(client):
 					report = commaWarn.format(text.author.mention)
 				else:
 					report = "You need to register first! Type !register to get started, " + text.author.mention + "."
-					strbet = '10' # Bets default to 10. If someone just types !blackjack, they will bet 10 by default.
+					strBet = '10' # Bets default to 10. If someone just types !blackjack, they will bet 10 by default.
 					if msg.startswith('!blackjack ') and len(msg) > 11:
-						strbet = msg.split('!blackjack ',1)[1]
+						strBet = msg.split('!blackjack ',1)[1]
 					elif msg in ("!blackjack", "!bl"):
 						pass
 					elif msg.startswith('!bl ') and len(msg) > 4:
-						strbet = msg.split('!bl ',1)[1]
+						strBet = msg.split('!bl ',1)[1]
 					elif msg.startswith('!bl'):
 						# This way, other bots' commands that start with !bl won't trigger blackjack.
 						return
 					elif msg.startswith('!bj') and len(msg) > 4:
-						strbet = msg.split('!bj ',1)[1]
+						strBet = msg.split('!bj ',1)[1]
 					allBet = False
-					if strbet == "all":
+					if strBet == "all":
 						allBet = True
 						bet = 0
 					else:
 						try:
-							bet = int(strbet)
+							bet = int(strBet)
 						except:
 							bet = 10
 							if ' ' in msg:
@@ -236,16 +236,16 @@ class DiscordClass(client):
 										bet = bank
 									report = "You do not have enough BeardlessBucks to bet that much, " + text.author.mention + "!"
 									if bet <= bank:
-										x = Instance(text.author, bet)
-										report = x.message
-										if x.perfect():
+										gamer = Instance(text.author, bet)
+										report = gamer.message
+										if gamer.perfect():
 											newLine = ",".join((row[0], str(bank + bet), str(text.author)))
 											with open("resources/money.csv", "r") as oldMoney:
 												oldMoney = ''.join([i for i in oldMoney]).replace(",".join(row), newLine)
 												with open("resources/money.csv", "w") as money:
 													money.writelines(oldMoney)
 										else:
-											games.append(x)
+											games.append(gamer)
 									break
 				await text.channel.send(embed = discord.Embed(title = "Beardless Bot Blackjack", description = report, color = 0xfff994))
 				return
@@ -440,7 +440,7 @@ class DiscordClass(client):
 				await text.channel.send(report)
 				return
 			
-			if msg in ("!leaderboard", "!leaderboards", "!lb"):
+			if msg in ("!leaderboard", "!leaderboards", "!lb"): # TODO: also report user's position on the leaderboard
 				await text.channel.send(embed = leaderboard())
 				return
 			
@@ -502,7 +502,7 @@ class DiscordClass(client):
 			animalName = msg[1:].split(" ", 1)[0]
 			if animalName in ("dog", "moose"):
 				if "moose" in msg:
-					await text.channel.send(file = discord.File("images/moose/moose{}.jpg".format(randint(1, 45))))
+					await text.channel.send(file = discord.File("images/moose/moose{}.jpg".format(randint(1, 55))))
 					return
 				try:
 					dogUrl = animal(msg[1:])
@@ -515,7 +515,7 @@ class DiscordClass(client):
 					await text.channel.send("Something's gone wrong with the dog API! Please ping my creator and he'll see what's going on.")
 				return
 			
-			animalList = "cat", "duck", "fish", "fox", "rabbit", "bunny", "panda", "bird", "koala", "lizard", "raccoon", "kangaroo"
+			animalList = "cat", "duck", "fox", "rabbit", "bunny", "panda", "lizard", "axolotl", "bear", "bird", "koala", "raccoon", "kangaroo", "fish"
 			if msg.startswith("!") and animalName in animalList:
 				try:
 					await text.channel.send(embed = discord.Embed(title = "Random " + animalName.title(), color = 0xfff994)
@@ -559,37 +559,28 @@ class DiscordClass(client):
 								await text.channel.send("I am too powerful to be muted. Stop trying.")
 								return
 							role = get(text.guild.roles, name = 'Muted')
-							if not role: # Creates a Muted role
+							if not role: # Creates a Muted role. TODO: iterate through channels, make Muted unable to send msgs
 								role = await text.guild.create_role(name = "Muted", colour = discord.Color(0x818386),
 								permissions = discord.Permissions(send_messages = False, read_messages = True))
-							mTime = 0.0 # TODO: iterate through channels, make Muted unable to send msgs
+							mTime = 0.0
 							mString = None
 							if len(duration) > 1:
 								duration = duration[1:]
-								if 'h' in duration:
-									duration = duration.split('h', 1)[0]
-									mString = " hour"
-									mTime = float(duration) * 3600.0
-								elif 'm' in duration:
-									duration = duration.split('m', 1)[0]
-									mString = " minute"
-									mTime = float(duration) * 60.0
-								elif 's' in duration:
-									duration = duration.split('s', 1)[0]
-									mString = " second"
-									mTime = float(duration)
-								if duration != "1":
-									mString += "s"
+								for mPair in ("hour", 3600.0), ("minute", 60.0), ("second", 1.0):
+									if (mPair[0])[0] in duration:
+										duration = duration.split((mPair[0])[0], 1)[0]
+										mString = " " + mPair[0] + ("" if duration == "1" else "s")
+										mTime = float(duration) * mPair[1]
+										break
 							await target.add_roles(role)
 							report = "Muted " + target.mention + ((" for " + duration + mString + ".") if mTime else ".")
-							
 							await text.channel.send(embed = discord.Embed(title = "Beardless Bot Mute", description = report,
 							color = 0xfff994).set_author(name = str(text.author), icon_url = text.author.avatar_url))
 							for channel in text.guild.channels:
 								if channel.name == "bb-log":
 									await channel.send(embed = logMute(target, text, duration, mString, mTime))
 									break
-							if mTime: # Autounmute:
+							if mTime: # Autounmute
 								print("Muted {} for {} in {}.".format(target, mTime, text.guild.name))
 								await asyncio.sleep(mTime)
 								await target.remove_roles(role)
@@ -619,7 +610,7 @@ class DiscordClass(client):
 					await text.channel.send(embed = discord.Embed(title = "Beardless Bot Unmute", description = report, color = 0xfff994))
 					return
 				
-				if msg.startswith("!clear") or msg.startswith("!purge"):
+				if msg.startswith("!purge"):
 					if not text.author.guild_permissions.manage_messages:
 						await text.channel.send("You do not have permission to use this command, " + text.author.mention + ".")
 						return
@@ -676,7 +667,7 @@ class DiscordClass(client):
 											role = await text.guild.create_role(name = key.upper(), mentionable = False)
 										if time() - value > 7200:
 											sparPings[guild][key] = int(time())
-											report = role.mention + " come spar " + text.author.mention + "!"
+											report = "{} come spar {}!".format(role.mention, text.author.mention)
 										else:
 											tooRecent = value
 										break
@@ -688,7 +679,7 @@ class DiscordClass(client):
 											role = await text.guild.create_role(name = spelledRole.upper(), mentionable = False)
 										if time() - sparPings[guild][spelledRole] > 7200:
 											sparPings[guild][spelledRole] = int(time())
-											report = role.mention + " come spar " + text.author.mention + "!"
+											report = "{} come spar {}!".format(role.mention, text.author.mention)
 										else:
 											tooRecent = sparPings[guild][spelledRole]
 								break

@@ -26,7 +26,7 @@ class Instance:
 			message += "You hit 21! You win, " + self.user.mention + "!"
 		else:
 			message += "The dealer is showing {}, with one card face down. ".format(self.dealerUp)
-			if self.checkBust():
+			if self.checkBust():# Case only fires if you're dealt two aces
 				self.cards[1] = 1
 				self.bet *= -1
 				message = "Your starting hand consists of two Aces. One of them will act as a 1. Your total is 12. "
@@ -43,16 +43,16 @@ class Instance:
 		return "a " + str(card)
 	
 	def deal(self):
-		card = choice(self.vals)
-		self.cards.append(card)
-		self.message = "You were dealt " + self.cardName(card) + ", bringing your total to " + str(sum(self.cards)) + ". "
+		dealt = choice(self.vals)
+		self.cards.append(dealt)
+		self.message = "You were dealt {}, bringing your total to {}. ".format(self.cardName(dealt), sum(self.cards))
 		if 11 in self.cards and self.checkBust():
 			for i in range(len(self.cards)):
 				if self.cards[i] == 11:
 					self.cards[i] = 1
 					self.bet *= -1
 					break
-			self.message += "Because you would have busted, your Ace has been changed from an 11 to a 1. Your new total is {}.".format(sum(self.cards))
+			self.message = "You were dealt an Ace, which will be treated as a 1. Your new total is {}.".format(sum(self.cards))
 		self.message += ("Your card values are {}. The dealer is showing {}, with one card face down."
 		.format(", ".join(str(card) for card in self.cards), self.dealerUp))
 		if self.checkBust():

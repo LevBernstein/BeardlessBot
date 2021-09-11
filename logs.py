@@ -78,5 +78,5 @@ def logMute(member, message, duration, mString, mTime):
 	.set_author(name = str(message.author), icon_url = message.author.avatar_url))
 
 def logUnmute(member, author):
-	return (discord.Embed(title = "Beardless Bot Mute", description = "Autounmuted " + member.mention + ".", color = 0x00ff00)
+	return (discord.Embed(title = "Beardless Bot Mute", description = "Unmuted " + member.mention + ".", color = 0x00ff00)
 	.set_author(name = str(author), icon_url = author.avatar_url))
