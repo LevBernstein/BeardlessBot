@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.3.13
+# Version: Full Release 1.3.14
 
 import asyncio
 import csv
@@ -211,11 +211,8 @@ class DiscordClass(client):
 						return
 					elif msg.startswith('!bj') and len(msg) > 4:
 						strBet = msg.split('!bj ',1)[1]
-					allBet = False
-					if strBet == "all":
-						allBet = True
-						bet = 0
-					else:
+					allBet = True if strBet == "all" else False
+					if not allBet:
 						try:
 							bet = int(strBet)
 						except:
@@ -223,8 +220,9 @@ class DiscordClass(client):
 							if ' ' in msg:
 								print("Failed to cast bet to int! Bet msg: " + msg)
 								bet = -1
-					if bet < 0:
-						report = "Invalid bet. Please choose a number greater than or equal to 0."
+						finally:
+							if bet < 0:
+								report = "Invalid bet. Please choose a number greater than or equal to 0."
 					elif any(text.author == game.getUser() for game in games):
 						report = "You already have an active game, " + text.author.mention + "."
 					else: # TODO: rewrite to use writeMoney to find bank
@@ -401,7 +399,7 @@ class DiscordClass(client):
 					await text.channel.send(embed = discord.Embed(title = "Beardless Bot Brawlhalla Stats", description = report, color = 0xfff994))
 					return
 				
-				if msg.startswith("!brawllegend ") and not msg == "!brawllegend ":
+				if msg.startswith("!brawllegend ") and msg != "!brawllegend ":
 					report = "Invalid legend! Please do !brawllegend followed by a legend name."
 					try:
 						legend = legendInfo(brawlKey, msg.split("!brawllegend ", 1)[1])
@@ -435,9 +433,8 @@ class DiscordClass(client):
 				return
 			
 			if msg in ('!playlist', '!music'):
-				report = ("Here's my playlist (discord will only show the first hundred songs):\n" +
-				"https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg")
-				await text.channel.send(report)
+				link = "https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg"
+				await text.channel.send("Here's my playlist (Discord will only show the first hundred songs):\n" + link)
 				return
 			
 			if msg in ("!leaderboard", "!leaderboards", "!lb"): # TODO: also report user's position on the leaderboard
@@ -455,7 +452,7 @@ class DiscordClass(client):
 				return
 			
 			if (msg.startswith("!balance") or msg.startswith("!bal")) and any((msg == "!bal", msg == "!balance", msg.count(" ") > 0)):
-				await text.channel.send(embed = balance(text))
+				await text.channel.send(embed = balance(text)) # TODO: for command rewrite, param target = text.author
 				return
 			
 			if msg == "!register": # Make sure resources/money.csv is not open in any other program
@@ -515,8 +512,7 @@ class DiscordClass(client):
 					await text.channel.send("Something's gone wrong with the dog API! Please ping my creator and he'll see what's going on.")
 				return
 			
-			animalList = "cat", "duck", "fox", "rabbit", "bunny", "panda", "lizard", "axolotl", "bear", "bird", "koala", "raccoon", "kangaroo", "fish"
-			if msg.startswith("!") and animalName in animalList:
+			if msg.startswith("!") and animalName in tuple(a.name[1:] for a in animals().fields[1:]):
 				try:
 					await text.channel.send(embed = discord.Embed(title = "Random " + animalName.title(), color = 0xfff994)
 					.set_image(url = animal(animalName)))
@@ -536,7 +532,7 @@ class DiscordClass(client):
 				startTime = datetime.now()
 				message = await text.channel.send(embed = discord.Embed(title = "Pinging...", color = 0xfff994))
 				report = "Beardless Bot's latency is {} ms.".format(int((datetime.now() - startTime).total_seconds() * 1000))
-				link = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"
+				link = client.user.avatar_url
 				await message.edit(embed = discord.Embed(title = "Pinged!", description = report, color = 0xfff994).set_thumbnail(url = link))
 				return
 			
@@ -566,7 +562,7 @@ class DiscordClass(client):
 							mString = None
 							if len(duration) > 1:
 								duration = duration[1:]
-								for mPair in ("hour", 3600.0), ("minute", 60.0), ("second", 1.0):
+								for mPair in ("day", 86400.0), ("hour", 3600.0), ("minute", 60.0), ("second", 1.0):
 									if (mPair[0])[0] in duration:
 										duration = duration.split((mPair[0])[0], 1)[0]
 										mString = " " + mPair[0] + ("" if duration == "1" else "s")
@@ -625,7 +621,7 @@ class DiscordClass(client):
 					if msg != "!buy":
 						color = msg.split(" ", 1)[1]
 						role = get(text.guild.roles, name = 'special ' + color)
-						if color not in ("blue", "pink", "orange", "red"):
+						if not color in ("blue", "pink", "orange", "red"):
 							report = "Invalid color. Choose blue, red, orange, or pink, {}."
 						elif not role:
 							report = "Special color roles do not exist in this server, {}."
@@ -653,8 +649,8 @@ class DiscordClass(client):
 				
 				if msg.startswith('!spar '): # command rewrite will use region, *
 					if text.channel.name == "looking-for-spar":
-						report = ("Please specify a valid region, " + text.author.mention + "! Valid " +
-						"regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. If you need help, try doing !pins.")
+						report = ("Please specify a valid region, {}! Valid regions are " +
+						"US-E, US-W, EU, AUS, SEA, BRZ, JPN. If you need help, try doing !pins.")
 						tooRecent = role = None
 						global sparPings
 						splitMsg = msg.split(" ")
@@ -690,12 +686,12 @@ class DiscordClass(client):
 							"{}. You can ping again in {} hour{}, {} minute{}, and {} second{}.".format(text.author.mention, str(hours),
 							"" if hours == 1 else "s", str(minutes), "" if minutes == 1 else "s", str(seconds), "" if seconds == 1 else "s"))
 					else:
-						report = "Please only use !spar in looking-for-spar, " + text.author.mention + "."
+						report = "Please only use !spar in looking-for-spar, {}."
 						for channel in text.guild.channels:
 							if channel.name == "looking-for-spar":
-								report = "Please only use !spar in " + channel.mention + ", " + text.author.mention + "."
+								report = "Please only use !spar in " + channel.mention + ", {}."
 								break
-					await text.channel.send(report)
+					await text.channel.send(report.format(text.author.mention))
 					return
 				
 				if text.channel.name == "looking-for-spar" and msg in ('!pins', '!rules', '!spar'):
@@ -703,15 +699,8 @@ class DiscordClass(client):
 					return
 				
 				if msg == '!twitch':
-					link = "https://yt3.ggpht.com/ytc/AKedOLStPqU8W7FinOREV9HpU1P9Zm23O9qOlbmbPWoZ=s88-c-k-c0x00ffffff-no-rj"
 					await text.channel.send(embed = discord.Embed(title = "Captain No-Beard's Twitch Stream",
-					description = "https://twitch.tv/capnnobeard", color = 0xfff994).set_thumbnail(url = link))
-					return
-				
-				if text.guild.id == 797140390993068035 and msg == '!file': # Command for Jetspec's Discord server.
-					jet = await text.guild.fetch_member("579316676642996266")
-					await text.channel.send(jet.mention)
-					print("Pinging Jetspec.")
+					description = "https://twitch.tv/capnnobeard", color = 0xfff994).set_thumbnail(url = "https://shorturl.at/bszJQ"))
 					return
 				
 				if text.guild.id == 442403231864324119: # Commands for eggsoup's Discord server.
@@ -721,10 +710,8 @@ class DiscordClass(client):
 						return
 					
 					if msg == '!reddit':
-						image = ("https://styles.redditmedia.com/t5_2m5xhn/styles/communityIcon_" +
-						"0yqex29y6lu51.png?width=256&s=fcf916f19b8f0bffff91d512691837630b378d80")
 						await text.channel.send(embed = discord.Embed(title = "The Official Eggsoup Subreddit",
-						description = "https://www.reddit.com/r/eggsoup/", color = 0xfff994).set_thumbnail(url = image))
+						description = "https://www.reddit.com/r/eggsoup/", color = 0xfff994).set_thumbnail(url = "https://shorturl.at/xCJY9"))
 						return
 					
 					if msg == '!guide':

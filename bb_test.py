@@ -67,10 +67,12 @@ def test_animal():
 	imageTypes = "image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"
 	imageSigs = "b'\\xff\\xd8\\xff\\xe0\\x00\\x10JFIF", "b'\\x89\\x50\\x4e\\x47\\x0d\\x", "b'\\xff\\xd8\\xff\\xe2\\x024ICC_PRO"
 	for animalName in animals().fields[:-5]:
+		print(animalName)
 		r = requests.get(animal(animalName.name[1:]))
 		assert r.ok and r.headers["content-type"] in imageTypes
 	
 	for animalName in animals().fields[-5:-1]:
+		print(animalName)
 		# Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field; check if URL points to an image instead
 		r = requests.get(animal(animalName.name[1:]))
 		assert r.ok and any(str(r.content).startswith(signature) for signature in imageSigs)
@@ -302,7 +304,7 @@ def test_blackjack_startingHand():
 	game.cards = []
 	game.message = game.startingHand()
 	assert len(game.cards) == 2
-	assert game.message.startswith("Your starting hand consists of a")
+	assert game.message.startswith("Your starting hand consists of ")
 
 def test_randomBrawl():
 	assert randomBrawl("!random legend").title == "Random Legend"

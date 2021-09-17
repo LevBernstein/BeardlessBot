@@ -60,7 +60,7 @@ class Instance:
 		elif self.perfect():
 			self.message += " You hit 21! You win, " + self.user.mention + "!"
 		else:
-			self.message += " Type !hit to deal another card to yourself, or !stay to stop at your current total, " + self.user.mention+ "."
+			self.message += " Type !hit to deal another card to yourself, or !stay to stop at your current total, " + self.user.mention + "."
 	
 	def checkBust(self):
 		if sum(self.cards) > 21:

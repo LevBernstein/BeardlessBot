@@ -7,6 +7,8 @@ import requests
 
 from bucks import memSearch
 
+prof = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"
+
 def animal(animalType):
 	r = "Invalid Animal!"
 	if animalType == "cat":
@@ -94,8 +96,7 @@ def roll(message):
 	# Takes a string of the format !dn+b and rolls one n-sided die with a modifier of b. Modifier is optional.
 	command = message.split('!d', 1)[1]
 	modifier = -1 if "-" in command else 1
-	sides = "4", "6", "8", "100", "10", "12", "20"
-	for side in sides:
+	for side in "4", "6", "8", "100", "10", "12", "20":
 		if command.startswith(side):
 			if len(command) > len(side) and command[len(side)] in ("+", "-"):
 				return randint(1, int(side)) + modifier * int(command[1 + len(side):])
@@ -181,8 +182,7 @@ def commands(text):
 def join():
 	return (discord.Embed(title = "Want to add this bot to your server?", color = 0xfff994,
 	description = "[Click this link!](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot)")
-	.set_thumbnail(url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024")
-	.add_field(name = "If you like Beardless Bot...", inline = False,
+	.set_thumbnail(url = prof).add_field(name = "If you like Beardless Bot...", inline = False,
 	value = "Please leave a review on [top.gg](https://top.gg/bot/654133911558946837)."))
 
 def hints():
@@ -219,8 +219,7 @@ def formattedTweet(eggTweet):
 	return "\n" + eggTweet
 
 def noPerms():
-	image = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"
-	return (discord.Embed(description = ("Beardless Bot requires permissions in order to do just about anything. Without them, " +
-	"I can't do much, so I'm leaving. If you add me back to this server, please make sure to leave checked the box that grants " +
-	"me the Administrator permission.\nIf you have any questions, feel free to contact my creator, Captain No-Beard#7511."),
-	title = "I need admin perms!", color = 0xff0000).set_author(name = "Beardless Bot", icon_url = image))
+	reasons = " ".join(("Beardless Bot requires permissions in order to do just about anything. Without them, I can't do",
+	"much, so I'm leaving. If you add me back to this server, please make sure to leave checked the box that grants me",
+	"the Administrator permission.\nIf you have any questions, feel free to contact my creator, Captain No-Beard#7511."))
+	return discord.Embed(title = "I need admin perms!", description = reasons, color = 0xff0000).set_author(name = "Beardless Bot", icon_url = prof)

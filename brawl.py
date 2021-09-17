@@ -71,7 +71,7 @@ def legendInfo(brawlKey, legendName):
 	return None
 
 def getRank(target, brawlKey):
-	# TODO: add rank images as thumbnail, clan below name
+	# TODO: add rank images as thumbnail, clan below name; download local copies of rank images bc there's no easy format on wiki
 	brawlID = fetchBrawlID(target.id)
 	if not brawlID:
 		return None
@@ -113,7 +113,7 @@ def getRank(target, brawlKey):
 	return emb
 
 def getStats(target, brawlKey):
-	# TODO: add clan below name
+	# TODO: add clan below name, make this look not terrible
 	brawlID = fetchBrawlID(target.id)
 	if not brawlID:
 		return None
@@ -170,4 +170,4 @@ def brawlCommands():
 		emb.add_field(name = commandPair[0], value = commandPair[1])
 	return emb
 
-# maybe implement leaderboard, glory https://github.com/BrawlDB/gerard3/blob/master/src/utils/glory.js
+# maybe implement brawl ID lookup, leaderboard, glory https://github.com/BrawlDB/gerard3/blob/master/src/utils/glory.js

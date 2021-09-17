@@ -2,6 +2,8 @@
 
 import discord
 
+from misc import prof
+
 # TODO: Implement logging for threads, once discord.py updates to include support for them
 
 def logDeleteMsg(text):
@@ -9,8 +11,8 @@ def logDeleteMsg(text):
 	.format(text.author.mention, text.channel.mention, text.content)).set_author(name = str(text.author), icon_url = text.author.avatar_url))
 
 def logPurge(text, textArr):
-	return (discord.Embed(description = "Purged " + str(len(textArr) - 1) + " messages in " + text.channel.mention + ".", color = 0xff0000)
-	.set_author(name = "Purge!", icon_url = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"))
+	return (discord.Embed(description = "Purged {} messages in {}.".format(len(textArr) - 1, text.channel.mention), color = 0xff0000)
+	.set_author(name = "Purge!", icon_url = prof))
 
 def logEditMsg(before, after):
 	return (discord.Embed(description = "Messaged edited by " + before.author.mention + " in " + before.channel.mention + ".", color = 0xffff00)
@@ -23,14 +25,12 @@ def logClearReacts(text, reactions):
 	.add_field(name = "Message content:", value = text.content).add_field(name = "Reactions:", value = ", ".join(str(react) for react in reactions)))
 
 def logDeleteChannel(channel):
-	image = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"
 	return (discord.Embed(description = "Channel \"" + channel.name + "\" deleted.", color = 0xff0000)
-	.set_author(name = "Channel deleted", icon_url = image))
+	.set_author(name = "Channel deleted", icon_url = prof))
 
 def logCreateChannel(channel):
-	image = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"
 	return (discord.Embed(description = "Channel " + channel.name + " created.", color = 0x00ff00)
-	.set_author(name = "Channel created", icon_url = image))
+	.set_author(name = "Channel created", icon_url = prof))
 
 def logMemberJoin(member):
 	return (discord.Embed(description = "Member {} joined\nAccount registered on {}\nID: {}"

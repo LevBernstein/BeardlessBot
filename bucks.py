@@ -84,6 +84,7 @@ def reset(text):
 	return discord.Embed(title = "BeardlessBucks Reset", description = report, color = 0xfff994)
 
 def leaderboard():
+	# worst case runtime = num entries in money.csv (O(n)) + runtime of sorted() (O(nlogn)) + 10 = O(nlogn)
 	diction = {}
 	emb = discord.Embed(title = "BeardlessBucks Leaderboard", description = "", color = 0xfff994)
 	with open('resources/money.csv') as csvfile:
