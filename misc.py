@@ -8,6 +8,7 @@ import requests
 from bucks import memSearch
 
 prof = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"
+animalList = "cat", "duck", "fox", "rabbit", "bunny", "panda", "lizard", "axolotl", "bear", "bird", "koala", "raccoon", "kangaroo"
 
 def animal(animalType):
 	r = "Invalid Animal!"
@@ -33,13 +34,6 @@ def animal(animalType):
 			if not r.json()["message"].startswith("Breed not found"):
 				return r.json()["message"]
 		return "Breed not found! Do !dog breeds to see all the breeds."
-	
-	if animalType == "fish": # fish API is experiencing a server outage
-		for i in range(10): # there appear to be gaps in the valid range, so try some more numbers if you random into an invalid fish
-			r = requests.get("https://fishbase.ropensci.org/species/" + str(randint(2, 1969))) # valid range of species by id on fishbase.
-			if r.status_code == 200:
-				return r.json()["data"][0]["image"]
-			#print("Invalid fish URL " + str(r.url))
 	
 	if animalType in ("bunny", "rabbit"):
 		r = requests.get("https://api.bunnies.io/v2/loop/random/?media=gif")
@@ -67,9 +61,9 @@ def animal(animalType):
 	raise Exception(r)
 
 def animals():
-	emb = discord.Embed(title = "Animal Photo Commands:", color = 0xfff994).add_field(name = "!dog",
-	value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>", inline = False)
-	for animalName in "cat", "duck", "fox", "rabbit", "bunny", "panda", "lizard", "axolotl", "bear", "bird", "koala", "raccoon", "kangaroo", "fish":
+	emb = discord.Embed(title = "Animal Photo Commands:", color = 0xfff994).add_field(inline = False,
+	name = "!dog", value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>")
+	for animalName in animalList:
 		emb.add_field(name = "!" + animalName, value = "_ _")
 	return emb
 
@@ -167,7 +161,7 @@ def commands(text):
 		("!brawl", "Displays Beardless Bot's Brawlhalla-specific commands."),
 		("!add", "Gives you a link to add this bot to your server."),
 		("!av [user/username]", "Display a user's avatar. Write just !av if you want to see your own avatar."),
-		("![animal name]", "Gets a random cat/dog/duck/fish/fox/rabbit/panda/lizard/koala/bird picture. Example: !duck"),
+		("![animal name]", "Gets a random cat/dog/duck/fox/rabbit/panda/lizard/koala/bird picture. Example: !duck"),
 		("!define [word]", "Shows you the definition(s) of a word."),
 		("!ping", "Checks Beardless Bot's latency."),
 		("!buy red/blue/pink/orange", "Takes away 50000 BeardlessBucks from your account and grants you a special color role."),

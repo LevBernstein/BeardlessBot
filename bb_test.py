@@ -61,17 +61,17 @@ except:
 	brawlKey = None
 
 def test_animals():
-	assert len(animals().fields) == 15
+	assert len(animals().fields) == 14
 
 def test_animal():
 	imageTypes = "image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"
 	imageSigs = "b'\\xff\\xd8\\xff\\xe0\\x00\\x10JFIF", "b'\\x89\\x50\\x4e\\x47\\x0d\\x", "b'\\xff\\xd8\\xff\\xe2\\x024ICC_PRO"
-	for animalName in animals().fields[:-5]:
+	for animalName in animals().fields[:-4]:
 		print(animalName)
 		r = requests.get(animal(animalName.name[1:]))
 		assert r.ok and r.headers["content-type"] in imageTypes
 	
-	for animalName in animals().fields[-5:-1]:
+	for animalName in animals().fields[-4:]:
 		print(animalName)
 		# Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field; check if URL points to an image instead
 		r = requests.get(animal(animalName.name[1:]))

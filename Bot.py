@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.3.14
+# Version: Full Release 1.3.15
 
 import asyncio
 import csv
@@ -223,7 +223,7 @@ class DiscordClass(client):
 						finally:
 							if bet < 0:
 								report = "Invalid bet. Please choose a number greater than or equal to 0."
-					elif any(text.author == game.getUser() for game in games):
+					if any(text.author == game.getUser() for game in games):
 						report = "You already have an active game, " + text.author.mention + "."
 					else: # TODO: rewrite to use writeMoney to find bank
 						with open('resources/money.csv', 'r') as csvfile:
@@ -512,15 +512,13 @@ class DiscordClass(client):
 					await text.channel.send("Something's gone wrong with the dog API! Please ping my creator and he'll see what's going on.")
 				return
 			
-			if msg.startswith("!") and animalName in tuple(a.name[1:] for a in animals().fields[1:]):
+			if msg.startswith("!") and animalName in animalList:
 				try:
 					await text.channel.send(embed = discord.Embed(title = "Random " + animalName.title(), color = 0xfff994)
 					.set_image(url = animal(animalName)))
 				except Exception as err:
 					print(err)
 					report = "Something's gone wrong! Please ping my creator and he'll see what's going on."
-					if animalName == "fish":
-						report = "The fish API is currently down. I do not know when it will come back up."
 					await text.channel.send(report)
 				return
 			
@@ -705,13 +703,13 @@ class DiscordClass(client):
 				
 				if text.guild.id == 442403231864324119: # Commands for eggsoup's Discord server.
 					if msg in ('!tweet', '!eggtweet'):
-						await text.channel.send(embed = discord.Embed(title = "eggsoup(@eggsouptv)",
-						description = formattedTweet(tweet()), color = 0x1da1f2))
+						report = formattedTweet(tweet())
+						await text.channel.send(embed = discord.Embed(title = "eggsoup(@eggsouptv)", description = report, color = 0x1da1f2))
 						return
 					
 					if msg == '!reddit':
-						await text.channel.send(embed = discord.Embed(title = "The Official Eggsoup Subreddit",
-						description = "https://www.reddit.com/r/eggsoup/", color = 0xfff994).set_thumbnail(url = "https://shorturl.at/xCJY9"))
+						await text.channel.send(embed = discord.Embed(color = 0xfff994, title = "The Official Eggsoup Subreddit",
+						description = "https://www.reddit.com/r/eggsoup/").set_thumbnail(url = "https://shorturl.at/xCJY9"))
 						return
 					
 					if msg == '!guide':
