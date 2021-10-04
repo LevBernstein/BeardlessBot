@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.3.15
+# Version: Full Release 1.3.16
 
 import asyncio
 import csv
@@ -499,7 +499,7 @@ class DiscordClass(client):
 			animalName = msg[1:].split(" ", 1)[0]
 			if animalName in ("dog", "moose"):
 				if "moose" in msg:
-					await text.channel.send(file = discord.File("images/moose/moose{}.jpg".format(randint(1, 55))))
+					await text.channel.send(file = discord.File("images/moose/moose{}.jpg".format(randint(1, 59))))
 					return
 				try:
 					dogUrl = animal(msg[1:])
@@ -721,6 +721,16 @@ class DiscordClass(client):
 						await text.channel.send(embed = discord.Embed(title = "Infraction Logged.", color = 0xfff994),
 						description = "Mods can view the infraction details in <#705098150423167059>.")
 						return
+
+					if all((word in msg for word in ("discord", "http", "nitro"))):
+						await text.author.add_roles(get(text.guild.roles, name = 'Muted'))
+						for channel in text.guild.channels:
+							if channel.name == "infractions":
+								await channel.send("Deleted possible scam nitro link sent by {} in {}.\nMessage content: {}"
+								.format(text.author.mention, text.channel.mention, text.content))
+								break
+						await text.channel.send("Deleted possible nitro scam link. Alerting mods.")
+						await text.delete()
 				
 				if text.guild.id == 781025281590165555: # Commands for the Day Care Discord server.
 					if 'twitter.com/year_progress' in msg:

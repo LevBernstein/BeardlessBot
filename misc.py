@@ -75,8 +75,8 @@ def define(msg):
 	else:
 		r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
 		if r.status_code == 200:
-			emb = discord.Embed(title = word.upper(), color = 0xfff994,
-			description = "Audio: https:" + r.json()[0]['phonetics'][0]['audio'])
+			desc = ("Audio: https:" + r.json()[0]['phonetics'][0]['audio']) if "audio" in r.json()[0]['phonetics'][0] else ""
+			emb = discord.Embed(title = word.upper(), color = 0xfff994, description = desc)
 			i = 0
 			for entry in r.json():
 				for meaning in entry["meanings"]:
