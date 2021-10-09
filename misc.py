@@ -173,7 +173,7 @@ def commands(text):
 		emb.add_field(name = commandPair[0], value = commandPair[1])
 	return emb
 
-def join():
+def joinMsg():
 	return (discord.Embed(title = "Want to add this bot to your server?", color = 0xfff994,
 	description = "[Click this link!](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot)")
 	.set_thumbnail(url = prof).add_field(name = "If you like Beardless Bot...", inline = False,

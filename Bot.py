@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.3.16
+# Version: Full Release 1.3.17
 
 import asyncio
 import csv
@@ -476,7 +476,7 @@ class DiscordClass(client):
 				return
 			
 			if msg in ("!add", "!join"):
-				await text.channel.send(embed = join())
+				await text.channel.send(embed = joinMsg())
 				return
 			
 			if msg == "!rohan":
@@ -499,7 +499,7 @@ class DiscordClass(client):
 			animalName = msg[1:].split(" ", 1)[0]
 			if animalName in ("dog", "moose"):
 				if "moose" in msg:
-					await text.channel.send(file = discord.File("images/moose/moose{}.jpg".format(randint(1, 59))))
+					await text.channel.send(file = discord.File("images/moose/moose{}.jpg".format(randint(1, 62))))
 					return
 				try:
 					dogUrl = animal(msg[1:])

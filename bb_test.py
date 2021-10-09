@@ -343,7 +343,7 @@ def test_commands():
 	assert len(commands(text).fields) == 15
 
 def test_join():
-	assert join().title == "Want to add this bot to your server?"
+	assert joinMsg().title == "Want to add this bot to your server?"
 
 def test_hints():
 	with open("resources/hints.txt", "r") as f:
@@ -388,8 +388,8 @@ if brawlKey:
 		user = TestUser()
 		user.id = 0
 		assert not getRank(user, brawlKey)
-		user.id = 196354892208537600
-		assert getRank(user, brawlKey).footer.text == "Brawl ID 7032472"
+		user.id = 743238109898211389 #12502880
+		assert getRank(user, brawlKey).footer.text == "Brawl ID 12502880"
 	
 	def test_getStats():
 		user = TestUser()

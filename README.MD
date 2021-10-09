@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release v1.3.16
+### Full Release v1.3.17
 
 ### Lev Bernstein
 
@@ -18,7 +18,7 @@ follow the steps outlined in [Installation](#installation).
 
 1. Download the repository.
 
-2. Download [Python 3](https://python.org/downloads), and then run `pip install -r resources/requirements.txt`.
+2. Download [Python 3](https://python.org/downloads), and then run `pip3 install -r resources/requirements.txt`.
 
 3. Create a file named "token.txt" that contains your Discord API token (you can get a token [here](https://discord.com/developers/applications)).
 
@@ -27,7 +27,7 @@ follow the steps outlined in [Installation](#installation).
 5. As of Full Release v1.3.0, Beardless Bot supports calls to the Brawlhalla API. If you don't have [an API key](https://dev.brawlhalla.com/),
 those commands will simply be disabled; the Bot will work fine. If you do have an API key, place it in a file named "brawlhallaKey.txt"
 in the resources folder. If you want to fork this repo and use Brawlhalla commands, you'll need to define a repository secret with the
-name BRAWLHALLAKEY. For more information, see [this guide.](https://docs.github.com/en/actions/reference/encrypted-secrets)
+name BRAWLHALLAKEY. For more information, see [this guide](https://docs.github.com/en/actions/reference/encrypted-secrets).
 
 ## Setup
 
