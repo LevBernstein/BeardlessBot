@@ -8,7 +8,7 @@ import requests
 from bucks import memSearch
 
 prof = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"
-animalList = "cat", "duck", "fox", "rabbit", "bunny", "panda", "lizard", "axolotl", "bear", "bird", "koala", "raccoon", "kangaroo"
+animalList = "cat", "duck", "fox", "rabbit", "panda", "lizard", "axolotl", "bear", "bird", "koala", "raccoon", "kangaroo"
 
 def animal(animalType):
 	r = "Invalid Animal!"
@@ -19,20 +19,25 @@ def animal(animalType):
 			r = requests.get("https://aws.random.cat/meow")
 			if r.status_code == 200:
 				return r.json()["file"]
-			print("{}; {}; cat; count {}".format(r.status_code, r.reason, i + 1))
+			print(f"{r.status_code}; {r.reason}; cat; count {i + 1}")
 	
 	if animalType.startswith("dog"):
-		if len(animalType) == 4 or not (" " in animalType):
-			r = requests.get("https://dog.ceo/api/breeds/image/random")
-			return r.json()["message"]
-		breed = animalType.split(" ", 1)[1].replace(" ", "")
-		if breed.startswith("breeds"):
-			r = requests.get("https://dog.ceo/api/breeds/list/all")
-			return "Dog breeds: " + ", ".join(dog for dog in r.json()["message"]) + "."
-		if breed.isalpha():
-			r = requests.get("https://dog.ceo/api/breed/" + breed + "/images/random")
-			if not r.json()["message"].startswith("Breed not found"):
-				return r.json()["message"]
+		breed = None if (len(animalType) == 4 or not (" " in animalType)) else (animalType.split(" ", 1)[1].replace(" ", ""))
+		for i in range(10): # dog API has been throwing 522 errors, not sure why
+			if not breed:
+				r = requests.get("https://dog.ceo/api/breeds/image/random")
+				if r.status_code == 200:
+					return r.json()["message"]
+			elif breed.startswith("breeds"):
+				r = requests.get("https://dog.ceo/api/breeds/list/all")
+				if r.status_code == 200:
+					return "Dog breeds: " + ", ".join(dog for dog in r.json()["message"]) + "."
+			elif breed.isalpha():
+				r = requests.get("https://dog.ceo/api/breed/" + breed + "/images/random")
+				if r.status_code == 200:
+					if not r.json()["message"].startswith("Breed not found"):
+						return r.json()["message"]
+					return "Breed not found! Do !dog breeds to see all the breeds."
 		return "Breed not found! Do !dog breeds to see all the breeds."
 	
 	if animalType in ("bunny", "rabbit"):
@@ -56,7 +61,7 @@ def animal(animalType):
 			return r.json()["url"]
 	
 	if animalType == "bear":
-		return "https://placebear.com/{}/{}".format(randint(200, 400), randint(200,400))
+		return f"https://placebear.com/{randint(200, 400)}/{randint(200,400)}"
 
 	raise Exception(r)
 
@@ -75,14 +80,14 @@ def define(msg):
 	else:
 		r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
 		if r.status_code == 200:
-			desc = ("Audio: https:" + r.json()[0]['phonetics'][0]['audio']) if "audio" in r.json()[0]['phonetics'][0] else ""
+			desc = f"Audio: https:{r.json()[0]['phonetics'][0]['audio']}" if "audio" in r.json()[0]['phonetics'][0] else ""
 			emb = discord.Embed(title = word.upper(), color = 0xfff994, description = desc)
 			i = 0
 			for entry in r.json():
 				for meaning in entry["meanings"]:
 					for definition in meaning["definitions"]:
 						i += 1
-						emb.add_field(name = "Definition {}:".format(i), value = definition["definition"])
+						emb.add_field(name = f"Definition {i}:", value = definition["definition"])
 			return emb
 	return discord.Embed(title = "Beardless Bot Definitions", description = report, color = 0xfff994)
 
@@ -101,7 +106,7 @@ def rollReport(text):
 	result = str(roll(text.content.lower()))
 	report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
 	if result != "None":
-		report = "You got {}, {}.".format(result, text.author.mention)
+		report = f"You got {result}, {text.author.mention}."
 	return discord.Embed(title = "Beardless Bot Dice", description = report, color = 0xfff994)
 
 def fact():

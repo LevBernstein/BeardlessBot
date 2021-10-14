@@ -38,28 +38,28 @@ def writeMoney(member, amount, writing, adding):
 						return -2, None
 					newBank = amount if not adding else (int(row[1]) + amount)
 					newLine = ",".join((row[0], str(newBank), str(member)))
-					with open("resources/money.csv", "r") as oldMoney:
+					with open("resources/money.csv", "r") as oldMoney: # TODO: rewrite to use csvfile
 						oldMoney = ''.join([i for i in oldMoney]).replace(",".join(row), newLine)
 						with open("resources/money.csv", "w") as money:
 							money.writelines(oldMoney)
 					return 1, newBank
 				return 0, int(row[1]) # no change in balance
 		with open('resources/money.csv', 'a') as money:
-			money.write("\r\n{},300,{}".format(member.id, member))
+			money.write(f"\r\n{member.id},300,{member}")
 			return 2, None
 
 def register(text):
 	result, bonus = writeMoney(text.author, 300, False, False)
-	report = "Successfully registered. You now have 300 BeardlessBucks, {}.".format(text.author.mention)
+	report = f"Successfully registered. You now have 300 BeardlessBucks, {text.author.mention}."
 	if result == 0:
-		report = "You are already in the system! Hooray! You have {} BeardlessBucks, {}.".format(bonus, text.author.mention)
+		report = f"You are already in the system! Hooray! You have {bonus} BeardlessBucks, {text.author.mention}."
 	elif result == -1:
 		report = bonus
 	return discord.Embed(title = "BeardlessBucks Registration", description = report, color = 0xfff994)
 
 def balance(text):
 	report = ("Invalid user! Please @ a user when you do !balance (or enter their username)," +
-	" or do !balance without a target to see your own balance, " + text.author.mention + ".")
+	f" or do !balance without a target to see your own balance, {text.author.mention}.")
 	if text.mentions:
 		target = text.mentions[0]
 	else:
@@ -67,18 +67,18 @@ def balance(text):
 	if target:
 		result, bonus = writeMoney(target, 300, False, False)
 		if result == 0:
-			report = "{}'s balance is {} BeardlessBucks.".format(target.mention, bonus)
+			report = f"{target.mention}'s balance is {bonus} BeardlessBucks."
 		elif result == 2:
-			report = "Successfully registered. You now have 300 BeardlessBucks, " + target.mention + "."
+			report = f"Successfully registered. You now have 300 BeardlessBucks, {target.mention}."
 		else:
 			report = bonus if result == -1 else "Error!"
 	return discord.Embed(title = "BeardlessBucks Balance", description = report, color = 0xfff994)
 
 def reset(text):
 	result, bonus = writeMoney(text.author, 200, True, False)
-	report = "You have been reset to 200 BeardlessBucks, " + text.author.mention + "."
+	report = f"You have been reset to 200 BeardlessBucks, {text.author.mention}."
 	if result == 2:
-		report = "Successfully registered. You have 300 BeardlessBucks, " + text.author.mention + "."
+		report = f"Successfully registered. You have 300 BeardlessBucks, {text.author.mention}."
 	if result == -1:
 		report = bonus
 	return discord.Embed(title = "BeardlessBucks Reset", description = report, color = 0xfff994)

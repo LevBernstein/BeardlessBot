@@ -23,14 +23,14 @@ class Instance:
 		message = ("Your starting hand consists of {} and {}. Your total is {}. "
 		.format(self.cardName(self.cards[0]), self.cardName(self.cards[1]), sum(self.cards)))
 		if self.perfect():
-			message += "You hit 21! You win, " + self.user.mention + "!"
+			message += f"You hit 21! You win, {self.user.mention}!"
 		else:
-			message += "The dealer is showing {}, with one card face down. ".format(self.dealerUp)
+			message += f"The dealer is showing {self.dealerUp}, with one card face down. "
 			if self.checkBust():# Case only fires if you're dealt two aces
 				self.cards[1] = 1
 				self.bet *= -1
 				message = "Your starting hand consists of two Aces. One of them will act as a 1. Your total is 12. "
-			message += "Type !hit to deal another card to yourself, or !stay to stop at your current total, " + self.user.mention + "."
+			message += f"Type !hit to deal another card to yourself, or !stay to stop at your current total, {self.user.mention}."
 		return message
 	
 	def cardName(self, card):
@@ -45,22 +45,22 @@ class Instance:
 	def deal(self):
 		dealt = choice(self.vals)
 		self.cards.append(dealt)
-		self.message = "You were dealt {}, bringing your total to {}. ".format(self.cardName(dealt), sum(self.cards))
+		self.message = f"You were dealt {self.cardName(dealt)}, bringing your total to {sum(self.cards)}. "
 		if 11 in self.cards and self.checkBust():
 			for i in range(len(self.cards)):
 				if self.cards[i] == 11:
 					self.cards[i] = 1
 					self.bet *= -1
 					break
-			self.message = "You were dealt an Ace, which will be treated as a 1. Your new total is {}.".format(sum(self.cards))
+			self.message = f"You were dealt an Ace, which will be treated as a 1. Your new total is {sum(self.cards)}."
 		self.message += ("Your card values are {}. The dealer is showing {}, with one card face down."
 		.format(", ".join(str(card) for card in self.cards), self.dealerUp))
 		if self.checkBust():
-			self.message += " You busted. Game over, " + self.user.mention + "."
+			self.message += f" You busted. Game over, {self.user.mention}."
 		elif self.perfect():
-			self.message += " You hit 21! You win, " + self.user.mention + "!"
+			self.message += f" You hit 21! You win, {self.user.mention}!"
 		else:
-			self.message += " Type !hit to deal another card to yourself, or !stay to stop at your current total, " + self.user.mention + "."
+			self.message += f" Type !hit to deal another card to yourself, or !stay to stop at your current total, {self.user.mention}."
 	
 	def checkBust(self):
 		if sum(self.cards) > 21:

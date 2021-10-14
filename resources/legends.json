@@ -634,5 +634,17 @@
         "dexterity": "7",
         "defense": "6",
         "speed": "5"
+    },
+    {
+        "legend_id": 58,
+        "legend_name_key": "munin",
+        "bio_name": "Munin",
+        "bio_aka": "The Raven",
+        "weapon_one": "Bow",
+        "weapon_two": "Scythe",
+        "strength": "5",
+        "dexterity": "6",
+        "defense": "4",
+        "speed": "7"
     }
 ]

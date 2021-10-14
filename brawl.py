@@ -9,6 +9,19 @@ import requests
 import steam
 from steam.steamid import SteamID
 
+
+badClaim = ("Please do !brawlclaim followed by the URL of your steam profile.\nExample: !brawlclaim https://steamcommunity.com/id/beardless\n" +
+"Alternatively, you can claim via your Brawlhalla ID, which you can find in the top right corner of your inventory.\nExample: !brawlclaim 7032472.")
+
+badRegion = "Please specify a valid region, {}! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. If you need help, try doing !pins."
+
+def pingMsg(target, h, m, s):
+	def plural(t):
+		return "" if t == 1 else "s"
+	badPing = ("This region has been pinged too recently! Regions can only be pinged once" +
+	" every two hours, {}. You can ping again in {} hour{}, {} minute{}, and {} second{}.")
+	return badPing.format(target, h, plural(h), m, plural(m), s, plural(s))
+
 def randomBrawl(msg):
 	try:
 		ranType = msg.split(' ', 1)[1].title()
@@ -45,7 +58,7 @@ def getBrawlID(brawlKey, profileURL):
 		if not profileURL.startswith("https://steamcommunity.com"):
 			return None
 		steamID = steam.steamid.from_url(profileURL)
-		r = requests.get("https://api.brawlhalla.com/search?steamid={}&api_key={}".format(steamID, brawlKey))
+		r = requests.get(f"https://api.brawlhalla.com/search?steamid={steamID}&api_key={brawlKey}")
 		return r.json()["brawlhalla_id"]
 	except:
 		return None
@@ -53,7 +66,7 @@ def getBrawlID(brawlKey, profileURL):
 def getLegends(brawlKey):
 	# run whenever a new legend is released
 	with open("resources/legends.json", "w") as f:
-		dump(requests.get("https://api.brawlhalla.com/legend/all/?api_key={}".format(brawlKey)).json(), f, indent = 4)
+		dump(requests.get(f"https://api.brawlhalla.com/legend/all/?api_key={brawlKey}").json(), f, indent = 4)
 
 def legendInfo(brawlKey, legendName):
 	# TODO: add legend images as thumbnail
@@ -75,7 +88,7 @@ def getRank(target, brawlKey):
 	brawlID = fetchBrawlID(target.id)
 	if not brawlID:
 		return None
-	r = requests.get("https://api.brawlhalla.com/player/{}/ranked?api_key={}".format(brawlID, brawlKey)).json()
+	r = requests.get(f"https://api.brawlhalla.com/player/{brawlID}/ranked?api_key={brawlKey}").json()
 	if len(r) < 4:
 		return -1
 	rankColors = {"Diamond": 0x3d2399, "Platinum": 0x0051b4, "Gold": 0xf8d06a, "Silver": 0xbbbbbb, "Bronze": 0x674b25, "Tin": 0x355536}
@@ -90,7 +103,7 @@ def getRank(target, brawlKey):
 				if not topLegend or topLegend[1] < legend["rating"]:
 					topLegend = legend["legend_name_key"], legend["rating"]
 			if topLegend:
-				embVal += "\nTop Legend: {}, {} ELO".format(topLegend[0].title(), topLegend[1])
+				embVal += f"\nTop Legend: {topLegend[0].title()}, {topLegend[1]} ELO"
 		emb.add_field(name = "Ranked 1s", value = embVal)
 		for key, value in rankColors.items():
 			if key in r["tier"]:
@@ -117,9 +130,9 @@ def getStats(target, brawlKey):
 	brawlID = fetchBrawlID(target.id)
 	if not brawlID:
 		return None
-	r = requests.get("https://api.brawlhalla.com/player/{}/stats?api_key={}".format(brawlID, brawlKey)).json()
-	emb = (discord.Embed(title = "Brawlhalla Stats for {}".format(r["name"]), color = 0xfff994)
-	.set_footer(text = "Brawl ID {}".format(brawlID)).set_author(name = str(target), icon_url = target.avatar_url)
+	r = requests.get(f"https://api.brawlhalla.com/player/{brawlID}/stats?api_key={brawlKey}").json()
+	emb = (discord.Embed(title = "Brawlhalla Stats for " + r["name"], color = 0xfff994)
+	.set_footer(text = f"Brawl ID {brawlID}").set_author(name = str(target), icon_url = target.avatar_url)
 	.add_field(name = "Name", value = r["name"]).add_field(name = "Overall W/L",value = "{} Wins / {} Losses\n{} Games\n{}% Winrate"
 	.format(r["wins"], r["games"] - r["wins"], r["games"], round(r["wins"] / r["games"] * 100, 1))))
 	if "legends" in r:
@@ -144,11 +157,10 @@ def getClan(discordID, brawlKey):
 		return None
 	# takes two API calls: one to get clan ID from player stats, one to get clan from clan ID
 	# as a result, this command is very slow. TODO: Try to find a way around this.
-	r = requests.get("https://api.brawlhalla.com/player/{}/stats?api_key={}".format(brawlID, brawlKey)).json()
+	r = requests.get(f"https://api.brawlhalla.com/player/{brawlID}/stats?api_key={brawlKey}").json()
 	if not "clan" in r:
 		return -1
-	clanID = r["clan"]["clan_id"]
-	r = requests.get("https://api.brawlhalla.com/clan/{}/?api_key={}".format(clanID, brawlKey)).json()
+	r = requests.get("https://api.brawlhalla.com/clan/{}/?api_key={}".format(r["clan"]["clan_id"], brawlKey)).json()
 	emb = (discord.Embed(title = r["clan_name"], description = "**Clan Created:** {}\n**Experience:** {}\n**Members:** {}"
 	.format(str(datetime.fromtimestamp(r["clan_create_date"]))[:-9], r["clan_xp"], len(r["clan"])), color = 0xfff994)
 	.set_footer(text = "Clan ID {}".format(r["clan_id"])))

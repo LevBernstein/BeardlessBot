@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release v1.3.17
+### Full Release v1.4.0
 
 ### Lev Bernstein
 
@@ -12,7 +12,7 @@ Originally created for use in eggsoup's discord server.
 If you just want to add the bot to your own Discord server while I host it, you can simply
 [click this link](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot),
 then skip down to [Setup](#setup). If you want to run your own instance of Beardless Bot,
-follow the steps outlined in [Installation](#installation).
+follow the steps outlined directly below in [Installation](#installation).
 
 ## Installation
 

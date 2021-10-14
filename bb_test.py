@@ -61,11 +61,12 @@ except:
 	brawlKey = None
 
 def test_animals():
-	assert len(animals().fields) == 14
+	assert len(animals().fields) == 13
 
 def test_animal():
 	imageTypes = "image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"
-	imageSigs = "b'\\xff\\xd8\\xff\\xe0\\x00\\x10JFIF", "b'\\x89\\x50\\x4e\\x47\\x0d\\x", "b'\\xff\\xd8\\xff\\xe2\\x024ICC_PRO"
+	imageSigs = ("b'\\xff\\xd8\\xff\\xe0\\x00\\x10JFIF", "b'\\x89\\x50\\x4e\\x47\\x0d\\x",
+	"b'\\xff\\xd8\\xff\\xe2\\x024ICC_PRO", "b'\\x89PNG\\r\\n\\x1a\\n\\")
 	for animalName in animals().fields[:-4]:
 		print(animalName)
 		r = requests.get(animal(animalName.name[1:]))
@@ -75,6 +76,7 @@ def test_animal():
 		print(animalName)
 		# Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field; check if URL points to an image instead
 		r = requests.get(animal(animalName.name[1:]))
+		print(str(r.content)[:30])
 		assert r.ok and any(str(r.content).startswith(signature) for signature in imageSigs)
 	
 	breeds = animal("dog breeds")[12:-1].split(", ")
@@ -118,34 +120,33 @@ def test_dice():
 
 def test_logDeleteMsg():
 	msg = TestMessage()
-	assert logDeleteMsg(msg).description == "**Deleted message sent by {} in **{}\n{}".format(msg.author.mention, msg.channel.mention, msg.content)
-
+	assert logDeleteMsg(msg).description == f"**Deleted message sent by {msg.author.mention} in **{msg.channel.mention}\n{msg.content}"
 def test_logPurge():
 	msg = TestMessage()
-	assert logPurge(msg, (msg, msg, msg)).description == "Purged 2 messages in " + msg.channel.mention + "."
+	assert logPurge(msg, (msg, msg, msg)).description == f"Purged 2 messages in {msg.channel.mention}."
 
 def test_logEditMsg():
 	before = TestMessage()
 	after = TestMessage("newcontent")
 	emb = logEditMsg(before, after)
-	assert emb.description == "Messaged edited by {} in {}.".format(after.author.mention, after.channel.mention)
+	assert emb.description == f"Messaged edited by {after.author.mention} in {after.channel.mention}."
 	assert emb.fields[0].value == before.content
-	assert emb.fields[1].value == "{}\n[Jump to Message]({})".format(after.content, after.jump_url)
+	assert emb.fields[1].value == f"{after.content}\n[Jump to Message]({after.jump_url})"
 
 def test_logClearReacts():
 	msg = TestMessage()
 	emb = logClearReacts(msg, (1, 2, 3))
-	assert emb.description == "Reactions cleared from message sent by {} in {}.".format(msg.author.mention, msg.channel.mention)
+	assert emb.description == f"Reactions cleared from message sent by {msg.author.mention} in {msg.channel.mention}."
 	assert emb.fields[0].value == msg.content
 	assert emb.fields[1].value == "1, 2, 3"
 
 def test_logDeleteChannel():
 	channel = TestChannel()
-	assert logDeleteChannel(channel).description == "Channel \"" + channel.name + "\" deleted."
+	assert logDeleteChannel(channel).description == f"Channel \"{channel.name}\" deleted."
 
 def test_logCreateChannel():
 	channel = TestChannel()
-	assert logCreateChannel(channel).description == "Channel " + channel.name + " created."
+	assert logCreateChannel(channel).description == f"Channel \"{channel.name}\" created."
 
 def test_logMemberJoin():
 	member = TestUser()
@@ -154,7 +155,7 @@ def test_logMemberJoin():
 
 def test_logMemberRemove():
 	member = TestUser()
-	assert logMemberRemove(member).description == "Member {} left\nID: {}".format(member.mention, member.id)
+	assert logMemberRemove(member).description == f"Member {member.mention} left\nID: {member.id}"
 	member.roles = TestUser(), TestUser() # hacky but works; TODO create test roles
 	assert logMemberRemove(member).fields[0].value == member.roles[1].mention
 
@@ -170,26 +171,26 @@ def test_logMemberRolesChange():
 	before = TestUser()
 	after = TestUser()
 	after.roles = TestUser(),
-	assert logMemberRolesChange(before, after).description == "Role {} added to {}.".format(after.roles[0].mention, after.mention)
-	assert logMemberRolesChange(after, before).description == "Role {} removed from {}.".format(after.roles[0].mention, before.mention)
+	assert logMemberRolesChange(before, after).description == f"Role {after.roles[0].mention} added to {after.mention}."
+	assert logMemberRolesChange(after, before).description == f"Role {after.roles[0].mention} removed from {before.mention}."
 
 def test_logBan():
 	member = TestUser()
-	assert logBan(member).description == "Member " + member.mention + " banned\n" + member.name
+	assert logBan(member).description == f"Member {member.mention} banned\n{member.name}"
 
 def test_logUnban():
 	member = TestUser()
-	assert logUnban(member).description == "Member " + member.mention + " unbanned\n" + member.name
+	assert logUnban(member).description == f"Member {member.mention} unbanned\n{member.name}"
 
 def test_logMute():
 	message = TestMessage()
 	member = TestUser()
-	assert logMute(member, message, "5", "hours", 18000).description == "Muted {} for 5 hours in {}.".format(member.mention, message.channel.mention)
-	assert logMute(member, message, None, None, None).description == "Muted {} in {}.".format(member.mention, message.channel.mention)
+	assert logMute(member, message, "5", "hours", 18000).description == f"Muted {member.mention} for 5 hours in {message.channel.mention}."
+	assert logMute(member, message, None, None, None).description == f"Muted {member.mention} in {message.channel.mention}."
 
 def test_logUnmute():
 	member = TestUser()
-	assert logUnmute(member, TestUser()).description == "Unmuted " + member.mention + "."
+	assert logUnmute(member, TestUser()).description == f"Unmuted {member.mention}."
 
 def test_memSearch():
 	text = TestMessage()
@@ -208,7 +209,7 @@ def test_memSearch():
 def test_register():
 	text = TestMessage("!register")
 	text.author.id = 654133911558946837
-	assert register(text).description == "You are already in the system! Hooray! You have 200 BeardlessBucks, " + text.author.mention + "."
+	assert register(text).description == f"You are already in the system! Hooray! You have 200 BeardlessBucks, {text.author.mention}."
 	text.author.name = ",badname,"
 	assert register(text).description == commaWarn.format(text.author.mention)
 
@@ -216,13 +217,13 @@ def test_balance():
 	text = TestMessage("!bal")
 	text.author.name = "Named User"
 	text.author.id = 654133911558946837
-	assert balance(text).description == text.author.mention + "'s balance is 200 BeardlessBucks."
+	assert balance(text).description == f"{text.author.mention}'s balance is 200 BeardlessBucks."
 	text.guild.members = (TestUser(), text.author)
 	text.content = "!balance " + text.author.name
-	assert balance(text).description == text.author.mention + "'s balance is 200 BeardlessBucks."
+	assert balance(text).description == f"{text.author.mention}'s balance is 200 BeardlessBucks."
 	text.content = "!balance " + text.author.mention
 	text.mentions = text.author,
-	assert balance(text).description == text.author.mention + "'s balance is 200 BeardlessBucks."
+	assert balance(text).description == f"{text.author.mention}'s balance is 200 BeardlessBucks."
 	text.mentions = ()
 	text.content = "!balance"
 	text.author.name = ",badname,"
@@ -233,7 +234,7 @@ def test_balance():
 def test_reset():
 	text = TestMessage("!reset")
 	text.author.id = 654133911558946837
-	assert reset(text).description == "You have been reset to 200 BeardlessBucks, " + text.author.mention + "."
+	assert reset(text).description == f"You have been reset to 200 BeardlessBucks, {text.author.mention}."
 	text.author.name = ",badname,"
 	assert reset(text).description == commaWarn.format(text.author.mention)
 
@@ -352,13 +353,6 @@ def test_hints():
 def test_noPerms():
 	assert noPerms().title == "I need admin perms!"
 
-def test_fetchBrawlID():
-	assert fetchBrawlID(196354892208537600) == 7032472
-	assert not fetchBrawlID(654133911558946837)
-
-def test_fetchLegends():
-	assert len(fetchLegends()) == 53
-
 def test_claimProfile():
 	with open("resources/claimedProfs.json", "r") as f:
 		profsLen = len(load(f))
@@ -369,7 +363,18 @@ def test_claimProfile():
 	claimProfile(196354892208537600, 7032472)
 	assert fetchBrawlID(196354892208537600) == 7032472
 
+def test_pingMsg():
+	namedUser = TestUser()
+	assert pingMsg(namedUser.mention, 1, 1, 1).endswith("You can ping again in 1 hour, 1 minute, and 1 second.")
+
 if brawlKey:
+	def test_fetchBrawlID():
+		assert fetchBrawlID(196354892208537600) == 7032472
+		assert not fetchBrawlID(654133911558946837)
+
+	def test_fetchLegends():
+		assert len(fetchLegends()) == 54
+
 	def test_getBrawlID():
 		assert getBrawlID(brawlKey, "https://steamcommunity.com/id/beardless") == 7032472
 		assert not getBrawlID(brawlKey, "badurl")
