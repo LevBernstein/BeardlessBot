@@ -166,7 +166,7 @@ def commands(text):
 		("!brawl", "Displays Beardless Bot's Brawlhalla-specific commands."),
 		("!add", "Gives you a link to add this bot to your server."),
 		("!av [user/username]", "Display a user's avatar. Write just !av if you want to see your own avatar."),
-		("![animal name]", "Gets a random cat/dog/duck/fox/rabbit/panda/lizard/koala/bird picture. Example: !duck"),
+		("![animal name]", "Gets a random animal picture. See the list of animals with !animals. Example: !duck"),
 		("!define [word]", "Shows you the definition(s) of a word."),
 		("!ping", "Checks Beardless Bot's latency."),
 		("!buy red/blue/pink/orange", "Takes away 50000 BeardlessBucks from your account and grants you a special color role."),

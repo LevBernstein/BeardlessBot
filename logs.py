@@ -8,7 +8,8 @@ from misc import prof
 
 def logDeleteMsg(text):
 	return (discord.Embed(color = 0xff0000, description = "**Deleted message sent by {} in **{}\n{}"
-	.format(text.author.mention, text.channel.mention, text.content)).set_author(name = str(text.author), icon_url = text.author.avatar_url))
+	.format(text.author.mention, text.channel.mention, text.content if text.content else "Embed"))
+	.set_author(name = str(text.author), icon_url = text.author.avatar_url))
 
 def logPurge(text, textArr):
 	return (discord.Embed(description = f"Purged {len(textArr) - 1} messages in {text.channel.mention}.", color = 0xff0000)
@@ -22,7 +23,8 @@ def logEditMsg(before, after):
 def logClearReacts(text, reactions):
 	return (discord.Embed(description = "Reactions cleared from message sent by {} in {}."
 	.format(text.author.mention, text.channel.mention), color = 0xff0000).set_author(name = str(text.author), icon_url = text.author.avatar_url)
-	.add_field(name = "Message content:", value = text.content).add_field(name = "Reactions:", value = ", ".join(str(react) for react in reactions)))
+	.add_field(name = "Message content:", value = text.content if text.content else "Embed")
+	.add_field(name = "Reactions:", value = ", ".join(str(react) for react in reactions)))
 
 def logDeleteChannel(channel):
 	return (discord.Embed(description = f"Channel \"{channel.name}\" deleted.", color = 0xff0000)

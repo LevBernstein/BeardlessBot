@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.4.0
+# Version: Full Release 1.4.1
 
 import asyncio
 import csv
@@ -93,7 +93,7 @@ class DiscordClass(client):
 				except:
 					pass
 			await guild.leave()
-			print("Left {}. Beardless Bot is now in {} servers.".format(guild.name, len(client.guilds)))
+			print(f"Left {guild.name}. Beardless Bot is now in {len(client.guilds)} servers.")
 	
 	@client.event
 	async def on_message_delete(text):
@@ -204,16 +204,16 @@ class DiscordClass(client):
 					report = f"You need to register first! Type !register to get started, {text.author.mention}."
 					strBet = '10' # Bets default to 10. If someone just types !blackjack, they will bet 10 by default.
 					if msg.startswith('!blackjack ') and len(msg) > 11:
-						strBet = msg.split('!blackjack ',1)[1]
+						strBet = msg.split('!blackjack ', 1)[1]
 					elif msg in ("!blackjack", "!bl"):
 						pass
 					elif msg.startswith('!bl ') and len(msg) > 4:
-						strBet = msg.split('!bl ',1)[1]
+						strBet = msg.split('!bl ', 1)[1]
 					elif msg.startswith('!bl'):
 						# This way, other bots' commands that start with !bl won't trigger blackjack.
 						return
 					elif msg.startswith('!bj') and len(msg) > 4:
-						strBet = msg.split('!bj ',1)[1]
+						strBet = msg.split('!bj ', 1)[1]
 					allBet = True if strBet == "all" else False
 					if not allBet:
 						try:
@@ -241,7 +241,7 @@ class DiscordClass(client):
 										report = gamer.message
 										if gamer.perfect():
 											newLine = ",".join((row[0], str(bank + bet), str(text.author)))
-											with open("resources/money.csv", "r") as oldMoney: # TODO: rewrite to use csvfile
+											with open("resources/money.csv", "r") as oldMoney:
 												oldMoney = ''.join([i for i in oldMoney]).replace(",".join(row), newLine)
 												with open("resources/money.csv", "w") as newMoney:
 													newMoney.writelines(oldMoney)
@@ -308,7 +308,7 @@ class DiscordClass(client):
 					report = "Please finish your game of blackjack first, {}."
 				else:
 					heads = randint(0, 1)
-					strBet = msg.split('!flip ',1)[1] if len(msg) > 6 else 10 # bet defaults to 10
+					strBet = msg.split('!flip ', 1)[1] if len(msg) > 6 else 10 # bet defaults to 10
 					if msg == "!flip":
 						bet = 10
 					elif strBet == "all":
@@ -375,9 +375,7 @@ class DiscordClass(client):
 							if isinstance(rank, discord.Embed):
 								await text.channel.send(embed = rank)
 								return
-							report = f"{target.mention} needs to claim their profile first! Do !brawlclaim."
-							if rank:
-								report = "You haven't played ranked yet this season."
+							report = rank if rank else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
 					except Exception as err:
 						print(err)
 						report = "I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
@@ -390,10 +388,10 @@ class DiscordClass(client):
 						report = "Invalid target!"
 						if target:
 							stats = getStats(target, brawlKey)
-							if stats:
+							if isinstance(stats, discord.Embed):
 								await text.channel.send(embed = stats)
 								return
-							report = f"{target.mention} needs to claim their profile first! Do !brawlclaim."
+							report = stats if stats else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
 					except Exception as err:
 						print(err)
 						report = "I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
@@ -422,7 +420,7 @@ class DiscordClass(client):
 							if isinstance(clan, discord.Embed):
 								await text.channel.send(embed = clan)
 								return
-							report = "You are not in a clan!" if clan else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
+							report = clan if clan else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
 					except Exception as err:
 						print(err)
 						report = "I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
@@ -489,7 +487,7 @@ class DiscordClass(client):
 				return
 			
 			if msg == "!fact":
-				header = f"Beardless Bot Fun Fact #{randint(1,111111111)}"
+				header = f"Beardless Bot Fun Fact #{randint(1, 111111111)}"
 				await text.channel.send(embed = discord.Embed(title = header, description = fact(), color = 0xfff994))
 				return
 			
@@ -535,7 +533,7 @@ class DiscordClass(client):
 				await message.edit(embed = discord.Embed(title = "Pinged!", description = report, color = 0xfff994).set_thumbnail(url = link))
 				return
 			
-			if msg.startswith('!d') and len(msg) > 2 and ((msg.split('!d',1)[1])[0]).isnumeric() and len(msg) < 12:
+			if msg.startswith('!d') and len(msg) > 2 and ((msg.split('!d', 1)[1])[0]).isnumeric() and len(msg) < 12:
 				# The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
 				await text.channel.send(embed = rollReport(text))
 				return

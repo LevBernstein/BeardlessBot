@@ -71,6 +71,8 @@ def getLegends(brawlKey):
 def legendInfo(brawlKey, legendName):
 	# TODO: add legend images as thumbnail
 	for legend in fetchLegends():
+		if legendName == "hugin":
+			legendName = "munin"
 		if legendName in legend["legend_name_key"]:
 			r = requests.get("https://api.brawlhalla.com/legend/{}/?api_key={}".format(legend["legend_id"], brawlKey)).json()
 			spaceCheck = -2 if legendName in ("reno", "teros", "hattori") else -1 # problematic extra space in 2nd quote for these legends
@@ -90,7 +92,7 @@ def getRank(target, brawlKey):
 		return None
 	r = requests.get(f"https://api.brawlhalla.com/player/{brawlID}/ranked?api_key={brawlKey}").json()
 	if len(r) < 4:
-		return -1
+		return "You haven't played ranked yet this season."
 	rankColors = {"Diamond": 0x3d2399, "Platinum": 0x0051b4, "Gold": 0xf8d06a, "Silver": 0xbbbbbb, "Bronze": 0x674b25, "Tin": 0x355536}
 	emb = (discord.Embed(title = "{}, {}".format(r["name"], r["region"]), color = 0xfff994)
 	.set_footer(text = "Brawl ID {}".format(brawlID)).set_author(name = str(target), icon_url = target.avatar_url))
@@ -131,6 +133,8 @@ def getStats(target, brawlKey):
 	if not brawlID:
 		return None
 	r = requests.get(f"https://api.brawlhalla.com/player/{brawlID}/stats?api_key={brawlKey}").json()
+	if len(r) < 4:
+		return "This profile doesn't have stats associated with it. Please make sure you've claimed the correct profile."
 	emb = (discord.Embed(title = "Brawlhalla Stats for " + r["name"], color = 0xfff994)
 	.set_footer(text = f"Brawl ID {brawlID}").set_author(name = str(target), icon_url = target.avatar_url)
 	.add_field(name = "Name", value = r["name"]).add_field(name = "Overall W/L",value = "{} Wins / {} Losses\n{} Games\n{}% Winrate"
@@ -159,7 +163,7 @@ def getClan(discordID, brawlKey):
 	# as a result, this command is very slow. TODO: Try to find a way around this.
 	r = requests.get(f"https://api.brawlhalla.com/player/{brawlID}/stats?api_key={brawlKey}").json()
 	if not "clan" in r:
-		return -1
+		return "You are not in a clan!"
 	r = requests.get("https://api.brawlhalla.com/clan/{}/?api_key={}".format(r["clan"]["clan_id"], brawlKey)).json()
 	emb = (discord.Embed(title = r["clan_name"], description = "**Clan Created:** {}\n**Experience:** {}\n**Members:** {}"
 	.format(str(datetime.fromtimestamp(r["clan_create_date"]))[:-9], r["clan_xp"], len(r["clan"])), color = 0xfff994)

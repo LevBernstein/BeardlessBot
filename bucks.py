@@ -38,7 +38,7 @@ def writeMoney(member, amount, writing, adding):
 						return -2, None
 					newBank = amount if not adding else (int(row[1]) + amount)
 					newLine = ",".join((row[0], str(newBank), str(member)))
-					with open("resources/money.csv", "r") as oldMoney: # TODO: rewrite to use csvfile
+					with open("resources/money.csv", "r") as oldMoney:
 						oldMoney = ''.join([i for i in oldMoney]).replace(",".join(row), newLine)
 						with open("resources/money.csv", "w") as money:
 							money.writelines(oldMoney)

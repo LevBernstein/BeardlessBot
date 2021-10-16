@@ -364,8 +364,9 @@ def test_claimProfile():
 	assert fetchBrawlID(196354892208537600) == 7032472
 
 def test_pingMsg():
-	namedUser = TestUser()
+	namedUser = TestUser("likesToPing")
 	assert pingMsg(namedUser.mention, 1, 1, 1).endswith("You can ping again in 1 hour, 1 minute, and 1 second.")
+	assert pingMsg(namedUser.mention, 2, 2, 2).endswith("You can ping again in 2 hours, 2 minutes, and 2 seconds.")
 
 if brawlKey:
 	def test_fetchBrawlID():
