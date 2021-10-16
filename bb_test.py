@@ -410,7 +410,7 @@ if brawlKey:
 		assert getClan(196354892208537600, brawlKey).title == "DinersDriveInsDives"
 		assert not getClan(0, brawlKey)
 		claimProfile(196354892208537600, 5895238)
-		assert getClan(196354892208537600, brawlKey) == -1
+		assert getClan(196354892208537600, brawlKey) == "You are not in a clan!"
 		claimProfile(196354892208537600, 7032472)
 
 	def test_brawlCommands():

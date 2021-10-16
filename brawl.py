@@ -70,9 +70,9 @@ def getLegends(brawlKey):
 
 def legendInfo(brawlKey, legendName):
 	# TODO: add legend images as thumbnail
+	if legendName == "hugin":
+		legendName = "munin"
 	for legend in fetchLegends():
-		if legendName == "hugin":
-			legendName = "munin"
 		if legendName in legend["legend_name_key"]:
 			r = requests.get("https://api.brawlhalla.com/legend/{}/?api_key={}".format(legend["legend_id"], brawlKey)).json()
 			spaceCheck = -2 if legendName in ("reno", "teros", "hattori") else -1 # problematic extra space in 2nd quote for these legends
