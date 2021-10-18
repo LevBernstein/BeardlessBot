@@ -7,7 +7,6 @@ import discord
 import pytest
 import requests
 
-from blackjack import *
 from brawl import *
 from bucks import *
 from logs import *
@@ -42,8 +41,8 @@ class TestChannel(discord.TextChannel):
 		self.category_id = 0
 
 class TestMessage(discord.Message):
-	def __init__(self, content = "testcontent"):
-		self.author = TestUser()
+	def __init__(self, content = "testcontent", author = TestUser()):
+		self.author = author
 		self.content = content
 		self.id = 123456789
 		self.channel = TestChannel()
@@ -121,6 +120,7 @@ def test_dice():
 def test_logDeleteMsg():
 	msg = TestMessage()
 	assert logDeleteMsg(msg).description == f"**Deleted message sent by {msg.author.mention} in **{msg.channel.mention}\n{msg.content}"
+
 def test_logPurge():
 	msg = TestMessage()
 	assert logPurge(msg, (msg, msg, msg)).description == f"Purged 2 messages in {msg.channel.mention}."
@@ -232,7 +232,7 @@ def test_balance():
 	assert balance(text).description.startswith("Invalid user!")
 
 def test_reset():
-	text = TestMessage("!reset")
+	text = TestMessage("!reset", TestUser("Beardless Bot", "Beardless Bot", 5757))
 	text.author.id = 654133911558946837
 	assert reset(text).description == f"You have been reset to 200 BeardlessBucks, {text.author.mention}."
 	text.author.name = ",badname,"
@@ -257,6 +257,21 @@ def test_define():
 	assert word.title == "PGP" and word.description == ""
 	assert define("!define invalidword").description == "Invalid word!"
 	assert define("!define spaced words").description == "Please only look up individual words."
+
+def test_flip():
+	text = TestMessage("!flip 0", TestUser("Beardless Bot", "Beardless Bot", 5757))
+	text.author.id = 654133911558946837
+	assert flip(text, text.content).endswith("if you had actually bet anything.")
+	text.content = "!flip invalidbet"
+	assert flip(text, text.content).startswith("Invalid bet amount.")
+	reset(TestMessage("!reset", text.author))
+	text.content = "!flip all"
+	flip(text, text.content)
+	balMsg = balance(TestMessage("!bal", text.author))
+	assert ("400" in balMsg.description or "0" in balMsg.description)
+	assert flip(text, "!flip 10000000000000").startswith("You do not have")
+	balMsg = reset(TestMessage("!reset", text.author))
+	assert "200" in balance(TestMessage("!bal", text.author)).description
 
 def test_blackjack_perfect():
 	game = Instance(TestUser(), 10)

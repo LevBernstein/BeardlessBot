@@ -9,6 +9,7 @@ import requests
 import steam
 from steam.steamid import SteamID
 
+from misc import bbEmbed
 
 badClaim = ("Please do !brawlclaim followed by the URL of your steam profile.\nExample: !brawlclaim https://steamcommunity.com/id/beardless\n" +
 "Alternatively, you can claim via your Brawlhalla ID, which you can find in the top right corner of your inventory.\nExample: !brawlclaim 7032472.")
@@ -28,12 +29,11 @@ def randomBrawl(msg):
 		if ranType in ("Legend", "Weapon"):
 			legends = tuple(legend["legend_name_key"].title() for legend in fetchLegends())
 			weapons = "Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"
-			return discord.Embed(title = "Random " + ranType, description = "Your {} is {}."
-			.format(ranType, choice(legends if ranType == "Legend" else weapons)), color = 0xfff994)
+			return bbEmbed("Random " + ranType, "Your {} is {}.".format(ranType, choice(legends if ranType == "Legend" else weapons)))
 		else:
 			raise Exception
 	except:
-		return discord.Embed(title = "Brawlhalla Randomizer", description = "Please do !random legend or !random weapon.", color = 0xfff994)
+		return bbEmbed("Brawlhalla Randomizer", "Please do !random legend or !random weapon.")
 
 def claimProfile(discordID, brawlID):
 	with open("resources/claimedProfs.json", "r") as f:
@@ -80,7 +80,7 @@ def legendInfo(brawlKey, legendName):
 			quoteTwo = (r["bio_quote_from"] + " *" + (r["bio_quote_from_attrib"])[1:spaceCheck] + "*").replace("\\n", " ")
 			bio = "\n\n".join((r["bio_text"].replace("\n", "\n\n"), "**Quotes**", quoteOne, quoteTwo))
 			legendLinkName = r["bio_name"].replace(" ", "_")
-			return (discord.Embed(title = r["bio_name"] + ", " + r["bio_aka"], description = bio, color = 0xfff994)
+			return (bbEmbed(r["bio_name"] + ", " + r["bio_aka"], bio)
 			.add_field(name = "Weapons", value = (r["weapon_one"] + ", " + r["weapon_two"]).replace("Fist", "Gauntlet").replace("Pistol", "Blasters"))
 			.add_field(name = "Stats", value = "{} Str, {} Dex, {} Def, {} Spd".format(r["strength"], r["dexterity"], r["defense"], r["speed"])))
 	return None
@@ -94,8 +94,8 @@ def getRank(target, brawlKey):
 	if len(r) < 4:
 		return "You haven't played ranked yet this season."
 	rankColors = {"Diamond": 0x3d2399, "Platinum": 0x0051b4, "Gold": 0xf8d06a, "Silver": 0xbbbbbb, "Bronze": 0x674b25, "Tin": 0x355536}
-	emb = (discord.Embed(title = "{}, {}".format(r["name"], r["region"]), color = 0xfff994)
-	.set_footer(text = "Brawl ID {}".format(brawlID)).set_author(name = str(target), icon_url = target.avatar_url))
+	emb = (bbEmbed("{}, {}".format(r["name"], r["region"])).set_footer(text = f"Brawl ID {brawlID}")
+	.set_author(name = str(target), icon_url = target.avatar_url))
 	if "games" in r:
 		embVal = "**{}** ({}/{} Peak)\n{} W / {} L / {}% winrate".format(r["tier"], r["rating"], 
 		r["peak_rating"], r["wins"], r["games"] - r["wins"], round(r["wins"] / r["games"] * 100, 1))
@@ -135,9 +135,9 @@ def getStats(target, brawlKey):
 	r = requests.get(f"https://api.brawlhalla.com/player/{brawlID}/stats?api_key={brawlKey}").json()
 	if len(r) < 4:
 		return "This profile doesn't have stats associated with it. Please make sure you've claimed the correct profile."
-	emb = (discord.Embed(title = "Brawlhalla Stats for " + r["name"], color = 0xfff994)
-	.set_footer(text = f"Brawl ID {brawlID}").set_author(name = str(target), icon_url = target.avatar_url)
-	.add_field(name = "Name", value = r["name"]).add_field(name = "Overall W/L",value = "{} Wins / {} Losses\n{} Games\n{}% Winrate"
+	emb = (bbEmbed("Brawlhalla Stats for " + r["name"]).set_footer(text = f"Brawl ID {brawlID}")
+	.set_author(name = str(target), icon_url = target.avatar_url).add_field(name = "Name", value = r["name"])
+	.add_field(name = "Overall W/L",value = "{} Wins / {} Losses\n{} Games\n{}% Winrate"
 	.format(r["wins"], r["games"] - r["wins"], r["games"], round(r["wins"] / r["games"] * 100, 1))))
 	if "legends" in r:
 		topUsed = topWinrate = topDPS = topTTK = None
@@ -165,8 +165,8 @@ def getClan(discordID, brawlKey):
 	if not "clan" in r:
 		return "You are not in a clan!"
 	r = requests.get("https://api.brawlhalla.com/clan/{}/?api_key={}".format(r["clan"]["clan_id"], brawlKey)).json()
-	emb = (discord.Embed(title = r["clan_name"], description = "**Clan Created:** {}\n**Experience:** {}\n**Members:** {}"
-	.format(str(datetime.fromtimestamp(r["clan_create_date"]))[:-9], r["clan_xp"], len(r["clan"])), color = 0xfff994)
+	emb = (bbEmbed(r["clan_name"], "**Clan Created:** {}\n**Experience:** {}\n**Members:** {}"
+	.format(str(datetime.fromtimestamp(r["clan_create_date"]))[:-9], r["clan_xp"], len(r["clan"])))
 	.set_footer(text = "Clan ID {}".format(r["clan_id"])))
 	for i in range(min(len(r["clan"]), 9)):
 		member = r["clan"][i]
@@ -175,7 +175,7 @@ def getClan(discordID, brawlKey):
 	return emb
 
 def brawlCommands():
-	emb = discord.Embed(title = "Beardless Bot Brawlhalla Commands", color = 0xfff994)
+	emb = bbEmbed("Beardless Bot Brawlhalla Commands")
 	comms = (("!brawlclaim", "Claims a Brawlhalla account, allowing the other commands."),
 		("!brawlrank", "Displays a user's ranked information."),
 		("!brawlstats", "Displays a user's general stats."),

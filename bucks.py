@@ -1,28 +1,116 @@
 import csv
 from collections import OrderedDict
 from operator import itemgetter
+from random import choice, randint
 
 import discord
 from discord.utils import find
 
+from misc import bbEmbed, memSearch
+
 commaWarn = "Beardless Bot gambling is available to Discord users with a comma in their username. Please remove the comma from your username, {}."
 
-def memSearch(text):
-	# method for finding a user based on username and, possibly, discriminator (#1234)
-	term = text.content.split(" ", 1)[1].lower()
-	semiMatch = looseMatch = None
-	for member in text.guild.members:
-		if term == str(member).lower():
-			return member
-		if term == member.name.lower():
-			if not "#" in term:
-				return member
-			semiMatch = member
-		if member.nick and term == member.nick.lower() and not semiMatch:
-			looseMatch = member
-		if not (semiMatch or looseMatch) and term in member.name.lower():
-			looseMatch = member
-	return semiMatch if semiMatch else looseMatch
+buckMsg = ("BeardlessBucks are this bot's special currency. You can earn them " +
+"by playing games. First, do !register to get yourself started with a balance.")
+
+newUserMsg = "You were not registered for BeardlessBucks gambling, so I have automatically registered you. You now have 300 BeardlessBucks, {}."
+
+# Blackjack class. New Instance is made for each game of Blackjack and is kept around until the player finishes the game.
+# An active Instance for a given user prevents the creation of a new Instance. Instances are server-agnostic.
+class Instance:
+	def __init__(self, user, bet):
+		self.user = user
+		self.bet = bet
+		self.cards = []
+		self.dealerUp = randint(2,11)
+		self.dealerSum = self.dealerUp
+		while self.dealerSum < 17:
+			self.dealerSum += randint(1,10)
+		self.vals = (2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11)
+		self.message = self.startingHand()
+
+	def perfect(self):
+		return sum(self.cards) == 21
+
+	def startingHand(self):
+		self.cards.append(choice(self.vals))
+		self.cards.append(choice(self.vals))
+		message = ("Your starting hand consists of {} and {}. Your total is {}. "
+		.format(self.cardName(self.cards[0]), self.cardName(self.cards[1]), sum(self.cards)))
+		if self.perfect():
+			message += f"You hit 21! You win, {self.user.mention}!"
+		else:
+			message += f"The dealer is showing {self.dealerUp}, with one card face down. "
+			if self.checkBust():# Case only fires if you're dealt two aces
+				self.cards[1] = 1
+				self.bet *= -1
+				message = "Your starting hand consists of two Aces. One of them will act as a 1. Your total is 12. "
+			message += f"Type !hit to deal another card to yourself, or !stay to stop at your current total, {self.user.mention}."
+		return message
+
+	def cardName(self, card):
+		if card == 10:
+			return "a " + choice(("10", "Jack", "Queen", "King"))
+		if card == 11:
+			return "an Ace"
+		if card == 8:
+			return "an 8"
+		return "a " + str(card)
+
+	def deal(self):
+		dealt = choice(self.vals)
+		self.cards.append(dealt)
+		self.message = f"You were dealt {self.cardName(dealt)}, bringing your total to {sum(self.cards)}. "
+		if 11 in self.cards and self.checkBust():
+			for i in range(len(self.cards)):
+				if self.cards[i] == 11:
+					self.cards[i] = 1
+					self.bet *= -1
+					break
+			self.message = f"You were dealt an Ace, which will be treated as a 1. Your new total is {sum(self.cards)}."
+		self.message += ("Your card values are {}. The dealer is showing {}, with one card face down."
+		.format(", ".join(str(card) for card in self.cards), self.dealerUp))
+		if self.checkBust():
+			self.message += f" You busted. Game over, {self.user.mention}."
+		elif self.perfect():
+			self.message += f" You hit 21! You win, {self.user.mention}!"
+		else:
+			self.message += f" Type !hit to deal another card to yourself, or !stay to stop at your current total, {self.user.mention}."
+
+	def checkBust(self):
+		if sum(self.cards) > 21:
+			self.bet *= -1
+			return True
+		return False
+
+	def getUser(self):
+		return self.user
+
+	def stay(self):
+		change = 1
+		self.message = "The dealer has a total of {}."
+		if sum(self.cards) > self.dealerSum and not self.checkBust():
+			self.message += " You're closer to 21 with a sum of {}. You win! Your winnings have been added to your balance, {}."
+		elif sum(self.cards) == self.dealerSum:
+			change = 0
+			self.message += " That ties your sum of {}. Your bet has been returned, {}."
+		elif self.dealerSum > 21:
+			self.message += " You have a sum of {}. The dealer busts. You win! Your winnings have been added to your balance, {}."
+		else:
+			self.message += " That's closer to 21 than your sum of {}. You lose. Your loss has been deducted from your balance, {}."
+			self.bet *= -1
+		self.message = self.message.format(self.dealerSum, sum(self.cards), self.user.mention)
+		if not self.bet:
+			self.message += " Unfortunately, you bet nothing, so this was all pointless."
+		return change
+
+# BeardlessBucks modifying/referencing methods:
+## writeMoney() is the helper method for checking or modifying a given user's balance.
+## register() is used for signing up a new user to the BeardlessBucks system.
+## balance() is essentially a more user-friendly wrapper for writeMoney's balance lookup
+## reset() is used for resetting a given user to 200 BeardlessBucks.
+## leaderboard() finds the top min(len(money.csv), 10) users by balance in O(nlogn) time.
+## flip() gambles a certain number of BeardlessBucks on a coin toss (randint(0,1)).
 
 def writeMoney(member, amount, writing, adding):
 	# "writing" is True if you want to modify money.csv; "adding" is True if you want to add an amount to a member's balance
@@ -55,7 +143,7 @@ def register(text):
 		report = f"You are already in the system! Hooray! You have {bonus} BeardlessBucks, {text.author.mention}."
 	elif result == -1:
 		report = bonus
-	return discord.Embed(title = "BeardlessBucks Registration", description = report, color = 0xfff994)
+	return bbEmbed("BeardlessBucks Registration", report)
 
 def balance(text):
 	report = ("Invalid user! Please @ a user when you do !balance (or enter their username)," +
@@ -72,7 +160,7 @@ def balance(text):
 			report = f"Successfully registered. You now have 300 BeardlessBucks, {target.mention}."
 		else:
 			report = bonus if result == -1 else "Error!"
-	return discord.Embed(title = "BeardlessBucks Balance", description = report, color = 0xfff994)
+	return bbEmbed("BeardlessBucks Balance", report)
 
 def reset(text):
 	result, bonus = writeMoney(text.author, 200, True, False)
@@ -81,12 +169,12 @@ def reset(text):
 		report = f"Successfully registered. You have 300 BeardlessBucks, {text.author.mention}."
 	if result == -1:
 		report = bonus
-	return discord.Embed(title = "BeardlessBucks Reset", description = report, color = 0xfff994)
+	return bbEmbed("BeardlessBucks Reset", report)
 
-def leaderboard():
-	# worst case runtime = num entries in money.csv (O(n)) + runtime of sorted() (O(nlogn)) + 10 = O(nlogn)
+def leaderboard(): # TODO print user's position on lb
+	# worst case runtime = # entries in money.csv + runtime of sorted() + 10 = O(n) + O(nlogn) + 10 = O(nlogn)
 	diction = {}
-	emb = discord.Embed(title = "BeardlessBucks Leaderboard", description = "", color = 0xfff994)
+	emb = bbEmbed("BeardlessBucks Leaderboard")
 	with open('resources/money.csv') as csvfile:
 		for row in csv.reader(csvfile, delimiter = ','):
 			if int(row[1]): # Don't bother displaying info for people with 0 BeardlessBucks
@@ -97,3 +185,36 @@ def leaderboard():
 		head, body = sortedDict.popitem()
 		emb.add_field(name = (str(i + 1) + ". " + head), value = str(body))
 	return emb
+
+def flip(text, msg):
+	heads = randint(0, 1)
+	strBet = msg.split('!flip ', 1)[1] if len(msg) > 6 else 10 # bet defaults to 10
+	if msg == "!flip":
+		bet = 10
+	elif strBet == "all":
+		bet = "all" if heads else "-all"
+	else:
+		try:
+			bet = int(strBet)
+		except:
+			print("Failed to cast bet to int! Bet msg: " + msg)
+			bet = -1
+	report = "Invalid bet amount. Please choose a number >-1, {}."
+	if (isinstance(bet, str) and "all" in bet) or (isinstance(bet, int) and bet >= 0):
+		result, bank = writeMoney(text.author, 300, False, False)
+		if not (isinstance(bet, str) or (isinstance(bet, int) and result == 0 and bet <= bank)):
+			report = "You do not have enough BeardlessBucks to bet that much, {}!"
+		else:
+			if isinstance(bet, int) and not heads:
+				bet *= -1
+			result, bonus = writeMoney(text.author, bet, True, True)
+			report = "Tails! You lose! Your loss has been deducted from your balance, {}."
+			if heads:
+				report = "Heads! You win! Your winnings have been added to your balance, {}."
+			if result == -1:
+				report = bonus
+			elif result == 2:
+				report = newUserMsg
+			elif result == 0:
+				report += " Or, they would have been, if you had actually bet anything."
+	return report.format(text.author.mention)

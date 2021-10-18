@@ -5,10 +5,32 @@ from random import choice, randint
 import discord
 import requests
 
-from bucks import memSearch
+diceMsg = "Enter !d[number][+/-][modifier] to roll a [number]-sided die and add or subtract a modifier. For example: !d8+3, or !d100-17, or !d6."
 
 prof = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b5513134fa76b94.webp?size=1024"
+
 animalList = "cat", "duck", "fox", "rabbit", "panda", "lizard", "axolotl", "bear", "bird", "koala", "raccoon", "kangaroo"
+
+# Wrappr for discord.Embed that defaults to commonly-used values and is easier to define
+def bbEmbed(name, value = "", col = 0xfff994):
+	return discord.Embed(title = name, description = value, color = col)
+
+# Discord user lookup helper method. Finds user based on username and/or discriminator (#1234)
+def memSearch(text):
+	term = text.content.split(" ", 1)[1].lower()
+	semiMatch = looseMatch = None
+	for member in text.guild.members:
+		if term == str(member).lower():
+			return member
+		if term == member.name.lower():
+			if not "#" in term:
+				return member
+			semiMatch = member
+		if member.nick and term == member.nick.lower() and not semiMatch:
+			looseMatch = member
+		if not (semiMatch or looseMatch) and term in member.name.lower():
+			looseMatch = member
+	return semiMatch if semiMatch else looseMatch
 
 def animal(animalType):
 	r = "Invalid Animal!"
@@ -66,7 +88,7 @@ def animal(animalType):
 	raise Exception(r)
 
 def animals():
-	emb = discord.Embed(title = "Animal Photo Commands:", color = 0xfff994).add_field(inline = False,
+	emb = bbEmbed("Animal Photo Commands:").add_field(inline = False,
 	name = "!dog", value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>")
 	for animalName in animalList:
 		emb.add_field(name = "!" + animalName, value = "_ _")
@@ -81,7 +103,7 @@ def define(msg):
 		r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
 		if r.status_code == 200:
 			desc = f"Audio: https:{r.json()[0]['phonetics'][0]['audio']}" if "audio" in r.json()[0]['phonetics'][0] else ""
-			emb = discord.Embed(title = word.upper(), color = 0xfff994, description = desc)
+			emb = bbEmbed(word.upper(), desc)
 			i = 0
 			for entry in r.json():
 				for meaning in entry["meanings"]:
@@ -89,7 +111,7 @@ def define(msg):
 						i += 1
 						emb.add_field(name = f"Definition {i}:", value = definition["definition"])
 			return emb
-	return discord.Embed(title = "Beardless Bot Definitions", description = report, color = 0xfff994)
+	return bbEmbed("Beardless Bot Definitions", report)
 
 def roll(message):
 	# Takes a string of the format !dn+b and rolls one n-sided die with a modifier of b. Modifier is optional.
@@ -107,7 +129,7 @@ def rollReport(text):
 	report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
 	if result != "None":
 		report = f"You got {result}, {text.author.mention}."
-	return discord.Embed(title = "Beardless Bot Dice", description = report, color = 0xfff994)
+	return bbEmbed("Beardless Bot Dice", report)
 
 def fact():
 	with open("resources/facts.txt", "r") as f:
@@ -118,7 +140,7 @@ def info(text):
 		target = text.mentions[0] if text.mentions else text.author if not " " in text.content else memSearch(text)
 		if target:
 			# Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
-			emb = (discord.Embed(description = target.activity.name if target.activity else "", color = target.color)
+			emb = (bbEmbed("", target.activity.name if target.activity else "", target.color)
 			.set_author(name = str(target), icon_url = target.avatar_url).set_thumbnail(url = target.avatar_url)
 			.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7] + " UTC")
 			.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7] + " UTC"))
@@ -128,15 +150,13 @@ def info(text):
 			return emb
 	except:
 		pass
-	return discord.Embed(title = "Invalid target!", color = 0xff0000,
-	description = "Please choose a valid target. Valid targets are either a ping or a username.")
+	return bbEmbed("Invalid target!", "Please choose a valid target. Valid targets are either a ping or a username.", 0xff0000)
 
 def sparPins():
 	sparDesc = ("Do the command !spar <region> <other info>.", "For instance, to find a diamond from US-E to play 2s with, I would do:",
 		"**!spar US-E looking for a diamond 2s partner**.", "Valid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA.",
 		"!spar has a 2 hour cooldown.", "Please use the roles channel to give yourself the correct roles.")
-	return (discord.Embed(title = "How to use this channel.", description = "", color = 0xfff994)
-	.add_field(name = "To spar someone from your region:", value = "\n".join(sparDesc), inline = False)
+	return (bbEmbed("How to use this channel.").add_field(name = "To spar someone from your region:", value = "\n".join(sparDesc), inline = False)
 	.add_field(name = "If you don't want to get pings:", inline = False,
 	value = "Remove your region role. Otherwise, responding 'no' to calls to spar is annoying and counterproductive, and will earn you a warning."))
 
@@ -144,15 +164,13 @@ def av(text):
 	try:
 		target = text.mentions[0] if text.mentions else (text.author if not text.guild or not " " in text.content else memSearch(text))
 		if target:
-			return (discord.Embed(color = target.color).set_image(url = target.avatar_url)
-			.set_author(name = str(target), icon_url = target.avatar_url))
+			return bbEmbed("", "", target.color).set_image(url = target.avatar_url).set_author(name = str(target), icon_url = target.avatar_url)
 	except:
 		pass
-	return discord.Embed(title = "Invalid target!", color = 0xff0000,
-	description = "Please choose a valid target. Valid targets are either a ping or a username.")
+	return bbEmbed("Invalid target!", "Please choose a valid target. Valid targets are either a ping or a username.", 0xff0000)
 
 def commands(text):
-	emb = discord.Embed(title = "Beardless Bot Commands", description = "!commands to pull up this list", color = 0xfff994)
+	emb = bbEmbed("Beardless Bot Commands", "!commands to pull up this list")
 	commandNum = 15 if not text.guild else 20 if text.author.guild_permissions.manage_messages else 17
 	commandList = (("!register", "Registers you with the currency system."),
 		("!balance", "Checks your BeardlessBucks balance. You can write !balance <@someone>/<username> to see that person's balance."),
@@ -179,15 +197,15 @@ def commands(text):
 	return emb
 
 def joinMsg():
-	return (discord.Embed(title = "Want to add this bot to your server?", color = 0xfff994,
-	description = "[Click this link!](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot)")
+	addUrl = "(https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot)"
+	return (bbEmbed("Want to add this bot to your server?", "[Click this link!]" + addUrl)
 	.set_thumbnail(url = prof).add_field(name = "If you like Beardless Bot...", inline = False,
 	value = "Please leave a review on [top.gg](https://top.gg/bot/654133911558946837)."))
 
 def hints():
 	with open("resources/hints.txt", "r") as f:
 		hints = f.read().splitlines()
-		emb = discord.Embed(title = "Hints for Beardless Bot's Secret Word", description = "", color = 0xfff994)
+		emb = bbEmbed("Hints for Beardless Bot's Secret Word")
 		for i in range(len(hints)):
 			emb.add_field(name = str(i + 1), value = hints[i])
 		return emb
@@ -221,4 +239,4 @@ def noPerms():
 	reasons = " ".join(("Beardless Bot requires permissions in order to do just about anything. Without them, I can't do",
 	"much, so I'm leaving. If you add me back to this server, please make sure to leave checked the box that grants me",
 	"the Administrator permission.\nIf you have any questions, feel free to contact my creator, Captain No-Beard#7511."))
-	return discord.Embed(title = "I need admin perms!", description = reasons, color = 0xff0000).set_author(name = "Beardless Bot", icon_url = prof)
+	return bbEmbed("I need admin perms!", reasons, 0xff0000).set_author(name = "Beardless Bot", icon_url = prof)
