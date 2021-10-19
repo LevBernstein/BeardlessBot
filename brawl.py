@@ -16,6 +16,8 @@ badClaim = ("Please do !brawlclaim followed by the URL of your steam profile.\nE
 
 badRegion = "Please specify a valid region, {}! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. If you need help, try doing !pins."
 
+reqLimit = "I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
+
 def pingMsg(target, h, m, s):
 	def plural(t):
 		return "" if t == 1 else "s"

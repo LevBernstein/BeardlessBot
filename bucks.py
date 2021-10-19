@@ -148,10 +148,7 @@ def register(text):
 def balance(text):
 	report = ("Invalid user! Please @ a user when you do !balance (or enter their username)," +
 	f" or do !balance without a target to see your own balance, {text.author.mention}.")
-	if text.mentions:
-		target = text.mentions[0]
-	else:
-		target = text.author if not text.guild or not " " in text.content else memSearch(text)
+	target = text.author if not (text.mentions or " " in msg) else memSearch(text)
 	if target:
 		result, bonus = writeMoney(target, 300, False, False)
 		if result == 0:

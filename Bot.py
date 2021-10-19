@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.4.3
+# Version: Full Release 1.4.4
 
 import asyncio
 import csv
@@ -61,7 +61,7 @@ class DiscordClass(client):
 		except discord.HTTPException:
 			print("Failed to update status! You might be restarting the bot too many times.")
 		try:
-			with open("images/prof.png", "rb") as f:
+			with open("resources/images/prof.png", "rb") as f:
 				await client.user.edit(avatar = f.read())
 				print("Avatar live!")
 		except discord.HTTPException:
@@ -334,13 +334,13 @@ class DiscordClass(client):
 							report = "Profile claimed."
 						except Exception as err:
 							print(err)
-							report = "I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
+							report = reqLimit
 					await text.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Rank", report))
 					return
 				
 				if msg.startswith("!brawlrank"):
-					try: # That many ternary operators in one line is gross, rewrite this
-						target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(text)
+					try:
+						target = text.author if not (text.mentions or " " in msg) else memSearch(text)
 						report = "Invalid target!"
 						if target:
 							rank = getRank(target, brawlKey)
@@ -350,13 +350,13 @@ class DiscordClass(client):
 							report = rank if rank else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
 					except Exception as err:
 						print(err)
-						report = "I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
+						report = reqLimit
 					await text.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Rank", report))
 					return
 				
 				if msg.startswith("!brawlstats"):
 					try:
-						target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(text)
+						target = text.author if not (text.mentions or " " in msg) else memSearch(text)
 						report = "Invalid target!"
 						if target:
 							stats = getStats(target, brawlKey)
@@ -366,7 +366,7 @@ class DiscordClass(client):
 							report = stats if stats else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
 					except Exception as err:
 						print(err)
-						report = "I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
+						report = reqLimit
 					await text.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Stats", report))
 					return
 				
@@ -379,13 +379,13 @@ class DiscordClass(client):
 							return
 					except Exception as err:
 						print(err)
-						report = "I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
+						report = reqLimit
 					await text.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Legend Info", report))
 					return
 				
 				if msg.startswith("!brawlclan"):
 					try:
-						target = text.mentions[0] if text.mentions else text.author if not " " in msg else memSearch(text)
+						target = text.author if not (text.mentions or " " in msg) else memSearch(text)
 						report = "Invalid target!"
 						if target:
 							clan = getClan(target.id, brawlKey)
@@ -395,7 +395,7 @@ class DiscordClass(client):
 							report = clan if clan else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
 					except Exception as err:
 						print(err)
-						report = "I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
+						report = reqLimit
 					await text.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Clan", report))
 					return
 			
@@ -447,7 +447,7 @@ class DiscordClass(client):
 				return
 			
 			if msg == "!rohan":
-				await text.channel.send(file = discord.File('images/cute.png'))
+				await text.channel.send(file = discord.File("resources/images/cute.png"))
 				return
 			
 			if msg.startswith("!random"):
@@ -466,7 +466,7 @@ class DiscordClass(client):
 			animalName = msg[1:].split(" ", 1)[0]
 			if msg.startswith("!") and animalName in ("dog", "moose"):
 				if "moose" in msg:
-					await text.channel.send(file = discord.File(f"images/moose/moose{randint(1, 62)}.jpg"))
+					await text.channel.send(file = discord.File(f"resources/images/moose/moose{randint(1, 62)}.jpg"))
 					return
 				try:
 					dogUrl = animal(msg[1:])

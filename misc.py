@@ -11,12 +11,15 @@ prof = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b
 
 animalList = "cat", "duck", "fox", "rabbit", "panda", "lizard", "axolotl", "bear", "bird", "koala", "raccoon", "kangaroo"
 
-# Wrappr for discord.Embed that defaults to commonly-used values and is easier to define
+# Wrapper for discord.Embed that defaults to commonly-used values and is easier to define
 def bbEmbed(name, value = "", col = 0xfff994):
 	return discord.Embed(title = name, description = value, color = col)
 
 # Discord user lookup helper method. Finds user based on username and/or discriminator (#1234)
 def memSearch(text):
+	if text.mentions:
+		return text.mentions[0]
+
 	term = text.content.split(" ", 1)[1].lower()
 	semiMatch = looseMatch = None
 	for member in text.guild.members:
@@ -137,7 +140,7 @@ def fact():
 
 def info(text):
 	try:
-		target = text.mentions[0] if text.mentions else text.author if not " " in text.content else memSearch(text)
+		target = text.author if not (text.mentions or " " in text.content) else memSearch(text)
 		if target:
 			# Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
 			emb = (bbEmbed("", target.activity.name if target.activity else "", target.color)
@@ -162,7 +165,7 @@ def sparPins():
 
 def av(text):
 	try:
-		target = text.mentions[0] if text.mentions else (text.author if not text.guild or not " " in text.content else memSearch(text))
+		target = text.author if not (text.mentions or " " in text.content or text.guild) else memSearch(text)
 		if target:
 			return bbEmbed("", "", target.color).set_image(url = target.avatar_url).set_author(name = str(target), icon_url = target.avatar_url)
 	except:
