@@ -169,7 +169,7 @@ def av(text):
 		target = memSearch(text)
 		if target:
 			return (bbEmbed("", "", target.color).set_image(url = target.avatar_url)
-		   .set_author(name = str(target), icon_url = target.avatar_url))
+		    .set_author(name = str(target), icon_url = target.avatar_url))
 	except Exception as err:
 		print(err)
 		pass

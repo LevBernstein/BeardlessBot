@@ -254,7 +254,6 @@ def test_define():
 	word = define("!define pgp")
 	assert word.title == "PGP" and word.description == ""
 	assert define("!define invalidword").description == "Invalid word!"
-	assert define("!define spaced words").description == "Please only look up individual words."
 
 def test_flip():
 	text = TestMessage("!flip 0", TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837))
