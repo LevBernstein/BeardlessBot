@@ -13,10 +13,10 @@ from logs import *
 from misc import *
 
 class TestUser(discord.User):
-	def __init__(self, name = "testname", nick = "testnick", discriminator = "0000"):
+	def __init__(self, name = "testname", nick = "testnick", discriminator = "0000", id = 123456789):
 		self.name = name
 		self.nick = nick
-		self.id = 123456789
+		self.id = id
 		self.discriminator = discriminator
 		self.bot = False
 		self.avatar = self.default_avatar
@@ -203,8 +203,13 @@ def test_memSearch():
 	namedUser.name = "hash#name"
 	text.content = "!av hash#name"
 	assert memSearch(text) == namedUser
+	text.author = namedUser
+	text.content = "!av"
+	assert memSearch(text) == namedUser
 	text.content = "!bal invalidterm"
 	assert not memSearch(text)
+	text.mentions = namedUser,
+	assert memSearch(text) == namedUser
 
 def test_register():
 	text = TestMessage("!register")
@@ -214,17 +219,11 @@ def test_register():
 	assert register(text).description == commaWarn.format(text.author.mention)
 
 def test_balance():
-	text = TestMessage("!bal")
-	text.author.name = "Named User"
-	text.author.id = 654133911558946837
+	text = TestMessage("!bal", TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837))
 	assert balance(text).description == f"{text.author.mention}'s balance is 200 BeardlessBucks."
 	text.guild.members = (TestUser(), text.author)
 	text.content = "!balance " + text.author.name
 	assert balance(text).description == f"{text.author.mention}'s balance is 200 BeardlessBucks."
-	text.content = "!balance " + text.author.mention
-	text.mentions = text.author,
-	assert balance(text).description == f"{text.author.mention}'s balance is 200 BeardlessBucks."
-	text.mentions = ()
 	text.content = "!balance"
 	text.author.name = ",badname,"
 	assert balance(text).description == commaWarn.format(text.author.mention)
@@ -232,8 +231,7 @@ def test_balance():
 	assert balance(text).description.startswith("Invalid user!")
 
 def test_reset():
-	text = TestMessage("!reset", TestUser("Beardless Bot", "Beardless Bot", 5757))
-	text.author.id = 654133911558946837
+	text = TestMessage("!reset", TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837))
 	assert reset(text).description == f"You have been reset to 200 BeardlessBucks, {text.author.mention}."
 	text.author.name = ",badname,"
 	assert reset(text).description == commaWarn.format(text.author.mention)
@@ -259,8 +257,7 @@ def test_define():
 	assert define("!define spaced words").description == "Please only look up individual words."
 
 def test_flip():
-	text = TestMessage("!flip 0", TestUser("Beardless Bot", "Beardless Bot", 5757))
-	text.author.id = 654133911558946837
+	text = TestMessage("!flip 0", TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837))
 	assert flip(text, text.content).endswith("if you had actually bet anything.")
 	text.content = "!flip invalidbet"
 	assert flip(text, text.content).startswith("Invalid bet amount.")

@@ -1,6 +1,6 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.4.5
+# Version: Full Release 1.4.6
 
 import asyncio
 import csv
@@ -340,7 +340,7 @@ class DiscordClass(client):
 				
 				if msg.startswith("!brawlrank"):
 					try:
-						target = text.author if not (text.mentions or " " in msg) else memSearch(text)
+						target = memSearch(text)
 						report = "Invalid target!"
 						if target:
 							rank = getRank(target, brawlKey)
@@ -356,7 +356,7 @@ class DiscordClass(client):
 				
 				if msg.startswith("!brawlstats"):
 					try:
-						target = text.author if not (text.mentions or " " in msg) else memSearch(text)
+						target = memSearch(text)
 						report = "Invalid target!"
 						if target:
 							stats = getStats(target, brawlKey)
@@ -385,7 +385,7 @@ class DiscordClass(client):
 				
 				if msg.startswith("!brawlclan"):
 					try:
-						target = text.author if not (text.mentions or " " in msg) else memSearch(text)
+						target = memSearch(text)
 						report = "Invalid target!"
 						if target:
 							clan = getClan(target.id, brawlKey)
@@ -501,7 +501,7 @@ class DiscordClass(client):
 			
 			if msg.startswith('!d') and len(msg) > 2 and (msg[2:]).isnumeric() and len(msg) < 12:
 				# The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
-				await text.channel.send(embed = rollReport(text))
+				await text.channel.send(embed = rollReport(text)) # TODO: convert to !roll
 				return
 			
 			if msg in ("!commands", "!help"):
@@ -608,7 +608,7 @@ class DiscordClass(client):
 					await text.channel.send(embed = info(text))
 					return
 				
-				if msg.startswith('!spar '): # command rewrite will use region, *
+				if msg.startswith('!spar '): # command rewrite will use region, *; will not require 2nd role check
 					if text.channel.name == "looking-for-spar":
 						report = badRegion
 						tooRecent = role = None

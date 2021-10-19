@@ -15,11 +15,13 @@ animalList = "cat", "duck", "fox", "rabbit", "panda", "lizard", "axolotl", "bear
 def bbEmbed(name, value = "", col = 0xfff994):
 	return discord.Embed(title = name, description = value, color = col)
 
-# Discord user lookup helper method. Finds user based on username and/or discriminator (#1234)
+# User lookup helper method. Finds user based on username and/or discriminator (#1234)
+# Runs in linear time; worst case, does not find a loosely-matching target, takes O(n) operations
 def memSearch(text):
 	if text.mentions:
 		return text.mentions[0]
-
+	if not (" " in text.content and text.guild):
+		return text.author
 	term = text.content.split(" ", 1)[1].lower()
 	semiMatch = looseMatch = None
 	for member in text.guild.members:
@@ -71,7 +73,10 @@ def animal(animalType):
 			return r.json()["media"]["gif"]
 	
 	if animalType in ("panda", "koala", "bird", "raccoon", "kangaroo", "fox"):
-		r = requests.get("https://randomfox.ca/floof/" if animalType == "fox" else "https://some-random-api.ml/animal/" + animalType)
+		if animalType == "fox":
+			r = requests.get("https://randomfox.ca/floof/")
+		else:
+			r = requests.get("https://some-random-api.ml/animal/" + animalType)
 		if r.status_code == 200:
 			return r.json()["image"]
 	
@@ -91,30 +96,26 @@ def animal(animalType):
 	raise Exception(r)
 
 def animals():
-	emb = bbEmbed("Animal Photo Commands:").add_field(inline = False,
-	name = "!dog", value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>")
+	emb = bbEmbed("Animal Photo Commands:").add_field(inline = False, name = "!dog",
+	value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>")
 	for animalName in animalList:
 		emb.add_field(name = "!" + animalName, value = "_ _")
 	return emb
 
 def define(msg):
-	report = "Invalid word!"
 	word = msg.split(' ', 1)[1]
-	if " " in word:
-		report = "Please only look up individual words."
-	else:
-		r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
-		if r.status_code == 200:
-			desc = f"Audio: https:{r.json()[0]['phonetics'][0]['audio']}" if "audio" in r.json()[0]['phonetics'][0] else ""
-			emb = bbEmbed(word.upper(), desc)
-			i = 0
-			for entry in r.json():
-				for meaning in entry["meanings"]:
-					for definition in meaning["definitions"]:
-						i += 1
-						emb.add_field(name = f"Definition {i}:", value = definition["definition"])
-			return emb
-	return bbEmbed("Beardless Bot Definitions", report)
+	r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
+	if r.status_code == 200:
+		desc = f"Audio: https:{r.json()[0]['phonetics'][0]['audio']}" if "audio" in r.json()[0]['phonetics'][0] else ""
+		emb = bbEmbed(word.upper(), desc)
+		i = 0
+		for entry in r.json():
+			for meaning in entry["meanings"]:
+				for definition in meaning["definitions"]:
+					i += 1
+					emb.add_field(name = f"Definition {i}:", value = definition["definition"])
+		return emb
+	return bbEmbed("Beardless Bot Definitions", "Invalid word!")
 
 def roll(message):
 	# Takes a string of the format !dn+b and rolls one n-sided die with a modifier of b. Modifier is optional.
@@ -140,7 +141,7 @@ def fact():
 
 def info(text):
 	try:
-		target = text.author if not (text.mentions or " " in text.content) else memSearch(text)
+		target = memSearch(text)
 		if target:
 			# Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
 			emb = (bbEmbed("", target.activity.name if target.activity else "", target.color)
@@ -165,10 +166,12 @@ def sparPins():
 
 def av(text):
 	try:
-		target = text.author if not (text.mentions or " " in text.content or text.guild) else memSearch(text)
+		target = memSearch(text)
 		if target:
-			return bbEmbed("", "", target.color).set_image(url = target.avatar_url).set_author(name = str(target), icon_url = target.avatar_url)
-	except:
+			return (bbEmbed("", "", target.color).set_image(url = target.avatar_url)
+		   .set_author(name = str(target), icon_url = target.avatar_url))
+	except Exception as err:
+		print(err)
 		pass
 	return bbEmbed("Invalid target!", "Please choose a valid target. Valid targets are either a ping or a username.", 0xff0000)
 
