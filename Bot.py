@@ -1,6 +1,6 @@
 # Beardless Bot Command Event Rewrite
 # Author: Lev Bernstein
-# Version: Full Release 1.5.1
+# Version: Full Release 1.5.2
 
 import asyncio
 import csv
@@ -205,11 +205,10 @@ async def deal(ctx, wagered = 10, *):
 			except:
 				print("Failed to cast bet to int! Bet msg: " + ctx.message)
 				bet = -1
-			finally:
-				if bet < 0:
-					report = "Invalid bet. Please choose a number greater than or equal to 0."
 		if any(ctx.author == game.getUser() for game in games):
 			report = f"You already have an active game, {ctx.author.mention}."
+		elif bet < 0:
+			report = "Invalid bet. Please choose a number greater than or equal to 0, or enter \"all\" to bet your whole balance."
 		else:
 			with open('resources/money.csv', 'r') as csvfile:
 				for row in csv.reader(csvfile, delimiter = ','):
@@ -219,61 +218,61 @@ async def deal(ctx, wagered = 10, *):
 							bet = bank
 						report = f"You do not have enough BeardlessBucks to bet that much, {ctx.author.mention}!"
 						if bet <= bank:
-							gamer = Instance(ctx.author, bet)
-							report = gamer.message
-							if gamer.perfect():
+							game = Instance(ctx.author, bet)
+							report = game.message
+							if game.perfect():
 								newLine = ",".join((row[0], str(bank + bet), str(ctx.author)))
 								with open("resources/money.csv", "r") as oldMoney:
 									oldMoney = ''.join([i for i in oldMoney]).replace(",".join(row), newLine)
 									with open("resources/money.csv", "w") as newMoney:
 										newMoney.writelines(oldMoney)
 							else:
-								games.append(gamer)
+								games.append(game)
 						break
 	await ctx.channel.send(embed = bbEmbed("Beardless Bot Blackjack", report))
 	return
 
 @bot.command(name = "!deal", aliases = ("!hit",))
 async def blackjackDeal(ctx, *):
+	if "," in ctx.author.name:
+		report = commaWarn.format(ctx.author.mention)
+	else:
+		report = f"You do not currently have a game of blackjack going, {ctx.author.mention}. Type !blackjack to start one."
+		for i in range(len(games)):
+			if games[i].getUser() == ctx.author:
+				game = games[i]
+				report = game.deal()
+				if game.checkBust() or game.perfect():
+					writeMoney(ctx.author, game.bet * (-1 if game.checkBust() else 1), True, True)
+					games.pop(i)
+				break
+	await ctx.channel.send(embed = bbEmbed("Beardless Bot Blackjack", report))
+	return
+
+@bot.command(name = "!stay", aliases = ("!stand",))
+async def blackjackStay(ctx, *):
+	if "," in ctx.author.name:
+		report = commaWarn.format(ctx.author.mention)
+	else:
+		report = f"You do not currently have a game of blackjack going, {ctx.author.mention}. Type !blackjack to start one."
+		for i in range(len(games)):
+			if games[i].getUser() == ctx.author:
+				game = games[i]
+				result = game.stay()
+				report = game.message
+				if result and game.bet:
+					written, bonus = writeMoney(ctx.author, game.bet, True, True)
+					if written == -1:
+						report = bonus
+				games.pop(i)
+				break
+	await ctx.channel.send(embed = bbEmbed("Beardless Bot Blackjack", report))
 	return
 
 @bot.event
 async def on_message(text):
 	if not text.author.bot:
 		msg = text.content.lower()
-
-		if msg in ('!deal', '!hit'):
-			if ',' in text.author.name:
-				report = commaWarn.format(text.author.mention)
-			else:
-				report = f"You do not currently have a game of blackjack going, {text.author.mention}. Type !blackjack to start one."
-				for i in range(len(games)):
-					if games[i].getUser() == text.author:
-						gamer = games[i]
-						gamer.deal()
-						report = gamer.message
-						if gamer.checkBust() or gamer.perfect():
-							writeMoney(text.author, gamer.bet * (-1 if gamer.checkBust() else 1), True, True)
-							games.pop(i)
-						break
-			await text.channel.send(embed = bbEmbed("Beardless Bot Blackjack", report))
-			return
-
-		if msg in ('!stay', '!stand'):
-			report = f"You do not currently have a game of blackjack going, {text.author.mention}. Type !blackjack to start one."
-			for i in range(len(games)):
-				if games[i].getUser() == text.author:
-					gamer = games[i]
-					result = gamer.stay()
-					report = gamer.message
-					if result and gamer.bet:
-						written, bonus = writeMoney(text.author, gamer.bet, True, True)
-						if written == -1:
-							report = bonus
-					games.pop(i)
-					break
-			await text.channel.send(embed = bbEmbed("Beardless Bot Blackjack", report))
-			return
 
 		if secretWord:
 			if secretWord in msg.split(" "):

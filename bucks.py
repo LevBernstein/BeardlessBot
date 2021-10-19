@@ -76,6 +76,7 @@ class Instance:
 			self.message += f" You hit 21! You win, {self.user.mention}!"
 		else:
 			self.message += f" Type !hit to deal another card to yourself, or !stay to stop at your current total, {self.user.mention}."
+		return self.message
 
 	def checkBust(self):
 		if sum(self.cards) > 21:
