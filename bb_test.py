@@ -84,7 +84,6 @@ def test_animal():
 		r = requests.head(animal("dog " + breed))
 		assert r.ok and r.headers["content-type"] in imageTypes
 	assert animal("dog invalid breed") == "Breed not found! Do !dog breeds to see all the breeds."
-	assert animal("dog invalid1breed1") == "Breed not found! Do !dog breeds to see all the breeds."
 	
 	with pytest.raises(Exception):
 		animal("invalidAnimal")
