@@ -18,11 +18,7 @@ def bbEmbed(name, value = "", col = 0xfff994):
 # User lookup helper method. Finds user based on username and/or discriminator (#1234)
 # Runs in linear time; worst case, does not find a loosely-matching target, takes O(n) operations
 def memSearch(text):
-	if text.mentions:
-		return text.mentions[0]
-	if not (" " in text.content and text.guild):
-		return text.author
-	term = text.content.split(" ", 1)[1].lower()
+	term = text.content.lower()
 	semiMatch = looseMatch = None
 	for member in text.guild.members:
 		if term == str(member).lower():
@@ -164,15 +160,12 @@ def sparPins():
 	.add_field(name = "If you don't want to get pings:", inline = False,
 	value = "Remove your region role. Otherwise, responding 'no' to calls to spar is annoying and counterproductive, and will earn you a warning."))
 
-def av(text):
-	try:
+def av(target, text):
+	if not isinstance(target, discord.User):
 		target = memSearch(text)
-		if target:
-			return (bbEmbed("", "", target.color).set_image(url = target.avatar_url)
-		    .set_author(name = str(target), icon_url = target.avatar_url))
-	except Exception as err:
-		print(err)
-		pass
+	if target:
+		return (bbEmbed("", "", target.color).set_image(url = target.avatar_url)
+		.set_author(name = str(target), icon_url = target.avatar_url))
 	return bbEmbed("Invalid target!", "Please choose a valid target. Valid targets are either a ping or a username.", 0xff0000)
 
 def commands(text):

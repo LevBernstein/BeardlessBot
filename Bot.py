@@ -1,6 +1,6 @@
 # Beardless Bot Command Event Rewrite
 # Author: Lev Bernstein
-# Version: Full Release 1.5.2
+# Version: Full Release 1.5.3
 
 import asyncio
 import csv
@@ -192,8 +192,8 @@ async def on_member_unban(guild, member):
 			await channel.send(embed = logUnban(member))
 			return
 
-@bot.command(name = "!blackjack", aliases = ("!bj",))
-async def deal(ctx, wagered = 10, *):
+@bot.command(name = "blackjack", aliases = ("bj",))
+async def cmdBlackjack(ctx, wagered = 10, *):
 	if "," in ctx.author.name:
 		report = commaWarn.format(ctx.author.mention)
 	else:
@@ -203,7 +203,7 @@ async def deal(ctx, wagered = 10, *):
 			try:
 				bet = int(wagered)
 			except:
-				print("Failed to cast bet to int! Bet msg: " + ctx.message)
+				print("Failed to cast bet to int! Bet msg: " + ctx.message.content)
 				bet = -1
 		if any(ctx.author == game.getUser() for game in games):
 			report = f"You already have an active game, {ctx.author.mention}."
@@ -232,8 +232,8 @@ async def deal(ctx, wagered = 10, *):
 	await ctx.channel.send(embed = bbEmbed("Beardless Bot Blackjack", report))
 	return
 
-@bot.command(name = "!deal", aliases = ("!hit",))
-async def blackjackDeal(ctx, *):
+@bot.command(name = "deal", aliases = ("hit",))
+async def cmdDeal(ctx, *):
 	if "," in ctx.author.name:
 		report = commaWarn.format(ctx.author.mention)
 	else:
@@ -249,8 +249,8 @@ async def blackjackDeal(ctx, *):
 	await ctx.channel.send(embed = bbEmbed("Beardless Bot Blackjack", report))
 	return
 
-@bot.command(name = "!stay", aliases = ("!stand",))
-async def blackjackStay(ctx, *):
+@bot.command(name = "stay", aliases = ("stand",))
+async def cmdStay(ctx, *):
 	if "," in ctx.author.name:
 		report = commaWarn.format(ctx.author.mention)
 	else:
@@ -267,6 +267,81 @@ async def blackjackStay(ctx, *):
 				games.pop(i)
 				break
 	await ctx.channel.send(embed = bbEmbed("Beardless Bot Blackjack", report))
+	return
+
+@bot.command(name = "flip")
+async def cmdFlip(ctx, bet, *):
+	if any(ctx.author == game.getUser() for game in games):
+		report = f"Please finish your game of blackjack first, {ctx.author.mention}."
+	else:
+		report = flip(ctx.author, ctx.message.content.lower())
+	await ctx.channel.send(embed = bbEmbed("Beardless Bot Coin Flip", report))
+	return
+
+@bot.command(name = "hint", aliases = ("hints",))
+async def cmdHints(ctx, *):
+	if secretWord:
+		await ctx.channel.send(embed = hints())
+	else:
+		await ctx.channel.send("Secret word has not been defined.")
+	return
+
+@bot.command(name = "av", aliases = ("avatar",))
+async def cmdAv(ctx, target = ctx.author, *):
+	if ctx.message.mentions:
+		target = ctx.message.mentions[0]
+	await ctx.channel.send(embed = av(target, ctx.message))
+	return
+
+@bot.command(name = "balance", aliases = ("bal",))
+async def cmdBalance(ctx, target = ctx.author, *):
+	if ctx.message.mentions:
+		target = ctx.message.mentions[0]
+	await ctx.channel.send(embed = balance(target, ctx.message))
+	return
+
+
+@bot.command(name = "playlist", aliases = ("music",))
+async def cmdPlaylist(ctx, *):
+	link = "https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg"
+	await ctx.channel.send(f"Here's my playlist (Discord will only show the first hundred songs):\n{link}")
+	return
+
+@bot.command(name = "leaderboard", aliases=("leaderboards", "lb"))
+async def cmdLeaderboard(ctx, *): # TODO: also report user's position on the leaderboard
+	await ctx.channel.send(embed = leaderboard())
+	return
+
+@bot.command(name = "dice")
+async def cmdDice(ctx, *):
+	await ctx.channel.send(embed = bbEmbed("Beardless Bot Dice", diceMsg))
+	return
+
+@bot.command(name = "reset")
+async def cmdReset(ctx, *):
+	await ctx.channel.send(embed = reset(ctx.author))
+	return
+
+@bot.command(name = "register")
+async def cmdRegister(ctx, *):
+	await ctx.channel.send(embed = register(ctx.author))
+	return
+
+@bot.command(name = "!bucks")
+async def cmdBucks(ctx, *):
+	await ctx.channel.send(embed = bbEmbed("BeardlessBucks", buckMsg))
+	return
+
+@bot.command(name = "hello", aliases = ("hi",))
+async def cmdHello(ctx, *):
+	greetings = "How ya doin?", "Yo!", "What's cookin?", "Hello!", "Ahoy!", "Hi!", "What's up?", "Hey!", "How's it goin?", "Greetings!"
+	await ctx.channel.send(choice(greetings))
+	return
+
+@bot.command(name = "source")
+async def cmdSource(ctx, *):
+	report = "Most facts taken from [this website](https://www.thefactsite.com/1000-interesting-facts/)."
+	await ctx.channel.send(embed = bbEmbed("Beardless Bot Fun Facts", report))
 	return
 
 @bot.event
@@ -286,19 +361,70 @@ async def on_message(text):
 					f"{report}, {text.author.mention}!"))
 				return
 
-		if msg in ("!hint", "!hints"):
-			if secretWord:
-				await text.channel.send(embed = hints())
-			else:
-				await text.channel.send("Secret word has not been defined.")
+		if msg in ("!add", "!join"):
+			await text.channel.send(embed = joinMsg())
 			return
 
-		if msg.startswith('!flip'):
-			if any(text.author == game.getUser() for game in games):
-				report = f"Please finish your game of blackjack first, {text.author.mention}."
-			else:
-				report = flip(text, msg)
-			await text.channel.send(embed = bbEmbed("Beardless Bot Coin Flip", report))
+		if msg == "!rohan":
+			await text.channel.send(file = discord.File("resources/images/cute.png"))
+			return
+
+		if msg.startswith("!random"):
+			await text.channel.send(embed = randomBrawl(msg))
+			return
+
+		if msg == "!fact":
+			header = f"Beardless Bot Fun Fact #{randint(1, 111111111)}"
+			await text.channel.send(embed = bbEmbed(header, fact()))
+			return
+
+		if msg in ("!animals", "!pets"):
+			await text.channel.send(embed = animals())
+			return
+
+		animalName = msg[1:].split(" ", 1)[0]
+		if msg.startswith("!") and animalName in ("dog", "moose"):
+			if "moose" in msg:
+				await text.channel.send(file = discord.File(f"resources/images/moose/moose{randint(1, 62)}.jpg"))
+				return
+			try:
+				dogUrl = animal(msg[1:])
+				if dogUrl.startswith("Breed not found") or dogUrl.startswith("Dog breeds"):
+					await text.channel.send(dogUrl)
+					return
+				breed = "Hound" if "hound" in dogUrl else dogUrl.split("/")[-2]
+				await text.channel.send(embed = bbEmbed("Random " + breed.title()).set_image(url = dogUrl))
+			except:
+				await text.channel.send("Something's gone wrong with the dog API! Please ping my creator and he'll see what's going on.")
+			return
+
+		if msg.startswith("!") and animalName in animalList:
+			try:
+				await text.channel.send(embed = bbEmbed("Random " + animalName.title()).set_image(url = animal(animalName)))
+			except Exception as err:
+				print(err)
+				report = "Something's gone wrong! Please ping my creator and he'll see what's going on."
+				await text.channel.send(report)
+			return
+
+		if msg.startswith("!define "):
+			await text.channel.send(embed = define(msg))
+			return
+
+		if msg == "!ping":
+			startTime = datetime.now()
+			message = await text.channel.send(embed = bbEmbed(title = "Pinging..."))
+			report = f"Beardless Bot's latency is {int((datetime.now() - startTime).total_seconds() * 1000)} ms."
+			await message.edit(embed = bbEmbed("Pinged!", report).set_thumbnail(url = bot.user.avatar_url))
+			return
+
+		if msg.startswith('!d') and len(msg) > 2 and (msg[2:]).isnumeric() and len(msg) < 12:
+			# The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
+			await text.channel.send(embed = rollReport(text)) # TODO: convert to !roll
+			return
+
+		if msg in ("!commands", "!help"):
+			await text.channel.send(embed = commands(text))
 			return
 
 		if brawlKey:
@@ -385,115 +511,6 @@ async def on_message(text):
 					report = reqLimit
 				await text.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Clan", report))
 				return
-
-		if msg.startswith('!av'):
-			await text.channel.send(embed = av(text))
-			return
-
-		if msg in ('!playlist', '!music'):
-			link = "https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg"
-			await text.channel.send(f"Here's my playlist (Discord will only show the first hundred songs):\n{link}")
-			return
-
-		if msg in ("!leaderboard", "!leaderboards", "!lb"): # TODO: also report user's position on the leaderboard
-			await text.channel.send(embed = leaderboard())
-			return
-
-		if msg.startswith('!dice'):
-			await text.channel.send(embed = bbEmbed("Beardless Bot Dice", diceMsg))
-			return
-
-		if msg == '!reset':
-			await text.channel.send(embed = reset(text))
-			return
-
-		if (msg.startswith("!balance") or msg.startswith("!bal")) and any((msg == "!bal", msg == "!balance", msg.count(" ") > 0)):
-			await text.channel.send(embed = balance(text)) # TODO: for command rewrite, param target = text.author
-			return
-
-		if msg == "!register": # Make sure resources/money.csv is not open in any other program
-			await text.channel.send(embed = register(text))
-			return
-
-		if msg == "!bucks":
-			await text.channel.send(embed = bbEmbed("BeardlessBucks", buckMsg))
-			return
-
-		if msg in ("!hello", "!hi"):
-			greetings = "How ya doin?", "Yo!", "What's cookin?", "Hello!", "Ahoy!", "Hi!", "What's up?", "Hey!", "How's it goin?", "Greetings!"
-			await text.channel.send(choice(greetings))
-			return
-
-		if msg == "!source":
-			report = "Most facts taken from [this website](https://www.thefactsite.com/1000-interesting-facts/)."
-			await text.channel.send(embed = bbEmbed("Beardless Bot Fun Facts", report))
-			return
-
-		if msg in ("!add", "!join"):
-			await text.channel.send(embed = joinMsg())
-			return
-
-		if msg == "!rohan":
-			await text.channel.send(file = discord.File("resources/images/cute.png"))
-			return
-
-		if msg.startswith("!random"):
-			await text.channel.send(embed = randomBrawl(msg))
-			return
-
-		if msg == "!fact":
-			header = f"Beardless Bot Fun Fact #{randint(1, 111111111)}"
-			await text.channel.send(embed = bbEmbed(header, fact()))
-			return
-
-		if msg in ("!animals", "!pets"):
-			await text.channel.send(embed = animals())
-			return
-
-		animalName = msg[1:].split(" ", 1)[0]
-		if msg.startswith("!") and animalName in ("dog", "moose"):
-			if "moose" in msg:
-				await text.channel.send(file = discord.File(f"resources/images/moose/moose{randint(1, 62)}.jpg"))
-				return
-			try:
-				dogUrl = animal(msg[1:])
-				if dogUrl.startswith("Breed not found") or dogUrl.startswith("Dog breeds"):
-					await text.channel.send(dogUrl)
-					return
-				breed = "Hound" if "hound" in dogUrl else dogUrl.split("/")[-2]
-				await text.channel.send(embed = bbEmbed("Random " + breed.title()).set_image(url = dogUrl))
-			except:
-				await text.channel.send("Something's gone wrong with the dog API! Please ping my creator and he'll see what's going on.")
-			return
-
-		if msg.startswith("!") and animalName in animalList:
-			try:
-				await text.channel.send(embed = bbEmbed("Random " + animalName.title()).set_image(url = animal(animalName)))
-			except Exception as err:
-				print(err)
-				report = "Something's gone wrong! Please ping my creator and he'll see what's going on."
-				await text.channel.send(report)
-			return
-
-		if msg.startswith("!define "):
-			await text.channel.send(embed = define(msg))
-			return
-
-		if msg == "!ping":
-			startTime = datetime.now()
-			message = await text.channel.send(embed = bbEmbed(title = "Pinging..."))
-			report = f"Beardless Bot's latency is {int((datetime.now() - startTime).total_seconds() * 1000)} ms."
-			await message.edit(embed = bbEmbed("Pinged!", report).set_thumbnail(url = bot.user.avatar_url))
-			return
-
-		if msg.startswith('!d') and len(msg) > 2 and (msg[2:]).isnumeric() and len(msg) < 12:
-			# The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
-			await text.channel.send(embed = rollReport(text)) # TODO: convert to !roll
-			return
-
-		if msg in ("!commands", "!help"):
-			await text.channel.send(embed = commands(text))
-			return
 
 		if text.guild: # Server-specific commands; this check prevents an error caused by commands being used in DMs
 			if msg.startswith('!mute'):
