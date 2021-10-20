@@ -1,6 +1,6 @@
 # Beardless Bot Command Event Rewrite
 # Author: Lev Bernstein
-# Version: Full Release 1.5.4
+# Version: Full Release 1.5.5
 
 import asyncio
 import csv
@@ -382,7 +382,95 @@ async def cmdPing(ctx, *):
 	await message.edit(embed = bbEmbed("Pinged!", report).set_thumbnail(url = bot.user.avatar_url))
 	return
 
+@bot.command(name = "roll")
+async def cmdRoll(ctx, dice, *):
+	await ctx.channel.send(embed = rollReport(dice))
+	return
+
+@bot.command(name = "dog", aliases = animalList + ("moose",))
+async def cmdAnimal(ctx, *breed):
+	species = ctx.invoked_with.lower()
+	if species == "moose" or (breed and breed[0].lower() == "moose"):
+		await ctx.channel.send(file = discord.File(f"resources/images/moose/moose{randint(1, 62)}.jpg"))
+		return
+	if species == "dog":
+		try:
+			if breed:
+				dogBreed = breed[0].lower()
+				dogUrl = animal("dog", dogBreed)
+				if dogUrl.startswith("Breed not found") or dogUrl.startswith("Dog breeds"):
+					await ctx.channel.send(dogUrl)
+					return
+			else:
+				dogUrl = animal("dog")
+				dogBreed = "Hound" if "hound" in dogUrl else dogUrl.split("/")[-2]
+			await ctx.channel.send(embed = bbEmbed("Random " + dogBreed.title()).set_image(url = dogUrl))
+		except:
+			await ctx.channel.send("Something's gone wrong with the dog API! Please ping my creator and he'll see what's going on.")
+		return
+	try:
+		await ctx.channel.send(embed = bbEmbed("Random " + species.title()).set_image(url = animal(species)))
+	except Exception as err:
+		print(err)
+		await ctx.channel.send("Something's gone wrong! Please ping my creator and he'll see what's going on.")
+	return
+
+@bot.command(name = "help", aliases = ("commands",))
+async def cmdHelp(ctx, *):
+	await ctx.channel.send(embed = commands(ctx))
+	return
+
 # Server-only commands:
+
+@bot.command(name = "mute"):
+async def cmdMute(ctx, target = None, duration = None, *)
+	if not ctx.guild:
+		return
+	if not ctx.author.guild_permissions.manage_messages:
+		await ctx.channel.send(f"You do not have permission to use this command, {ctx.author.mention}.")
+		return
+	if not target:
+		await ctx.channel.send(f"Please specify a target, {ctx.author.mention}.")
+		return
+	try:
+		converter = commands.MemberConverter()
+		target = await converter.convert(ctx, target)
+		if target.id == 654133911558946837: # If user tries to mute Beardless Bot:
+			await ctx.channel.send("I am too powerful to be muted. Stop trying.")
+			return
+	except Exception as err:
+		print(err)
+		await ctx.channel.send("Invalid target! Target must be a mention, user ID, or username#discrim.")
+		return
+	role = get(ctx.guild.roles, name = 'Muted')
+	if not role: # Creates a Muted role. TODO: iterate through channels, make Muted unable to send msgs
+		role = await ctx.guild.create_role(name = "Muted", colour = discord.Color(0x818386),
+		permissions = discord.Permissions(send_messages = False, read_messages = True))
+	if duration:
+		mTime = 0.0
+		mString = None
+		for mPair in ("day", 86400.0), ("hour", 3600.0), ("minute", 60.0), ("second", 1.0):
+			if (mPair[0])[0] in duration:
+				duration = duration.split((mPair[0])[0], 1)[0]
+				mTime = float(duration) * mPair[1]
+				mString = " " + mPair[0] + ("" if duration == "1" else "s")
+	await target.add_roles(role)
+	report = "Muted " + target.mention + ((" for " + duration + mString + ".") if mTime else ".")
+	await ctx.channel.send(embed = bbEmbed("Beardless Bot Mute", report).set_author(name = str(ctx.author), icon_url = ctx.author.avatar_url))
+	for channel in ctx.guild.channels:
+		if channel.name == "bb-log":
+			await channel.send(embed = logMute(target, ctx.message, duration, mString, mTime))
+			break
+	if mTime: # Autounmute
+		print(f"Muted {target} for {mTime} in {ctx.guild.name}")
+		await asyncio.sleep(mTime)
+		await target.remove_roles(role)
+		print("Autounmuted " + target.name)
+		for channel in ctxt.guild.channels:
+			if channel.name == "bb-log":
+				await channel.send(embed = logUnmute(target, ctx.author))
+				return
+	return
 
 
 @bot.event
@@ -401,40 +489,6 @@ async def on_message(text):
 					await text.channel.send(embed = bbEmbed(f"Well done! You found the secret word, {secretWord}!",
 					f"{report}, {text.author.mention}!"))
 				return
-
-		animalName = msg[1:].split(" ", 1)[0]
-		if msg.startswith("!") and animalName in ("dog", "moose"):
-			if "moose" in msg:
-				await text.channel.send(file = discord.File(f"resources/images/moose/moose{randint(1, 62)}.jpg"))
-				return
-			try:
-				dogUrl = animal(msg[1:])
-				if dogUrl.startswith("Breed not found") or dogUrl.startswith("Dog breeds"):
-					await text.channel.send(dogUrl)
-					return
-				breed = "Hound" if "hound" in dogUrl else dogUrl.split("/")[-2]
-				await text.channel.send(embed = bbEmbed("Random " + breed.title()).set_image(url = dogUrl))
-			except:
-				await text.channel.send("Something's gone wrong with the dog API! Please ping my creator and he'll see what's going on.")
-			return
-
-		if msg.startswith("!") and animalName in animalList:
-			try:
-				await text.channel.send(embed = bbEmbed("Random " + animalName.title()).set_image(url = animal(animalName)))
-			except Exception as err:
-				print(err)
-				report = "Something's gone wrong! Please ping my creator and he'll see what's going on."
-				await text.channel.send(report)
-			return
-
-		if msg.startswith('!d') and len(msg) > 2 and (msg[2:]).isnumeric() and len(msg) < 12:
-			# The isnumeric check ensures that you can't activate this command by typing !deal or !debase or anything else.
-			await text.channel.send(embed = rollReport(text)) # TODO: convert to !roll
-			return
-
-		if msg in ("!commands", "!help"):
-			await text.channel.send(embed = commands(text))
-			return
 
 		if brawlKey:
 			if msg == "!brawl":
@@ -522,50 +576,6 @@ async def on_message(text):
 				return
 
 		if text.guild: # Server-specific commands; this check prevents an error caused by commands being used in DMs
-			if msg.startswith('!mute'):
-				if text.author.guild_permissions.manage_messages:
-					if text.mentions:
-						target = text.mentions[0]
-						duration = msg.split('>', 1)[1]
-						if target.id == 654133911558946837: # If user tries to mute Beardless Bot:
-							await text.channel.send("I am too powerful to be muted. Stop trying.")
-							return
-						role = get(text.guild.roles, name = 'Muted')
-						if not role: # Creates a Muted role. TODO: iterate through channels, make Muted unable to send msgs
-							role = await text.guild.create_role(name = "Muted", colour = discord.Color(0x818386),
-							permissions = discord.Permissions(send_messages = False, read_messages = True))
-						mTime = 0.0
-						mString = None
-						if len(duration) > 1:
-							duration = duration[1:]
-							for mPair in ("day", 86400.0), ("hour", 3600.0), ("minute", 60.0), ("second", 1.0):
-								if (mPair[0])[0] in duration:
-									duration = duration.split((mPair[0])[0], 1)[0]
-									mString = " " + mPair[0] + ("" if duration == "1" else "s")
-									mTime = float(duration) * mPair[1]
-									break
-						await target.add_roles(role)
-						report = "Muted " + target.mention + ((" for " + duration + mString + ".") if mTime else ".")
-						await text.channel.send(embed = bbEmbed("Beardless Bot Mute", report)
-						.set_author(name = str(text.author), icon_url = text.author.avatar_url))
-						for channel in text.guild.channels:
-							if channel.name == "bb-log":
-								await channel.send(embed = logMute(target, text, duration, mString, mTime))
-								break
-						if mTime: # Autounmute
-							print(f"Muted {target} for {mTime} in {text.guild.name}")
-							await asyncio.sleep(mTime)
-							await target.remove_roles(role)
-							print("Autounmuted " + target.name)
-							for channel in text.guild.channels:
-								if channel.name == "bb-log":
-									await channel.send(embed = logUnmute(target, text.author))
-									return
-					else:
-						await text.channel.send("Invalid target!")
-				else:
-					await text.channel.send(f"You do not have permission to use this command, {text.author.mention}.")
-				return
 
 			if msg.startswith('!unmute') or msg.startswith('-unmute'):
 				report = f"You do not have permission to use this command, {text.author.mention}."

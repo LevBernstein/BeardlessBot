@@ -33,7 +33,7 @@ def memSearch(text):
 			looseMatch = member
 	return semiMatch if semiMatch else looseMatch
 
-def animal(animalType):
+def animal(animalType, breed = None):
 	r = "Invalid Animal!"
 	if animalType == "cat":
 		# cat API has been throwing 503 errors every other call, likely due to rate limiting
@@ -114,8 +114,8 @@ def define(msg):
 	return bbEmbed("Beardless Bot Definitions", "Invalid word!")
 
 def roll(message):
-	# Takes a string of the format !dn+b and rolls one n-sided die with a modifier of b. Modifier is optional.
-	command = message.split('!d', 1)[1]
+	# Takes a string of the format dn+b and rolls one n-sided die with a modifier of b. Modifier is optional.
+	command = message.split('d', 1)[1]
 	modifier = -1 if "-" in command else 1
 	for side in "4", "6", "8", "100", "10", "12", "20":
 		if command.startswith(side):
@@ -126,7 +126,7 @@ def roll(message):
 
 def rollReport(text):
 	result = str(roll(text.content.lower()))
-	report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
+	report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !roll d4+3"
 	if result != "None":
 		report = f"You got {result}, {text.author.mention}."
 	return bbEmbed("Beardless Bot Dice", report)
@@ -168,9 +168,9 @@ def av(target, text):
 		.set_author(name = str(target), icon_url = target.avatar_url))
 	return bbEmbed("Invalid target!", "Please choose a valid target. Valid targets are either a ping or a username.", 0xff0000)
 
-def commands(text):
+def commands(ctx):
 	emb = bbEmbed("Beardless Bot Commands", "!commands to pull up this list")
-	commandNum = 15 if not text.guild else 20 if text.author.guild_permissions.manage_messages else 17
+	commandNum = 15 if not ctx.guild else 20 if ctx.author.guild_permissions.manage_messages else 17
 	commandList = (("!register", "Registers you with the currency system."),
 		("!balance", "Checks your BeardlessBucks balance. You can write !balance <@someone>/<username> to see that person's balance."),
 		("!bucks", "Shows you an explanation for how BeardlessBucks work."),
