@@ -22,7 +22,7 @@ def logEditMsg(before, after):
 def logClearReacts(text, reactions):
 	return (bbEmbed("", "Reactions cleared from message sent by {} in {}.".format(text.author.mention, text.channel.mention), 0xff0000)
 	.set_author(name = str(text.author), icon_url = text.author.avatar_url)
-	.add_field(name = "Message content:", value = text.content if text.content else "Embed")
+	.add_field(name = "Message content:", value = (text.content if text.content else "Embed") + "\n[Jump to Message]({text.jump_url})")
 	.add_field(name = "Reactions:", value = ", ".join(str(react) for react in reactions)))
 
 def logDeleteChannel(channel):

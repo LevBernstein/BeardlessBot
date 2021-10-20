@@ -1,6 +1,6 @@
 # Beardless Bot Command Event Rewrite
 # Author: Lev Bernstein
-# Version: Full Release 1.5.3
+# Version: Full Release 1.5.4
 
 import asyncio
 import csv
@@ -300,7 +300,6 @@ async def cmdBalance(ctx, target = ctx.author, *):
 	await ctx.channel.send(embed = balance(target, ctx.message))
 	return
 
-
 @bot.command(name = "playlist", aliases = ("music",))
 async def cmdPlaylist(ctx, *):
 	link = "https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg"
@@ -344,6 +343,48 @@ async def cmdSource(ctx, *):
 	await ctx.channel.send(embed = bbEmbed("Beardless Bot Fun Facts", report))
 	return
 
+@bot.command(name = "add", aliases = ("join",))
+async def cmdAdd(ctx, *):
+	await ctx.channel.send(embed = joinMsg())
+	return
+
+@bot.command(name = "rohan")
+async def cmdRohan(ctx, *):
+	await ctx.channel.send(file = discord.File("resources/images/cute.png"))
+	return
+
+@bot.command(name = "random")
+async def cmdRandomBrawl(ctx, ranType, *):
+	await ctx.channel.send(embed = randomBrawl(ranType))
+	return
+
+@bot.command(name = "fact")
+async def cmdFact(ctx, *):
+	header = f"Beardless Bot Fun Fact #{randint(1, 111111111)}"
+	await ctx.channel.send(embed = bbembed(header, fact()))
+	return
+
+@bot.command(name = "animals", aliases = ("animal", "pets"))
+async def cmdAnimals(ctx, *):
+	await ctx.channel.send(embed = animals())
+	return
+
+@bot.command(name = "define")
+async def cmdDefine(ctx, *words):
+	await ctx.channel.send(embed = define(" ".join(words)))
+	return
+
+@bot.command(name = "ping")
+async def cmdPing(ctx, *):
+	startTime = datetime.now()
+	message = await ctx.channel.send(embed = bbEmbed("Pinging..."))
+	report = f"Beardless Bot's latency is {int((datetime.now() - startTime).total_seconds() * 1000)} ms."
+	await message.edit(embed = bbEmbed("Pinged!", report).set_thumbnail(url = bot.user.avatar_url))
+	return
+
+# Server-only commands:
+
+
 @bot.event
 async def on_message(text):
 	if not text.author.bot:
@@ -360,27 +401,6 @@ async def on_message(text):
 					await text.channel.send(embed = bbEmbed(f"Well done! You found the secret word, {secretWord}!",
 					f"{report}, {text.author.mention}!"))
 				return
-
-		if msg in ("!add", "!join"):
-			await text.channel.send(embed = joinMsg())
-			return
-
-		if msg == "!rohan":
-			await text.channel.send(file = discord.File("resources/images/cute.png"))
-			return
-
-		if msg.startswith("!random"):
-			await text.channel.send(embed = randomBrawl(msg))
-			return
-
-		if msg == "!fact":
-			header = f"Beardless Bot Fun Fact #{randint(1, 111111111)}"
-			await text.channel.send(embed = bbEmbed(header, fact()))
-			return
-
-		if msg in ("!animals", "!pets"):
-			await text.channel.send(embed = animals())
-			return
 
 		animalName = msg[1:].split(" ", 1)[0]
 		if msg.startswith("!") and animalName in ("dog", "moose"):
@@ -405,17 +425,6 @@ async def on_message(text):
 				print(err)
 				report = "Something's gone wrong! Please ping my creator and he'll see what's going on."
 				await text.channel.send(report)
-			return
-
-		if msg.startswith("!define "):
-			await text.channel.send(embed = define(msg))
-			return
-
-		if msg == "!ping":
-			startTime = datetime.now()
-			message = await text.channel.send(embed = bbEmbed(title = "Pinging..."))
-			report = f"Beardless Bot's latency is {int((datetime.now() - startTime).total_seconds() * 1000)} ms."
-			await message.edit(embed = bbEmbed("Pinged!", report).set_thumbnail(url = bot.user.avatar_url))
 			return
 
 		if msg.startswith('!d') and len(msg) > 2 and (msg[2:]).isnumeric() and len(msg) < 12:
@@ -683,6 +692,7 @@ async def on_message(text):
 					await text.channel.send(embed = bbEmbed("Infraction Logged.", "Mods can view the infraction details in <#705098150423167059>."))
 					return
 
+			# The following "commands" will not be in command event form:
 				if all((word in msg for word in ("discord", "http", "nitro"))) or all((word in msg for word in ("discord", "http", "gift"))):
 					await text.author.add_roles(get(text.guild.roles, name = 'Muted'))
 					for channel in text.guild.channels:
