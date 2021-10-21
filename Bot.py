@@ -420,7 +420,7 @@ async def cmdHelp(ctx, *):
 	await ctx.channel.send(embed = commands(ctx))
 	return
 
-# Server-only commands:
+# Server-only commands (the above commands are usable in DMs; those below are not):
 
 @bot.command(name = "mute"):
 async def cmdMute(ctx, target = None, duration = None, *)
@@ -433,7 +433,7 @@ async def cmdMute(ctx, target = None, duration = None, *)
 		await ctx.channel.send(f"Please specify a target, {ctx.author.mention}.")
 		return
 	try:
-		converter = commands.MemberConverter()
+		converter = commands.MemberConverter() # look into replacing with a converter in def
 		target = await converter.convert(ctx, target)
 		if target.id == 654133911558946837: # If user tries to mute Beardless Bot:
 			await ctx.channel.send("I am too powerful to be muted. Stop trying.")
@@ -447,6 +447,7 @@ async def cmdMute(ctx, target = None, duration = None, *)
 		role = await ctx.guild.create_role(name = "Muted", colour = discord.Color(0x818386),
 		permissions = discord.Permissions(send_messages = False, read_messages = True))
 	if duration:
+		duration = duration.lower()
 		mTime = 0.0
 		mString = None
 		for mPair in ("day", 86400.0), ("hour", 3600.0), ("minute", 60.0), ("second", 1.0):
@@ -472,6 +473,156 @@ async def cmdMute(ctx, target = None, duration = None, *)
 				return
 	return
 
+@bot.command(name = "unmute")
+aysnc def cmdUnmute(ctx, target = None, *):
+	if not ctx.guild:
+		return
+	report = f"You do not have permission to use this command, {ctx.author.mention}."
+	if ctx.author.guild_permissions.manage_messages:
+		if not target:
+			report = f"Invalid target, {ctx.author.mention}."
+		else:
+			converter = commands.MemberConverter() # look into replacing with a converter in def
+			target = await converter.convert(ctx, target)
+			await target.remove_roles(get(ctx.guild.roles, name = 'Muted'))
+			report = f"Unmuted {target.mention}."
+			for channel in ctx.guild.channels:
+				if channel.name == "bb-log":
+					await channel.send(embed = logUnmute(target, ctx.author))
+					break
+	await ctx.channel.send(embed = bbEmbed("Beardless Bot Unmute", report))
+	return
+
+@bot.command(name = "purge")
+async def cmdPurge(ctx, num, *):
+	if not ctx.guild:
+		return
+	if not ctx.author.guild_permissions.manage_messages:
+		await ctx.channel.send(f"You do not have permission to use this command, {ctx.author.mention}.")
+	else:
+		try:
+			mNum = int(num) # look into replacing with a converter
+			await ctx.channel.purge(limit = mNum + 1, check = lambda message: not message.pinned)
+		except:
+			await ctx.channel.send("Invalid message number!")
+	return
+
+@bot.command(name = "buy")
+async def cmdBuy(ctx, color = "None", *):
+	if not ctx.guild:
+		return
+	report = "Invalid color. Choose blue, red, orange, or pink, {}."
+	color = color.lower()
+	if color in ("blue", "pink", "orange", "red"):
+		role = get(ctx.guild.roles, name = 'special ' + color)
+		if not role:
+			report = "Special color roles do not exist in this server, {}."
+		elif role in ctx.author.roles:
+			report = "You already have this special color, {}."
+		else:
+			report = "Not enough BeardlessBucks. You need 50000 to buy a special color, {}."
+			with open('resources/money.csv', 'r') as csvfile:
+				result, bonus = writeMoney(ctx.author, -50000, True, True)
+				if result == 1:
+					report = "Color " + role.mention + " purchased successfully, {}!"
+					await ctx.author.add_roles(role)
+				if result == -1:
+					report = bonus
+				if result == 2:
+					report = newUserMsg
+	await ctx.channel.send(embed = bbEmbed("Beardless Bot Special Colors", report.format(ctx.author.mention)))
+	return
+
+@bot.command(name = "info")
+async def cmdInfo(ctx, target = ctx.author, *):
+	if not ctx.guild:
+		return
+	if ctx.message.mentions:
+		target = ctx.message.mentions[0]
+	await ctx.channel.send(embed = info(target, ctx.message))
+	return
+
+@bot.command(name = "pins")
+async def cmdPins(ctx, *):
+	if not ctx.guild:
+		return
+	if ctx.channel.name == "looking-for-spar":
+		await ctx.channel.send(embed = sparPins())
+	return
+
+@bot.command(name = "twitch")
+async def cmdTwitch(ctx, *):
+	await ctx.channel.send(embed = bbEmbed("Captain No-Beard's Twitch Stream", "https://twitch.tv/capnnobeard")
+	.set_thumbnail(url = "https://static-cdn.jtvnw.net/jtv_user_pictures/capnnobeard-profile_image-423aa718d334e220-70x70.jpeg"))
+	return
+
+@bot.command(name = "spar")
+async def cmdSpar(ctx, region = None, *misc): # TODO: add misc info from misc arg array into additional field
+	if not ctx.guild:
+		return
+	if ctx.channel.name != "looking-for-spar":
+		report = "Please only use !spar in looking-for-spar, {}."
+		for channel in ctx.guild.channels:
+			if channel.name == "looking-for-spar":
+				report = "Please only use !spar in " + channel.mention + ", {}."
+				break
+		await ctx.channel.send(report.format(ctx.author))
+		return
+	if not region:
+		await ctx.channel.send(embed = sparPins())
+		return
+	report = badRegion
+	tooRecent = role = None
+	global sparPings
+	region = region.lower()
+	if region == "usw":
+		region = "us-w"
+	if region == "use":
+		region = "us-e"
+	for guild, pings in sparPings.items():
+		if guild == ctx.guild.id:
+			for key, value in sparPings[guild].items():
+				if key == region:
+					role = get(ctx.guild.roles, name = key.upper())
+					if not role:
+						role = await ctx.guild.create_role(name = key.upper(), mentionable = False)
+					if time() - value > 7200:
+						sparPings[guild][key] = int(time())
+						report = f"{role.mention} come spar {ctx.author.mention}!"
+					else:
+						tooRecent = value
+					break
+			break
+	if role and tooRecent:
+		hours, seconds = divmod(7200 - (int(time()) - tooRecent), 3600)
+		minutes, seconds = divmod(seconds, 60)
+		report = pingMsg(ctx.author.mention, hours, minutes, seconds)
+	await ctx.channel.send(report)
+	return
+
+# Commands requiring a Brawlhalla API key:
+
+
+# Server-specific commands
+
+@bot.command(name = "tweet", aliases = ("eggtweet",))
+async def cmdTweet(ctx, *):
+	if ctx.guild and ctx.guild.id == 442403231864324119:
+		await ctx.channel.send(embed = bbEmbed("eggsoup(@eggsouptv)", formattedTweet(tweet()), 0x1da1f2))
+	return
+
+@bot.command(name = "reddit")
+async def cmdReddit(ctx, *):
+	if ctx.guild and ctx.guild.id == 442403231864324119:
+		await ctx.channel.send(embed = bbEmbed("The Official Eggsoup Subreddit", "https://www.reddit.com/r/eggsoup/")
+		.set_thumbnail(url = "https://b.thumbs.redditmedia.com/xJ1-nJJzHopKe25_bMxKgePiT3HWADjtxioxlku7qcM.png"))
+	return
+
+@bot.command(name = "guide")
+async def cmdGuide(ctx, *):
+	if ctx.guild and ctx.guild.id == 442403231864324119:
+		await ctx.channel.send(embed = bbEmbed("The Eggsoup Improvement Guide", "https://www.youtube.com/watch?v=nH0TOoJIU80"))
+	return
 
 @bot.event
 async def on_message(text):
@@ -479,7 +630,7 @@ async def on_message(text):
 		msg = text.content.lower()
 
 		if secretWord:
-			if secretWord in msg.split(" "):
+			if secretWord in msg:
 				global secretFound
 				if not secretFound:
 					secretFound = True
@@ -575,134 +726,9 @@ async def on_message(text):
 				await text.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Clan", report))
 				return
 
-		if text.guild: # Server-specific commands; this check prevents an error caused by commands being used in DMs
-
-			if msg.startswith('!unmute') or msg.startswith('-unmute'):
-				report = f"You do not have permission to use this command, {text.author.mention}."
-				if text.author.guild_permissions.manage_messages:
-					report = f"Invalid target, {text.author.mention}."
-					if text.mentions:
-						target = text.mentions[0]
-						await target.remove_roles(get(text.guild.roles, name = 'Muted'))
-						report = f"Unmuted {target.mention}."
-						for channel in text.guild.channels:
-							if channel.name == "bb-log":
-								await channel.send(embed = logUnmute(target, text.author))
-								break
-				await text.channel.send(embed = bbEmbed("Beardless Bot Unmute", report))
-				return
-
-			if msg.startswith("!purge"):
-				if not text.author.guild_permissions.manage_messages:
-					await text.channel.send(f"You do not have permission to use this command, {text.author.mention}.")
-					return
-				try:
-					await text.channel.purge(limit = int(msg.split(" ", 1)[1]) + 1, check = lambda message: not message.pinned)
-				except:
-					await text.channel.send("Invalid message number!")
-				return
-
-			if msg.startswith('!buy'): # Requires roles named special blue, special pink, special orange, and special red.
-				report = "Invalid color. Choose blue, red, orange, or pink, {}."
-				if msg != "!buy":
-					color = msg.split(" ", 1)[1]
-					role = get(text.guild.roles, name = 'special ' + color)
-					if not color in ("blue", "pink", "orange", "red"):
-						report = "Invalid color. Choose blue, red, orange, or pink, {}."
-					elif not role:
-						report = "Special color roles do not exist in this server, {}."
-					elif role in text.author.roles:
-						report = "You already have this special color, {}."
-					else:
-						report = "Not enough BeardlessBucks. You need 50000 to buy a special color, {}."
-						with open('resources/money.csv', 'r') as csvfile:
-							result, bonus = writeMoney(text.author, -50000, True, True)
-							if result == 1:
-								report = "Color " + role.mention + " purchased successfully, {}!"
-								await text.author.add_roles(role)
-							if result == -1:
-								report = bonus
-							if result == 2:
-								report = newUserMsg
-				await text.channel.send(embed = bbEmbed("Beardless Bot Special Colors", report.format(text.author.mention)))
-				return
-
-			if msg.startswith("!info"):
-				await text.channel.send(embed = info(text))
-				return
-
-			if msg.startswith('!spar '): # command rewrite will use region, *; will not require 2nd role check
-				if text.channel.name == "looking-for-spar":
-					report = badRegion
-					tooRecent = role = None
-					global sparPings
-					splitMsg = msg.split(" ")
-					for guild, pings in sparPings.items():
-						if guild == text.guild.id:
-							for key, value in sparPings[guild].items():
-								if key in splitMsg:
-									role = get(text.guild.roles, name = key.upper())
-									if not role:
-										role = await text.guild.create_role(name = key.upper(), mentionable = False)
-									if time() - value > 7200:
-										sparPings[guild][key] = int(time())
-										report = f"{role.mention} come spar {text.author.mention}!"
-									else:
-										tooRecent = value
-									break
-							if not role:
-								if "usw" in splitMsg or "use" in splitMsg:
-									spelledRole = "us-w" if "usw" in splitMsg else "us-e"
-									role = get(text.guild.roles, name = spelledRole.upper())
-									if not role:
-										role = await text.guild.create_role(name = spelledRole.upper(), mentionable = False)
-									if time() - sparPings[guild][spelledRole] > 7200:
-										sparPings[guild][spelledRole] = int(time())
-										report = f"{role.mention} come spar {text.author.mention}!"
-									else:
-										tooRecent = sparPings[guild][spelledRole]
-							break
-					if role and tooRecent:
-						hours, seconds = divmod(7200 - (int(time()) - tooRecent), 3600)
-						minutes, seconds = divmod(seconds, 60)
-						report = pingMsg(text.author.mention, hours, minutes, seconds)
-				else:
-					report = "Please only use !spar in looking-for-spar, {}."
-					for channel in text.guild.channels:
-						if channel.name == "looking-for-spar":
-							report = "Please only use !spar in " + channel.mention + ", {}."
-							break
-				await text.channel.send(report.format(text.author.mention))
-				return
-
-			if text.channel.name == "looking-for-spar" and msg in ('!pins', '!rules', '!spar'):
-				await text.channel.send(embed = sparPins())
-				return
-
-			if msg == '!twitch':
-				await text.channel.send(embed = bbEmbed("Captain No-Beard's Twitch Stream", "https://twitch.tv/capnnobeard")
-				.set_thumbnail(url = "https://static-cdn.jtvnw.net/jtv_user_pictures/capnnobeard-profile_image-423aa718d334e220-70x70.jpeg"))
-				return
-
-			if text.guild.id == 442403231864324119: # Commands for eggsoup's Discord server.
-				if msg in ('!tweet', '!eggtweet'):
-					await text.channel.send(embed = bbEmbed("eggsoup(@eggsouptv)", formattedTweet(tweet()), 0x1da1f2))
-					return
-
-				if msg == '!reddit':
-					await text.channel.send(embed = bbEmbed("The Official Eggsoup Subreddit", "https://www.reddit.com/r/eggsoup/")
-					.set_thumbnail(url = "https://b.thumbs.redditmedia.com/xJ1-nJJzHopKe25_bMxKgePiT3HWADjtxioxlku7qcM.png"))
-					return
-
-				if msg == '!guide':
-					await text.channel.send(embed = bbEmbed("The Eggsoup Improvement Guide", "https://www.youtube.com/watch?v=nH0TOoJIU80"))
-					return
-
-				if all((msg.startswith('!warn'), text.channel.name != "infractions", len(msg) > 6, text.author.guild_permissions.manage_messages)):
-					await text.channel.send(embed = bbEmbed("Infraction Logged.", "Mods can view the infraction details in <#705098150423167059>."))
-					return
-
-			# The following "commands" will not be in command event form:
+		# Automod:
+		if text.guild:
+			if text.guild.id == 442403231864324119: # Automod for eggsoup's Discord server.
 				if all((word in msg for word in ("discord", "http", "nitro"))) or all((word in msg for word in ("discord", "http", "gift"))):
 					await text.author.add_roles(get(text.guild.roles, name = 'Muted'))
 					for channel in text.guild.channels:
@@ -713,7 +739,7 @@ async def on_message(text):
 					await text.channel.send("Deleted possible nitro scam link. Alerting mods.")
 					await text.delete()
 
-			if text.guild.id == 781025281590165555: # Commands for the Day Care Discord server.
+			if text.guild.id == 781025281590165555: # Automod for the Day Care Discord server.
 				if 'twitter.com/year_progress' in msg:
 					await text.delete()
 					return

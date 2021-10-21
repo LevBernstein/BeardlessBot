@@ -135,21 +135,19 @@ def fact():
 	with open("resources/facts.txt", "r") as f:
 		return choice(f.read().splitlines())
 
-def info(text):
-	try:
+def info(target, text):
+	if not isinstance(target, discord.User):
 		target = memSearch(text)
-		if target:
-			# Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
-			emb = (bbEmbed("", target.activity.name if target.activity else "", target.color)
-			.set_author(name = str(target), icon_url = target.avatar_url).set_thumbnail(url = target.avatar_url)
-			.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7] + " UTC")
-			.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7] + " UTC"))
-			if len(target.roles) > 1: # Every user has the "@everyone" role, so check if they have more roles than that
-				emb.add_field(name = "Roles", value = ", ".join(role.mention for role in target.roles[:0:-1]), inline = False)
-				# Reverse target.roles in order to make them display in decreasing order of power
-			return emb
-	except:
-		pass
+	if target:
+		# Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
+		emb = (bbEmbed("", target.activity.name if target.activity else "", target.color)
+		.set_author(name = str(target), icon_url = target.avatar_url).set_thumbnail(url = target.avatar_url)
+		.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7] + " UTC")
+		.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7] + " UTC"))
+		if len(target.roles) > 1: # Every user has the "@everyone" role, so check if they have more roles than that
+			emb.add_field(name = "Roles", value = ", ".join(role.mention for role in target.roles[:0:-1]), inline = False)
+			# Reverse target.roles in order to make them display in decreasing order of power
+		return emb
 	return bbEmbed("Invalid target!", "Please choose a valid target. Valid targets are either a ping or a username.", 0xff0000)
 
 def sparPins():
