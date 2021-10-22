@@ -1,6 +1,6 @@
 # Beardless Bot Command Event Rewrite
 # Author: Lev Bernstein
-# Version: Full Release 1.5.7
+# Version: Full Release 1.5.8
 
 import asyncio
 import csv
@@ -557,7 +557,7 @@ async def cmdTwitch(ctx, *):
 	return
 
 @bot.command(name = "spar")
-async def cmdSpar(ctx, region = None, *misc): # TODO: add misc info from misc arg array into additional field
+async def cmdSpar(ctx, region = None, *misc):
 	if not ctx.guild:
 		return
 	if ctx.channel.name != "looking-for-spar":
@@ -589,6 +589,8 @@ async def cmdSpar(ctx, region = None, *misc): # TODO: add misc info from misc ar
 					if time() - value > 7200:
 						sparPings[guild][key] = int(time())
 						report = f"{role.mention} come spar {ctx.author.mention}!"
+						if misc:
+							report += " \"{}\"".format(" ".join(misc))
 					else:
 						tooRecent = value
 					break
@@ -602,8 +604,107 @@ async def cmdSpar(ctx, region = None, *misc): # TODO: add misc info from misc ar
 
 # Commands requiring a Brawlhalla API key: TODO
 
+@bot.command(name = "brawl")
+async def cmdBrawl(ctx, *):
+	if brawlKey:
+		await ctx.channel.send(embed = brawlCommands())
+	return
 
-# Server-specific commands
+@bot.command(name = "brawlclaim")
+async def cmdBrawlclaim(ctx, profUrl = None, *):
+	if not brawlKey:
+		return
+	brawlID = int(profUrl) if profUrl.isnumeric() else getBrawlID(brawlKey, profUrl)
+	if not brawlID:
+		report = ("{}" if not profUrl else "Invalid profile URL/Brawlhalla ID! {}").format(badClaim)
+	else:
+		try:
+			claimProfile(ctx.author.id, brawlID)
+			report = "Profile claimed."
+		except Exception as err:
+			print(err)
+			report = reqLimit
+	await ctx.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Rank", report))
+	return
+
+@bot.command(name = "brawlrank")
+async def cmdBrawlrank(ctx, target = ctx.author, *):
+	if not (brawlKey and ctx.guild):
+		return
+	if not isinstance(target, discord.User):
+		report = "Invalid target!"
+		target = memSearch(ctx.message, target)
+	if target:
+		try:
+			rank = getRank(target, brawlKey)
+			if isinstance(rank, discord.Embed):
+				await ctx.channel.send(embed = rank)
+				return
+			report = rank if rank else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
+		except Exception as err:
+			print(err)
+			report = reqLimit
+		await ctx.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Rank", report))
+		return
+
+@bot.command(name = "brawlstats")
+async def cmdBrawlstats(ctx, target = ctx.author, *):
+	if not (brawlKey and ctx.guild):
+		return
+	if not isinstance(target, discord.User):
+		report = "Invalid target!"
+		target = memSearch(ctx.message, target)
+	if target:
+		try:
+			stats = getStats(target, brawlKey)
+			if isinstance(stats, discord.Embed):
+				await ctx.channel.send(embed = stats)
+				return
+			report = stats if stats else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
+		except Exception as err:
+			print(err)
+			report = reqLimit
+		await ctx.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Stats", report))
+		return
+
+@bot.command(name = "brawllegend")
+async def cmdBrawllegend(ctx, legend = None, *):
+	if not brawlKey:
+		return
+	report = "Invalid legend! Please do !brawllegend followed by a legend name."
+	if legend:
+		try:
+			legend = legendInfo(brawlKey, legend)
+			if legend:
+				await ctx.channel.send(embed = legend)
+				return
+		except Exception as err:
+			print(err)
+			report = reqLimit
+	await ctx.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Legend Info", report))
+	return
+
+@bot.command(name = "brawlclan")
+async def cmdBrawlclan(ctx, target = None, *):
+	if not (brawlKey and ctx.guild):
+		return
+	if not isinstance(target, discord.User):
+		report = "Invalid target!"
+		target = memSearch(ctx.message, target)
+	if target:
+		try:
+			clan = getClan(target, brawlKey)
+			if isinstance(clan, discord.Embed):
+				await ctx.channel.send(embed = clan)
+				return
+			report = clan if clan else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
+		except Exception as err:
+			print(err)
+			report = reqLimit
+		await ctx.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Clan", report))
+		return
+
+# Server-specific commands:
 
 @bot.command(name = "tweet", aliases = ("eggtweet",))
 async def cmdTweet(ctx, *):
@@ -628,91 +729,6 @@ async def cmdGuide(ctx, *):
 async def on_message(text):
 	if not text.author.bot:
 		msg = text.content.lower()
-
-		if brawlKey:
-			if msg == "!brawl":
-				await text.channel.send(embed = brawlCommands())
-				return
-
-			if msg.startswith("!brawlclaim"):
-				brawlID = None
-				try:
-					profUrl = msg.split(" ")[1]
-					brawlID = int(profUrl) if profUrl.isnumeric() else getBrawlID(brawlKey, profUrl)
-					if not brawlID:
-						raise Exception
-				except:
-					report = ("{}" if msg == "!brawlclaim" else "Invalid profile URL/Brawlhalla ID! {}").format(badClaim)
-				if brawlID:
-					try:
-						claimProfile(text.author.id, brawlID)
-						report = "Profile claimed."
-					except Exception as err:
-						print(err)
-						report = reqLimit
-				await text.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Rank", report))
-				return
-
-			if msg.startswith("!brawlrank"):
-				try:
-					target = memSearch(text)
-					report = "Invalid target!"
-					if target:
-						rank = getRank(target, brawlKey)
-						if isinstance(rank, discord.Embed):
-							await text.channel.send(embed = rank)
-							return
-						report = rank if rank else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
-				except Exception as err:
-					print(err)
-					report = reqLimit
-				await text.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Rank", report))
-				return
-
-			if msg.startswith("!brawlstats"):
-				try:
-					target = memSearch(text)
-					report = "Invalid target!"
-					if target:
-						stats = getStats(target, brawlKey)
-						if isinstance(stats, discord.Embed):
-							await text.channel.send(embed = stats)
-							return
-						report = stats if stats else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
-				except Exception as err:
-					print(err)
-					report = reqLimit
-				await text.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Stats", report))
-				return
-
-			if msg.startswith("!brawllegend ") and msg != "!brawllegend ":
-				report = "Invalid legend! Please do !brawllegend followed by a legend name."
-				try:
-					legend = legendInfo(brawlKey, msg.split("!brawllegend ", 1)[1])
-					if legend:
-						await text.channel.send(embed = legend)
-						return
-				except Exception as err:
-					print(err)
-					report = reqLimit
-				await text.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Legend Info", report))
-				return
-
-			if msg.startswith("!brawlclan"):
-				try:
-					target = memSearch(text)
-					report = "Invalid target!"
-					if target:
-						clan = getClan(target.id, brawlKey)
-						if isinstance(clan, discord.Embed):
-							await text.channel.send(embed = clan)
-							return
-						report = clan if clan else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
-				except Exception as err:
-					print(err)
-					report = reqLimit
-				await text.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Clan", report))
-				return
 
 		if secretWord:
 			if secretWord in msg:

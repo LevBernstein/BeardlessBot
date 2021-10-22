@@ -45,7 +45,6 @@ def animal(animalType, breed = None):
 			print(f"{r.status_code}; {r.reason}; cat; count {i + 1}")
 	
 	if animalType.startswith("dog"):
-		breed = None if (len(animalType) == 4 or not (" " in animalType)) else (animalType.split(" ", 1)[1].replace(" ", ""))
 		for i in range(10): # dog API has been throwing 522 errors, not sure why
 			if not breed:
 				r = requests.get("https://dog.ceo/api/breeds/image/random")

@@ -65,7 +65,7 @@ def test_animals():
 def test_animal():
 	imageTypes = "image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"
 	imageSigs = ("b'\\xff\\xd8\\xff\\xe0\\x00\\x10JFIF", "b'\\x89\\x50\\x4e\\x47\\x0d\\x",
-	"b'\\xff\\xd8\\xff\\xe2\\x024ICC_PRO", "b'\\x89PNG\\r\\n\\x1a\\n\\")
+	"b'\\xff\\xd8\\xff\\xe2\\x024ICC_PRO", "b'\\x89PNG\\r\\n\\x1a\\n\\", "b'\\xff\\xd8\\xff\\xe1\\tPh")
 	for animalName in animals().fields[:-4]:
 		print(animalName)
 		r = requests.get(animal(animalName.name[1:]))
@@ -78,12 +78,12 @@ def test_animal():
 		print(str(r.content)[:30])
 		assert r.ok and any(str(r.content).startswith(signature) for signature in imageSigs)
 
-	breeds = animal("dog breeds")[12:-1].split(", ")
+	breeds = animal("dog", "breeds")[12:-1].split(", ")
 	assert len(breeds) >= 94
 	for breed in breeds:
 		r = requests.head(animal("dog", breed))
 		assert r.ok and r.headers["content-type"] in imageTypes
-	assert animal("dog invalid breed") == "Breed not found! Do !dog breeds to see all the breeds."
+	assert animal("dog", "invalidbreed") == "Breed not found! Do !dog breeds to see all the breeds."
 
 	with pytest.raises(Exception):
 		animal("invalidAnimal")
