@@ -27,10 +27,10 @@ def pingMsg(target, h, m, s):
 
 def randomBrawl(ranType):
 	try:
-		if ranType in ("Legend", "Weapon"):
+		if ranType in ("legend", "weapon"):
 			legends = tuple(legend["legend_name_key"].title() for legend in fetchLegends())
 			weapons = "Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"
-			return bbEmbed("Random " + ranType, "Your {} is {}.".format(ranType, choice(legends if ranType == "Legend" else weapons)))
+			return bbEmbed("Random " + ranType.title(), "Your {} is {}.".format(ranType, choice(legends if ranType == "Legend" else weapons)))
 		else:
 			raise Exception
 	except:

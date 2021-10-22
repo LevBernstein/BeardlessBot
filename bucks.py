@@ -150,7 +150,7 @@ def balance(target, text):
 	report = ("Invalid user! Please @ a user when you do !balance (or enter their username)," +
 	f" or do !balance without a target to see your own balance, {text.author.mention}.")
 	if not isinstance(target, discord.User):
-		target = memSearch(text)
+		target = memSearch(text, target)
 	if target:
 		result, bonus = writeMoney(target, 300, False, False)
 		if result == 0:
@@ -185,20 +185,16 @@ def leaderboard(): # TODO print user's position on lb
 		emb.add_field(name = (str(i + 1) + ". " + head), value = str(body))
 	return emb
 
-def flip(author, msg):
+def flip(author, bet):
 	heads = randint(0, 1)
-	strBet = msg.split('!flip ', 1)[1] if len(msg) > 6 else 10 # bet defaults to 10
-	if msg == "!flip":
-		bet = 10
-	elif strBet == "all":
+	if bet == "all":
 		bet = "all" if heads else "-all"
 	else:
 		try:
-			bet = int(strBet)
+			bet = int(bet)
 		except:
-			print("Failed to cast bet to int! Bet msg: " + msg)
 			bet = -1
-	report = "Invalid bet amount. Please choose a number >-1, {}."
+			report = "Invalid bet amount. Please choose a number >-1, {}."
 	if (isinstance(bet, str) and "all" in bet) or (isinstance(bet, int) and bet >= 0):
 		result, bank = writeMoney(author, 300, False, False)
 		if not (isinstance(bet, str) or (isinstance(bet, int) and result == 0 and bet <= bank)):

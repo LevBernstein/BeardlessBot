@@ -1,6 +1,6 @@
 # Beardless Bot Command Event Rewrite
 # Author: Lev Bernstein
-# Version: Full Release 1.5.5
+# Version: Full Release 1.5.7
 
 import asyncio
 import csv
@@ -198,7 +198,7 @@ async def cmdBlackjack(ctx, wagered = 10, *):
 		report = commaWarn.format(ctx.author.mention)
 	else:
 		report = f"You need to register first! Type !register to get started, {ctx.author.mention}."
-		allBet = (wagered == "all")
+		allBet = (wagered.lower() == "all")
 		if not allBet:
 			try:
 				bet = int(wagered)
@@ -270,11 +270,11 @@ async def cmdStay(ctx, *):
 	return
 
 @bot.command(name = "flip")
-async def cmdFlip(ctx, bet, *):
+async def cmdFlip(ctx, bet = "10", *):
 	if any(ctx.author == game.getUser() for game in games):
 		report = f"Please finish your game of blackjack first, {ctx.author.mention}."
 	else:
-		report = flip(ctx.author, ctx.message.content.lower())
+		report = flip(ctx.author, bet.lower())
 	await ctx.channel.send(embed = bbEmbed("Beardless Bot Coin Flip", report))
 	return
 
@@ -355,7 +355,7 @@ async def cmdRohan(ctx, *):
 
 @bot.command(name = "random")
 async def cmdRandomBrawl(ctx, ranType, *):
-	await ctx.channel.send(embed = randomBrawl(ranType))
+	await ctx.channel.send(embed = randomBrawl(ranType.lower()))
 	return
 
 @bot.command(name = "fact")
@@ -384,7 +384,7 @@ async def cmdPing(ctx, *):
 
 @bot.command(name = "roll")
 async def cmdRoll(ctx, dice, *):
-	await ctx.channel.send(embed = rollReport(dice))
+	await ctx.channel.send(embed = rollReport(dice, ctx.author))
 	return
 
 @bot.command(name = "dog", aliases = animalList + ("moose",))
@@ -600,7 +600,7 @@ async def cmdSpar(ctx, region = None, *misc): # TODO: add misc info from misc ar
 	await ctx.channel.send(report)
 	return
 
-# Commands requiring a Brawlhalla API key:
+# Commands requiring a Brawlhalla API key: TODO
 
 
 # Server-specific commands
@@ -628,18 +628,6 @@ async def cmdGuide(ctx, *):
 async def on_message(text):
 	if not text.author.bot:
 		msg = text.content.lower()
-
-		if secretWord:
-			if secretWord in msg:
-				global secretFound
-				if not secretFound:
-					secretFound = True
-					print(f"Secret word found by {text.author.name} in {text.guild.name}.")
-					result, bonus = writeMoney(text.author, 100000, True, True)
-					report = "Ping Captain No-Beard for your prize" if result == -1 else "100000 BeardlessBucks have been added to your account"
-					await text.channel.send(embed = bbEmbed(f"Well done! You found the secret word, {secretWord}!",
-					f"{report}, {text.author.mention}!"))
-				return
 
 		if brawlKey:
 			if msg == "!brawl":
@@ -724,6 +712,18 @@ async def on_message(text):
 					print(err)
 					report = reqLimit
 				await text.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Clan", report))
+				return
+
+		if secretWord:
+			if secretWord in msg:
+				global secretFound
+				if not secretFound:
+					secretFound = True
+					print(f"Secret word found by {text.author.name} in {text.guild.name}.")
+					result, bonus = writeMoney(text.author, 100000, True, True)
+					report = "Ping Captain No-Beard for your prize" if result == -1 else "100000 BeardlessBucks have been added to your account"
+					await text.channel.send(embed = bbEmbed(f"Well done! You found the secret word, {secretWord}!",
+					f"{report}, {text.author.mention}!"))
 				return
 
 		# Automod:

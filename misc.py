@@ -17,8 +17,8 @@ def bbEmbed(name, value = "", col = 0xfff994):
 
 # User lookup helper method. Finds user based on username and/or discriminator (#1234)
 # Runs in linear time; worst case, does not find a loosely-matching target, takes O(n) operations
-def memSearch(text):
-	term = text.content.lower()
+def memSearch(text, target):
+	term = target.lower()
 	semiMatch = looseMatch = None
 	for member in text.guild.members:
 		if term == str(member).lower():
@@ -124,11 +124,11 @@ def roll(message):
 			return randint(1, int(side)) if command == side else None
 	return None
 
-def rollReport(text):
-	result = str(roll(text.content.lower()))
+def rollReport(text, author):
+	result = str(roll(text.lower()))
 	report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !roll d4+3"
 	if result != "None":
-		report = f"You got {result}, {text.author.mention}."
+		report = f"You got {result}, {author.mention}."
 	return bbEmbed("Beardless Bot Dice", report)
 
 def fact():
@@ -137,7 +137,7 @@ def fact():
 
 def info(target, text):
 	if not isinstance(target, discord.User):
-		target = memSearch(text)
+		target = memSearch(text, target)
 	if target:
 		# Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
 		emb = (bbEmbed("", target.activity.name if target.activity else "", target.color)
@@ -160,7 +160,7 @@ def sparPins():
 
 def av(target, text):
 	if not isinstance(target, discord.User):
-		target = memSearch(text)
+		target = memSearch(text, target)
 	if target:
 		return (bbEmbed("", "", target.color).set_image(url = target.avatar_url)
 		.set_author(name = str(target), icon_url = target.avatar_url))

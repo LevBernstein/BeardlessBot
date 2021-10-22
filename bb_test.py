@@ -23,7 +23,7 @@ class TestUser(discord.User):
 		self.roles = ()
 		self.joined_at = self.created_at
 		self.activity = None
-	
+
 	def avatar_url_as(self, format = None, size = 1024):
 		# Discord really doesn't like it when you construct its objects manually;
 		# the avatar_url field is entirely broken. Here, I overwrite it.
@@ -70,21 +70,21 @@ def test_animal():
 		print(animalName)
 		r = requests.get(animal(animalName.name[1:]))
 		assert r.ok and r.headers["content-type"] in imageTypes
-	
+
 	for animalName in animals().fields[-4:]:
 		print(animalName)
 		# Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field; check if URL points to an image instead
 		r = requests.get(animal(animalName.name[1:]))
 		print(str(r.content)[:30])
 		assert r.ok and any(str(r.content).startswith(signature) for signature in imageSigs)
-	
+
 	breeds = animal("dog breeds")[12:-1].split(", ")
 	assert len(breeds) >= 94
 	for breed in breeds:
-		r = requests.head(animal("dog " + breed))
+		r = requests.head(animal("dog", breed))
 		assert r.ok and r.headers["content-type"] in imageTypes
 	assert animal("dog invalid breed") == "Breed not found! Do !dog breeds to see all the breeds."
-	
+
 	with pytest.raises(Exception):
 		animal("invalidAnimal")
 
@@ -103,19 +103,17 @@ def test_egg_formatted_tweet():
 	assert not "." in formattedTweet("test tweet")
 
 def test_dice():
-	message = TestMessage()
+	user = TestUser()
 	for sideNum in 4, 6, 8, 100, 10, 12, 20:
-		message.content = "!d" + str(sideNum)
-		sideRoll = roll(message.content)
+		message = "!d" + str(sideNum)
+		sideRoll = roll(message)
 		assert 1 <= sideRoll and sideRoll <= sideNum
-		assert rollReport(message).description.startswith("You got")
-	message.content = "!d20-4"
-	sideRoll = roll(message.content)
+		assert rollReport(message, user).description.startswith("You got")
+	sideRoll = roll("!d20-4")
 	assert -3 <= sideRoll and sideRoll <= 16
-	assert rollReport(message).description.startswith("You got")
-	message.content = "!d9"
-	assert not roll(message.content)
-	assert rollReport(message).description.startswith("Invalid side number.")
+	assert rollReport("!d20-4", user).description.startswith("You got")
+	assert not roll("!d9")
+	assert rollReport("!d9", user).description.startswith("Invalid side number.")
 
 def test_logDeleteMsg():
 	msg = TestMessage()
@@ -136,8 +134,8 @@ def test_logEditMsg():
 def test_logClearReacts():
 	msg = TestMessage()
 	emb = logClearReacts(msg, (1, 2, 3))
-	assert emb.description == f"Reactions cleared from message sent by {msg.author.mention} in {msg.channel.mention}."
-	assert emb.fields[0].value == msg.content
+	assert emb.description.startswith(f"Reactions cleared from message sent by {msg.author.mention} in {msg.channel.mention}.")
+	assert emb.fields[0].value.startswith(msg.content)
 	assert emb.fields[1].value == "1, 2, 3"
 
 def test_logDeleteChannel():
@@ -196,45 +194,39 @@ def test_memSearch():
 	text = TestMessage()
 	namedUser = TestUser("searchterm", "testnick", "9999")
 	text.guild.members = (TestUser(), namedUser)
-	contentList = "!av searchterm#9999", "!info searchterm", "!bal search", "!info testnick"
+	contentList = "searchterm#9999", "searchterm", "search", "testnick"
 	for content in contentList:
 		text.content = content
-		assert memSearch(text) == namedUser
+		assert memSearch(text, content) == namedUser
 	namedUser.name = "hash#name"
-	text.content = "!av hash#name"
-	assert memSearch(text) == namedUser
-	text.author = namedUser
-	text.content = "!av"
-	assert memSearch(text) == namedUser
-	text.content = "!bal invalidterm"
-	assert not memSearch(text)
-	text.mentions = namedUser,
-	assert memSearch(text) == namedUser
+	text.content = "hash#name"
+	assert memSearch(text, text.content) == namedUser
+	text.content = "invalidterm"
+	assert not memSearch(text, text.content)
 
 def test_register():
-	text = TestMessage("!register")
-	text.author.id = 654133911558946837
-	assert register(text).description == f"You are already in the system! Hooray! You have 200 BeardlessBucks, {text.author.mention}."
-	text.author.name = ",badname,"
-	assert register(text).description == commaWarn.format(text.author.mention)
+	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
+	assert register(bb).description == f"You are already in the system! Hooray! You have 200 BeardlessBucks, {bb.mention}."
+	bb.name = ",badname,"
+	assert register(bb).description == commaWarn.format(bb.mention)
 
 def test_balance():
 	text = TestMessage("!bal", TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837))
-	assert balance(text).description == f"{text.author.mention}'s balance is 200 BeardlessBucks."
+	assert balance(text.author, text).description == f"{text.author.mention}'s balance is 200 BeardlessBucks."
 	text.guild.members = (TestUser(), text.author)
 	text.content = "!balance " + text.author.name
-	assert balance(text).description == f"{text.author.mention}'s balance is 200 BeardlessBucks."
+	assert balance(text.author, text).description == f"{text.author.mention}'s balance is 200 BeardlessBucks."
 	text.content = "!balance"
 	text.author.name = ",badname,"
-	assert balance(text).description == commaWarn.format(text.author.mention)
+	assert balance(text.author, text).description == commaWarn.format(text.author.mention)
 	text.content = "!balance invaliduser"
-	assert balance(text).description.startswith("Invalid user!")
+	assert balance("badtarget", text).description.startswith("Invalid user!")
 
 def test_reset():
-	text = TestMessage("!reset", TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837))
-	assert reset(text).description == f"You have been reset to 200 BeardlessBucks, {text.author.mention}."
-	text.author.name = ",badname,"
-	assert reset(text).description == commaWarn.format(text.author.mention)
+	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
+	assert reset(bb).description == f"You have been reset to 200 BeardlessBucks, {bb.mention}."
+	bb.name = ",badname,"
+	assert reset(bb).description == commaWarn.format(bb.mention)
 
 def test_writeMoney():
 	user = TestUser()
@@ -256,18 +248,16 @@ def test_define():
 	assert define("!define invalidword").description == "Invalid word!"
 
 def test_flip():
-	text = TestMessage("!flip 0", TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837))
-	assert flip(text, text.content).endswith("if you had actually bet anything.")
-	text.content = "!flip invalidbet"
-	assert flip(text, text.content).startswith("Invalid bet amount.")
-	reset(TestMessage("!reset", text.author))
-	text.content = "!flip all"
-	flip(text, text.content)
-	balMsg = balance(TestMessage("!bal", text.author))
+	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
+	assert flip(bb, "0").endswith("if you had actually bet anything.")
+	assert flip(bb, "invalidbet").startswith("Invalid bet amount.")
+	reset(bb)
+	flip(bb, "all")
+	balMsg = balance(bb, TestMessage("!bal", bb))
 	assert ("400" in balMsg.description or "0" in balMsg.description)
-	assert flip(text, "!flip 10000000000000").startswith("You do not have")
-	balMsg = reset(TestMessage("!reset", text.author))
-	assert "200" in balance(TestMessage("!bal", text.author)).description
+	assert flip(bb, "10000000000000").startswith("You do not have")
+	balMsg = reset(bb)
+	assert "200" in balance(bb, TestMessage("!bal", bb)).description
 
 def test_blackjack_perfect():
 	game = Instance(TestUser(), 10)
@@ -321,21 +311,21 @@ def test_blackjack_startingHand():
 	assert game.message.startswith("Your starting hand consists of ")
 
 def test_randomBrawl():
-	assert randomBrawl("!random legend").title == "Random Legend"
-	assert randomBrawl("!random weapon").title == "Random Weapon"
-	assert randomBrawl("!randominvalidrandom").title == "Brawlhalla Randomizer"
-	assert randomBrawl("!random invalidrandom").title == "Brawlhalla Randomizer"
+	assert randomBrawl("legend").title == "Random Legend"
+	assert randomBrawl("weapon").title == "Random Weapon"
+	assert randomBrawl("invalidrandom").title == "Brawlhalla Randomizer"
+	assert randomBrawl("invalidrandom").title == "Brawlhalla Randomizer"
 
 def test_info():
 	text = TestMessage("!info searchterm")
 	namedUser = TestUser("searchterm")
 	text.guild.members = (TestUser(), namedUser)
 	namedUser.roles = (namedUser, namedUser)
-	namedUserInfo = info(text)
+	namedUserInfo = info("searchterm", text)
 	assert namedUserInfo.fields[0].value == str(namedUser.created_at)[:-7] + " UTC"
 	assert namedUserInfo.fields[1].value == str(namedUser.joined_at)[:-7] + " UTC"
 	assert namedUserInfo.fields[2].value == namedUser.mention
-	assert info("!infoerror").title == "Invalid target!"
+	assert info("!infoerror", text).title == "Invalid target!"
 
 def test_sparPins():
 	emb = sparPins()
@@ -346,8 +336,8 @@ def test_av():
 	text = TestMessage("!av searchterm")
 	namedUser = TestUser("searchterm")
 	text.guild.members = (TestUser(), namedUser)
-	assert av(text).image.url == namedUser.avatar_url
-	assert av("!averror").title == "Invalid target!"
+	assert av("searchterm", text).image.url == namedUser.avatar_url
+	assert av("error", text).title == "Invalid target!"
 
 def test_commands():
 	text = TestMessage()
@@ -391,23 +381,23 @@ if brawlKey:
 		assert getBrawlID(brawlKey, "https://steamcommunity.com/id/beardless") == 7032472
 		assert not getBrawlID(brawlKey, "badurl")
 		assert not getBrawlID(brawlKey, "https://steamcommunity.com/badurl")
-	
+
 	def test_getLegends():
 		oldLegends = fetchLegends()
 		getLegends(brawlKey)
 		assert fetchLegends() == oldLegends
-	
+
 	def test_legendInfo():
 		assert legendInfo(brawlKey, "sidra").title == "Sidra, The Corsair Queen"
 		assert not legendInfo(brawlKey, "invalidname")
-	
+
 	def test_getRank():
 		user = TestUser()
 		user.id = 0
 		assert not getRank(user, brawlKey)
 		user.id = 743238109898211389 #12502880
 		assert getRank(user, brawlKey).footer.text == "Brawl ID 12502880"
-	
+
 	def test_getStats():
 		user = TestUser()
 		user.id = 0
@@ -416,7 +406,7 @@ if brawlKey:
 		emb = getStats(user, brawlKey)
 		assert emb.footer.text == "Brawl ID 7032472"
 		assert len(emb.fields) == 3
-	
+
 	def test_getClan():
 		assert getClan(196354892208537600, brawlKey).title == "DinersDriveInsDives"
 		assert not getClan(0, brawlKey)
