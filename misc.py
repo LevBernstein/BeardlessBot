@@ -44,7 +44,7 @@ def animal(animalType, breed = None):
 				return r.json()["file"]
 			print(f"{r.status_code}; {r.reason}; cat; count {i + 1}")
 	
-	if animalType.startswith("dog"):
+	if animalType == "dog":
 		for i in range(10): # dog API has been throwing 522 errors, not sure why
 			if not breed:
 				r = requests.get("https://dog.ceo/api/breeds/image/random")
@@ -59,8 +59,9 @@ def animal(animalType, breed = None):
 				if r.status_code == 200:
 					if not r.json()["message"].startswith("Breed not found"):
 						return r.json()["message"]
-					return "Breed not found! Do !dog breeds to see all the breeds."
-		return "Breed not found! Do !dog breeds to see all the breeds."
+				return "Breed not found! Do !dog breeds to see all the breeds."
+			else:
+				return "Breed not found! Do !dog breeds to see all the breeds."
 	
 	if animalType in ("bunny", "rabbit"):
 		r = requests.get("https://api.bunnies.io/v2/loop/random/?media=gif")

@@ -1,6 +1,6 @@
 # Beardless Bot Command Event Rewrite
 # Author: Lev Bernstein
-# Version: Full Release 1.5.8
+# Version: Full Release 1.5.9
 
 import asyncio
 import csv
@@ -590,7 +590,7 @@ async def cmdSpar(ctx, region = None, *misc):
 						sparPings[guild][key] = int(time())
 						report = f"{role.mention} come spar {ctx.author.mention}!"
 						if misc:
-							report += " \"{}\"".format(" ".join(misc))
+							report += "Additional info: \"{}\"".format(" ".join(misc))
 					else:
 						tooRecent = value
 					break
@@ -726,40 +726,35 @@ async def cmdGuide(ctx, *):
 	return
 
 @bot.event
-async def on_message(text):
-	if not text.author.bot:
-		msg = text.content.lower()
+async def on_message(message):
+	if not message.author.bot:
+		if message.guild
+			text = message.content.lower()
 
-		if secretWord:
-			if secretWord in msg:
+			if secretWord and secretWord in text:
 				global secretFound
 				if not secretFound:
 					secretFound = True
-					print(f"Secret word found by {text.author.name} in {text.guild.name}.")
-					result, bonus = writeMoney(text.author, 100000, True, True)
+					print(f"Secret word found by {message.author.name} in {message.guild.name}.")
+					result, bonus = writeMoney(message.author, 100000, True, True)
 					report = "Ping Captain No-Beard for your prize" if result == -1 else "100000 BeardlessBucks have been added to your account"
-					await text.channel.send(embed = bbEmbed(f"Well done! You found the secret word, {secretWord}!",
-					f"{report}, {text.author.mention}!"))
-				return
+					await message.channel.send(embed = bbEmbed(f"Well done! You found the secret word, {secretWord}!",
+					f"{report}, {message.author.mention}!"))
 
-		# Automod:
-		if text.guild:
-			if text.guild.id == 442403231864324119: # Automod for eggsoup's Discord server.
-				if all((word in msg for word in ("discord", "http", "nitro"))) or all((word in msg for word in ("discord", "http", "gift"))):
-					await text.author.add_roles(get(text.guild.roles, name = 'Muted'))
-					for channel in text.guild.channels:
-						if channel.name == "infractions":
-							await channel.send("Deleted possible scam nitro link sent by {} in {}.\nMessage content: {}"
-							.format(text.author.mention, text.channel.mention, text.content))
-							break
-					await text.channel.send("Deleted possible nitro scam link. Alerting mods.")
-					await text.delete()
+			elif all((message.guild.name == "egg", "discord" in text, ("nitro" in text or "gift" in text), "http" in text)):
+				await message.author.add_roles(get(message.guild.roles, name = 'Muted'))
+				for channel in message.guild.channels:
+					if channel.name == "infractions":
+						await channel.send("Deleted possible scam nitro link sent by {} in {}.\nMessage content: {}"
+						.format(message.author.mention, message.channel.mention, message.content))
+						break
+				await message.channel.send("Deleted possible nitro scam link. Alerting mods.")
+				await message.delete()
 
-			if text.guild.id == 781025281590165555: # Automod for the Day Care Discord server.
-				if 'twitter.com/year_progress' in msg:
-					await text.delete()
-					return
+			elif message.guild.name == "Day Care" and 'twitter.com/year_progress' in text:
+				await message.delete()
 
-		await bot.process_commands(text)
+		await bot.process_commands(message) # Needed in order to run commands alongside on_message
+	return
 
 bot.run(token)
