@@ -241,11 +241,11 @@ def test_leaderboard():
 		assert int(lb.fields[0].value) > int(lb.fields[1].value)
 
 def test_define():
-	word = define("!define test")
+	word = define("test")
 	assert word.title == "TEST" and word.description.startswith("Audio: ")
-	word = define("!define pgp")
+	word = define("pgp")
 	assert word.title == "PGP" and word.description == ""
-	assert define("!define invalidword").description == "Invalid word!"
+	assert define("invalidword").description == "Invalid word!"
 
 def test_flip():
 	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
@@ -342,7 +342,7 @@ def test_av():
 def test_commands():
 	text = TestMessage()
 	text.guild = None
-	assert len(commands(text).fields) == 15
+	assert len(bbCommands(text).fields) == 15
 
 def test_join():
 	assert joinMsg().title == "Want to add this bot to your server?"

@@ -67,7 +67,7 @@ class Instance:
 					self.cards[i] = 1
 					self.bet *= -1
 					break
-			self.message = f"You were dealt an Ace, which will be treated as a 1. Your new total is {sum(self.cards)}."
+			self.message += f"However, your ace will be treated as a 1. Your new total is {sum(self.cards)}. "
 		self.message += ("Your card values are {}. The dealer is showing {}, with one card face down."
 		.format(", ".join(str(card) for card in self.cards), self.dealerUp))
 		if self.checkBust():
@@ -187,6 +187,7 @@ def leaderboard(): # TODO print user's position on lb
 
 def flip(author, bet):
 	heads = randint(0, 1)
+	report = "Invalid bet amount. Please choose a number greater than or equal to 0, {}."
 	if bet == "all":
 		bet = "all" if heads else "-all"
 	else:
@@ -194,7 +195,6 @@ def flip(author, bet):
 			bet = int(bet)
 		except:
 			bet = -1
-			report = "Invalid bet amount. Please choose a number >-1, {}."
 	if (isinstance(bet, str) and "all" in bet) or (isinstance(bet, int) and bet >= 0):
 		result, bank = writeMoney(author, 300, False, False)
 		if not (isinstance(bet, str) or (isinstance(bet, int) and result == 0 and bet <= bank)):
@@ -203,7 +203,7 @@ def flip(author, bet):
 			if isinstance(bet, int) and not heads:
 				bet *= -1
 			result, bonus = writeMoney(author, bet, True, True)
-			report = "Tails! You lose! Your loss has been deducted from your balance, {}."
+			report = "Tails! You lose! Your losses have been deducted from your balance, {}."
 			if heads:
 				report = "Heads! You win! Your winnings have been added to your balance, {}."
 			if result == -1:

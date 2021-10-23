@@ -30,7 +30,7 @@ def randomBrawl(ranType):
 		if ranType in ("legend", "weapon"):
 			legends = tuple(legend["legend_name_key"].title() for legend in fetchLegends())
 			weapons = "Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"
-			return bbEmbed("Random " + ranType.title(), "Your {} is {}.".format(ranType, choice(legends if ranType == "Legend" else weapons)))
+			return bbEmbed("Random " + ranType.title(), "Your {} is {}.".format(ranType, choice(legends if ranType == "legend" else weapons)))
 		else:
 			raise Exception
 	except:
