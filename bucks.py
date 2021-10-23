@@ -67,7 +67,7 @@ class Instance:
 					self.cards[i] = 1
 					self.bet *= -1
 					break
-			self.message = f"You were dealt an Ace, which will be treated as a 1. Your new total is {sum(self.cards)}."
+			self.message += f"However, your ace will be treated as a 1. Your new total is {sum(self.cards)}. "
 		self.message += ("Your card values are {}. The dealer is showing {}, with one card face down."
 		.format(", ".join(str(card) for card in self.cards), self.dealerUp))
 		if self.checkBust():
@@ -76,6 +76,7 @@ class Instance:
 			self.message += f" You hit 21! You win, {self.user.mention}!"
 		else:
 			self.message += f" Type !hit to deal another card to yourself, or !stay to stop at your current total, {self.user.mention}."
+		return self.message
 
 	def checkBust(self):
 		if sum(self.cards) > 21:
@@ -136,19 +137,20 @@ def writeMoney(member, amount, writing, adding):
 			money.write(f"\r\n{member.id},300,{member}")
 			return 2, None
 
-def register(text):
-	result, bonus = writeMoney(text.author, 300, False, False)
-	report = f"Successfully registered. You now have 300 BeardlessBucks, {text.author.mention}."
+def register(target):
+	result, bonus = writeMoney(target, 300, False, False)
+	report = f"Successfully registered. You now have 300 BeardlessBucks, {target.mention}."
 	if result == 0:
-		report = f"You are already in the system! Hooray! You have {bonus} BeardlessBucks, {text.author.mention}."
+		report = f"You are already in the system! Hooray! You have {bonus} BeardlessBucks, {target.mention}."
 	elif result == -1:
 		report = bonus
 	return bbEmbed("BeardlessBucks Registration", report)
 
-def balance(text):
+def balance(target, text):
 	report = ("Invalid user! Please @ a user when you do !balance (or enter their username)," +
 	f" or do !balance without a target to see your own balance, {text.author.mention}.")
-	target = memSearch(text)
+	if not isinstance(target, discord.User):
+		target = memSearch(text, target)
 	if target:
 		result, bonus = writeMoney(target, 300, False, False)
 		if result == 0:
@@ -159,11 +161,11 @@ def balance(text):
 			report = bonus if result == -1 else "Error!"
 	return bbEmbed("BeardlessBucks Balance", report)
 
-def reset(text):
-	result, bonus = writeMoney(text.author, 200, True, False)
-	report = f"You have been reset to 200 BeardlessBucks, {text.author.mention}."
+def reset(target):
+	result, bonus = writeMoney(target, 200, True, False)
+	report = f"You have been reset to 200 BeardlessBucks, {target.mention}."
 	if result == 2:
-		report = f"Successfully registered. You have 300 BeardlessBucks, {text.author.mention}."
+		report = f"Successfully registered. You have 300 BeardlessBucks, {target.mention}."
 	if result == -1:
 		report = bonus
 	return bbEmbed("BeardlessBucks Reset", report)
@@ -183,29 +185,25 @@ def leaderboard(): # TODO print user's position on lb
 		emb.add_field(name = (str(i + 1) + ". " + head), value = str(body))
 	return emb
 
-def flip(text, msg):
+def flip(author, bet):
 	heads = randint(0, 1)
-	strBet = msg.split('!flip ', 1)[1] if len(msg) > 6 else 10 # bet defaults to 10
-	if msg == "!flip":
-		bet = 10
-	elif strBet == "all":
+	report = "Invalid bet amount. Please choose a number greater than or equal to 0, {}."
+	if bet == "all":
 		bet = "all" if heads else "-all"
 	else:
 		try:
-			bet = int(strBet)
+			bet = int(bet)
 		except:
-			print("Failed to cast bet to int! Bet msg: " + msg)
 			bet = -1
-	report = "Invalid bet amount. Please choose a number >-1, {}."
 	if (isinstance(bet, str) and "all" in bet) or (isinstance(bet, int) and bet >= 0):
-		result, bank = writeMoney(text.author, 300, False, False)
+		result, bank = writeMoney(author, 300, False, False)
 		if not (isinstance(bet, str) or (isinstance(bet, int) and result == 0 and bet <= bank)):
 			report = "You do not have enough BeardlessBucks to bet that much, {}!"
 		else:
 			if isinstance(bet, int) and not heads:
 				bet *= -1
-			result, bonus = writeMoney(text.author, bet, True, True)
-			report = "Tails! You lose! Your loss has been deducted from your balance, {}."
+			result, bonus = writeMoney(author, bet, True, True)
+			report = "Tails! You lose! Your losses have been deducted from your balance, {}."
 			if heads:
 				report = "Heads! You win! Your winnings have been added to your balance, {}."
 			if result == -1:
@@ -214,4 +212,4 @@ def flip(text, msg):
 				report = newUserMsg
 			elif result == 0:
 				report += " Or, they would have been, if you had actually bet anything."
-	return report.format(text.author.mention)
+	return report.format(author.mention)

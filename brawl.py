@@ -25,13 +25,12 @@ def pingMsg(target, h, m, s):
 	" every two hours, {}. You can ping again in {} hour{}, {} minute{}, and {} second{}.")
 	return badPing.format(target, h, plural(h), m, plural(m), s, plural(s))
 
-def randomBrawl(msg):
+def randomBrawl(ranType):
 	try:
-		ranType = msg.split(' ', 1)[1].title()
-		if ranType in ("Legend", "Weapon"):
+		if ranType in ("legend", "weapon"):
 			legends = tuple(legend["legend_name_key"].title() for legend in fetchLegends())
 			weapons = "Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"
-			return bbEmbed("Random " + ranType, "Your {} is {}.".format(ranType, choice(legends if ranType == "Legend" else weapons)))
+			return bbEmbed("Random " + ranType.title(), "Your {} is {}.".format(ranType, choice(legends if ranType == "legend" else weapons)))
 		else:
 			raise Exception
 	except:

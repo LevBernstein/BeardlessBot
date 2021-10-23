@@ -17,15 +17,11 @@ def bbEmbed(name, value = "", col = 0xfff994):
 
 # User lookup helper method. Finds user based on username and/or discriminator (#1234)
 # Runs in linear time; worst case, does not find a loosely-matching target, takes O(n) operations
-def memSearch(text):
-	if text.mentions:
-		return text.mentions[0]
-	if not (" " in text.content and text.guild):
-		return text.author
-	term = text.content.split(" ", 1)[1].lower()
+def memSearch(message, target):
+	term = str(target).lower()
 	semiMatch = looseMatch = None
-	for member in text.guild.members:
-		if term == str(member).lower():
+	for member in message.guild.members:
+		if term == str(member).lower() or target == str(member.id):
 			return member
 		if term == member.name.lower():
 			if not "#" in term:
@@ -37,7 +33,7 @@ def memSearch(text):
 			looseMatch = member
 	return semiMatch if semiMatch else looseMatch
 
-def animal(animalType):
+def animal(animalType, breed = None):
 	r = "Invalid Animal!"
 	if animalType == "cat":
 		# cat API has been throwing 503 errors every other call, likely due to rate limiting
@@ -48,8 +44,7 @@ def animal(animalType):
 				return r.json()["file"]
 			print(f"{r.status_code}; {r.reason}; cat; count {i + 1}")
 	
-	if animalType.startswith("dog"):
-		breed = None if (len(animalType) == 4 or not (" " in animalType)) else (animalType.split(" ", 1)[1].replace(" ", ""))
+	if animalType == "dog":
 		for i in range(10): # dog API has been throwing 522 errors, not sure why
 			if not breed:
 				r = requests.get("https://dog.ceo/api/breeds/image/random")
@@ -64,8 +59,9 @@ def animal(animalType):
 				if r.status_code == 200:
 					if not r.json()["message"].startswith("Breed not found"):
 						return r.json()["message"]
-					return "Breed not found! Do !dog breeds to see all the breeds."
-		return "Breed not found! Do !dog breeds to see all the breeds."
+				return "Breed not found! Do !dog breeds to see all the breeds."
+			else:
+				return "Breed not found! Do !dog breeds to see all the breeds."
 	
 	if animalType in ("bunny", "rabbit"):
 		r = requests.get("https://api.bunnies.io/v2/loop/random/?media=gif")
@@ -97,13 +93,12 @@ def animal(animalType):
 
 def animals():
 	emb = bbEmbed("Animal Photo Commands:").add_field(inline = False, name = "!dog",
-	value = "Can also do !dog breeds to see breeds you can get pictures of with !dog <breed>")
+	value = "Can also do !dog breeds to see breeds you can get pictures of with !dog [breed]")
 	for animalName in animalList:
 		emb.add_field(name = "!" + animalName, value = "_ _")
 	return emb
 
-def define(msg):
-	word = msg.split(' ', 1)[1]
+def define(word):
 	r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
 	if r.status_code == 200:
 		desc = f"Audio: https:{r.json()[0]['phonetics'][0]['audio']}" if "audio" in r.json()[0]['phonetics'][0] else ""
@@ -118,8 +113,8 @@ def define(msg):
 	return bbEmbed("Beardless Bot Definitions", "Invalid word!")
 
 def roll(message):
-	# Takes a string of the format !dn+b and rolls one n-sided die with a modifier of b. Modifier is optional.
-	command = message.split('!d', 1)[1]
+	# Takes a string of the format dn+b and rolls one n-sided die with a modifier of b. Modifier is optional.
+	command = message.split('d', 1)[1]
 	modifier = -1 if "-" in command else 1
 	for side in "4", "6", "8", "100", "10", "12", "20":
 		if command.startswith(side):
@@ -128,74 +123,69 @@ def roll(message):
 			return randint(1, int(side)) if command == side else None
 	return None
 
-def rollReport(text):
-	result = str(roll(text.content.lower()))
-	report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !d4+3"
+def rollReport(text, author):
+	result = str(roll(text.lower()))
+	report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !roll d4+3"
 	if result != "None":
-		report = f"You got {result}, {text.author.mention}."
+		report = f"You got {result}, {author.mention}."
 	return bbEmbed("Beardless Bot Dice", report)
 
 def fact():
 	with open("resources/facts.txt", "r") as f:
 		return choice(f.read().splitlines())
 
-def info(text):
-	try:
-		target = memSearch(text)
-		if target:
-			# Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
-			emb = (bbEmbed("", target.activity.name if target.activity else "", target.color)
-			.set_author(name = str(target), icon_url = target.avatar_url).set_thumbnail(url = target.avatar_url)
-			.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7] + " UTC")
-			.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7] + " UTC"))
-			if len(target.roles) > 1: # Every user has the "@everyone" role, so check if they have more roles than that
-				emb.add_field(name = "Roles", value = ", ".join(role.mention for role in target.roles[:0:-1]), inline = False)
-				# Reverse target.roles in order to make them display in decreasing order of power
-			return emb
-	except:
-		pass
+def info(target, text):
+	if not isinstance(target, discord.User):
+		target = memSearch(text, target)
+	if target:
+		# Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
+		emb = (bbEmbed("", target.activity.name if target.activity else "", target.color)
+		.set_author(name = str(target), icon_url = target.avatar_url).set_thumbnail(url = target.avatar_url)
+		.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7] + " UTC")
+		.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7] + " UTC"))
+		if len(target.roles) > 1: # Every user has the "@everyone" role, so check if they have more roles than that
+			emb.add_field(name = "Roles", value = ", ".join(role.mention for role in target.roles[:0:-1]), inline = False)
+			# Reverse target.roles in order to make them display in decreasing order of power
+		return emb
 	return bbEmbed("Invalid target!", "Please choose a valid target. Valid targets are either a ping or a username.", 0xff0000)
 
 def sparPins():
-	sparDesc = ("Do the command !spar <region> <other info>.", "For instance, to find a diamond from US-E to play 2s with, I would do:",
+	sparDesc = ("Do the command !spar [region] [other info].", "For instance, to find a diamond from US-E to play 2s with, I would do:",
 		"**!spar US-E looking for a diamond 2s partner**.", "Valid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA.",
 		"!spar has a 2 hour cooldown.", "Please use the roles channel to give yourself the correct roles.")
 	return (bbEmbed("How to use this channel.").add_field(name = "To spar someone from your region:", value = "\n".join(sparDesc), inline = False)
 	.add_field(name = "If you don't want to get pings:", inline = False,
 	value = "Remove your region role. Otherwise, responding 'no' to calls to spar is annoying and counterproductive, and will earn you a warning."))
 
-def av(text):
-	try:
-		target = memSearch(text)
-		if target:
-			return (bbEmbed("", "", target.color).set_image(url = target.avatar_url)
-		    .set_author(name = str(target), icon_url = target.avatar_url))
-	except Exception as err:
-		print(err)
-		pass
+def av(target, text):
+	if not isinstance(target, discord.User):
+		target = memSearch(text, target)
+	if target:
+		return (bbEmbed("", "", target.color).set_image(url = target.avatar_url)
+		.set_author(name = str(target), icon_url = target.avatar_url))
 	return bbEmbed("Invalid target!", "Please choose a valid target. Valid targets are either a ping or a username.", 0xff0000)
 
-def commands(text):
+def bbCommands(ctx):
 	emb = bbEmbed("Beardless Bot Commands", "!commands to pull up this list")
-	commandNum = 15 if not text.guild else 20 if text.author.guild_permissions.manage_messages else 17
+	commandNum = 15 if not ctx.guild else 20 if ctx.author.guild_permissions.manage_messages else 17
 	commandList = (("!register", "Registers you with the currency system."),
-		("!balance", "Checks your BeardlessBucks balance. You can write !balance <@someone>/<username> to see that person's balance."),
+		("!balance [user/username]", "Display a user's balance. Write just !av if you want to see your own balance."),
 		("!bucks", "Shows you an explanation for how BeardlessBucks work."),
 		("!reset", "Resets you to 200 BeardlessBucks."),
 		("!fact", "Gives you a random fun fact."),
 		("!source", "Shows you the source of most facts used in !fact."),
 		("!flip [number]", "Bets a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10."),
 		("!blackjack [number]", "Starts up a game of blackjack. Once you're in a game, you can use !hit and !stay to play."),
-		("!d[number][+/-][modifier]", "Rolls a [number]-sided die and adds or subtracts the modifier. Example: !d8+3, or !d100-17."),
+		("!roll d[num][+/-][mod]", "Rolls a [num]-sided die and adds or subtracts [mod]. Example: !roll d8, or !roll d100-17."),
 		("!brawl", "Displays Beardless Bot's Brawlhalla-specific commands."),
 		("!add", "Gives you a link to add this bot to your server."),
 		("!av [user/username]", "Display a user's avatar. Write just !av if you want to see your own avatar."),
-		("![animal name]", "Gets a random animal picture. See the list of animals with !animals. Example: !duck"),
+		("![animal name]", "Gets a random animal picture. See the list of animals with !animals."),
 		("!define [word]", "Shows you the definition(s) of a word."),
 		("!ping", "Checks Beardless Bot's latency."),
-		("!buy red/blue/pink/orange", "Takes away 50000 BeardlessBucks from your account and grants you a special color role."),
+		("!buy red/blue/pink/orange", "Takes away 50k BeardlessBucks and grants you a special color role."),
 		("!info [user/username]", "Displays general information about a user. Write just !info to see your own info."),
-		("!purge [number]", "Mass-deletes messages"),
+		("!purge [number]", "Mass-deletes messages."),
 		("!mute [target] [duration]", "Mutes someone for an amount of time. Accepts either seconds, minutes, or hours."),
 		("!unmute [target]", "Unmutes the target."))
 	for commandPair in commandList[:commandNum]:
