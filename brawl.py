@@ -56,9 +56,9 @@ def fetchLegends():
 
 def getBrawlID(brawlKey, profileURL):
 	try:
-		if not profileURL.startswith("https://steamcommunity.com"):
-			return None
 		steamID = steam.steamid.from_url(profileURL)
+		if not steamID:
+			raise Exception("Invalid Steam profile URL!")
 		r = requests.get(f"https://api.brawlhalla.com/search?steamid={steamID}&api_key={brawlKey}")
 		return r.json()["brawlhalla_id"]
 	except:
@@ -90,7 +90,7 @@ def getRank(target, brawlKey):
 	# TODO: add rank images as thumbnail, clan below name; download local copies of rank images bc there's no easy format on wiki
 	brawlID = fetchBrawlID(target.id)
 	if not brawlID:
-		return None
+		return f"{target.mention} needs to claim their profile first! Do !brawlclaim."
 	r = requests.get(f"https://api.brawlhalla.com/player/{brawlID}/ranked?api_key={brawlKey}").json()
 	if len(r) < 4:
 		return "You haven't played ranked yet this season."
@@ -132,7 +132,7 @@ def getStats(target, brawlKey):
 	# TODO: add clan below name, make this look not terrible
 	brawlID = fetchBrawlID(target.id)
 	if not brawlID:
-		return None
+		return f"{target.mention} needs to claim their profile first! Do !brawlclaim."
 	r = requests.get(f"https://api.brawlhalla.com/player/{brawlID}/stats?api_key={brawlKey}").json()
 	if len(r) < 4:
 		return "This profile doesn't have stats associated with it. Please make sure you've claimed the correct profile."
@@ -156,10 +156,10 @@ def getStats(target, brawlKey):
 			.format(topUsed[0], topWinrate[0], topWinrate[1], topDPS[0], topDPS[1], topTTK[0], topTTK[1]), name = "Legend Stats (20 game min)")
 	return emb
 
-def getClan(discordID, brawlKey):
-	brawlID = fetchBrawlID(discordID)
+def getClan(target, brawlKey):
+	brawlID = fetchBrawlID(target.id)
 	if not brawlID:
-		return None
+		return f"{target.mention} needs to claim their profile first! Do !brawlclaim."
 	# takes two API calls: one to get clan ID from player stats, one to get clan from clan ID
 	# as a result, this command is very slow. TODO: Try to find a way around this.
 	r = requests.get(f"https://api.brawlhalla.com/player/{brawlID}/stats?api_key={brawlKey}").json()

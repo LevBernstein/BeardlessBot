@@ -11,6 +11,8 @@ prof = "https://cdn.discordapp.com/avatars/654133911558946837/78c6e18d8febb2339b
 
 animalList = "cat", "duck", "fox", "rabbit", "panda", "lizard", "axolotl", "bear", "bird", "koala", "raccoon", "kangaroo"
 
+hierarchyMsg = "It looks like I don't have permission to modify that user's roles! Raise my place in the role hierarchy, please."
+
 # Wrapper for discord.Embed that defaults to commonly-used values and is easier to define
 def bbEmbed(name, value = "", col = 0xfff994):
 	return discord.Embed(title = name, description = value, color = col)
@@ -83,13 +85,17 @@ def animal(animalType, breed = None):
 			r = requests.get("https://nekos.life/api/v2/img/lizard")
 		else:
 			r = requests.get("https://axoltlapi.herokuapp.com/")
+			if not r.status_code == 200: # Axolotl API is having problems, this is a workaround
+				r = requests.get("https://raw.githubusercontent.com/AxolotlAPI/data/main/pictures.txt")
+				if r.status_code == 200:
+					return choice(r.content.decode("utf-8").split("\n")[:-1])
 		if r.status_code == 200:
 			return r.json()["url"]
 	
 	if animalType == "bear":
 		return f"https://placebear.com/{randint(200, 400)}/{randint(200,400)}"
 
-	raise Exception(r)
+	raise Exception(str(r) + animalType)
 
 def animals():
 	emb = bbEmbed("Animal Photo Commands:").add_field(inline = False, name = "!dog",
@@ -149,14 +155,6 @@ def info(target, text):
 		return emb
 	return bbEmbed("Invalid target!", "Please choose a valid target. Valid targets are either a ping or a username.", 0xff0000)
 
-def sparPins():
-	sparDesc = ("Do the command !spar [region] [other info].", "For instance, to find a diamond from US-E to play 2s with, I would do:",
-		"**!spar US-E looking for a diamond 2s partner**.", "Valid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA.",
-		"!spar has a 2 hour cooldown.", "Please use the roles channel to give yourself the correct roles.")
-	return (bbEmbed("How to use this channel.").add_field(name = "To spar someone from your region:", value = "\n".join(sparDesc), inline = False)
-	.add_field(name = "If you don't want to get pings:", inline = False,
-	value = "Remove your region role. Otherwise, responding 'no' to calls to spar is annoying and counterproductive, and will earn you a warning."))
-
 def av(target, text):
 	if not isinstance(target, discord.User):
 		target = memSearch(text, target)
@@ -166,7 +164,7 @@ def av(target, text):
 	return bbEmbed("Invalid target!", "Please choose a valid target. Valid targets are either a ping or a username.", 0xff0000)
 
 def bbCommands(ctx):
-	emb = bbEmbed("Beardless Bot Commands", "!commands to pull up this list")
+	emb = bbEmbed("Beardless Bot Commands")
 	commandNum = 15 if not ctx.guild else 20 if ctx.author.guild_permissions.manage_messages else 17
 	commandList = (("!register", "Registers you with the currency system."),
 		("!balance [user/username]", "Display a user's balance. Write just !av if you want to see your own balance."),
@@ -177,7 +175,7 @@ def bbCommands(ctx):
 		("!flip [number]", "Bets a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10."),
 		("!blackjack [number]", "Starts up a game of blackjack. Once you're in a game, you can use !hit and !stay to play."),
 		("!roll d[num][+/-][mod]", "Rolls a [num]-sided die and adds or subtracts [mod]. Example: !roll d8, or !roll d100-17."),
-		("!brawl", "Displays Beardless Bot's Brawlhalla-specific commands."),
+		("!brawl", "Displays Beardless Bot's Brawlhalla commands."),
 		("!add", "Gives you a link to add this bot to your server."),
 		("!av [user/username]", "Display a user's avatar. Write just !av if you want to see your own avatar."),
 		("![animal name]", "Gets a random animal picture. See the list of animals with !animals."),
@@ -192,12 +190,6 @@ def bbCommands(ctx):
 		emb.add_field(name = commandPair[0], value = commandPair[1])
 	return emb
 
-def joinMsg():
-	addUrl = "(https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot)"
-	return (bbEmbed("Want to add this bot to your server?", "[Click this link!]" + addUrl)
-	.set_thumbnail(url = prof).add_field(name = "If you like Beardless Bot...", inline = False,
-	value = "Please leave a review on [top.gg](https://top.gg/bot/654133911558946837)."))
-
 def hints():
 	with open("resources/hints.txt", "r") as f:
 		hints = f.read().splitlines()
@@ -205,6 +197,10 @@ def hints():
 		for i in range(len(hints)):
 			emb.add_field(name = str(i + 1), value = hints[i])
 		return emb
+
+def scamCheck(text):
+	return (all(("http" in text, ("discord" in text or "dizcord" in text), ("nitro" in text or "gift" in text)))
+	or all(("@everyone" in text, "http" in text, ("nitro" in text or "gift" in text or "discord" in text))))
 
 # The following Markov chain code was originally provided by CSTUY SHIP.
 def tweet():
@@ -231,8 +227,26 @@ def formattedTweet(eggTweet):
 			return "\n" + eggTweet[:i]
 	return "\n" + eggTweet
 
-def noPerms():
-	reasons = " ".join(("Beardless Bot requires permissions in order to do just about anything. Without them, I can't do",
-	"much, so I'm leaving. If you add me back to this server, please make sure to leave checked the box that grants me",
-	"the Administrator permission.\nIf you have any questions, feel free to contact my creator, Captain No-Beard#7511."))
-	return bbEmbed("I need admin perms!", reasons, 0xff0000).set_author(name = "Beardless Bot", icon_url = prof)
+# Stock embeds:
+
+reasons = " ".join(("Beardless Bot requires permissions in order to do just about anything. Without them, I can't do",
+"much, so I'm leaving. If you add me back to this server, please make sure to leave checked the box that grants me",
+"the Administrator permission.\nIf you have any questions, feel free to contact my creator, Captain No-Beard#7511."))
+noPerms = bbEmbed("I need admin perms!", reasons, 0xff0000).set_author(name = "Beardless Bot", icon_url = prof)
+
+addUrl = "(https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot)"
+joinMsg = (bbEmbed("Want to add this bot to your server?", "[Click this link!]" + addUrl)
+.set_thumbnail(url = prof).add_field(name = "If you like Beardless Bot...", inline = False,
+value = "Please leave a review on [top.gg](https://top.gg/bot/654133911558946837)."))
+
+sparDesc = "\n".join(("Do the command !spar [region] [other info].",
+	"For instance, to find a diamond from US-E to play 2s with, I would do:",
+	"**!spar US-E looking for a diamond 2s partner**.",
+	"Valid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA.",
+	"!spar has a 2 hour cooldown.", "Please use the roles channel to give yourself the correct roles."))
+sparPins = (bbEmbed("How to use this channel.").add_field(name = "To spar someone from your region:", value = sparDesc, inline = False)
+.add_field(name = "If you don't want to get pings:", inline = False,
+value = "Remove your region role. Otherwise, responding 'no' to calls to spar is annoying and counterproductive, and will earn you a warning."))
+
+redditEmb = (bbEmbed("The Official Eggsoup Subreddit", "https://www.reddit.com/r/eggsoup/")
+.set_thumbnail(url = "https://b.thumbs.redditmedia.com/xJ1-nJJzHopKe25_bMxKgePiT3HWADjtxioxlku7qcM.png"))

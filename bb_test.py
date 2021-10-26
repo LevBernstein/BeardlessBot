@@ -84,6 +84,7 @@ def test_animal():
 		r = requests.head(animal("dog", breed))
 		assert r.ok and r.headers["content-type"] in imageTypes
 	assert animal("dog", "invalidbreed") == "Breed not found! Do !dog breeds to see all the breeds."
+	assert animal("dog", "invalidbreed1234") == "Breed not found! Do !dog breeds to see all the breeds."
 
 	with pytest.raises(Exception):
 		animal("invalidAnimal")
@@ -327,11 +328,6 @@ def test_info():
 	assert namedUserInfo.fields[2].value == namedUser.mention
 	assert info("!infoerror", text).title == "Invalid target!"
 
-def test_sparPins():
-	emb = sparPins()
-	assert emb.title == "How to use this channel."
-	assert len(emb.fields) == 2
-
 def test_av():
 	text = TestMessage("!av searchterm")
 	namedUser = TestUser("searchterm")
@@ -344,15 +340,9 @@ def test_commands():
 	text.guild = None
 	assert len(bbCommands(text).fields) == 15
 
-def test_join():
-	assert joinMsg().title == "Want to add this bot to your server?"
-
 def test_hints():
 	with open("resources/hints.txt", "r") as f:
 		assert len(hints().fields) == len(f.read().splitlines())
-
-def test_noPerms():
-	assert noPerms().title == "I need admin perms!"
 
 def test_claimProfile():
 	with open("resources/claimedProfs.json", "r") as f:
@@ -368,6 +358,11 @@ def test_pingMsg():
 	namedUser = TestUser("likesToPing")
 	assert pingMsg(namedUser.mention, 1, 1, 1).endswith("You can ping again in 1 hour, 1 minute, and 1 second.")
 	assert pingMsg(namedUser.mention, 2, 2, 2).endswith("You can ping again in 2 hours, 2 minutes, and 2 seconds.")
+
+def test_scamCheck():
+	assert scamCheck("http://freediscordnitro.com.")
+	assert scamCheck("@everyone http://scamlink.com free nitro!")
+	assert not scamCheck("Hey Discord friends, check out https://top.gg/bot/654133911558946837")
 
 if brawlKey:
 	def test_fetchBrawlID():
@@ -388,30 +383,33 @@ if brawlKey:
 		assert fetchLegends() == oldLegends
 
 	def test_legendInfo():
-		assert legendInfo(brawlKey, "sidra").title == "Sidra, The Corsair Queen"
+		assert legendInfo(brawlKey, "hugin").title == "Munin, The Raven"
 		assert not legendInfo(brawlKey, "invalidname")
 
 	def test_getRank():
 		user = TestUser()
 		user.id = 0
-		assert not getRank(user, brawlKey)
+		assert getRank(user, brawlKey) == f"{user.mention} needs to claim their profile first! Do !brawlclaim."
 		user.id = 743238109898211389 #12502880
 		assert getRank(user, brawlKey).footer.text == "Brawl ID 12502880"
 
 	def test_getStats():
 		user = TestUser()
 		user.id = 0
-		assert not getStats(user, brawlKey)
+		assert getStats(user, brawlKey) == f"{user.mention} needs to claim their profile first! Do !brawlclaim."
 		user.id = 196354892208537600
 		emb = getStats(user, brawlKey)
 		assert emb.footer.text == "Brawl ID 7032472"
 		assert len(emb.fields) == 3
 
 	def test_getClan():
-		assert getClan(196354892208537600, brawlKey).title == "DinersDriveInsDives"
-		assert not getClan(0, brawlKey)
+		user = TestUser()
+		user.id = 0
+		assert getClan(user, brawlKey) == f"{user.mention} needs to claim their profile first! Do !brawlclaim."
+		user.id = 196354892208537600
+		assert getClan(user, brawlKey).title == "DinersDriveInsDives"
 		claimProfile(196354892208537600, 5895238)
-		assert getClan(196354892208537600, brawlKey) == "You are not in a clan!"
+		assert getClan(user, brawlKey) == "You are not in a clan!"
 		claimProfile(196354892208537600, 7032472)
 
 	def test_brawlCommands():

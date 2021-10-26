@@ -1,6 +1,6 @@
 # Beardless Bot Command Event Rewrite
 # Author: Lev Bernstein
-# Version: Full Release 1.5.10
+# Version: Full Release 1.5.11
 
 import asyncio
 import csv
@@ -50,7 +50,9 @@ sparPings = {}
 
 games = [] # Stores the active instances of blackjack.
 
-bot = commands.Bot(command_prefix = "!", case_insensitive = True, help_command = None, owner_id = 196354892208537600, intents = discord.Intents.all())
+operator = 196354892208537600 # Replace with your Discord id
+
+bot = commands.Bot(command_prefix = "!", case_insensitive = True, help_command = None, intents = discord.Intents.all(), owner_id = operator)
 
 @bot.event
 async def on_ready():
@@ -79,20 +81,17 @@ async def on_guild_join(guild):
 	global sparPings # create sparPings entry for this new server
 	sparPings[guild.id] = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'aus': 0, 'sea': 0, 'eu': 0}
 	print(f"Just joined {guild.name}! Beardless Bot is now in {len(bot.guilds)} servers.")
-	try: # Create roles for sparring. If unable to do so, then bb was not given admin perms.
-		for key, value in sparPings[guild.id].items():
-			if not get(guild.roles, name = key.upper()):
-				await guild.create_role(name = key.upper(), mentionable = False)
-	except: # Switch to creating muted role
+	if not guild.me.guild_permissions.administrator:
 		print(f"Not given admin perms in {guild.name}.")
 		for channel in guild.channels:
 			try:
-				await channel.send(embed = noPerms())
+				await channel.send(embed = noPerms)
 				break
 			except:
 				pass
 		await guild.leave()
 		print(f"Left {guild.name}. Beardless Bot is now in {len(bot.guilds)} servers.")
+		return
 
 @bot.event
 async def on_message_delete(text):
@@ -222,7 +221,7 @@ async def cmdBlackjack(ctx, wagered = "10", *args):
 						if bet <= bank:
 							game = Instance(ctx.author, bet)
 							report = game.message
-							if game.perfect():
+							if game.perfect(): # TODO: replace the following 5 lines with a single call to writeMoney()
 								newLine = ",".join((row[0], str(bank + bet), str(ctx.author)))
 								with open("resources/money.csv", "r") as oldMoney:
 									oldMoney = ''.join([i for i in oldMoney]).replace(",".join(row), newLine)
@@ -351,7 +350,7 @@ async def cmdSource(ctx, *args):
 
 @bot.command(name = "add", aliases = ("join",))
 async def cmdAdd(ctx, *args):
-	await ctx.channel.send(embed = joinMsg())
+	await ctx.channel.send(embed = joinMsg)
 	return
 
 @bot.command(name = "rohan")
@@ -450,7 +449,7 @@ async def cmdMute(ctx, target = None, duration = None, *args):
 		return
 	role = get(ctx.guild.roles, name = 'Muted')
 	if not role: # Creates a Muted role. TODO: iterate through channels, make Muted unable to send msgs
-		role = await ctx.guild.create_role(name = "Muted", colour = discord.Color(0x818386),
+		role = await ctx.guild.create_role(name = "Muted", colour = discord.Color(0x818386), mentionable = False,
 		permissions = discord.Permissions(send_messages = False, read_messages = True))
 	mTime = 0.0
 	mString = None
@@ -461,42 +460,51 @@ async def cmdMute(ctx, target = None, duration = None, *args):
 				duration = duration.split((mPair[0])[0], 1)[0]
 				mTime = float(duration) * mPair[1]
 				mString = " " + mPair[0] + ("" if duration == "1" else "s")
-	await target.add_roles(role)
-	report = "Muted " + target.mention + ((" for " + duration + mString + ".") if mTime else ".")
-	await ctx.channel.send(embed = bbEmbed("Beardless Bot Mute", report).set_author(name = str(ctx.author), icon_url = ctx.author.avatar_url))
-	for channel in ctx.guild.channels:
-		if channel.name == "bb-log":
-			await channel.send(embed = logMute(target, ctx.message, duration, mString, mTime))
-			break
-	if mTime: # Autounmute
-		print(f"Muted {target} for {mTime} in {ctx.guild.name}")
-		await asyncio.sleep(mTime)
-		await target.remove_roles(role)
-		print("Autounmuted " + target.name)
+	try:
+		await target.add_roles(role)
+		report = "Muted " + target.mention + ((" for " + duration + mString + ".") if mTime else ".")
+		emb = bbEmbed("Beardless Bot Mute", report).set_author(name = str(ctx.author), icon_url = ctx.author.avatar_url)
+		if args:
+			emb.add_field(name = "", value = " ".join(args), inline = False)
+		await ctx.channel.send(embed = emb)
 		for channel in ctx.guild.channels:
+			await channel.set_permissions(role, send_messages = False)
 			if channel.name == "bb-log":
-				await channel.send(embed = logUnmute(target, ctx.author))
-				return
+				await channel.send(embed = logMute(target, ctx.message, duration, mString, mTime))
+		if mTime: # Autounmute
+			print(f"Muted {target} for {mTime} in {ctx.guild.name}")
+			await asyncio.sleep(mTime)
+			await target.remove_roles(role)
+			print("Autounmuted " + target.name)
+			for channel in ctx.guild.channels:
+				if channel.name == "bb-log":
+					await channel.send(embed = logUnmute(target, ctx.author))
+					return
+	except:
+		await ctx.channel.send(hierarchyMsg)
 	return
 
 @bot.command(name = "unmute")
 async def cmdUnmute(ctx, target = None, *args):
 	if not ctx.guild:
 		return
-	report = f"You do not have permission to use this command, {ctx.author.mention}."
-	if ctx.author.guild_permissions.manage_messages:
-		if not target:
-			report = f"Invalid target, {ctx.author.mention}."
-		else:
-			converter = commands.MemberConverter() # look into replacing with a converter in def
-			target = await converter.convert(ctx, target)
-			await target.remove_roles(get(ctx.guild.roles, name = 'Muted'))
-			report = f"Unmuted {target.mention}."
-			for channel in ctx.guild.channels:
-				if channel.name == "bb-log":
-					await channel.send(embed = logUnmute(target, ctx.author))
-					break
-	await ctx.channel.send(embed = bbEmbed("Beardless Bot Unmute", report))
+	try:
+		report = f"You do not have permission to use this command, {ctx.author.mention}."
+		if ctx.author.guild_permissions.manage_messages:
+			if not target:
+				report = f"Invalid target, {ctx.author.mention}."
+			else:
+				converter = commands.MemberConverter()
+				target = await converter.convert(ctx, target)
+				await target.remove_roles(get(ctx.guild.roles, name = 'Muted'))
+				report = f"Unmuted {target.mention}."
+				for channel in ctx.guild.channels:
+					if channel.name == "bb-log":
+						await channel.send(embed = logUnmute(target, ctx.author))
+						break
+		await ctx.channel.send(embed = bbEmbed("Beardless Bot Unmute", report))
+	except:
+		await ctx.channel.send(hierarchyMsg)
 	return
 
 @bot.command(name = "purge")
@@ -555,7 +563,7 @@ async def cmdPins(ctx, *args):
 	if not ctx.guild:
 		return
 	if ctx.channel.name == "looking-for-spar":
-		await ctx.channel.send(embed = sparPins())
+		await ctx.channel.send(embed = sparPins)
 	return
 
 @bot.command(name = "twitch")
@@ -577,16 +585,14 @@ async def cmdSpar(ctx, region = None, *misc):
 		await ctx.channel.send(report.format(ctx.author.mention))
 		return
 	if not region:
-		await ctx.channel.send(embed = sparPins())
+		await ctx.channel.send(embed = sparPins)
 		return
 	report = badRegion.format(ctx.author.mention)
 	tooRecent = role = None
 	global sparPings
 	region = region.lower()
-	if region == "usw":
-		region = "us-w"
-	if region == "use":
-		region = "us-e"
+	if region in ("usw", "use"):
+		region = region[:2] + "-" + region[2]
 	for guild, pings in sparPings.items():
 		if guild == ctx.guild.id:
 			for key, value in sparPings[guild].items():
@@ -597,8 +603,6 @@ async def cmdSpar(ctx, region = None, *misc):
 					if time() - value > 7200:
 						sparPings[guild][key] = int(time())
 						report = f"{role.mention} come spar {ctx.author.mention}!"
-						if misc:
-							report += " Additional info: \"{}\"".format(" ".join(misc))
 					else:
 						tooRecent = value
 					break
@@ -608,6 +612,8 @@ async def cmdSpar(ctx, region = None, *misc):
 		minutes, seconds = divmod(seconds, 60)
 		report = pingMsg(ctx.author.mention, hours, minutes, seconds)
 	await ctx.channel.send(report)
+	if misc and not tooRecent:
+		await ctx.channel.send("Additional info: \"{}\"".format(" ".join(misc)))
 	return
 
 # Commands requiring a Brawlhalla API key:
@@ -646,11 +652,10 @@ async def cmdBrawlrank(ctx, target = None, *args):
 		target = memSearch(ctx.message, target)
 	if target:
 		try:
-			rank = getRank(target, brawlKey)
-			if isinstance(rank, discord.Embed):
-				await ctx.channel.send(embed = rank)
+			report = getRank(target, brawlKey)
+			if isinstance(report, discord.Embed):
+				await ctx.channel.send(embed = report)
 				return
-			report = rank if rank else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
 		except Exception as err:
 			print(err)
 			report = reqLimit
@@ -668,11 +673,10 @@ async def cmdBrawlstats(ctx, target = None, *args):
 		target = memSearch(ctx.message, target)
 	if target:
 		try:
-			stats = getStats(target, brawlKey)
-			if isinstance(stats, discord.Embed):
-				await ctx.channel.send(embed = stats)
+			report = getStats(target, brawlKey)
+			if isinstance(report, discord.Embed):
+				await ctx.channel.send(embed = report)
 				return
-			report = stats if stats else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
 		except Exception as err:
 			print(err)
 			report = reqLimit
@@ -707,11 +711,10 @@ async def cmdBrawlclan(ctx, target = None, *args):
 		target = memSearch(ctx.message, target)
 	if target:
 		try:
-			clan = getClan(target.id, brawlKey)
-			if isinstance(clan, discord.Embed):
-				await ctx.channel.send(embed = clan)
+			report = getClan(target, brawlKey)
+			if isinstance(report, discord.Embed):
+				await ctx.channel.send(embed = report)
 				return
-			report = clan if clan else f"{target.mention} needs to claim their profile first! Do !brawlclaim."
 		except Exception as err:
 			print(err)
 			report = reqLimit
@@ -729,8 +732,7 @@ async def cmdTweet(ctx, *args):
 @bot.command(name = "reddit")
 async def cmdReddit(ctx, *args):
 	if ctx.guild and ctx.guild.id == 442403231864324119:
-		await ctx.channel.send(embed = bbEmbed("The Official Eggsoup Subreddit", "https://www.reddit.com/r/eggsoup/")
-		.set_thumbnail(url = "https://b.thumbs.redditmedia.com/xJ1-nJJzHopKe25_bMxKgePiT3HWADjtxioxlku7qcM.png"))
+		await ctx.channel.send(embed = redditEmb)
 	return
 
 @bot.command(name = "guide")
@@ -755,7 +757,7 @@ async def on_message(message):
 					await message.channel.send(embed = bbEmbed(f"Well done! You found the secret word, {secretWord}!",
 					f"{report}, {message.author.mention}!"))
 
-			elif all((message.guild.name == "egg", "discord" in text, ("nitro" in text or "gift" in text), "http" in text)):
+			elif message.guild.name == "egg" and scamCheck(text):
 				await message.author.add_roles(get(message.guild.roles, name = 'Muted'))
 				for channel in message.guild.channels:
 					if channel.name == "infractions":
