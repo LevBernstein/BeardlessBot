@@ -106,7 +106,7 @@ def getRank(target, brawlKey):
 				if not topLegend or topLegend[1] < legend["rating"]:
 					topLegend = legend["legend_name_key"], legend["rating"]
 			if topLegend:
-				embVal += f"\nTop Legend: {topLegend[0].title()}, {topLegend[1]} ELO"
+				embVal += f"\nTop Legend: {topLegend[0].title()}, {topLegend[1]} Elo"
 		emb.add_field(name = "Ranked 1s", value = embVal)
 		for key, value in rankColors.items():
 			if key in r["tier"]:

@@ -202,6 +202,14 @@ def scamCheck(text):
 	return (all(("http" in text, ("discord" in text or "dizcord" in text), ("nitro" in text or "gift" in text)))
 	or all(("@everyone" in text, "http" in text, ("nitro" in text or "gift" in text or "discord" in text))))
 
+def onJoin(guild, role):
+	lines = ((f"Thanks for adding me to {guild.name}! There are a few things you can do to unlock my full potential."),
+	("If you want event logging, make a channel named #bb-log."),
+	("If you want a region-based sparring system, make a channel named #looking-for-spar."),
+	("If you want special color roles, purchasable with BeardlessBucks, create roles named special red/blue/orange/pink."),
+	(f"Don't forget to move my {role.mention} role up to the top of the role hierarchy in order to allow me to moderate all users."))
+	return bbEmbed(f"Hello, {guild.name}!", "\n".join(lines)).set_thumbnail(url = prof)
+
 # The following Markov chain code was originally provided by CSTUY SHIP.
 def tweet():
 	with open('resources/eggtweets_clean.txt', 'r') as f:

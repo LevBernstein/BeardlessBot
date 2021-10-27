@@ -364,6 +364,15 @@ def test_scamCheck():
 	assert scamCheck("@everyone http://scamlink.com free nitro!")
 	assert not scamCheck("Hey Discord friends, check out https://top.gg/bot/654133911558946837")
 
+def test_onJoin():
+	g = discord.Guild
+	g.name = "Test Guild"
+	role = discord.Role
+	role.name = "Test Role"
+	role.id = 0
+	g.roles = role,
+	assert onJoin(g, role).title == f"Hello, Test Guild!"
+
 if brawlKey:
 	def test_fetchBrawlID():
 		assert fetchBrawlID(196354892208537600) == 7032472

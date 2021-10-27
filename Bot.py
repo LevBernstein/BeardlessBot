@@ -1,6 +1,6 @@
 # Beardless Bot Command Event Rewrite
 # Author: Lev Bernstein
-# Version: Full Release 1.5.11
+# Version: Full Release 1.5.12
 
 import asyncio
 import csv
@@ -91,7 +91,14 @@ async def on_guild_join(guild):
 				pass
 		await guild.leave()
 		print(f"Left {guild.name}. Beardless Bot is now in {len(bot.guilds)} servers.")
-		return
+	else:
+		for channel in guild.channels:
+			try:
+				await channel.send(embed = onJoin(guild, get(guild.roles, name = "Beardless Bot")))
+				break
+			except:
+				pass
+	return
 
 @bot.event
 async def on_message_delete(text):
@@ -448,7 +455,7 @@ async def cmdMute(ctx, target = None, duration = None, *args):
 		await ctx.channel.send(embed = bbEmbed("Beardless Bot Mute", "Invalid target! Target must be a mention or user ID."))
 		return
 	role = get(ctx.guild.roles, name = 'Muted')
-	if not role: # Creates a Muted role. TODO: iterate through channels, make Muted unable to send msgs
+	if not role: # Creates a Muted role.
 		role = await ctx.guild.create_role(name = "Muted", colour = discord.Color(0x818386), mentionable = False,
 		permissions = discord.Permissions(send_messages = False, read_messages = True))
 	mTime = 0.0
@@ -467,7 +474,7 @@ async def cmdMute(ctx, target = None, duration = None, *args):
 		if args:
 			emb.add_field(name = "", value = " ".join(args), inline = False)
 		await ctx.channel.send(embed = emb)
-		for channel in ctx.guild.channels:
+		for channel in ctx.guild.channels: # iterates through channels, makes Muted unable to send msgs
 			await channel.set_permissions(role, send_messages = False)
 			if channel.name == "bb-log":
 				await channel.send(embed = logMute(target, ctx.message, duration, mString, mTime))
@@ -612,7 +619,7 @@ async def cmdSpar(ctx, region = None, *misc):
 		minutes, seconds = divmod(seconds, 60)
 		report = pingMsg(ctx.author.mention, hours, minutes, seconds)
 	await ctx.channel.send(report)
-	if misc and not tooRecent:
+	if misc and role and not tooRecent:
 		await ctx.channel.send("Additional info: \"{}\"".format(" ".join(misc)))
 	return
 

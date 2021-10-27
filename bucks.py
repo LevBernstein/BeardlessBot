@@ -67,7 +67,7 @@ class Instance:
 					self.cards[i] = 1
 					self.bet *= -1
 					break
-			self.message += f"However, your ace will be treated as a 1. Your new total is {sum(self.cards)}. "
+			self.message += f"To avoid busting, your Ace will be treated as a 1. Your new total is {sum(self.cards)}. "
 		self.message += ("Your card values are {}. The dealer is showing {}, with one card face down."
 		.format(", ".join(str(card) for card in self.cards), self.dealerUp))
 		if self.checkBust():
