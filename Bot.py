@@ -1,6 +1,6 @@
 # Beardless Bot Command Event Rewrite
 # Author: Lev Bernstein
-# Version: Full Release 1.5.12
+# Version: Full Release 1.5.13
 
 import asyncio
 import csv
@@ -58,7 +58,7 @@ bot = commands.Bot(command_prefix = "!", case_insensitive = True, help_command =
 async def on_ready():
 	print("Beardless Bot online!")
 	try:
-		await bot.change_presence(activity = discord.Game(name = 'try !blackjack and !flip'))
+		await bot.change_presence(activity = discord.Game(name = "try !blackjack and !flip"))
 		print("Status updated!")
 	except discord.HTTPException:
 		print("Failed to update status! You might be restarting the bot too many times.")
@@ -74,12 +74,12 @@ async def on_ready():
 	# Initialize ping waiting time for each channel at 0 for each server bb is in:
 	global sparPings
 	for guild in bot.guilds:
-		sparPings[guild.id] = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'sea': 0, 'aus': 0, 'eu': 0}
+		sparPings[guild.id] = {"jpn": 0, "brz": 0, "us-w": 0, "us-e": 0, "sea": 0, "aus": 0, "eu": 0}
 
 @bot.event
 async def on_guild_join(guild):
 	global sparPings # create sparPings entry for this new server
-	sparPings[guild.id] = {'jpn': 0, 'brz': 0, 'us-w': 0, 'us-e': 0, 'aus': 0, 'sea': 0, 'eu': 0}
+	sparPings[guild.id] = {"jpn": 0, "brz": 0, "us-w": 0, "us-e": 0, "aus": 0, "sea": 0, "eu": 0}
 	print(f"Just joined {guild.name}! Beardless Bot is now in {len(bot.guilds)} servers.")
 	if not guild.me.guild_permissions.administrator:
 		print(f"Not given admin perms in {guild.name}.")
@@ -199,11 +199,12 @@ async def on_member_unban(guild, member):
 			return
 
 @bot.command(name = "blackjack", aliases = ("bj",))
-async def cmdBlackjack(ctx, wagered = "10", *args):
-	if "," in ctx.author.name:
-		report = commaWarn.format(ctx.author.mention)
+async def cmdBlackjack(ctx, wagered = "10", *args): # TODO: rewrite into command in bucks, pass games list as arg, return report and game to add
+	target = ctx.author
+	if "," in target.name:
+		report = commaWarn.format(target.mention)
 	else:
-		report = f"You need to register first! Type !register to get started, {ctx.author.mention}."
+		report = f"You need to register first! Type !register to get started, {target.mention}."
 		allBet = (wagered.lower() == "all")
 		if allBet:
 			bet = 0
@@ -211,27 +212,26 @@ async def cmdBlackjack(ctx, wagered = "10", *args):
 			try:
 				bet = int(wagered)
 			except:
-				print("Failed to cast bet to int! Bet msg: " + ctx.message.content)
 				bet = -1
-		if any(ctx.author == game.getUser() for game in games):
-			report = f"You already have an active game, {ctx.author.mention}."
+		if any(target == game.getUser() for game in games):
+			report = f"You already have an active game, {target.mention}."
 		elif bet < 0:
 			report = "Invalid bet. Please choose a number greater than or equal to 0, or enter \"all\" to bet your whole balance."
 		else:
-			with open('resources/money.csv', 'r') as csvfile:
-				for row in csv.reader(csvfile, delimiter = ','):
-					if str(ctx.author.id) == row[0]:
+			with open("resources/money.csv", "r") as csvfile:
+				for row in csv.reader(csvfile, delimiter = ","):
+					if str(target.id) == row[0]:
 						bank = int(row[1])
 						if allBet:
 							bet = bank
-						report = f"You do not have enough BeardlessBucks to bet that much, {ctx.author.mention}!"
+						report = f"You do not have enough BeardlessBucks to bet that much, {target.mention}!"
 						if bet <= bank:
-							game = Instance(ctx.author, bet)
+							game = Instance(target, bet)
 							report = game.message
 							if game.perfect(): # TODO: replace the following 5 lines with a single call to writeMoney()
-								newLine = ",".join((row[0], str(bank + bet), str(ctx.author)))
+								newLine = ",".join((row[0], str(bank + bet), str(target)))
 								with open("resources/money.csv", "r") as oldMoney:
-									oldMoney = ''.join([i for i in oldMoney]).replace(",".join(row), newLine)
+									oldMoney = "".join([i for i in oldMoney]).replace(",".join(row), newLine)
 									with open("resources/money.csv", "w") as newMoney:
 										newMoney.writelines(oldMoney)
 							else:
@@ -454,7 +454,7 @@ async def cmdMute(ctx, target = None, duration = None, *args):
 		print(err)
 		await ctx.channel.send(embed = bbEmbed("Beardless Bot Mute", "Invalid target! Target must be a mention or user ID."))
 		return
-	role = get(ctx.guild.roles, name = 'Muted')
+	role = get(ctx.guild.roles, name = "Muted")
 	if not role: # Creates a Muted role.
 		role = await ctx.guild.create_role(name = "Muted", colour = discord.Color(0x818386), mentionable = False,
 		permissions = discord.Permissions(send_messages = False, read_messages = True))
@@ -503,7 +503,7 @@ async def cmdUnmute(ctx, target = None, *args):
 			else:
 				converter = commands.MemberConverter()
 				target = await converter.convert(ctx, target)
-				await target.remove_roles(get(ctx.guild.roles, name = 'Muted'))
+				await target.remove_roles(get(ctx.guild.roles, name = "Muted"))
 				report = f"Unmuted {target.mention}."
 				for channel in ctx.guild.channels:
 					if channel.name == "bb-log":
@@ -535,14 +535,14 @@ async def cmdBuy(ctx, color = "None", *args):
 	report = "Invalid color. Choose blue, red, orange, or pink, {}."
 	color = color.lower()
 	if color in ("blue", "pink", "orange", "red"):
-		role = get(ctx.guild.roles, name = 'special ' + color)
+		role = get(ctx.guild.roles, name = "special " + color)
 		if not role:
 			report = "That special color role does not exist in this server, {}."
 		elif role in ctx.author.roles:
 			report = "You already have this special color, {}."
 		else:
 			report = "Not enough BeardlessBucks. You need 50000 to buy a special color, {}."
-			with open('resources/money.csv', 'r') as csvfile:
+			with open("resources/money.csv", "r") as csvfile:
 				result, bonus = writeMoney(ctx.author, -50000, True, True)
 				if result == 1:
 					report = "Color " + role.mention + " purchased successfully, {}!"
@@ -765,7 +765,7 @@ async def on_message(message):
 					f"{report}, {message.author.mention}!"))
 
 			elif message.guild.name == "egg" and scamCheck(text):
-				await message.author.add_roles(get(message.guild.roles, name = 'Muted'))
+				await message.author.add_roles(get(message.guild.roles, name = "Muted"))
 				for channel in message.guild.channels:
 					if channel.name == "infractions":
 						await channel.send("Deleted possible scam nitro link sent by {} in {}.\nMessage content: {}"
@@ -774,10 +774,12 @@ async def on_message(message):
 				await message.channel.send("Deleted possible nitro scam link. Alerting mods.")
 				await message.delete()
 
-			elif message.guild.name == "Day Care" and 'twitter.com/year_progress' in text:
+			elif message.guild.name == "Day Care" and "twitter.com/year_progress" in text:
 				await message.delete()
-
-		await bot.process_commands(message) # Needed in order to run commands alongside on_message
+		try:
+			await bot.process_commands(message) # Needed in order to run commands alongside on_message
+		except Exception as err:
+			print(err)
 	return
 
 bot.run(token)

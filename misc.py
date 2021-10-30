@@ -107,7 +107,7 @@ def animals():
 def define(word):
 	r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
 	if r.status_code == 200:
-		desc = f"Audio: https:{r.json()[0]['phonetics'][0]['audio']}" if "audio" in r.json()[0]['phonetics'][0] else ""
+		desc = f"Audio: https:{r.json()[0]['phonetics'][0]['audio']}" if "audio" in r.json()[0]["phonetics"][0] else ""
 		emb = bbEmbed(word.upper(), desc)
 		i = 0
 		for entry in r.json():
@@ -120,7 +120,7 @@ def define(word):
 
 def roll(message):
 	# Takes a string of the format dn+b and rolls one n-sided die with a modifier of b. Modifier is optional.
-	command = message.split('d', 1)[1]
+	command = message.split("d", 1)[1]
 	modifier = -1 if "-" in command else 1
 	for side in "4", "6", "8", "100", "10", "12", "20":
 		if command.startswith(side):
@@ -172,8 +172,8 @@ def bbCommands(ctx):
 		("!reset", "Resets you to 200 BeardlessBucks."),
 		("!fact", "Gives you a random fun fact."),
 		("!source", "Shows you the source of most facts used in !fact."),
-		("!flip [number]", "Bets a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10."),
-		("!blackjack [number]", "Starts up a game of blackjack. Once you're in a game, you can use !hit and !stay to play."),
+		("!flip [bet]", "Bets a certain amount on flipping a coin. Heads you win, tails you lose. Defaults to 10."),
+		("!blackjack [bet]", "Starts up a game of blackjack. Once you're in a game, you can use !hit and !stay to play."),
 		("!roll d[num][+/-][mod]", "Rolls a [num]-sided die and adds or subtracts [mod]. Example: !roll d8, or !roll d100-17."),
 		("!brawl", "Displays Beardless Bot's Brawlhalla commands."),
 		("!add", "Gives you a link to add this bot to your server."),
@@ -212,20 +212,20 @@ def onJoin(guild, role):
 
 # The following Markov chain code was originally provided by CSTUY SHIP.
 def tweet():
-	with open('resources/eggtweets_clean.txt', 'r') as f:
+	with open("resources/eggtweets_clean.txt", "r") as f:
 		words = f.read().split()
 	chains = {}
 	keySize = randint(1, 2)
 	for i in range(len(words) - keySize):
-		key = ' '.join(words[i : i + keySize])
+		key = " ".join(words[i : i + keySize])
 		if key not in chains:
 			chains[key] = []
 		chains[key].append(words[i + keySize])
 	key = s = choice(list(chains.keys()))
 	for i in range(randint(10, 35)):
 		word = choice(chains[key])
-		s += ' ' + word
-		key = ' '.join(key.split()[1:keySize + 1]) + ' ' + word if keySize > 1 else word
+		s += " " + word
+		key = " ".join(key.split()[1:keySize + 1]) + " " + word if keySize > 1 else word
 	return s[0].title() + s[1:]
 
 def formattedTweet(eggTweet):

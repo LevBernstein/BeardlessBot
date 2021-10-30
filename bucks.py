@@ -128,12 +128,12 @@ def writeMoney(member, amount, writing, adding):
 					newBank = amount if not adding else (int(row[1]) + amount)
 					newLine = ",".join((row[0], str(newBank), str(member)))
 					with open("resources/money.csv", "r") as oldMoney:
-						oldMoney = ''.join([i for i in oldMoney]).replace(",".join(row), newLine)
+						oldMoney = "".join([i for i in oldMoney]).replace(",".join(row), newLine)
 						with open("resources/money.csv", "w") as money:
 							money.writelines(oldMoney)
 					return 1, newBank
 				return 0, int(row[1]) # no change in balance
-		with open('resources/money.csv', 'a') as money:
+		with open("resources/money.csv", "a") as money:
 			money.write(f"\r\n{member.id},300,{member}")
 			return 2, None
 
@@ -174,8 +174,8 @@ def leaderboard(): # TODO print user's position on lb
 	# worst case runtime = # entries in money.csv + runtime of sorted() + 10 = O(n) + O(nlogn) + 10 = O(nlogn)
 	diction = {}
 	emb = bbEmbed("BeardlessBucks Leaderboard")
-	with open('resources/money.csv') as csvfile:
-		for row in csv.reader(csvfile, delimiter = ','):
+	with open("resources/money.csv") as csvfile:
+		for row in csv.reader(csvfile, delimiter = ","):
 			if int(row[1]): # Don't bother displaying info for people with 0 BeardlessBucks
 				diction[(row[2])[:-5]] = int(row[1])
 	# Sort by value for each key in diction, which is BeardlessBucks balance
@@ -187,7 +187,7 @@ def leaderboard(): # TODO print user's position on lb
 
 def flip(author, bet):
 	heads = randint(0, 1)
-	report = "Invalid bet amount. Please choose a number greater than or equal to 0, {}."
+	report = "Invalid bet. Please choose a number greater than or equal to 0, or enter \"all\" to bet your whole balance, {}."
 	if bet == "all":
 		bet = "all" if heads else "-all"
 	else:
@@ -197,7 +197,9 @@ def flip(author, bet):
 			bet = -1
 	if (isinstance(bet, str) and "all" in bet) or (isinstance(bet, int) and bet >= 0):
 		result, bank = writeMoney(author, 300, False, False)
-		if not (isinstance(bet, str) or (isinstance(bet, int) and result == 0 and bet <= bank)):
+		if result == 2:
+			report = "You were not registered for BeardlessBucks gambling, so I registered you. You now have 300 BeardlessBucks, {}."
+		elif not (isinstance(bet, str) or (isinstance(bet, int) and result == 0 and bet <= bank)):
 			report = "You do not have enough BeardlessBucks to bet that much, {}!"
 		else:
 			if isinstance(bet, int) and not heads:

@@ -30,7 +30,8 @@ def randomBrawl(ranType):
 		if ranType in ("legend", "weapon"):
 			legends = tuple(legend["legend_name_key"].title() for legend in fetchLegends())
 			weapons = "Sword", "Spear", "Orb", "Cannon", "Hammer", "Scythe", "Greatsword", "Bow", "Gauntlets", "Katars", "Blasters", "Axe"
-			return bbEmbed("Random " + ranType.title(), "Your {} is {}.".format(ranType, choice(legends if ranType == "legend" else weapons)))
+			#return bbEmbed("Random " + ranType.title(), "Your {} is {}.".format(ranType, choice(legends if ranType == "legend" else weapons)))
+			return bbEmbed("Random " + ranType.title(), f"Your {ranType} is {choice(legends if ranType == 'legend' else weapons)}.")
 		else:
 			raise Exception
 	except:
@@ -80,10 +81,11 @@ def legendInfo(brawlKey, legendName):
 			quoteOne = (r["bio_quote"] + " *" + (r["bio_quote_about_attrib"])[1:-1] + "*").replace("\\n", " ")
 			quoteTwo = (r["bio_quote_from"] + " *" + (r["bio_quote_from_attrib"])[1:spaceCheck] + "*").replace("\\n", " ")
 			bio = "\n\n".join((r["bio_text"].replace("\n", "\n\n"), "**Quotes**", quoteOne, quoteTwo))
-			legendLinkName = r["bio_name"].replace(" ", "_")
+			#legendLinkName = r["bio_name"].replace(" ", "_")
 			return (bbEmbed(r["bio_name"] + ", " + r["bio_aka"], bio)
 			.add_field(name = "Weapons", value = (r["weapon_one"] + ", " + r["weapon_two"]).replace("Fist", "Gauntlet").replace("Pistol", "Blasters"))
-			.add_field(name = "Stats", value = "{} Str, {} Dex, {} Def, {} Spd".format(r["strength"], r["dexterity"], r["defense"], r["speed"])))
+			#.add_field(name = "Stats", value = "{} Str, {} Dex, {} Def, {} Spd".format(r["strength"], r["dexterity"], r["defense"], r["speed"])))
+			.add_field(name = "Stats", value = f"{r['strength']} Str, {r['dexterity']} Dex, {r['defense']} Def, {r['speed']} Spd"))
 	return None
 
 def getRank(target, brawlKey):

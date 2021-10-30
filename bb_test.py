@@ -251,7 +251,7 @@ def test_define():
 def test_flip():
 	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	assert flip(bb, "0").endswith("if you had actually bet anything.")
-	assert flip(bb, "invalidbet").startswith("Invalid bet amount.")
+	assert flip(bb, "invalidbet").startswith("Invalid bet.")
 	reset(bb)
 	flip(bb, "all")
 	balMsg = balance(bb, TestMessage("!bal", bb))
