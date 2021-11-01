@@ -70,7 +70,7 @@ def logUnban(member):
 
 def logMute(member, message, duration, mString, mTime):
 	return (bbEmbed("Beardless Bot Mute",
-	"Muted {}{} in {}.".format(member.mention, ((" for " + duration + " " + mString) if mTime else ""), message.channel.mention), 0xff0000)
+	"Muted {}{} in {}.".format(member.mention, (f" for {duration} {mString}" if mTime else ""), message.channel.mention), 0xff0000)
 	.set_author(name = str(message.author), icon_url = message.author.avatar_url))
 
 def logUnmute(member, author):

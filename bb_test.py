@@ -259,6 +259,21 @@ def test_flip():
 	assert flip(bb, "10000000000000").startswith("You do not have")
 	balMsg = reset(bb)
 	assert "200" in balance(bb, TestMessage("!bal", bb)).description
+	bb.name = ",invalidname,"
+	assert flip(bb, "0") == commaWarn.format(bb.mention)
+
+def test_blackjack():
+	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
+	assert blackjack(bb, "invalidbet")[0].startswith("Invalid bet.")
+	reset(bb)
+	report, game = blackjack(bb, "all")
+	assert isinstance(game, Instance) or report.startwith("You hit 21!")
+	reset(bb)
+	report, game = blackjack(bb, 0)
+	assert isinstance(game, Instance) or report.startwith("You hit 21!")
+	reset(bb)
+	bb.name = ",invalidname,"
+	assert blackjack(bb, "all")[0] == commaWarn.format(bb.mention)
 
 def test_blackjack_perfect():
 	game = Instance(TestUser(), 10)
@@ -398,14 +413,14 @@ if brawlKey:
 	def test_getRank():
 		user = TestUser()
 		user.id = 0
-		assert getRank(user, brawlKey) == f"{user.mention} needs to claim their profile first! Do !brawlclaim."
+		assert getRank(user, brawlKey) == unclaimed.format(user.mention)
 		user.id = 743238109898211389 #12502880
 		assert getRank(user, brawlKey).footer.text == "Brawl ID 12502880"
 
 	def test_getStats():
 		user = TestUser()
 		user.id = 0
-		assert getStats(user, brawlKey) == f"{user.mention} needs to claim their profile first! Do !brawlclaim."
+		assert getStats(user, brawlKey) == unclaimed.format(user.mention)
 		user.id = 196354892208537600
 		emb = getStats(user, brawlKey)
 		assert emb.footer.text == "Brawl ID 7032472"
@@ -414,7 +429,7 @@ if brawlKey:
 	def test_getClan():
 		user = TestUser()
 		user.id = 0
-		assert getClan(user, brawlKey) == f"{user.mention} needs to claim their profile first! Do !brawlclaim."
+		assert getClan(user, brawlKey) == unclaimed.format(user.mention)
 		user.id = 196354892208537600
 		assert getClan(user, brawlKey).title == "DinersDriveInsDives"
 		claimProfile(196354892208537600, 5895238)

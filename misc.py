@@ -85,17 +85,13 @@ def animal(animalType, breed = None):
 			r = requests.get("https://nekos.life/api/v2/img/lizard")
 		else:
 			r = requests.get("https://axoltlapi.herokuapp.com/")
-			if not r.status_code == 200: # Axolotl API is having problems, this is a workaround
-				r = requests.get("https://raw.githubusercontent.com/AxolotlAPI/data/main/pictures.txt")
-				if r.status_code == 200:
-					return choice(r.content.decode("utf-8").split("\n")[:-1])
 		if r.status_code == 200:
 			return r.json()["url"]
 	
 	if animalType == "bear":
 		return f"https://placebear.com/{randint(200, 400)}/{randint(200,400)}"
 
-	raise Exception(str(r) + animalType)
+	raise Exception(str(r) + ": " + animalType)
 
 def animals():
 	emb = bbEmbed("Animal Photo Commands:").add_field(inline = False, name = "!dog",

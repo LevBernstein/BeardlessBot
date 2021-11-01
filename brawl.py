@@ -18,6 +18,8 @@ badRegion = "Please specify a valid region, {}! Valid regions are US-E, US-W, EU
 
 reqLimit = "I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
 
+unclaimed = "{} needs to claim their profile first! Do !brawlclaim."
+
 def pingMsg(target, h, m, s):
 	def plural(t):
 		return "" if t == 1 else "s"
@@ -76,15 +78,14 @@ def legendInfo(brawlKey, legendName):
 		legendName = "munin"
 	for legend in fetchLegends():
 		if legendName in legend["legend_name_key"]:
-			r = requests.get("https://api.brawlhalla.com/legend/{}/?api_key={}".format(legend["legend_id"], brawlKey)).json()
+			r = requests.get(f"https://api.brawlhalla.com/legend/{legend['legend_id']}/?api_key={brawlKey}").json()
 			spaceCheck = -2 if legendName in ("reno", "teros", "hattori") else -1 # problematic extra space in 2nd quote for these legends
 			quoteOne = (r["bio_quote"] + " *" + (r["bio_quote_about_attrib"])[1:-1] + "*").replace("\\n", " ")
 			quoteTwo = (r["bio_quote_from"] + " *" + (r["bio_quote_from_attrib"])[1:spaceCheck] + "*").replace("\\n", " ")
 			bio = "\n\n".join((r["bio_text"].replace("\n", "\n\n"), "**Quotes**", quoteOne, quoteTwo))
-			#legendLinkName = r["bio_name"].replace(" ", "_")
+			#legendLinkName = r["bio_name"].replace(" ", "_") # TODO: use to get legend images
 			return (bbEmbed(r["bio_name"] + ", " + r["bio_aka"], bio)
 			.add_field(name = "Weapons", value = (r["weapon_one"] + ", " + r["weapon_two"]).replace("Fist", "Gauntlet").replace("Pistol", "Blasters"))
-			#.add_field(name = "Stats", value = "{} Str, {} Dex, {} Def, {} Spd".format(r["strength"], r["dexterity"], r["defense"], r["speed"])))
 			.add_field(name = "Stats", value = f"{r['strength']} Str, {r['dexterity']} Dex, {r['defense']} Def, {r['speed']} Spd"))
 	return None
 
@@ -92,16 +93,15 @@ def getRank(target, brawlKey):
 	# TODO: add rank images as thumbnail, clan below name; download local copies of rank images bc there's no easy format on wiki
 	brawlID = fetchBrawlID(target.id)
 	if not brawlID:
-		return f"{target.mention} needs to claim their profile first! Do !brawlclaim."
+		return unclaimed.format(target.mention)
 	r = requests.get(f"https://api.brawlhalla.com/player/{brawlID}/ranked?api_key={brawlKey}").json()
 	if len(r) < 4:
 		return "You haven't played ranked yet this season."
 	rankColors = {"Diamond": 0x3d2399, "Platinum": 0x0051b4, "Gold": 0xf8d06a, "Silver": 0xbbbbbb, "Bronze": 0x674b25, "Tin": 0x355536}
-	emb = (bbEmbed("{}, {}".format(r["name"], r["region"])).set_footer(text = f"Brawl ID {brawlID}")
-	.set_author(name = str(target), icon_url = target.avatar_url))
+	emb = bbEmbed(f"{r['name']}, {r['region']}").set_footer(text = f"Brawl ID {brawlID}").set_author(name = str(target), icon_url = target.avatar_url)
 	if "games" in r:
-		embVal = "**{}** ({}/{} Peak)\n{} W / {} L / {}% winrate".format(r["tier"], r["rating"], 
-		r["peak_rating"], r["wins"], r["games"] - r["wins"], round(r["wins"] / r["games"] * 100, 1))
+		winRate = round(r["wins"] / r["games"] * 100, 1)
+		embVal = f"**{r['tier']}** ({['rating']}/{['peak_rating']} Peak)\n{['wins']} W / {r['games'] - r['wins']} L / {winRate}% winrate"
 		if r["legends"]:
 			topLegend = None
 			for legend in r["legends"]:
@@ -134,14 +134,13 @@ def getStats(target, brawlKey):
 	# TODO: add clan below name, make this look not terrible
 	brawlID = fetchBrawlID(target.id)
 	if not brawlID:
-		return f"{target.mention} needs to claim their profile first! Do !brawlclaim."
+		return unclaimed.format(target.mention)
 	r = requests.get(f"https://api.brawlhalla.com/player/{brawlID}/stats?api_key={brawlKey}").json()
 	if len(r) < 4:
 		return "This profile doesn't have stats associated with it. Please make sure you've claimed the correct profile."
-	emb = (bbEmbed("Brawlhalla Stats for " + r["name"]).set_footer(text = f"Brawl ID {brawlID}")
-	.set_author(name = str(target), icon_url = target.avatar_url).add_field(name = "Name", value = r["name"])
-	.add_field(name = "Overall W/L",value = "{} Wins / {} Losses\n{} Games\n{}% Winrate"
-	.format(r["wins"], r["games"] - r["wins"], r["games"], round(r["wins"] / r["games"] * 100, 1))))
+	embVal = f"{r['wins']} Wins / {r['games'] - r['wins']} Losses\n{r['games']} Games\n{round(r['wins'] / r['games'] * 100, 1)}% Winrate"
+	emb = (bbEmbed("Brawlhalla Stats for " + r["name"]).set_footer(text = f"Brawl ID {brawlID}").add_field(name = "Overall W/L", value = embVal)
+	.set_author(name = str(target), icon_url = target.avatar_url).add_field(name = "Name", value = r["name"]))
 	if "legends" in r:
 		topUsed = topWinrate = topDPS = topTTK = None
 		for legend in r["legends"]:
@@ -161,16 +160,15 @@ def getStats(target, brawlKey):
 def getClan(target, brawlKey):
 	brawlID = fetchBrawlID(target.id)
 	if not brawlID:
-		return f"{target.mention} needs to claim their profile first! Do !brawlclaim."
+		return unclaimed.format(target.mention)
 	# takes two API calls: one to get clan ID from player stats, one to get clan from clan ID
 	# as a result, this command is very slow. TODO: Try to find a way around this.
 	r = requests.get(f"https://api.brawlhalla.com/player/{brawlID}/stats?api_key={brawlKey}").json()
 	if not "clan" in r:
 		return "You are not in a clan!"
-	r = requests.get("https://api.brawlhalla.com/clan/{}/?api_key={}".format(r["clan"]["clan_id"], brawlKey)).json()
+	r = requests.get(f"https://api.brawlhalla.com/clan/{r['clan']['clan_id']}/?api_key={brawlKey}").json()
 	emb = (bbEmbed(r["clan_name"], "**Clan Created:** {}\n**Experience:** {}\n**Members:** {}"
-	.format(str(datetime.fromtimestamp(r["clan_create_date"]))[:-9], r["clan_xp"], len(r["clan"])))
-	.set_footer(text = "Clan ID {}".format(r["clan_id"])))
+	.format(str(datetime.fromtimestamp(r["clan_create_date"]))[:-9], r["clan_xp"], len(r["clan"]))).set_footer(text = f"Clan ID {r['clan_id']}"))
 	for i in range(min(len(r["clan"]), 9)):
 		member = r["clan"][i]
 		emb.add_field(name = member["name"], value = "{} ({} xp)\nJoined {}"

@@ -1,6 +1,6 @@
 # Beardless Bot Command Event Rewrite
 # Author: Lev Bernstein
-# Version: Full Release 1.5.13
+# Version: Full Release 1.5.14
 
 import asyncio
 import csv
@@ -198,45 +198,23 @@ async def on_member_unban(guild, member):
 			await channel.send(embed = logUnban(member))
 			return
 
-@bot.command(name = "blackjack", aliases = ("bj",))
-async def cmdBlackjack(ctx, wagered = "10", *args): # TODO: rewrite into command in bucks, pass games list as arg, return report and game to add
-	target = ctx.author
-	if "," in target.name:
-		report = commaWarn.format(target.mention)
+@bot.command(name = "flip")
+async def cmdFlip(ctx, bet = "10", *args):
+	if any(ctx.author == game.getUser() for game in games):
+		report = f"Please finish your game of blackjack first, {ctx.author.mention}."
 	else:
-		report = f"You need to register first! Type !register to get started, {target.mention}."
-		allBet = (wagered.lower() == "all")
-		if allBet:
-			bet = 0
-		else:
-			try:
-				bet = int(wagered)
-			except:
-				bet = -1
-		if any(target == game.getUser() for game in games):
-			report = f"You already have an active game, {target.mention}."
-		elif bet < 0:
-			report = "Invalid bet. Please choose a number greater than or equal to 0, or enter \"all\" to bet your whole balance."
-		else:
-			with open("resources/money.csv", "r") as csvfile:
-				for row in csv.reader(csvfile, delimiter = ","):
-					if str(target.id) == row[0]:
-						bank = int(row[1])
-						if allBet:
-							bet = bank
-						report = f"You do not have enough BeardlessBucks to bet that much, {target.mention}!"
-						if bet <= bank:
-							game = Instance(target, bet)
-							report = game.message
-							if game.perfect(): # TODO: replace the following 5 lines with a single call to writeMoney()
-								newLine = ",".join((row[0], str(bank + bet), str(target)))
-								with open("resources/money.csv", "r") as oldMoney:
-									oldMoney = "".join([i for i in oldMoney]).replace(",".join(row), newLine)
-									with open("resources/money.csv", "w") as newMoney:
-										newMoney.writelines(oldMoney)
-							else:
-								games.append(game)
-						break
+		report = flip(ctx.author, bet.lower())
+	await ctx.channel.send(embed = bbEmbed("Beardless Bot Coin Flip", report))
+	return
+
+@bot.command(name = "blackjack", aliases = ("bj",))
+async def cmdBlackjack(ctx, bet = "10", *args):
+	if any(ctx.author == game.getUser() for game in games):
+		report = f"Please finish your game of blackjack first, {ctx.author.mention}."
+	else:
+		report, game = blackjack(ctx.author, bet)
+		if game:
+			games.append(game)
 	await ctx.channel.send(embed = bbEmbed("Beardless Bot Blackjack", report))
 	return
 
@@ -246,9 +224,8 @@ async def cmdDeal(ctx, *args):
 		report = commaWarn.format(ctx.author.mention)
 	else:
 		report = f"You do not currently have a game of blackjack going, {ctx.author.mention}. Type !blackjack to start one."
-		for i in range(len(games)):
-			if games[i].getUser() == ctx.author:
-				game = games[i]
+		for i, game in enumerate(games):
+			if game.getUser() == ctx.author:
 				report = game.deal()
 				if game.checkBust() or game.perfect():
 					writeMoney(ctx.author, game.bet * (-1 if game.checkBust() else 1), True, True)
@@ -263,9 +240,8 @@ async def cmdStay(ctx, *args):
 		report = commaWarn.format(ctx.author.mention)
 	else:
 		report = f"You do not currently have a game of blackjack going, {ctx.author.mention}. Type !blackjack to start one."
-		for i in range(len(games)):
-			if games[i].getUser() == ctx.author:
-				game = games[i]
+		for i, game in enumerate(games):
+			if game.getUser() == ctx.author:
 				result = game.stay()
 				report = game.message
 				if result and game.bet:
@@ -275,15 +251,6 @@ async def cmdStay(ctx, *args):
 				games.pop(i)
 				break
 	await ctx.channel.send(embed = bbEmbed("Beardless Bot Blackjack", report))
-	return
-
-@bot.command(name = "flip")
-async def cmdFlip(ctx, bet = "10", *args):
-	if any(ctx.author == game.getUser() for game in games):
-		report = f"Please finish your game of blackjack first, {ctx.author.mention}."
-	else:
-		report = flip(ctx.author, bet.lower())
-	await ctx.channel.send(embed = bbEmbed("Beardless Bot Coin Flip", report))
 	return
 
 @bot.command(name = "hint", aliases = ("hints",))
@@ -637,7 +604,7 @@ async def cmdBrawlclaim(ctx, profUrl = "None", *args):
 		return
 	brawlID = int(profUrl) if profUrl.isnumeric() else getBrawlID(brawlKey, profUrl)
 	if not brawlID:
-		report = ("{}" if not profUrl else "Invalid profile URL/Brawlhalla ID! {}").format(badClaim)
+		report = ("Invalid profile URL/Brawlhalla ID! " if profUrl else "") + badClaim
 	else:
 		try:
 			claimProfile(ctx.author.id, brawlID)
@@ -690,23 +657,6 @@ async def cmdBrawlstats(ctx, target = None, *args):
 		await ctx.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Stats", report))
 		return
 
-@bot.command(name = "brawllegend")
-async def cmdBrawllegend(ctx, legend = None, *args):
-	if not brawlKey:
-		return
-	report = "Invalid legend! Please do !brawllegend followed by a legend name."
-	if legend:
-		try:
-			legend = legendInfo(brawlKey, legend)
-			if legend:
-				await ctx.channel.send(embed = legend)
-				return
-		except Exception as err:
-			print(err)
-			report = reqLimit
-	await ctx.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Legend Info", report))
-	return
-
 @bot.command(name = "brawlclan")
 async def cmdBrawlclan(ctx, target = None, *args):
 	if not (brawlKey and ctx.guild):
@@ -727,6 +677,23 @@ async def cmdBrawlclan(ctx, target = None, *args):
 			report = reqLimit
 		await ctx.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Clan", report))
 		return
+
+@bot.command(name = "brawllegend")
+async def cmdBrawllegend(ctx, legend = None, *args):
+	if not brawlKey:
+		return
+	report = "Invalid legend! Please do !brawllegend followed by a legend name."
+	if legend:
+		try:
+			legend = legendInfo(brawlKey, legend)
+			if legend:
+				await ctx.channel.send(embed = legend)
+				return
+		except Exception as err:
+			print(err)
+			report = reqLimit
+	await ctx.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Legend Info", report))
+	return
 
 # Server-specific commands:
 
@@ -782,4 +749,5 @@ async def on_message(message):
 			print(err)
 	return
 
-bot.run(token)
+if __name__ == "__main__":
+	bot.run(token)

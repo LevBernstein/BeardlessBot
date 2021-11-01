@@ -199,19 +199,46 @@ def flip(author, bet):
 		result, bank = writeMoney(author, 300, False, False)
 		if result == 2:
 			report = "You were not registered for BeardlessBucks gambling, so I registered you. You now have 300 BeardlessBucks, {}."
+		elif result == -1:
+			report = bank
 		elif not (isinstance(bet, str) or (isinstance(bet, int) and result == 0 and bet <= bank)):
 			report = "You do not have enough BeardlessBucks to bet that much, {}!"
 		else:
 			if isinstance(bet, int) and not heads:
 				bet *= -1
 			result, bonus = writeMoney(author, bet, True, True)
-			report = "Tails! You lose! Your losses have been deducted from your balance, {}."
-			if heads:
-				report = "Heads! You win! Your winnings have been added to your balance, {}."
-			if result == -1:
-				report = bonus
-			elif result == 2:
+			if result == 2:
 				report = newUserMsg
-			elif result == 0:
-				report += " Or, they would have been, if you had actually bet anything."
+			else:
+				report = "Tails! You lose! Your losses have been deducted from your balance, {}."
+				if heads:
+					report = "Heads! You win! Your winnings have been added to your balance, {}."
+				if result == 0:
+					report += " Or, they would have been, if you had actually bet anything."
 	return report.format(author.mention)
+
+def blackjack(author, bet):
+	game = None
+	report = "Invalid bet. Please choose a number greater than or equal to 0, or enter \"all\" to bet your whole balance, {}."
+	if bet != "all":
+		try:
+			bet = int(bet)
+		except:
+			bet = -1
+	if (isinstance(bet, str) and bet == "all") or (isinstance(bet, int) and bet >= 0):
+		result, bank = writeMoney(author, 300, False, False)
+		if result == 2:
+			report = "You were not registered for BeardlessBucks gambling, so I registered you. You now have 300 BeardlessBucks, {}."
+		elif result == -1:
+			report = bank
+		elif not (isinstance(bet, str) or (isinstance(bet, int) and result == 0 and bet <= bank)):
+			report = "You do not have enough BeardlessBucks to bet that much, {}!"
+		else:
+			if bet == "all":
+				bet = bank
+			game = Instance(author, bet)
+			report = game.message
+			if game.perfect():
+				writeMoney(author, bet, True, True)
+				game = None
+	return report.format(author.mention), game

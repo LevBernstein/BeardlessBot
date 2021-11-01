@@ -1,6 +1,6 @@
 # Beardless Bot Command Event Rewrite
 
-### Full Release v1.5.13
+### Full Release v1.5.14
 
 ### Lev Bernstein
 
