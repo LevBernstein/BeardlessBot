@@ -21,8 +21,7 @@ reqLimit = "I've reached the request limit for the Brawlhalla API. Please wait 1
 unclaimed = "{} needs to claim their profile first! Do !brawlclaim."
 
 def pingMsg(target, h, m, s):
-	def plural(t):
-		return "" if t == 1 else "s"
+	plural = lambda t: "" if t == 1 else "s"
 	badPing = ("This region has been pinged too recently! Regions can only be pinged once" +
 	" every two hours, {}. You can ping again in {} hour{}, {} minute{}, and {} second{}.")
 	return badPing.format(target, h, plural(h), m, plural(m), s, plural(s))
@@ -101,7 +100,7 @@ def getRank(target, brawlKey):
 	emb = bbEmbed(f"{r['name']}, {r['region']}").set_footer(text = f"Brawl ID {brawlID}").set_author(name = str(target), icon_url = target.avatar_url)
 	if "games" in r:
 		winRate = round(r["wins"] / r["games"] * 100, 1)
-		embVal = f"**{r['tier']}** ({['rating']}/{['peak_rating']} Peak)\n{['wins']} W / {r['games'] - r['wins']} L / {winRate}% winrate"
+		embVal = f"**{r['tier']}** ({r['rating']}/{r['peak_rating']} Peak)\n{r['wins']} W / {r['games'] - r['wins']} L / {winRate}% winrate"
 		if r["legends"]:
 			topLegend = None
 			for legend in r["legends"]:
@@ -117,7 +116,7 @@ def getRank(target, brawlKey):
 	if "2v2" in r:
 		twosTeam = None
 		for team in r["2v2"]:
-			if not twosTeam or twosTeam["rating"] < team["rating"]:
+			if not twosTeam or twosTeam["rating"] < team["rating"]: # find highest-Elo 2s pairing
 				twosTeam = team
 		if twosTeam:
 			emb.add_field(name = "Ranked 2s", value = "**{}\n{}** ({} / {} Peak)\n{} W / {} L / {}% winrate"

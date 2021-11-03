@@ -13,7 +13,11 @@ animalList = "cat", "duck", "fox", "rabbit", "panda", "lizard", "axolotl", "bear
 
 hierarchyMsg = "It looks like I don't have permission to modify that user's roles! Raise my place in the role hierarchy, please."
 
-# Wrapper for discord.Embed that defaults to commonly-used values and is easier to define
+spotify = "https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg"
+
+truncTime = lambda member: str(member.created_at)[:-7]
+
+# Wrapper for discord.Embed init() that defaults to commonly-used values and is easier to call
 def bbEmbed(name, value = "", col = 0xfff994):
 	return discord.Embed(title = name, description = value, color = col)
 
@@ -143,7 +147,7 @@ def info(target, text):
 		# Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
 		emb = (bbEmbed("", target.activity.name if target.activity else "", target.color)
 		.set_author(name = str(target), icon_url = target.avatar_url).set_thumbnail(url = target.avatar_url)
-		.add_field(name = "Registered for Discord on", value = str(target.created_at)[:-7] + " UTC")
+		.add_field(name = "Registered for Discord on", value = truncTime(target) + " UTC")
 		.add_field(name = "Joined this server on", value = str(target.joined_at)[:-7] + " UTC"))
 		if len(target.roles) > 1: # Every user has the "@everyone" role, so check if they have more roles than that
 			emb.add_field(name = "Roles", value = ", ".join(role.mention for role in target.roles[:0:-1]), inline = False)

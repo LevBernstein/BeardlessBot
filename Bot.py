@@ -1,6 +1,6 @@
-# Beardless Bot Command Event Rewrite
+# Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.5.14
+# Version: Full Release 1.5.15
 
 import asyncio
 import csv
@@ -19,37 +19,6 @@ from bucks import *
 from logs import *
 from misc import *
 
-try:
-	with open("resources/token.txt", "r") as f:
-		# In token.txt, paste in your own Discord API token
-		token = f.readline()
-except:
-	print("Fatal error: no Discord API token. Shutting down.")
-	sysExit(-1)
-
-try:
-	with open("resources/brawlhallaKey.txt", "r") as f:
-		# In brawlhallaKey.txt, paste in your own Brawlhalla API key
-		brawlKey = f.readline()
-except:
-	print("No Brawlhalla API key. Brawlhalla-specific commands will not be active.")
-	brawlKey = None
-
-try:
-	with open("resources/secretWord.txt") as f:
-		secretWord = f.readline()
-		if len(secretWord) < 2:
-			raise Exception
-	secretFound = False
-except:
-	print("Secret word has not been defined. Continuing as normal.")
-	secretWord = None
-
-# This dictionary is for keeping track of pings in the various looking-for-spar channels.
-sparPings = {}
-
-games = [] # Stores the active instances of blackjack.
-
 operator = 196354892208537600 # Replace with your Discord id
 
 bot = commands.Bot(command_prefix = "!", case_insensitive = True, help_command = None, intents = discord.Intents.all(), owner_id = operator)
@@ -61,16 +30,16 @@ async def on_ready():
 		await bot.change_presence(activity = discord.Game(name = "try !blackjack and !flip"))
 		print("Status updated!")
 	except discord.HTTPException:
-		print("Failed to update status! You might be restarting the bot too many times.")
+		print("Failed to update status! You might be sending requests too quickly.")
 	try:
 		with open("resources/images/prof.png", "rb") as f:
 			await bot.user.edit(avatar = f.read())
-			print("Avatar live!")
+			print("Avatar updated!")
 	except discord.HTTPException:
-		print("Avatar failed to update! You might be sending requests too quickly.")
+		print("Failed to update avatar! You might be sending requests too quickly.")
 	except FileNotFoundError:
 		print("Avatar file not found! Check your directory structure.")
-	print(f"Beardless Bot is in {len(bot.guilds)} servers.")
+	print("Beardless Bot is in", len(bot.guilds), "servers.")
 	# Initialize ping waiting time for each channel at 0 for each server bb is in:
 	global sparPings
 	for guild in bot.guilds:
@@ -101,24 +70,23 @@ async def on_guild_join(guild):
 	return
 
 @bot.event
-async def on_message_delete(text):
-	if text.guild and (text.channel.name != "bb-log" or text.content):
+async def on_message_delete(msg):
+	if msg.guild and (msg.channel.name != "bb-log" or msg.content):
 		# Prevents embeds from causing a loop
-		for channel in text.guild.channels:
+		for channel in msg.guild.channels:
 			if channel.name == "bb-log":
-				await channel.send(embed = logDeleteMsg(text))
+				await channel.send(embed = logDeleteMsg(msg))
 				return
 
 @bot.event
-async def on_bulk_message_delete(textArr):
-	if textArr[0].guild:
-		for channel in textArr[0].guild.channels:
+async def on_bulk_message_delete(msgList):
+	if msgList[0].guild: # if one message in the list is in a guild, they all are
+		for channel in msgList[0].guild.channels:
 			if channel.name == "bb-log":
 				try:
-					await channel.send(embed = logPurge(textArr[0], textArr))
+					await channel.send(embed = logPurge(msgList[0], msgList))
 				except Exception as err:
 					print(err)
-					return
 				return
 
 @bot.event
@@ -131,19 +99,17 @@ async def on_message_edit(before, after):
 					await channel.send(embed = logEditMsg(before, after))
 				except Exception as err:
 					print(err)
-					return
 				return
 
 @bot.event
-async def on_reaction_clear(text, reactions):
-	if text.guild:
-		for channel in text.guild.channels:
+async def on_reaction_clear(msg, reactions):
+	if msg.guild:
+		for channel in msg.guild.channels:
 			if channel.name == "bb-log":
 				try:
-					await channel.send(embed = logClearReacts(text, reactions))
+					await channel.send(embed = logClearReacts(msg, reactions))
 				except Exception as err:
 					print(err)
-					return
 				return
 
 @bot.event
@@ -200,7 +166,7 @@ async def on_member_unban(guild, member):
 
 @bot.command(name = "flip")
 async def cmdFlip(ctx, bet = "10", *args):
-	if any(ctx.author == game.getUser() for game in games):
+	if any(ctx.author == game.user for game in games):
 		report = f"Please finish your game of blackjack first, {ctx.author.mention}."
 	else:
 		report = flip(ctx.author, bet.lower())
@@ -209,7 +175,7 @@ async def cmdFlip(ctx, bet = "10", *args):
 
 @bot.command(name = "blackjack", aliases = ("bj",))
 async def cmdBlackjack(ctx, bet = "10", *args):
-	if any(ctx.author == game.getUser() for game in games):
+	if any(ctx.author == game.user for game in games):
 		report = f"Please finish your game of blackjack first, {ctx.author.mention}."
 	else:
 		report, game = blackjack(ctx.author, bet)
@@ -225,7 +191,7 @@ async def cmdDeal(ctx, *args):
 	else:
 		report = f"You do not currently have a game of blackjack going, {ctx.author.mention}. Type !blackjack to start one."
 		for i, game in enumerate(games):
-			if game.getUser() == ctx.author:
+			if game.user == ctx.author:
 				report = game.deal()
 				if game.checkBust() or game.perfect():
 					writeMoney(ctx.author, game.bet * (-1 if game.checkBust() else 1), True, True)
@@ -241,7 +207,7 @@ async def cmdStay(ctx, *args):
 	else:
 		report = f"You do not currently have a game of blackjack going, {ctx.author.mention}. Type !blackjack to start one."
 		for i, game in enumerate(games):
-			if game.getUser() == ctx.author:
+			if game.user == ctx.author:
 				result = game.stay()
 				report = game.message
 				if result and game.bet:
@@ -281,12 +247,11 @@ async def cmdBalance(ctx, target = None, *args):
 
 @bot.command(name = "playlist", aliases = ("music",))
 async def cmdPlaylist(ctx, *args):
-	link = "https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg"
-	await ctx.channel.send(f"Here's my playlist (Discord will only show the first hundred songs):\n{link}")
+	await ctx.channel.send(f"Here's my playlist (Discord will only show the first hundred songs):\n{spotify}")
 	return
 
 @bot.command(name = "leaderboard", aliases=("leaderboards", "lb"))
-async def cmdLeaderboard(ctx, *args): # TODO: also report user's position on the leaderboard
+async def cmdLeaderboard(ctx, *args): # TODO: also report user's position on the leaderboard?
 	await ctx.channel.send(embed = leaderboard())
 	return
 
@@ -339,8 +304,7 @@ async def cmdRandomBrawl(ctx, ranType = "None", *args):
 
 @bot.command(name = "fact")
 async def cmdFact(ctx, *args):
-	header = f"Beardless Bot Fun Fact #{randint(1, 111111111)}"
-	await ctx.channel.send(embed = bbEmbed(header, fact()))
+	await ctx.channel.send(embed = bbEmbed(f"Beardless Bot Fun Fact #{randint(1, 111111111)}", fact()))
 	return
 
 @bot.command(name = "animals", aliases = ("animal", "pets"))
@@ -446,15 +410,16 @@ async def cmdMute(ctx, target = None, duration = None, *args):
 			if channel.name == "bb-log":
 				await channel.send(embed = logMute(target, ctx.message, duration, mString, mTime))
 		if mTime: # Autounmute
-			print(f"Muted {target} for {mTime} in {ctx.guild.name}")
+			print("Muted", target, "for", mTime, "in", ctx.guild.name)
 			await asyncio.sleep(mTime)
 			await target.remove_roles(role)
-			print("Autounmuted " + target.name)
+			print("Autounmuted", target.name)
 			for channel in ctx.guild.channels:
 				if channel.name == "bb-log":
 					await channel.send(embed = logUnmute(target, ctx.author))
 					return
-	except:
+	except Exception as err:
+		print(err)
 		await ctx.channel.send(hierarchyMsg)
 	return
 
@@ -725,7 +690,7 @@ async def on_message(message):
 				global secretFound
 				if not secretFound:
 					secretFound = True
-					print(f"Secret word found by {message.author.name} in {message.guild.name}.")
+					print("Secret word found by", message.author.name, "in", message.guild.name)
 					result, bonus = writeMoney(message.author, 100000, True, True)
 					report = "Ping Captain No-Beard for your prize" if result == -1 else "100000 BeardlessBucks have been added to your account"
 					await message.channel.send(embed = bbEmbed(f"Well done! You found the secret word, {secretWord}!",
@@ -750,4 +715,37 @@ async def on_message(message):
 	return
 
 if __name__ == "__main__":
+	try:
+		with open("resources/token.txt", "r") as f:
+			# In token.txt, paste in your own Discord API token
+			token = f.readline()
+	except:
+		print("Fatal error: no Discord API token. Shutting down.")
+		sysExit(-1)
+
+	try:
+		with open("resources/brawlhallaKey.txt", "r") as f:
+			# In brawlhallaKey.txt, paste in your own Brawlhalla API key
+			brawlKey = f.readline()
+	except:
+		print("No Brawlhalla API key. Brawlhalla-specific commands will not be active.")
+		brawlKey = None
+
+	try:
+		with open("resources/secretWord.txt") as f:
+			secretWord = f.readline()
+			if len(secretWord) < 2:
+				raise Exception
+		secretFound = False
+	except:
+		print("Secret word has not been defined. Continuing as normal.")
+		secretWord = None
+
+	# This dictionary is for keeping track of pings in the various looking-for-spar channels.
+	global sparPings
+	sparPings = {}
+
+	global games
+	games = [] # Stores the active instances of blackjack.
+
 	bot.run(token)

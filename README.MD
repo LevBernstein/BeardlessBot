@@ -1,6 +1,6 @@
-# Beardless Bot Command Event Rewrite
+# Beardless Bot
 
-### Full Release v1.5.14
+### Full Release v1.5.15
 
 ### Lev Bernstein
 
@@ -24,10 +24,14 @@ follow the steps outlined directly below in [Installation](#installation).
 
 4. Place the token file in the resources folder.
 
-5. As of Full Release v1.3.0, Beardless Bot supports calls to the Brawlhalla API. If you don't have [an API key](https://dev.brawlhalla.com/),
-those commands will simply be disabled; the Bot will work fine. If you do have an API key, place it in a file named "brawlhallaKey.txt"
-in the resources folder. If you want to fork this repo and use Brawlhalla commands, you'll need to define a repository secret with the
-name BRAWLHALLAKEY. For more information, see [this guide](https://docs.github.com/en/actions/reference/encrypted-secrets).
+5. As of Full Release v1.3.0, Beardless Bot supports calls to the Brawlhalla API.
+If you don't have [an API key](https://dev.brawlhalla.com/),
+those commands will simply be disabled; the Bot will work fine.
+If you do have an API key, place it in a file named "brawlhallaKey.txt"
+in the resources folder. If you want to fork this repo and have Brawlhalla
+commands covered by unit tests, you'll need to define a
+repository secret with the name BRAWLHALLAKEY. For more information,
+see [this guide](https://docs.github.com/en/actions/reference/encrypted-secrets).
 
 ## Setup
 

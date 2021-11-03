@@ -7,10 +7,7 @@ import discord
 import pytest
 import requests
 
-from brawl import *
-from bucks import *
-from logs import *
-from misc import *
+from Bot import *
 
 class TestUser(discord.User):
 	def __init__(self, name = "testname", nick = "testnick", discriminator = "0000", id = 123456789):
@@ -149,8 +146,7 @@ def test_logCreateChannel():
 
 def test_logMemberJoin():
 	member = TestUser()
-	assert logMemberJoin(member).description == ("Member {} joined\nAccount registered on {}\nID: {}"
-	.format(member.mention, str(member.created_at)[:-7], member.id))
+	assert logMemberJoin(member).description == f"Member {member.mention} joined\nAccount registered on {truncTime(member)}\nID: {member.id}"
 
 def test_logMemberRemove():
 	member = TestUser()
@@ -162,7 +158,7 @@ def test_logMemberNickChange():
 	before = TestUser()
 	after = TestUser("testuser", "newnick")
 	emb = logMemberNickChange(before, after)
-	assert emb.description == "Nickname of" + after.mention + " changed."
+	assert emb.description == "Nickname of " + after.mention + " changed."
 	assert emb.fields[0].value == before.nick
 	assert emb.fields[1].value == after.nick
 
@@ -250,7 +246,7 @@ def test_define():
 
 def test_flip():
 	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
-	assert flip(bb, "0").endswith("if you had actually bet anything.")
+	assert flip(bb, "0", True).endswith("if you had actually bet anything.")
 	assert flip(bb, "invalidbet").startswith("Invalid bet.")
 	reset(bb)
 	flip(bb, "all")
@@ -272,6 +268,8 @@ def test_blackjack():
 	report, game = blackjack(bb, 0)
 	assert isinstance(game, Instance) or report.startwith("You hit 21!")
 	reset(bb)
+	report, game = blackjack(bb, "10000000000000")
+	assert report.startswith("You do not have")
 	bb.name = ",invalidname,"
 	assert blackjack(bb, "all")[0] == commaWarn.format(bb.mention)
 
@@ -289,6 +287,8 @@ def test_blackjack_deal():
 	game.deal()
 	assert sum(game.cards) <= 21
 	assert "will be treated as a 1" in game.message
+	game.cards = []
+	assert "You hit 21!" in game.deal(True)
 
 def test_blackjack_cardName():
 	game = Instance(TestUser(), 10)
@@ -301,11 +301,6 @@ def test_blackjack_checkBust():
 	game = Instance(TestUser(), 10)
 	game.cards = 10, 10, 10
 	assert game.checkBust() == True
-
-def test_blackjack_getUser():
-	user = TestUser()
-	game = Instance(user, 10)
-	assert game.getUser() == user
 
 def test_blackjack_stay():
 	game = Instance(TestUser(), 0)
@@ -325,6 +320,8 @@ def test_blackjack_startingHand():
 	game.message = game.startingHand()
 	assert len(game.cards) == 2
 	assert game.message.startswith("Your starting hand consists of ")
+	assert "You hit 21!" in game.startingHand(True)
+	assert game.startingHand(False, True).startswith("Your starting hand consists of two Aces.")
 
 def test_randomBrawl():
 	assert randomBrawl("legend").title == "Random Legend"
@@ -338,8 +335,8 @@ def test_info():
 	text.guild.members = (TestUser(), namedUser)
 	namedUser.roles = (namedUser, namedUser)
 	namedUserInfo = info("searchterm", text)
-	assert namedUserInfo.fields[0].value == str(namedUser.created_at)[:-7] + " UTC"
-	assert namedUserInfo.fields[1].value == str(namedUser.joined_at)[:-7] + " UTC"
+	assert namedUserInfo.fields[0].value == truncTime(namedUser) + " UTC"
+	assert namedUserInfo.fields[1].value == truncTime(namedUser) + " UTC"
 	assert namedUserInfo.fields[2].value == namedUser.mention
 	assert info("!infoerror", text).title == "Invalid target!"
 

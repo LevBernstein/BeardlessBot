@@ -32,16 +32,16 @@ class Instance:
 	def perfect(self):
 		return sum(self.cards) == 21
 
-	def startingHand(self):
+	def startingHand(self, fixBlackjack = False, fixDoubleAces = False):
 		self.cards.append(choice(self.vals))
 		self.cards.append(choice(self.vals))
 		message = ("Your starting hand consists of {} and {}. Your total is {}. "
 		.format(self.cardName(self.cards[0]), self.cardName(self.cards[1]), sum(self.cards)))
-		if self.perfect():
+		if self.perfect() or fixBlackjack: # "fixBlackjack" used to test being dealt a blackjack
 			message += f"You hit 21! You win, {self.user.mention}!"
 		else:
 			message += f"The dealer is showing {self.dealerUp}, with one card face down. "
-			if self.checkBust():# Case only fires if you're dealt two aces
+			if self.checkBust() or fixDoubleAces:# Case only fires if you're dealt two aces, or testing this block
 				self.cards[1] = 1
 				self.bet *= -1
 				message = "Your starting hand consists of two Aces. One of them will act as a 1. Your total is 12. "
@@ -57,7 +57,7 @@ class Instance:
 			return "an 8"
 		return "a " + str(card)
 
-	def deal(self):
+	def deal(self, fix = False):
 		dealt = choice(self.vals)
 		self.cards.append(dealt)
 		self.message = f"You were dealt {self.cardName(dealt)}, bringing your total to {sum(self.cards)}. "
@@ -72,7 +72,7 @@ class Instance:
 		.format(", ".join(str(card) for card in self.cards), self.dealerUp))
 		if self.checkBust():
 			self.message += f" You busted. Game over, {self.user.mention}."
-		elif self.perfect():
+		elif self.perfect() or fix: # "fix" used to test this line
 			self.message += f" You hit 21! You win, {self.user.mention}!"
 		else:
 			self.message += f" Type !hit to deal another card to yourself, or !stay to stop at your current total, {self.user.mention}."
@@ -83,9 +83,6 @@ class Instance:
 			self.bet *= -1
 			return True
 		return False
-
-	def getUser(self):
-		return self.user
 
 	def stay(self):
 		change = 1
@@ -135,14 +132,12 @@ def writeMoney(member, amount, writing, adding):
 				return 0, int(row[1]) # no change in balance
 		with open("resources/money.csv", "a") as money:
 			money.write(f"\r\n{member.id},300,{member}")
-			return 2, None
+			return 2, f"Successfully registered. You have 300 BeardlessBucks, {member.mention}."
 
 def register(target):
 	result, bonus = writeMoney(target, 300, False, False)
-	report = f"Successfully registered. You now have 300 BeardlessBucks, {target.mention}."
-	if result == 0:
-		report = f"You are already in the system! Hooray! You have {bonus} BeardlessBucks, {target.mention}."
-	elif result == -1:
+	report = f"You are already in the system! Hooray! You have {bonus} BeardlessBucks, {target.mention}."
+	if result in (-1, 2):
 		report = bonus
 	return bbEmbed("BeardlessBucks Registration", report)
 
@@ -155,18 +150,14 @@ def balance(target, text):
 		result, bonus = writeMoney(target, 300, False, False)
 		if result == 0:
 			report = f"{target.mention}'s balance is {bonus} BeardlessBucks."
-		elif result == 2:
-			report = f"Successfully registered. You now have 300 BeardlessBucks, {target.mention}."
 		else:
-			report = bonus if result == -1 else "Error!"
+			report = bonus if result in (-1, 2) else "Error!"
 	return bbEmbed("BeardlessBucks Balance", report)
 
 def reset(target):
 	result, bonus = writeMoney(target, 200, True, False)
 	report = f"You have been reset to 200 BeardlessBucks, {target.mention}."
-	if result == 2:
-		report = f"Successfully registered. You have 300 BeardlessBucks, {target.mention}."
-	if result == -1:
+	if result in (-1, 2):
 		report = bonus
 	return bbEmbed("BeardlessBucks Reset", report)
 
@@ -185,7 +176,7 @@ def leaderboard(): # TODO print user's position on lb
 		emb.add_field(name = (str(i + 1) + ". " + head), value = str(body))
 	return emb
 
-def flip(author, bet):
+def flip(author, bet, fix = False):
 	heads = randint(0, 1)
 	report = "Invalid bet. Please choose a number greater than or equal to 0, or enter \"all\" to bet your whole balance, {}."
 	if bet == "all":
@@ -204,14 +195,14 @@ def flip(author, bet):
 		elif not (isinstance(bet, str) or (isinstance(bet, int) and result == 0 and bet <= bank)):
 			report = "You do not have enough BeardlessBucks to bet that much, {}!"
 		else:
-			if isinstance(bet, int) and not heads:
+			if (isinstance(bet, int) and not heads) or fix: # Fix just used to help test
 				bet *= -1
 			result, bonus = writeMoney(author, bet, True, True)
 			if result == 2:
 				report = newUserMsg
 			else:
 				report = "Tails! You lose! Your losses have been deducted from your balance, {}."
-				if heads:
+				if heads or fix:
 					report = "Heads! You win! Your winnings have been added to your balance, {}."
 				if result == 0:
 					report += " Or, they would have been, if you had actually bet anything."
