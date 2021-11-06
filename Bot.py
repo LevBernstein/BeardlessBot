@@ -1,9 +1,8 @@
 # Beardless Bot
 # Author: Lev Bernstein
-# Version: Full Release 1.5.15
+# Version: Full Release 1.5.16
 
 import asyncio
-import csv
 import json
 from datetime import datetime
 from random import choice, randint
@@ -19,9 +18,15 @@ from bucks import *
 from logs import *
 from misc import *
 
-operator = 196354892208537600 # Replace with your Discord id
 
-bot = commands.Bot(command_prefix = "!", case_insensitive = True, help_command = None, intents = discord.Intents.all(), owner_id = operator)
+bot = commands.Bot(
+	command_prefix = "!",
+	case_insensitive = True,
+	help_command = None,
+	intents = discord.Intents.all(),
+	owner_id = 196354892208537600 # Replace with your Discord id
+	)
+
 
 @bot.event
 async def on_ready():
@@ -45,6 +50,7 @@ async def on_ready():
 	for guild in bot.guilds:
 		sparPings[guild.id] = {"jpn": 0, "brz": 0, "us-w": 0, "us-e": 0, "sea": 0, "aus": 0, "eu": 0}
 
+
 @bot.event
 async def on_guild_join(guild):
 	global sparPings # create sparPings entry for this new server
@@ -67,7 +73,7 @@ async def on_guild_join(guild):
 				break
 			except:
 				pass
-	return
+
 
 @bot.event
 async def on_message_delete(msg):
@@ -77,6 +83,7 @@ async def on_message_delete(msg):
 			if channel.name == "bb-log":
 				await channel.send(embed = logDeleteMsg(msg))
 				return
+
 
 @bot.event
 async def on_bulk_message_delete(msgList):
@@ -88,6 +95,7 @@ async def on_bulk_message_delete(msgList):
 				except Exception as err:
 					print(err)
 				return
+
 
 @bot.event
 async def on_message_edit(before, after):
@@ -101,6 +109,7 @@ async def on_message_edit(before, after):
 					print(err)
 				return
 
+
 @bot.event
 async def on_reaction_clear(msg, reactions):
 	if msg.guild:
@@ -112,12 +121,14 @@ async def on_reaction_clear(msg, reactions):
 					print(err)
 				return
 
+
 @bot.event
 async def on_guild_channel_delete(ch):
 	for channel in ch.guild.channels:
 		if channel.name == "bb-log":
 			await channel.send(embed = logDeleteChannel(ch))
 			return
+
 
 @bot.event
 async def on_guild_channel_create(ch):
@@ -126,6 +137,7 @@ async def on_guild_channel_create(ch):
 			await channel.send(embed = logCreateChannel(ch))
 			return
 
+
 @bot.event
 async def on_member_join(member):
 	for channel in member.guild.channels:
@@ -133,12 +145,14 @@ async def on_member_join(member):
 			await channel.send(embed = logMemberJoin(member))
 			return
 
+
 @bot.event
 async def on_member_remove(member):
 	for channel in member.guild.channels:
 		if channel.name == "bb-log":
 			await channel.send(embed = logMemberRemove(member))
 			return
+
 
 @bot.event
 async def on_member_update(before, after):
@@ -150,12 +164,14 @@ async def on_member_update(before, after):
 				await channel.send(embed = logMemberRolesChange(before, after))
 			return
 
+
 @bot.event
 async def on_member_ban(guild, member):
 	for channel in guild.channels:
 		if channel.name == "bb-log":
 			await channel.send(embed = logBan(member))
 			return
+
 
 @bot.event
 async def on_member_unban(guild, member):
@@ -164,14 +180,15 @@ async def on_member_unban(guild, member):
 			await channel.send(embed = logUnban(member))
 			return
 
+
 @bot.command(name = "flip")
 async def cmdFlip(ctx, bet = "10", *args):
 	if any(ctx.author == game.user for game in games):
 		report = f"Please finish your game of blackjack first, {ctx.author.mention}."
 	else:
 		report = flip(ctx.author, bet.lower())
-	await ctx.channel.send(embed = bbEmbed("Beardless Bot Coin Flip", report))
-	return
+	await ctx.send(embed = bbEmbed("Beardless Bot Coin Flip", report))
+
 
 @bot.command(name = "blackjack", aliases = ("bj",))
 async def cmdBlackjack(ctx, bet = "10", *args):
@@ -181,8 +198,8 @@ async def cmdBlackjack(ctx, bet = "10", *args):
 		report, game = blackjack(ctx.author, bet)
 		if game:
 			games.append(game)
-	await ctx.channel.send(embed = bbEmbed("Beardless Bot Blackjack", report))
-	return
+	await ctx.send(embed = bbEmbed("Beardless Bot Blackjack", report))
+
 
 @bot.command(name = "deal", aliases = ("hit",))
 async def cmdDeal(ctx, *args):
@@ -197,8 +214,8 @@ async def cmdDeal(ctx, *args):
 					writeMoney(ctx.author, game.bet * (-1 if game.checkBust() else 1), True, True)
 					games.pop(i)
 				break
-	await ctx.channel.send(embed = bbEmbed("Beardless Bot Blackjack", report))
-	return
+	await ctx.send(embed = bbEmbed("Beardless Bot Blackjack", report))
+
 
 @bot.command(name = "stay", aliases = ("stand",))
 async def cmdStay(ctx, *args):
@@ -216,16 +233,16 @@ async def cmdStay(ctx, *args):
 						report = bonus
 				games.pop(i)
 				break
-	await ctx.channel.send(embed = bbEmbed("Beardless Bot Blackjack", report))
-	return
+	await ctx.send(embed = bbEmbed("Beardless Bot Blackjack", report))
+
 
 @bot.command(name = "hint", aliases = ("hints",))
 async def cmdHints(ctx, *args):
 	if secretWord:
-		await ctx.channel.send(embed = hints())
+		await ctx.send(embed = hints())
 	else:
-		await ctx.channel.send("Secret word has not been defined.")
-	return
+		await ctx.send("Secret word has not been defined.")
+
 
 @bot.command(name = "av", aliases = ("avatar",))
 async def cmdAv(ctx, target = None, *args):
@@ -233,8 +250,8 @@ async def cmdAv(ctx, target = None, *args):
 		target = ctx.author
 	if ctx.message.mentions:
 		target = ctx.message.mentions[0]
-	await ctx.channel.send(embed = av(target, ctx.message))
-	return
+	await ctx.send(embed = av(target, ctx.message))
+
 
 @bot.command(name = "balance", aliases = ("bal",))
 async def cmdBalance(ctx, target = None, *args):
@@ -242,99 +259,99 @@ async def cmdBalance(ctx, target = None, *args):
 		target = ctx.author
 	if ctx.message.mentions:
 		target = ctx.message.mentions[0]
-	await ctx.channel.send(embed = balance(target, ctx.message))
-	return
+	await ctx.send(embed = balance(target, ctx.message))
+
 
 @bot.command(name = "playlist", aliases = ("music",))
 async def cmdPlaylist(ctx, *args):
-	await ctx.channel.send(f"Here's my playlist (Discord will only show the first hundred songs):\n{spotify}")
-	return
+	await ctx.send(f"Here's my playlist (Discord will only show the first hundred songs):\n{spotify}")
+
 
 @bot.command(name = "leaderboard", aliases=("leaderboards", "lb"))
 async def cmdLeaderboard(ctx, *args): # TODO: also report user's position on the leaderboard?
-	await ctx.channel.send(embed = leaderboard())
-	return
+	await ctx.send(embed = leaderboard())
+
 
 @bot.command(name = "dice")
 async def cmdDice(ctx, *args):
-	await ctx.channel.send(embed = bbEmbed("Beardless Bot Dice", diceMsg))
-	return
+	await ctx.send(embed = bbEmbed("Beardless Bot Dice", diceMsg))
+
 
 @bot.command(name = "reset")
 async def cmdReset(ctx, *args):
-	await ctx.channel.send(embed = reset(ctx.author))
-	return
+	await ctx.send(embed = reset(ctx.author))
+
 
 @bot.command(name = "register")
 async def cmdRegister(ctx, *args):
-	await ctx.channel.send(embed = register(ctx.author))
-	return
+	await ctx.send(embed = register(ctx.author))
+
 
 @bot.command(name = "bucks")
 async def cmdBucks(ctx, *args):
-	await ctx.channel.send(embed = bbEmbed("BeardlessBucks", buckMsg))
-	return
+	await ctx.send(embed = bbEmbed("BeardlessBucks", buckMsg))
+
 
 @bot.command(name = "hello", aliases = ("hi",))
 async def cmdHello(ctx, *args):
 	greetings = "How ya doin?", "Yo!", "What's cookin?", "Hello!", "Ahoy!", "Hi!", "What's up?", "Hey!", "How's it goin?", "Greetings!"
-	await ctx.channel.send(choice(greetings))
-	return
+	await ctx.send(choice(greetings))
+
 
 @bot.command(name = "source")
 async def cmdSource(ctx, *args):
 	report = "Most facts taken from [this website](https://www.thefactsite.com/1000-interesting-facts/)."
-	await ctx.channel.send(embed = bbEmbed("Beardless Bot Fun Facts", report))
-	return
+	await ctx.send(embed = bbEmbed("Beardless Bot Fun Facts", report))
+
 
 @bot.command(name = "add", aliases = ("join",))
 async def cmdAdd(ctx, *args):
-	await ctx.channel.send(embed = joinMsg)
-	return
+	await ctx.send(embed = joinMsg)
+
 
 @bot.command(name = "rohan")
 async def cmdRohan(ctx, *args):
-	await ctx.channel.send(file = discord.File("resources/images/cute.png"))
-	return
+	await ctx.send(file = discord.File("resources/images/cute.png"))
+
 
 @bot.command(name = "random")
 async def cmdRandomBrawl(ctx, ranType = "None", *args):
-	await ctx.channel.send(embed = randomBrawl(ranType.lower()))
-	return
+	await ctx.send(embed = randomBrawl(ranType.lower()))
+
 
 @bot.command(name = "fact")
 async def cmdFact(ctx, *args):
-	await ctx.channel.send(embed = bbEmbed(f"Beardless Bot Fun Fact #{randint(1, 111111111)}", fact()))
-	return
+	await ctx.send(embed = bbEmbed(f"Beardless Bot Fun Fact #{randint(1, 111111111)}", fact()))
+
 
 @bot.command(name = "animals", aliases = ("animal", "pets"))
 async def cmdAnimals(ctx, *args):
-	await ctx.channel.send(embed = animals())
-	return
+	await ctx.send(embed = animals())
+
 
 @bot.command(name = "define")
 async def cmdDefine(ctx, *words):
-	await ctx.channel.send(embed = define(" ".join(words)))
-	return
+	await ctx.send(embed = define(" ".join(words)))
+
 
 @bot.command(name = "ping")
 async def cmdPing(ctx, *args):
 	startTime = datetime.now()
-	message = await ctx.channel.send(embed = bbEmbed("Pinging..."))
+	message = await ctx.send(embed = bbEmbed("Pinging..."))
 	report = f"Beardless Bot's latency is {int((datetime.now() - startTime).total_seconds() * 1000)} ms."
 	await message.edit(embed = bbEmbed("Pinged!", report).set_thumbnail(url = bot.user.avatar_url))
-	return
+
 
 @bot.command(name = "roll")
 async def cmdRoll(ctx, dice, *args):
-	await ctx.channel.send(embed = rollReport(dice, ctx.author))
-	return
+	await ctx.send(embed = rollReport(dice, ctx.author))
+
 
 @bot.command(name = "dog", aliases = animalList + ("moose",))
 async def cmdAnimal(ctx, breed = None, *args):
 	species = ctx.invoked_with.lower()
 	if species == "moose" or (breed and breed.lower() == "moose"):
-		await ctx.channel.send(file = discord.File(f"resources/images/moose/moose{randint(1, 62)}.jpg"))
+		await ctx.send(file = discord.File(f"resources/images/moose/moose{randint(1, 62)}.jpg"))
 		return
 	if species == "dog":
 		try:
@@ -342,48 +359,49 @@ async def cmdAnimal(ctx, breed = None, *args):
 				dogBreed = breed.lower()
 				dogUrl = animal("dog", dogBreed)
 				if dogUrl.startswith("Breed not found") or dogUrl.startswith("Dog breeds"):
-					await ctx.channel.send(dogUrl)
+					await ctx.send(dogUrl)
 					return
 			else:
 				dogUrl = animal("dog")
 				dogBreed = "Hound" if "hound" in dogUrl else dogUrl.split("/")[-2]
-			await ctx.channel.send(embed = bbEmbed("Random " + dogBreed.title()).set_image(url = dogUrl))
+			await ctx.send(embed = bbEmbed("Random " + dogBreed.title()).set_image(url = dogUrl))
 		except:
-			await ctx.channel.send("Something's gone wrong with the dog API! Please ping my creator and he'll see what's going on.")
+			await ctx.send("Something's gone wrong with the dog API! Please ping my creator and he'll see what's going on.")
 		return
 	try:
-		await ctx.channel.send(embed = bbEmbed("Random " + species.title()).set_image(url = animal(species)))
+		await ctx.send(embed = bbEmbed("Random " + species.title()).set_image(url = animal(species)))
 	except Exception as err:
 		print(err)
-		await ctx.channel.send("Something's gone wrong! Please ping my creator and he'll see what's going on.")
-	return
+		await ctx.send("Something's gone wrong! Please ping my creator and he'll see what's going on.")
+
 
 @bot.command(name = "help", aliases = ("commands",))
 async def cmdHelp(ctx, *args):
-	await ctx.channel.send(embed = bbCommands(ctx))
-	return
+	await ctx.send(embed = bbCommands(ctx))
+
 
 # Server-only commands (the above commands are usable in DMs; those below are not):
+
 
 @bot.command(name = "mute")
 async def cmdMute(ctx, target = None, duration = None, *args):
 	if not ctx.guild:
 		return
 	if not ctx.author.guild_permissions.manage_messages:
-		await ctx.channel.send(f"You do not have permission to use this command, {ctx.author.mention}.")
+		await ctx.send(f"You do not have permission to use this command, {ctx.author.mention}.")
 		return
 	if not target:
-		await ctx.channel.send(f"Please specify a target, {ctx.author.mention}.")
+		await ctx.send(f"Please specify a target, {ctx.author.mention}.")
 		return
 	try:
 		converter = commands.MemberConverter() # look into replacing with a converter in def
 		target = await converter.convert(ctx, target)
 		if target.id == 654133911558946837: # If user tries to mute Beardless Bot:
-			await ctx.channel.send("I am too powerful to be muted. Stop trying.")
+			await ctx.send("I am too powerful to be muted. Stop trying.")
 			return
 	except Exception as err:
 		print(err)
-		await ctx.channel.send(embed = bbEmbed("Beardless Bot Mute", "Invalid target! Target must be a mention or user ID."))
+		await ctx.send(embed = bbEmbed("Beardless Bot Mute", "Invalid target! Target must be a mention or user ID."))
 		return
 	role = get(ctx.guild.roles, name = "Muted")
 	if not role: # Creates a Muted role.
@@ -403,8 +421,8 @@ async def cmdMute(ctx, target = None, duration = None, *args):
 		report = "Muted " + target.mention + ((" for " + duration + mString + ".") if mTime else ".")
 		emb = bbEmbed("Beardless Bot Mute", report).set_author(name = str(ctx.author), icon_url = ctx.author.avatar_url)
 		if args:
-			emb.add_field(name = "", value = " ".join(args), inline = False)
-		await ctx.channel.send(embed = emb)
+			emb.add_field(name = "Mute Reason:", value = " ".join(args), inline = False)
+		await ctx.send(embed = emb)
 		for channel in ctx.guild.channels: # iterates through channels, makes Muted unable to send msgs
 			await channel.set_permissions(role, send_messages = False)
 			if channel.name == "bb-log":
@@ -420,8 +438,8 @@ async def cmdMute(ctx, target = None, duration = None, *args):
 					return
 	except Exception as err:
 		print(err)
-		await ctx.channel.send(hierarchyMsg)
-	return
+		await ctx.send(hierarchyMsg)
+
 
 @bot.command(name = "unmute")
 async def cmdUnmute(ctx, target = None, *args):
@@ -441,50 +459,52 @@ async def cmdUnmute(ctx, target = None, *args):
 					if channel.name == "bb-log":
 						await channel.send(embed = logUnmute(target, ctx.author))
 						break
-		await ctx.channel.send(embed = bbEmbed("Beardless Bot Unmute", report))
+		await ctx.send(embed = bbEmbed("Beardless Bot Unmute", report))
 	except:
-		await ctx.channel.send(hierarchyMsg)
-	return
+		await ctx.send(hierarchyMsg)
+
 
 @bot.command(name = "purge")
 async def cmdPurge(ctx, num = None, *args):
 	if not ctx.guild:
 		return
 	if not ctx.author.guild_permissions.manage_messages:
-		await ctx.channel.send(embed = bbEmbed("Beardless Bot Purge", f"You do not have permission to use this command, {ctx.author.mention}."))
+		await ctx.send(embed = bbEmbed("Beardless Bot Purge", f"You do not have permission to use this command, {ctx.author.mention}."))
 	else:
 		try:
 			mNum = int(num) # look into replacing with a converter
 			await ctx.channel.purge(limit = mNum + 1, check = lambda message: not message.pinned)
 		except:
-			await ctx.channel.send(embed = bbEmbed("Beardless Bot Purge", "Invalid message number!"))
-	return
+			await ctx.send(embed = bbEmbed("Beardless Bot Purge", "Invalid message number!"))
+
 
 @bot.command(name = "buy")
-async def cmdBuy(ctx, color = "None", *args):
+async def cmdBuy(ctx, color = "none", *args):
 	if not ctx.guild:
 		return
 	report = "Invalid color. Choose blue, red, orange, or pink, {}."
 	color = color.lower()
-	if color in ("blue", "pink", "orange", "red"):
+	colors = {"blue": 0x3c9efd, "pink": 0xd300ff, "orange": 0xfaaa24, "red": 0xf5123d}
+	if color in colors.keys():
 		role = get(ctx.guild.roles, name = "special " + color)
 		if not role:
 			report = "That special color role does not exist in this server, {}."
 		elif role in ctx.author.roles:
 			report = "You already have this special color, {}."
 		else:
+			if not role.color.value:
+				await role.edit(colour = colors[color])
 			report = "Not enough BeardlessBucks. You need 50000 to buy a special color, {}."
-			with open("resources/money.csv", "r") as csvfile:
-				result, bonus = writeMoney(ctx.author, -50000, True, True)
-				if result == 1:
-					report = "Color " + role.mention + " purchased successfully, {}!"
-					await ctx.author.add_roles(role)
-				if result == -1:
-					report = bonus
-				if result == 2:
-					report = newUserMsg
-	await ctx.channel.send(embed = bbEmbed("Beardless Bot Special Colors", report.format(ctx.author.mention)))
-	return
+			result, bonus = writeMoney(ctx.author, -50000, True, True)
+			if result == 1:
+				report = "Color " + role.mention + " purchased successfully, {}!"
+				await ctx.author.add_roles(role)
+			if result == -1:
+				report = bonus
+			if result == 2:
+				report = newUserMsg
+	await ctx.send(embed = bbEmbed("Beardless Bot Special Colors", report.format(ctx.author.mention)))
+
 
 @bot.command(name = "info")
 async def cmdInfo(ctx, target = None, *args):
@@ -494,22 +514,20 @@ async def cmdInfo(ctx, target = None, *args):
 		target = ctx.author
 	if ctx.message.mentions:
 		target = ctx.message.mentions[0]
-	await ctx.channel.send(embed = info(target, ctx.message))
-	return
+	await ctx.send(embed = info(target, ctx.message))
+
 
 @bot.command(name = "pins")
 async def cmdPins(ctx, *args):
-	if not ctx.guild:
-		return
-	if ctx.channel.name == "looking-for-spar":
-		await ctx.channel.send(embed = sparPins)
-	return
+	if ctx.guild and ctx.channel.name == "looking-for-spar":
+		await ctx.send(embed = sparPins)
+
 
 @bot.command(name = "twitch")
 async def cmdTwitch(ctx, *args):
-	await ctx.channel.send(embed = bbEmbed("Captain No-Beard's Twitch Stream", "https://twitch.tv/capnnobeard")
+	await ctx.send(embed = bbEmbed("Captain No-Beard's Twitch Stream", "https://twitch.tv/capnnobeard")
 	.set_thumbnail(url = "https://static-cdn.jtvnw.net/jtv_user_pictures/capnnobeard-profile_image-423aa718d334e220-70x70.jpeg"))
-	return
+
 
 @bot.command(name = "spar")
 async def cmdSpar(ctx, region = None, *misc):
@@ -521,10 +539,10 @@ async def cmdSpar(ctx, region = None, *misc):
 			if channel.name == "looking-for-spar":
 				report = "Please only use !spar in " + channel.mention + ", {}."
 				break
-		await ctx.channel.send(report.format(ctx.author.mention))
+		await ctx.send(report.format(ctx.author.mention))
 		return
 	if not region:
-		await ctx.channel.send(embed = sparPins)
+		await ctx.send(embed = sparPins)
 		return
 	report = badRegion.format(ctx.author.mention)
 	tooRecent = role = None
@@ -550,18 +568,19 @@ async def cmdSpar(ctx, region = None, *misc):
 		hours, seconds = divmod(7200 - (int(time()) - tooRecent), 3600)
 		minutes, seconds = divmod(seconds, 60)
 		report = pingMsg(ctx.author.mention, hours, minutes, seconds)
-	await ctx.channel.send(report)
+	await ctx.send(report)
 	if misc and role and not tooRecent:
-		await ctx.channel.send("Additional info: \"{}\"".format(" ".join(misc)))
-	return
+		await ctx.send("Additional info: \"{}\"".format(" ".join(misc)))
+
 
 # Commands requiring a Brawlhalla API key:
+
 
 @bot.command(name = "brawl")
 async def cmdBrawl(ctx, *args):
 	if brawlKey:
-		await ctx.channel.send(embed = brawlCommands())
-	return
+		await ctx.send(embed = brawlCommands())
+
 
 @bot.command(name = "brawlclaim")
 async def cmdBrawlclaim(ctx, profUrl = "None", *args):
@@ -577,8 +596,8 @@ async def cmdBrawlclaim(ctx, profUrl = "None", *args):
 		except Exception as err:
 			print(err)
 			report = reqLimit
-	await ctx.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Rank", report))
-	return
+	await ctx.send(embed = bbEmbed("Beardless Bot Brawlhalla Rank", report))
+
 
 @bot.command(name = "brawlrank")
 async def cmdBrawlrank(ctx, target = None, *args):
@@ -591,15 +610,13 @@ async def cmdBrawlrank(ctx, target = None, *args):
 		target = memSearch(ctx.message, target)
 	if target:
 		try:
-			report = getRank(target, brawlKey)
-			if isinstance(report, discord.Embed):
-				await ctx.channel.send(embed = report)
-				return
+			await ctx.send(embed = getRank(target, brawlKey))
+			return
 		except Exception as err:
 			print(err)
 			report = reqLimit
-		await ctx.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Rank", report))
-		return
+	await ctx.send(embed = bbEmbed("Beardless Bot Brawlhalla Rank", report))
+
 
 @bot.command(name = "brawlstats")
 async def cmdBrawlstats(ctx, target = None, *args):
@@ -612,15 +629,13 @@ async def cmdBrawlstats(ctx, target = None, *args):
 		target = memSearch(ctx.message, target)
 	if target:
 		try:
-			report = getStats(target, brawlKey)
-			if isinstance(report, discord.Embed):
-				await ctx.channel.send(embed = report)
-				return
+			await ctx.send(embed = getStats(target, brawlKey))
+			return
 		except Exception as err:
 			print(err)
 			report = reqLimit
-		await ctx.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Stats", report))
-		return
+	await ctx.send(embed = bbEmbed("Beardless Bot Brawlhalla Stats", report))
+
 
 @bot.command(name = "brawlclan")
 async def cmdBrawlclan(ctx, target = None, *args):
@@ -633,15 +648,13 @@ async def cmdBrawlclan(ctx, target = None, *args):
 		target = memSearch(ctx.message, target)
 	if target:
 		try:
-			report = getClan(target, brawlKey)
-			if isinstance(report, discord.Embed):
-				await ctx.channel.send(embed = report)
-				return
+			await ctx.send(embed = getClan(target, brawlKey))
+			return
 		except Exception as err:
 			print(err)
 			report = reqLimit
-		await ctx.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Clan", report))
-		return
+	await ctx.send(embed = bbEmbed("Beardless Bot Brawlhalla Clan", report))
+
 
 @bot.command(name = "brawllegend")
 async def cmdBrawllegend(ctx, legend = None, *args):
@@ -652,33 +665,34 @@ async def cmdBrawllegend(ctx, legend = None, *args):
 		try:
 			legend = legendInfo(brawlKey, legend)
 			if legend:
-				await ctx.channel.send(embed = legend)
+				await ctx.send(embed = legend)
 				return
 		except Exception as err:
 			print(err)
 			report = reqLimit
-	await ctx.channel.send(embed = bbEmbed("Beardless Bot Brawlhalla Legend Info", report))
-	return
+	await ctx.send(embed = bbEmbed("Beardless Bot Brawlhalla Legend Info", report))
+
 
 # Server-specific commands:
+
 
 @bot.command(name = "tweet", aliases = ("eggtweet",))
 async def cmdTweet(ctx, *args):
 	if ctx.guild and ctx.guild.id == 442403231864324119:
-		await ctx.channel.send(embed = bbEmbed("eggsoup(@eggsouptv)", formattedTweet(tweet()), 0x1da1f2))
-	return
+		await ctx.send(embed = bbEmbed("eggsoup(@eggsouptv)", formattedTweet(tweet()), 0x1da1f2))
+
 
 @bot.command(name = "reddit")
 async def cmdReddit(ctx, *args):
 	if ctx.guild and ctx.guild.id == 442403231864324119:
-		await ctx.channel.send(embed = redditEmb)
-	return
+		await ctx.send(embed = redditEmb)
+
 
 @bot.command(name = "guide")
 async def cmdGuide(ctx, *args):
 	if ctx.guild and ctx.guild.id == 442403231864324119:
-		await ctx.channel.send(embed = bbEmbed("The Eggsoup Improvement Guide", "https://www.youtube.com/watch?v=nH0TOoJIU80"))
-	return
+		await ctx.send(embed = bbEmbed("The Eggsoup Improvement Guide", "https://www.youtube.com/watch?v=nH0TOoJIU80"))
+
 
 @bot.event
 async def on_message(message):
@@ -712,7 +726,7 @@ async def on_message(message):
 			await bot.process_commands(message) # Needed in order to run commands alongside on_message
 		except Exception as err:
 			print(err)
-	return
+
 
 if __name__ == "__main__":
 	try:

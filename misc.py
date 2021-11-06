@@ -1,9 +1,10 @@
-# Miscellaneous commands for Beardless Bot
+# Beardless Bot miscellaneous methods
 
 from random import choice, randint
 
 import discord
 import requests
+
 
 diceMsg = "Enter !d[number][+/-][modifier] to roll a [number]-sided die and add or subtract a modifier. For example: !d8+3, or !d100-17, or !d6."
 
@@ -17,13 +18,15 @@ spotify = "https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGT
 
 truncTime = lambda member: str(member.created_at)[:-7]
 
+
 # Wrapper for discord.Embed init() that defaults to commonly-used values and is easier to call
-def bbEmbed(name, value = "", col = 0xfff994):
+def bbEmbed(name: str, value: str = "", col: int = 0xfff994) -> discord.Embed:
 	return discord.Embed(title = name, description = value, color = col)
+
 
 # User lookup helper method. Finds user based on username and/or discriminator (#1234)
 # Runs in linear time; worst case, does not find a loosely-matching target, takes O(n) operations
-def memSearch(message, target):
+def memSearch(message: discord.Message, target) -> discord.Member:
 	term = str(target).lower()
 	semiMatch = looseMatch = None
 	for member in message.guild.members:
@@ -39,7 +42,8 @@ def memSearch(message, target):
 			looseMatch = member
 	return semiMatch if semiMatch else looseMatch
 
-def animal(animalType, breed = None):
+
+def animal(animalType: str, breed = None) -> str:
 	r = "Invalid Animal!"
 	if animalType == "cat":
 		# cat API has been throwing 503 errors every other call, likely due to rate limiting
@@ -97,14 +101,16 @@ def animal(animalType, breed = None):
 
 	raise Exception(str(r) + ": " + animalType)
 
-def animals():
+
+def animals() -> discord.Embed:
 	emb = bbEmbed("Animal Photo Commands:").add_field(inline = False, name = "!dog",
 	value = "Can also do !dog breeds to see breeds you can get pictures of with !dog [breed]")
 	for animalName in animalList:
 		emb.add_field(name = "!" + animalName, value = "_ _")
 	return emb
 
-def define(word):
+
+def define(word: str) -> discord.Embed:
 	r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
 	if r.status_code == 200:
 		desc = f"Audio: https:{r.json()[0]['phonetics'][0]['audio']}" if "audio" in r.json()[0]["phonetics"][0] else ""
@@ -118,7 +124,8 @@ def define(word):
 		return emb
 	return bbEmbed("Beardless Bot Definitions", "Invalid word!")
 
-def roll(message):
+
+def roll(message: str) -> int:
 	# Takes a string of the format dn+b and rolls one n-sided die with a modifier of b. Modifier is optional.
 	command = message.split("d", 1)[1]
 	modifier = -1 if "-" in command else 1
@@ -129,20 +136,23 @@ def roll(message):
 			return randint(1, int(side)) if command == side else None
 	return None
 
-def rollReport(text, author):
+
+def rollReport(text: str, author: discord.User) -> discord.Embed:
 	result = str(roll(text.lower()))
 	report = "Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well as modifiers. No spaces allowed. Ex: !roll d4+3"
 	if result != "None":
 		report = f"You got {result}, {author.mention}."
 	return bbEmbed("Beardless Bot Dice", report)
 
-def fact():
+
+def fact() -> str:
 	with open("resources/facts.txt", "r") as f:
 		return choice(f.read().splitlines())
 
-def info(target, text):
+
+def info(target: discord.Member, msg: discord.Message) -> discord.Embed:
 	if not isinstance(target, discord.User):
-		target = memSearch(text, target)
+		target = memSearch(msg, target)
 	if target:
 		# Discord occasionally reports people with an activity as not having one; if so, go invisible and back online
 		emb = (bbEmbed("", target.activity.name if target.activity else "", target.color)
@@ -155,15 +165,17 @@ def info(target, text):
 		return emb
 	return bbEmbed("Invalid target!", "Please choose a valid target. Valid targets are either a ping or a username.", 0xff0000)
 
-def av(target, text):
+
+def av(target: discord.Member, msg: discord.Message) -> discord.Embed:
 	if not isinstance(target, discord.User):
-		target = memSearch(text, target)
+		target = memSearch(msg, target)
 	if target:
 		return (bbEmbed("", "", target.color).set_image(url = target.avatar_url)
 		.set_author(name = str(target), icon_url = target.avatar_url))
 	return bbEmbed("Invalid target!", "Please choose a valid target. Valid targets are either a ping or a username.", 0xff0000)
 
-def bbCommands(ctx):
+
+def bbCommands(ctx) -> discord.Embed:
 	emb = bbEmbed("Beardless Bot Commands")
 	commandNum = 15 if not ctx.guild else 20 if ctx.author.guild_permissions.manage_messages else 17
 	commandList = (("!register", "Registers you with the currency system."),
@@ -190,7 +202,8 @@ def bbCommands(ctx):
 		emb.add_field(name = commandPair[0], value = commandPair[1])
 	return emb
 
-def hints():
+
+def hints() -> discord.Embed:
 	with open("resources/hints.txt", "r") as f:
 		hints = f.read().splitlines()
 		emb = bbEmbed("Hints for Beardless Bot's Secret Word")
@@ -198,11 +211,13 @@ def hints():
 			emb.add_field(name = str(i + 1), value = hints[i])
 		return emb
 
-def scamCheck(text):
+
+def scamCheck(text: str) -> bool:
 	return (all(("http" in text, ("discord" in text or "dizcord" in text), ("nitro" in text or "gift" in text)))
 	or all(("@everyone" in text, "http" in text, ("nitro" in text or "gift" in text or "discord" in text))))
 
-def onJoin(guild, role):
+
+def onJoin(guild: discord.Guild, role: discord.Role) -> discord.Embed:
 	lines = ((f"Thanks for adding me to {guild.name}! There are a few things you can do to unlock my full potential."),
 	("If you want event logging, make a channel named #bb-log."),
 	("If you want a region-based sparring system, make a channel named #looking-for-spar."),
@@ -210,8 +225,9 @@ def onJoin(guild, role):
 	(f"Don't forget to move my {role.mention} role up to the top of the role hierarchy in order to allow me to moderate all users."))
 	return bbEmbed(f"Hello, {guild.name}!", "\n".join(lines)).set_thumbnail(url = prof)
 
+
 # The following Markov chain code was originally provided by CSTUY SHIP.
-def tweet():
+def tweet() -> str:
 	with open("resources/eggtweets_clean.txt", "r") as f:
 		words = f.read().split()
 	chains = {}
@@ -228,12 +244,14 @@ def tweet():
 		key = " ".join(key.split()[1:keySize + 1]) + " " + word if keySize > 1 else word
 	return s[0].title() + s[1:]
 
-def formattedTweet(eggTweet):
+
+def formattedTweet(eggTweet: str) -> str:
 	# Removes the last piece of punctuation to create a more realistic tweet
 	for i in range(len(eggTweet) - 1, -1, -1):
 		if eggTweet[i] in (".", "!", "?"):
 			return "\n" + eggTweet[:i]
 	return "\n" + eggTweet
+
 
 # Stock embeds:
 
@@ -252,6 +270,7 @@ sparDesc = "\n".join(("Do the command !spar [region] [other info].",
 	"**!spar US-E looking for a diamond 2s partner**.",
 	"Valid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA.",
 	"!spar has a 2 hour cooldown.", "Please use the roles channel to give yourself the correct roles."))
+
 sparPins = (bbEmbed("How to use this channel.").add_field(name = "To spar someone from your region:", value = sparDesc, inline = False)
 .add_field(name = "If you don't want to get pings:", inline = False,
 value = "Remove your region role. Otherwise, responding 'no' to calls to spar is annoying and counterproductive, and will earn you a warning."))

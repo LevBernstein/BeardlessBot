@@ -1,3 +1,5 @@
+# Beardless Bot methods that modify resources/money.csv
+
 import csv
 from collections import OrderedDict
 from operator import itemgetter
@@ -8,6 +10,7 @@ from discord.utils import find
 
 from misc import bbEmbed, memSearch
 
+
 commaWarn = "Beardless Bot gambling is available to Discord users with a comma in their username. Please remove the comma from your username, {}."
 
 buckMsg = ("BeardlessBucks are this bot's special currency. You can earn them " +
@@ -15,10 +18,11 @@ buckMsg = ("BeardlessBucks are this bot's special currency. You can earn them " 
 
 newUserMsg = "You were not registered for BeardlessBucks gambling, so I have automatically registered you. You now have 300 BeardlessBucks, {}."
 
+
 # Blackjack class. New Instance is made for each game of Blackjack and is kept around until the player finishes the game.
 # An active Instance for a given user prevents the creation of a new Instance. Instances are server-agnostic.
 class Instance:
-	def __init__(self, user, bet):
+	def __init__(self, user: discord.User, bet: int):
 		self.user = user
 		self.bet = bet
 		self.cards = []
@@ -29,10 +33,12 @@ class Instance:
 		self.vals = (2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11)
 		self.message = self.startingHand()
 
-	def perfect(self):
+
+	def perfect(self) -> int:
 		return sum(self.cards) == 21
 
-	def startingHand(self, fixBlackjack = False, fixDoubleAces = False):
+
+	def startingHand(self, fixBlackjack: bool = False, fixDoubleAces: bool = False) -> str:
 		self.cards.append(choice(self.vals))
 		self.cards.append(choice(self.vals))
 		message = ("Your starting hand consists of {} and {}. Your total is {}. "
@@ -48,7 +54,8 @@ class Instance:
 			message += f"Type !hit to deal another card to yourself, or !stay to stop at your current total, {self.user.mention}."
 		return message
 
-	def cardName(self, card):
+
+	def cardName(self, card: int) -> str:
 		if card == 10:
 			return "a " + choice(("10", "Jack", "Queen", "King"))
 		if card == 11:
@@ -57,7 +64,8 @@ class Instance:
 			return "an 8"
 		return "a " + str(card)
 
-	def deal(self, fix = False):
+
+	def deal(self, fix: bool = False) -> str:
 		dealt = choice(self.vals)
 		self.cards.append(dealt)
 		self.message = f"You were dealt {self.cardName(dealt)}, bringing your total to {sum(self.cards)}. "
@@ -78,13 +86,15 @@ class Instance:
 			self.message += f" Type !hit to deal another card to yourself, or !stay to stop at your current total, {self.user.mention}."
 		return self.message
 
-	def checkBust(self):
+
+	def checkBust(self) -> bool:
 		if sum(self.cards) > 21:
 			self.bet *= -1
 			return True
 		return False
 
-	def stay(self):
+
+	def stay(self) -> int:
 		change = 1
 		self.message = "The dealer has a total of {}."
 		if sum(self.cards) > self.dealerSum and not self.checkBust():
@@ -102,6 +112,7 @@ class Instance:
 			self.message += " Unfortunately, you bet nothing, so this was all pointless."
 		return change
 
+
 # BeardlessBucks modifying/referencing methods:
 ## writeMoney() is the helper method for checking or modifying a given user's balance.
 ## register() is used for signing up a new user to the BeardlessBucks system.
@@ -110,7 +121,8 @@ class Instance:
 ## leaderboard() finds the top min(len(money.csv), 10) users by balance in O(nlogn) time.
 ## flip() gambles a certain number of BeardlessBucks on a coin toss (randint(0,1)).
 
-def writeMoney(member, amount, writing, adding):
+
+def writeMoney(member: discord.User, amount, writing: bool, adding: bool) -> tuple:
 	# "writing" is True if you want to modify money.csv; "adding" is True if you want to add an amount to a member's balance
 	if "," in member.name:
 		return -1, commaWarn.format(member.mention)
@@ -134,18 +146,20 @@ def writeMoney(member, amount, writing, adding):
 			money.write(f"\r\n{member.id},300,{member}")
 			return 2, f"Successfully registered. You have 300 BeardlessBucks, {member.mention}."
 
-def register(target):
+
+def register(target: discord.User) -> discord.Embed:
 	result, bonus = writeMoney(target, 300, False, False)
 	report = f"You are already in the system! Hooray! You have {bonus} BeardlessBucks, {target.mention}."
 	if result in (-1, 2):
 		report = bonus
 	return bbEmbed("BeardlessBucks Registration", report)
 
-def balance(target, text):
+
+def balance(target: discord.Member, msg: discord.Message) -> discord.Embed:
 	report = ("Invalid user! Please @ a user when you do !balance (or enter their username)," +
-	f" or do !balance without a target to see your own balance, {text.author.mention}.")
+	f" or do !balance without a target to see your own balance, {msg.author.mention}.")
 	if not isinstance(target, discord.User):
-		target = memSearch(text, target)
+		target = memSearch(msg, target)
 	if target:
 		result, bonus = writeMoney(target, 300, False, False)
 		if result == 0:
@@ -154,14 +168,16 @@ def balance(target, text):
 			report = bonus if result in (-1, 2) else "Error!"
 	return bbEmbed("BeardlessBucks Balance", report)
 
-def reset(target):
+
+def reset(target: discord.User) -> discord.Embed:
 	result, bonus = writeMoney(target, 200, True, False)
 	report = f"You have been reset to 200 BeardlessBucks, {target.mention}."
 	if result in (-1, 2):
 		report = bonus
 	return bbEmbed("BeardlessBucks Reset", report)
 
-def leaderboard(): # TODO print user's position on lb
+
+def leaderboard() -> discord.Embed: # TODO print user's position on lb
 	# worst case runtime = # entries in money.csv + runtime of sorted() + 10 = O(n) + O(nlogn) + 10 = O(nlogn)
 	diction = {}
 	emb = bbEmbed("BeardlessBucks Leaderboard")
@@ -176,7 +192,8 @@ def leaderboard(): # TODO print user's position on lb
 		emb.add_field(name = (str(i + 1) + ". " + head), value = str(body))
 	return emb
 
-def flip(author, bet, fix = False):
+
+def flip(author: discord.user, bet: str, fix: bool = False) -> str:
 	heads = randint(0, 1)
 	report = "Invalid bet. Please choose a number greater than or equal to 0, or enter \"all\" to bet your whole balance, {}."
 	if bet == "all":
@@ -208,7 +225,8 @@ def flip(author, bet, fix = False):
 					report += " Or, they would have been, if you had actually bet anything."
 	return report.format(author.mention)
 
-def blackjack(author, bet):
+
+def blackjack(author: discord.User, bet: str) -> str:
 	game = None
 	report = "Invalid bet. Please choose a number greater than or equal to 0, or enter \"all\" to bet your whole balance, {}."
 	if bet != "all":
