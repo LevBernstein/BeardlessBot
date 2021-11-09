@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.1"
+__version__ = "Full Release 1.6.2"
 
 import asyncio
 from datetime import datetime

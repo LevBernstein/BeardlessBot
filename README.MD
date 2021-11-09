@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release 1.6.1
+### Full Release 1.6.2
 
 A Discord bot supporting gambling (coin flips and blackjack),
 a currency system, fun facts, and more.

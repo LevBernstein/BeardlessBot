@@ -135,9 +135,7 @@ def animal(animalType: str, breed=None) -> str:
 		elif animalType == "lizard":
 			r = requests.get("https://nekos.life/api/v2/img/lizard")
 		else:
-			# r = requests.get("https://axoltlapi.herokuapp.com/")
-			# Axolotl API is down, hard code this response for now
-			return "https://i.redd.it/f5o9vho2v5t61.jpg"
+			r = requests.get("https://axoltlapi.herokuapp.com/")
 		if r.status_code == 200:
 			return r.json()["url"]
 
