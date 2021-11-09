@@ -12,21 +12,35 @@ from steam.steamid import SteamID
 from misc import bbEmbed
 
 
-badClaim = ("Please do !brawlclaim followed by the URL of your steam profile.\nExample: !brawlclaim https://steamcommunity.com/id/beardless\n" +
-"Alternatively, you can claim via your Brawlhalla ID, which you can find in the top right corner of your inventory.\nExample: !brawlclaim 7032472.")
+badClaim = (
+	"Please do !brawlclaim followed by the URL of your steam profile.\n"
+	"Example: !brawlclaim https://steamcommunity.com/id/beardless\n"
+	"Alternatively, you can claim via your Brawlhalla ID, which you can"
+	" find in the top right corner of your inventory.\n"
+	"Example: !brawlclaim 7032472."
+)
 
-badRegion = "Please specify a valid region, {}! Valid regions are US-E, US-W, EU, AUS, SEA, BRZ, JPN. If you need help, try doing !pins."
+badRegion = (
+	"Please specify a valid region, {}! Valid regions are US-E, US-W, EU,"
+	" AUS, SEA, BRZ, JPN. If you need help, try doing !pins."
+)
 
-reqLimit = "I've reached the request limit for the Brawlhalla API. Please wait 15 minutes and try again later."
+reqLimit = (
+	"I've reached the request limit for the Brawlhalla API."
+	" Please wait 15 minutes and try again later."
+)
 
 unclaimed = "{} needs to claim their profile first! Do !brawlclaim."
 
 
 def pingMsg(target: discord.Member, h: int, m: int, s: int) -> str:
 	plural = lambda t: "" if t == 1 else "s"
-	badPing = ("This region has been pinged too recently! Regions can only be pinged once" +
-	" every two hours, {}. You can ping again in {} hour{}, {} minute{}, and {} second{}.")
-	return badPing.format(target, h, plural(h), m, plural(m), s, plural(s))
+	badPing = (
+		"This region has been pinged too recently! Regions"
+		" can only be pinged once every two hours, {}. You can"
+		" ping again in {} hour{}, {} minute{}, and {} second{}."
+	).format(target, h, plural(h), m, plural(m), s, plural(s))
+	return badPing
 
 
 def randomBrawl(ranType: str) -> discord.Embed:
@@ -190,14 +204,16 @@ def getClan(target: discord.Member, brawlKey: str) -> discord.Embed:
 
 def brawlCommands() -> discord.Embed:
 	emb = bbEmbed("Beardless Bot Brawlhalla Commands")
-	comms = (("!brawlclaim", "Claims a Brawlhalla account, allowing the other commands."),
+	comms = (
+		("!brawlclaim", "Claims a Brawlhalla account, allowing the other commands."),
 		("!brawlrank", "Displays a user's ranked information."),
 		("!brawlstats", "Displays a user's general stats."),
 		("!brawlclan", "Displays a user's clan information."),
 		("!brawllegend", "Displays lore and stats for a legend."),
-		("!random legend/weapon", "Randomly chooses a legend or weapon for you to play."))
+		("!random legend/weapon", "Randomly chooses a legend or weapon for you to play.")
+	)
 	for commandPair in comms:
-		emb.add_field(name = commandPair[0], value = commandPair[1])
+		emb.add_field(name=commandPair[0], value=commandPair[1])
 	return emb
 
 

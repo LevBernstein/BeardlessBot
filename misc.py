@@ -14,7 +14,10 @@ animalList = "cat", "duck", "fox", "rabbit", "panda", "lizard", "axolotl", "bear
 
 hierarchyMsg = "It looks like I don't have permission to modify that user's roles! Raise my place in the role hierarchy, please."
 
-spotify = "https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg"
+spotify = "Here's my playlist (Discord will only show the first hundred songs):\n"
+spotify += "https://open.spotify.com/playlist/2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg"
+
+naughty = "You do not have permission to use this command, {}."
 
 truncTime = lambda member: str(member.created_at)[:-7]
 
@@ -92,7 +95,9 @@ def animal(animalType: str, breed = None) -> str:
 		elif animalType == "lizard":
 			r = requests.get("https://nekos.life/api/v2/img/lizard")
 		else:
-			r = requests.get("https://axoltlapi.herokuapp.com/")
+			#r = requests.get("https://axoltlapi.herokuapp.com/")
+			# Axolotl API is down, hard code this response for now
+			return "https://i.redd.it/f5o9vho2v5t61.jpg"
 		if r.status_code == 200:
 			return r.json()["url"]
 	
@@ -113,10 +118,13 @@ def animals() -> discord.Embed:
 def define(word: str) -> discord.Embed:
 	r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word)
 	if r.status_code == 200:
-		desc = f"Audio: https:{r.json()[0]['phonetics'][0]['audio']}" if "audio" in r.json()[0]["phonetics"][0] else ""
+		j = r.json()
+		desc = ""
+		if j[0]["phonetics"] and "audio" in j[0]["phonetics"][0]:
+			desc = f"Audio: https:{j[0]['phonetics'][0]['audio']}"
 		emb = bbEmbed(word.upper(), desc)
 		i = 0
-		for entry in r.json():
+		for entry in j:
 			for meaning in entry["meanings"]:
 				for definition in meaning["definitions"]:
 					i += 1

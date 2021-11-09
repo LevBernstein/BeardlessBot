@@ -7,7 +7,7 @@ from misc import prof, bbEmbed, truncTime
 
 # TODO: Implement logging for threads, once BB migrates to nextcord
 
-contCheck = lambda msg: msg.content if msg.content else "File" if msg.file else "Embed"
+contCheck = lambda msg: msg.content if msg.content else "Embed"
 
 
 def logDeleteMsg(msg: discord.Message) -> discord.Embed:

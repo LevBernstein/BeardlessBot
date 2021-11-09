@@ -18,6 +18,9 @@ buckMsg = ("BeardlessBucks are this bot's special currency. You can earn them " 
 
 newUserMsg = "You were not registered for BeardlessBucks gambling, so I have automatically registered you. You now have 300 BeardlessBucks, {}."
 
+finMsg = "Please finish your game of blackjack first, {}."
+
+noGameMsg = "You do not currently have a game of blackjack going, {}. Type !blackjack to start one."
 
 # Blackjack class. New Instance is made for each game of Blackjack and is kept around until the player finishes the game.
 # An active Instance for a given user prevents the creation of a new Instance. Instances are server-agnostic.
