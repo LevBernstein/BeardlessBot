@@ -32,7 +32,7 @@ class TestUser(discord.User):
 		self.activity = None
 
 	def avatar_url_as(self, format=None, size=1024):
-		# Discord really doesn't like it when you construct its objects manually;
+		# Discord doesn't like it when you construct its objects manually;
 		# the avatar_url field is entirely broken. Here, I overwrite it.
 		return "https://cdn.discordapp.com/embed/avatars/0.png"
 
@@ -83,8 +83,11 @@ except Exception as err:
 	brawlKey = None
 
 
-def test_animals():
-	assert len(misc.animals().fields) == 13
+def test_bot():
+	assert Bot.bot.command_prefix == "!"
+	assert Bot.bot.case_insensitive == True
+	assert Bot.bot.help_command == None
+	assert Bot.bot.intents == discord.Intents.all()
 
 
 def test_animal():
@@ -102,12 +105,12 @@ def test_animal():
 		"b'\\x89PNG\\r\\n\\x1a\\n\\",
 		"b'\\xff\\xd8\\xff\\xe1\\tPh"
 	)
-	for animalName in misc.animals().fields[:-4]:
+	for animalName in misc.animals.fields[:-4]:
 		print(animalName)
 		r = requests.get(misc.animal(animalName.name[1:]))
 		assert r.ok and r.headers["content-type"] in imageTypes
 
-	for animalName in misc.animals().fields[-4:]:
+	for animalName in misc.animals.fields[-4:]:
 		print(animalName)
 		# Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field;
 		# check if URL points to an image instead
@@ -122,14 +125,8 @@ def test_animal():
 	for breed in breeds:
 		r = requests.head(misc.animal("dog", breed))
 		assert r.ok and r.headers["content-type"] in imageTypes
-	assert (
-		misc.animal("dog", "invalidbreed") ==
-		"Breed not found! Do !dog breeds to see all the breeds."
-	)
-	assert (
-		misc.animal("dog", "invalidbreed1234") ==
-		"Breed not found! Do !dog breeds to see all the breeds."
-	)
+	assert misc.animal("dog", "invalidbreed").startswith("Breed not")
+	assert misc.animal("dog", "invalidbreed1234").startswith("Breed not")
 
 	with pytest.raises(Exception):
 		misc.animal("invalidAnimal")
@@ -155,7 +152,11 @@ def test_dice():
 		message = "!d" + str(sideNum)
 		sideRoll = misc.roll(message)
 		assert 1 <= sideRoll and sideRoll <= sideNum
-		assert misc.rollReport(message, user).description.startswith("You got")
+		assert (
+			misc.rollReport(message, user)
+			.description
+			.startswith("You got")
+		)
 	sideRoll = misc.roll("!d20-4")
 	assert -3 <= sideRoll and sideRoll <= 16
 	assert misc.rollReport("!d20-4", user).description.startswith("You got")
@@ -329,6 +330,7 @@ def test_memSearch():
 
 def test_register():
 	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
+	bucks.reset(bb)
 	assert (
 		bucks.register(bb).description ==
 		"You are already in the system! Hooray! You"
@@ -409,7 +411,10 @@ def test_define():
 
 def test_flip():
 	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
-	assert bucks.flip(bb, "0", True).endswith("if you had actually bet anything.")
+	assert (
+		bucks.flip(bb, "0", True)
+		.endswith("if you had actually bet anything.")
+	)
 	assert bucks.flip(bb, "invalidbet").startswith("Invalid bet.")
 	bucks.reset(bb)
 	bucks.flip(bb, "all")
@@ -427,10 +432,10 @@ def test_blackjack():
 	assert bucks.blackjack(bb, "invalidbet")[0].startswith("Invalid bet.")
 	bucks.reset(bb)
 	report, game = bucks.blackjack(bb, "all")
-	assert isinstance(game, bucks.Instance) or report.startwith("You hit 21!")
+	assert isinstance(game, bucks.Instance) or "You hit 21!" in report
 	bucks.reset(bb)
 	report, game = bucks.blackjack(bb, 0)
-	assert isinstance(game, bucks.Instance) or report.startwith("You hit 21!")
+	assert isinstance(game, bucks.Instance) or "You hit 21!" in report
 	bucks.reset(bb)
 	report, game = bucks.blackjack(bb, "10000000000000")
 	assert report.startswith("You do not have")
@@ -565,93 +570,112 @@ def test_onJoin():
 	assert misc.onJoin(guild, role).title == "Hello, Test Guild!"
 
 
-if brawlKey:
-	def test_fetchBrawlID():
-		assert brawl.fetchBrawlID(196354892208537600) == 7032472
-		assert not brawl.fetchBrawlID(654133911558946837)
+def test_fetchBrawlID():
+	if not brawlKey:
+		return
+	assert brawl.fetchBrawlID(196354892208537600) == 7032472
+	assert not brawl.fetchBrawlID(654133911558946837)
 
 
-	def test_claimProfile():
-		with open("resources/claimedProfs.json", "r") as f:
-			profsLen = len(load(f))
-		brawl.claimProfile(196354892208537600, 1)
-		with open("resources/claimedProfs.json", "r") as f:
-			assert profsLen == len(load(f))
-		assert brawl.fetchBrawlID(196354892208537600) == 1
-		brawl.claimProfile(196354892208537600, 7032472)
-		assert brawl.fetchBrawlID(196354892208537600) == 7032472
+def test_claimProfile():
+	if not brawlKey:
+		return
+	with open("resources/claimedProfs.json", "r") as f:
+		profsLen = len(load(f))
+	brawl.claimProfile(196354892208537600, 1)
+	with open("resources/claimedProfs.json", "r") as f:
+		assert profsLen == len(load(f))
+	assert brawl.fetchBrawlID(196354892208537600) == 1
+	brawl.claimProfile(196354892208537600, 7032472)
+	assert brawl.fetchBrawlID(196354892208537600) == 7032472
 
 
-	def test_fetchLegends():
-		assert len(brawl.fetchLegends()) == 54
+def test_fetchLegends():
+	if not brawlKey:
+		return
+	assert len(brawl.fetchLegends()) == 54
 
 
-	def test_getBrawlID():
-		assert brawl.getBrawlID(
-			brawlKey,
-			"https://steamcommunity.com/id/beardless"
-		) == 7032472
-		assert not brawl.getBrawlID(brawlKey, "badurl")
-		assert not brawl.getBrawlID(
-			brawlKey,
-			"https://steamcommunity.com/badurl"
-		)
+def test_getBrawlID():
+	if not brawlKey:
+		return
+	assert brawl.getBrawlID(
+		brawlKey,
+		"https://steamcommunity.com/id/beardless"
+	) == 7032472
+	assert not brawl.getBrawlID(brawlKey, "badurl")
+	assert not brawl.getBrawlID(
+		brawlKey,
+		"https://steamcommunity.com/badurl"
+	)
 
 
-	def test_getLegends():
-		oldLegends = brawl.fetchLegends()
-		brawl.getLegends(brawlKey)
-		assert brawl.fetchLegends() == oldLegends
+def test_getLegends():
+	if not brawlKey:
+		return
+	oldLegends = brawl.fetchLegends()
+	brawl.getLegends(brawlKey)
+	assert brawl.fetchLegends() == oldLegends
 
 
-	def test_legendInfo():
-		assert brawl.legendInfo(brawlKey, "hugin").title == "Munin, The Raven"
-		assert not brawl.legendInfo(brawlKey, "invalidname")
+def test_legendInfo():
+	if not brawlKey:
+		return
+	assert brawl.legendInfo(brawlKey, "hugin").title == "Munin, The Raven"
+	assert not brawl.legendInfo(brawlKey, "invalidname")
 
 
-	def test_getRank():
-		user = TestUser()
-		user.id = 0
-		assert (
-			brawl.getRank(user, brawlKey).description ==
-			brawl.unclaimed.format(user.mention)
-		)
-		user.id = 743238109898211389  # 12502880
-		assert (
-			brawl.getRank(user, brawlKey).footer.text ==
-			"Brawl ID 12502880"
-		)
+def test_getRank():
+	if not brawlKey:
+		return
+	user = TestUser()
+	user.id = 0
+	assert (
+		brawl.getRank(user, brawlKey).description ==
+		brawl.unclaimed.format(user.mention)
+	)
+	user.id = 743238109898211389  # 12502880
+	assert (
+		brawl.getRank(user, brawlKey).footer.text ==
+		"Brawl ID 12502880"
+	)
 
 
-	def test_getStats():
-		user = TestUser()
-		user.id = 0
-		assert (
-			brawl.getStats(user, brawlKey).description ==
-			brawl.unclaimed.format(user.mention)
-		)
-		user.id = 196354892208537600
-		emb = brawl.getStats(user, brawlKey)
-		assert emb.footer.text == "Brawl ID 7032472"
-		assert len(emb.fields) == 3
+def test_getStats():
+	if not brawlKey:
+		return
+	user = TestUser()
+	user.id = 0
+	assert (
+		brawl.getStats(user, brawlKey).description ==
+		brawl.unclaimed.format(user.mention)
+	)
+	user.id = 196354892208537600
+	emb = brawl.getStats(user, brawlKey)
+	assert emb.footer.text == "Brawl ID 7032472"
+	assert len(emb.fields) == 3
 
 
-	def test_getClan():
-		user = TestUser()
-		user.id = 0
-		assert (
-			brawl.getClan(user, brawlKey).description ==
-			brawl.unclaimed.format(user.mention)
-		)
-		user.id = 196354892208537600
-		assert brawl.getClan(user, brawlKey).title == "DinersDriveInsDives"
-		brawl.claimProfile(196354892208537600, 5895238)
-		assert (
-			brawl.getClan(user, brawlKey).description ==
-			"You are not in a clan!"
-		)
-		brawl.claimProfile(196354892208537600, 7032472)
+def test_getClan():
+	if not brawlKey:
+		return
+	user = TestUser()
+	user.id = 0
+	assert (
+		brawl.getClan(user, brawlKey).description ==
+		brawl.unclaimed.format(user.mention)
+	)
+	user.id = 196354892208537600
+	assert brawl.getClan(user, brawlKey).title == "DinersDriveInsDives"
+	brawl.claimProfile(196354892208537600, 5895238)
+	assert (
+		brawl.getClan(user, brawlKey).description ==
+		"You are not in a clan!"
+	)
+	brawl.claimProfile(196354892208537600, 7032472)
 
 
-	def test_brawlCommands():
-		assert len(brawl.brawlCommands().fields) == 6
+def test_brawlCommands():
+	if not brawlKey:
+		return
+	assert len(brawl.brawlCommands().fields) == 6

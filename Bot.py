@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.0"
+__version__ = "Full Release 1.6.1"
 
 import asyncio
 from datetime import datetime
@@ -22,7 +22,8 @@ bot = commands.Bot(
 	case_insensitive=True,
 	help_command=None,
 	intents=discord.Intents.all(),
-	owner_id=196354892208537600  # Replace with your Discord id
+	owner_id=196354892208537600
+	# Replace owner_id with your Discord id
 )
 
 
@@ -50,29 +51,13 @@ async def on_ready():
 	# Initialize ping waiting time to 0 for each server:
 	global sparPings
 	for guild in bot.guilds:
-		sparPings[guild.id] = {
-			"jpn": 0,
-			"brz": 0,
-			"us-w": 0,
-			"us-e": 0,
-			"sea": 0,
-			"aus": 0,
-			"eu": 0
-		}
+		sparPings[guild.id] = brawl.defaultPings
 
 
 @bot.event
 async def on_guild_join(guild):
 	global sparPings  # create sparPings entry for this new server
-	sparPings[guild.id] = {
-		"jpn": 0,
-		"brz": 0,
-		"us-w": 0,
-		"us-e": 0,
-		"sea": 0,
-		"aus": 0,
-		"eu": 0
-	}
+	sparPings[guild.id] = brawl.defaultPings
 	print(f"Just joined {guild.name}!")
 	print(f"Beardless Bot is now in {len(bot.guilds)} servers.")
 	if not guild.me.guild_permissions.administrator:
@@ -114,7 +99,8 @@ async def on_message_delete(msg):
 
 @bot.event
 async def on_bulk_message_delete(msgList):
-	if msgList[0].guild:  # if one message in the list is in a guild, all are
+	if msgList[0].guild:
+		# If one message in the list is in a guild, all are
 		for channel in msgList[0].guild.channels:
 			if channel.name == "bb-log":
 				try:
@@ -406,7 +392,7 @@ async def cmdFact(ctx, *args):
 
 @bot.command(name="animals", aliases=("animal", "pets"))
 async def cmdAnimals(ctx, *args):
-	await ctx.send(embed=misc.animals())
+	await ctx.send(embed=misc.animals)
 
 
 @bot.command(name="define")
@@ -438,7 +424,7 @@ async def cmdAnimal(ctx, breed=None, *args):
 	if species == "moose" or (breed and breed.lower() == "moose"):
 		await ctx.send(
 			file=discord.File(
-				f"resources/images/moose/moose{randint(1, 71)}.jpg"
+				f"resources/images/moose/moose{randint(1, 72)}.jpg"
 			)
 		)
 		return
@@ -645,10 +631,10 @@ async def cmdBuy(ctx, color="none", *args):
 	report = "Invalid color. Choose blue, red, orange, or pink, {}."
 	color = color.lower()
 	colors = {
-		"blue": 0x3c9efd,
-		"pink": 0xd300ff,
-		"orange": 0xfaaa24,
-		"red": 0xf5123d
+		"blue": 0x3C9EFD,
+		"pink": 0xD300FF,
+		"orange": 0xFAAA24,
+		"red": 0xF5123D
 	}
 	if color in colors.keys():
 		role = get(ctx.guild.roles, name="special " + color)
@@ -880,7 +866,7 @@ async def cmdTweet(ctx, *args):
 			embed=misc.bbEmbed(
 				"eggsoup(@eggsouptv)",
 				misc.formattedTweet(misc.tweet()),
-				0x1da1f2
+				0x1DA1F2
 			)
 		)
 
