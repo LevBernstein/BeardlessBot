@@ -19,7 +19,8 @@ class TestUser(discord.User):
 		name: str = "testname",
 		nick: str = "testnick",
 		discriminator: str = "0000",
-		id: int = 123456789
+		id: int = 123456789,
+		roles=()
 	):
 		self.name = name
 		self.nick = nick
@@ -27,7 +28,7 @@ class TestUser(discord.User):
 		self.discriminator = discriminator
 		self.bot = False
 		self.avatar = self.default_avatar
-		self.roles = ()
+		self.roles = roles
 		self.joined_at = self.created_at
 		self.activity = None
 
@@ -85,8 +86,8 @@ except Exception as err:
 
 def test_bot():
 	assert Bot.bot.command_prefix == "!"
-	assert Bot.bot.case_insensitive == True
-	assert Bot.bot.help_command == None
+	assert Bot.bot.case_insensitive is True
+	assert Bot.bot.help_command is None
 	assert Bot.bot.intents == discord.Intents.all()
 
 
@@ -105,16 +106,16 @@ def test_animal():
 		"b'\\x89PNG\\r\\n\\x1a\\n\\",
 		"b'\\xff\\xd8\\xff\\xe1\\tPh"
 	)
-	for animalName in misc.animals.fields[:-4]:
+	for animalName in misc.animalList[:-4]:
 		print(animalName)
-		r = requests.get(misc.animal(animalName.name[1:]))
+		r = requests.get(misc.animal(animalName))
 		assert r.ok and r.headers["content-type"] in imageTypes
 
-	for animalName in misc.animals.fields[-4:]:
+	for animalName in misc.animalList[-4:]:
 		print(animalName)
 		# Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field;
 		# check if URL points to an image instead
-		r = requests.get(misc.animal(animalName.name[1:]))
+		r = requests.get(misc.animal(animalName))
 		print(str(r.content)[:30])
 		assert r.ok and any(
 			str(r.content).startswith(signature) for signature in imageSigs
@@ -264,8 +265,7 @@ def test_logMemberNickChange():
 
 def test_logMemberRolesChange():
 	before = TestUser()
-	after = TestUser()
-	after.roles = (TestUser(),)
+	after = TestUser(roles=(TestUser(),))
 	assert (
 		logs.logMemberRolesChange(before, after).description ==
 		f"Role {after.roles[0].mention} added to {after.mention}."
@@ -388,8 +388,7 @@ def test_reset():
 
 
 def test_writeMoney():
-	user = TestUser()
-	user.id = 654133911558946837
+	user = TestUser(id=654133911558946837)
 	assert bucks.writeMoney(user, "-all", False, False)
 	assert bucks.writeMoney(user, -1000000, True, False) == (-2, None)
 
@@ -628,8 +627,7 @@ def test_legendInfo():
 def test_getRank():
 	if not brawlKey:
 		return
-	user = TestUser()
-	user.id = 0
+	user = TestUser(id=0)
 	assert (
 		brawl.getRank(user, brawlKey).description ==
 		brawl.unclaimed.format(user.mention)
@@ -644,8 +642,7 @@ def test_getRank():
 def test_getStats():
 	if not brawlKey:
 		return
-	user = TestUser()
-	user.id = 0
+	user = TestUser(id=0)
 	assert (
 		brawl.getStats(user, brawlKey).description ==
 		brawl.unclaimed.format(user.mention)
@@ -659,8 +656,7 @@ def test_getStats():
 def test_getClan():
 	if not brawlKey:
 		return
-	user = TestUser()
-	user.id = 0
+	user = TestUser(id=0)
 	assert (
 		brawl.getClan(user, brawlKey).description ==
 		brawl.unclaimed.format(user.mention)

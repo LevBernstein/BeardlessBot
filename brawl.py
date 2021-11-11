@@ -46,44 +46,40 @@ def pingMsg(target: discord.Member, h: int, m: int, s: int) -> str:
 	def plural(t):
 		return "" if t == 1 else "s"
 
-	badPing = (
+	return (
 		"This region has been pinged too recently! Regions"
 		" can only be pinged once every two hours, {}. You can"
 		" ping again in {} hour{}, {} minute{}, and {} second{}."
 	).format(target, h, plural(h), m, plural(m), s, plural(s))
-	return badPing
 
 
 def randomBrawl(ranType: str) -> discord.Embed:
-	try:
-		if ranType in ("legend", "weapon"):
-			if ranType == "legend":
-				choices = tuple(
-					legend["legend_name_key"].title()
-					for legend in fetchLegends()
-				)
-			else:
-				choices = (
-					"Sword",
-					"Spear",
-					"Orb",
-					"Cannon",
-					"Hammer",
-					"Scythe",
-					"Greatsword",
-					"Bow",
-					"Gauntlets",
-					"Katars",
-					"Blasters",
-					"Axe"
-				)
-			return bbEmbed(
-				"Random " + ranType.title(),
-				f"Your {ranType} is {choice(choices)}."
+	if ranType in ("legend", "weapon"):
+		if ranType == "legend":
+			choices = tuple(
+				legend["legend_name_key"].title()
+				for legend in fetchLegends()
 			)
 		else:
-			raise Exception
-	except Exception:
+			choices = (
+				"Sword",
+				"Spear",
+				"Orb",
+				"Cannon",
+				"Hammer",
+				"Scythe",
+				"Greatsword",
+				"Bow",
+				"Gauntlets",
+				"Katars",
+				"Blasters",
+				"Axe"
+			)
+		return bbEmbed(
+			"Random " + ranType.title(),
+			f"Your {ranType} is {choice(choices)}."
+		)
+	else:
 		return bbEmbed(
 			"Brawlhalla Randomizer",
 			"Please do !random legend or !random weapon."
@@ -172,7 +168,7 @@ def legendInfo(brawlKey: str, legendName: str) -> discord.Embed:
 					quoteTwo
 				)
 			)
-			# TODO: use to get legend images:
+			# TODO: Use to get legend images:
 			# legendLinkName = r["bio_name"].replace(" ", "_")
 			return (
 				bbEmbed(r["bio_name"] + ", " + r["bio_aka"], bio)

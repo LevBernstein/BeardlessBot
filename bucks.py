@@ -193,19 +193,17 @@ def writeMoney(
 		for row in csv.reader(csvfile, delimiter=","):
 			if str(member.id) == row[0]:  # found member
 				if isinstance(amount, str):  # for people betting all
-					amount = int(row[1]) * (-1 if amount == "-all" else 1)
-				if (
-					row[1] != str(int(row[1]) + amount if adding else amount)
-					and writing
-				):
+					amount = -int(row[1]) if amount == "-all" else int(row[1])
+				newBank = str(int(row[1]) + amount if adding else amount)
+				if writing and row[1] != newBank:
 					if int(row[1]) + amount < 0:
 						# Don't have enough to bet that much
 						return -2, None
-					newBank = amount if not adding else (int(row[1]) + amount)
-					newLine = ",".join((row[0], str(newBank), str(member)))
+					newLine = ",".join((row[0], newBank, str(member)))
 					with open("resources/money.csv", "r") as oldMoney:
-						oldMoney = "".join([i for i in oldMoney]).replace(
-							",".join(row), newLine
+						oldMoney = (
+							"".join([i for i in oldMoney])
+							.replace(",".join(row), newLine)
 						)
 						with open("resources/money.csv", "w") as money:
 							money.writelines(oldMoney)
@@ -213,13 +211,13 @@ def writeMoney(
 				return 0, int(row[1])  # no change in balance
 		with open("resources/money.csv", "a") as money:
 			money.write(f"\r\n{member.id},300,{member}")
-			return (
-				2,
-				(
-					"Successfully registered. You have 300"
-					f" BeardlessBucks, {member.mention}."
-				)
+		return (
+			2,
+			(
+				"Successfully registered. You have 300"
+				f" BeardlessBucks, {member.mention}."
 			)
+		)
 
 
 def register(target: discord.User) -> discord.Embed:

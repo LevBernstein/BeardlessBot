@@ -44,6 +44,19 @@ spotify = (
 
 naughty = "You do not have permission to use this command, {}."
 
+greetings = (
+	"How ya doin?",
+	"Yo!",
+	"What's cookin?",
+	"Hello!",
+	"Ahoy!",
+	"Hi!",
+	"What's up?",
+	"Hey!",
+	"How's it goin?",
+	"Greetings!"
+)
+
 
 def truncTime(member):
 	return str(member.created_at)[:-7]
@@ -234,15 +247,16 @@ def info(target: discord.Member, msg: discord.Message) -> discord.Embed:
 			)
 			# Reverse target.roles in order to make them
 			# display in decreasing order of power
-		return emb
-	return bbEmbed(
-		"Invalid target!",
-		(
-			"Please choose a valid target. Valid targets"
-			" are either a ping or a username."
-		),
-		0xFF0000
-	)
+	else:
+		emb = bbEmbed(
+			"Invalid target!",
+			(
+				"Please choose a valid target. Valid targets"
+				" are either a ping or a username."
+			),
+			0xFF0000
+		)
+	return emb
 
 
 def av(target: discord.Member, msg: discord.Message) -> discord.Embed:
@@ -266,13 +280,12 @@ def av(target: discord.Member, msg: discord.Message) -> discord.Embed:
 
 def bbCommands(ctx) -> discord.Embed:
 	emb = bbEmbed("Beardless Bot Commands")
-	commandNum = (
-		15
-		if not ctx.guild
-		else 20
-		if ctx.author.guild_permissions.manage_messages
-		else 17
-	)
+	if not ctx.guild:
+		commandNum = 15
+	elif ctx.author.guild_permissions.manage_messages:
+		commandNum = 20
+	else:
+		commandNum = 17
 	commandList = (
 		("!register", "Registers you with the currency system."),
 		(
@@ -401,7 +414,7 @@ def tweet() -> str:
 	return s[0].title() + s[1:]
 
 
-def formattedTweet(eggTweet: str) -> str:
+def formattedTweet(eggTweet: str = tweet()) -> str:
 	# Removes the last piece of punctuation to create a more realistic tweet
 	for i in range(len(eggTweet) - 1, -1, -1):
 		if eggTweet[i] in (".", "!", "?"):

@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.2"
+__version__ = "Full Release 1.6.3"
 
 import asyncio
 from datetime import datetime
@@ -41,7 +41,7 @@ async def on_ready():
 	try:
 		with open("resources/images/prof.png", "rb") as f:
 			await bot.user.edit(avatar=f.read())
-			print("Avatar updated!")
+		print("Avatar updated!")
 	except discord.HTTPException:
 		print("Failed to update avatar!")
 		print("You might be sending requests too quickly.")
@@ -59,7 +59,7 @@ async def on_guild_join(guild):
 	global sparPings  # create sparPings entry for this new server
 	sparPings[guild.id] = brawl.defaultPings
 	print(f"Just joined {guild.name}!")
-	print(f"Beardless Bot is now in {len(bot.guilds)} servers.")
+	print("Beardless Bot is now in", len(bot.guilds), "servers.")
 	if not guild.me.guild_permissions.administrator:
 		print(f"Not given admin perms in {guild.name}.")
 		for channel in guild.channels:
@@ -71,7 +71,7 @@ async def on_guild_join(guild):
 				pass
 		await guild.leave()
 		print(f"Left {guild.name}.")
-		print(f"Beardless Bot is now in {len(bot.guilds)} servers.")
+		print("Beardless Bot is now in", len(bot.guilds), "servers.")
 	else:
 		for channel in guild.channels:
 			try:
@@ -236,7 +236,7 @@ async def cmdDeal(ctx, *args):
 				if game.checkBust() or game.perfect():
 					bucks.writeMoney(
 						ctx.author,
-						game.bet * (-1 if game.checkBust() else 1),
+						-game.bet if game.checkBust() else game.bet,
 						True,
 						True
 					)
@@ -338,31 +338,16 @@ async def cmdBucks(ctx, *args):
 
 @bot.command(name="hello", aliases=("hi",))
 async def cmdHello(ctx, *args):
-	await ctx.send(
-		choice(
-			(
-				"How ya doin?",
-				"Yo!",
-				"What's cookin?",
-				"Hello!",
-				"Ahoy!",
-				"Hi!",
-				"What's up?",
-				"Hey!",
-				"How's it goin?",
-				"Greetings!",
-			)
-		)
-	)
+	await ctx.send(choice(misc.greetings))
 
 
 @bot.command(name="source")
 async def cmdSource(ctx, *args):
-	report = (
+	source = (
 		"Most facts taken from [this website]."
 		"(https://www.thefactsite.com/1000-interesting-facts/)"
 	)
-	await ctx.send(embed=misc.bbEmbed("Beardless Bot Fun Facts", report))
+	await ctx.send(embed=misc.bbEmbed("Beardless Bot Fun Facts", source))
 
 
 @bot.command(name="add", aliases=("join",))
@@ -429,48 +414,39 @@ async def cmdAnimal(ctx, breed=None, *args):
 		)
 		return
 	if species == "dog":
+		if breed:
+			breed = breed.lower()
 		try:
-			if breed:
-				dogBreed = breed.lower()
-				dogUrl = misc.animal("dog", dogBreed)
-				if any(
-					(
-						dogUrl.startswith("Breed not found"),
-						dogUrl.startswith("Dog breeds")
-					)
-				):
-					await ctx.send(dogUrl)
-					return
+			dogUrl = misc.animal("dog", breed)
+			if any(dogUrl.startswith(s) for s in ("Breed", "Dog")):
+				await ctx.send(dogUrl)
+				return
+			if "hound" in dogUrl:
+				dogBreed = "Hound"
 			else:
-				dogUrl = misc.animal("dog")
-				if "hound" in dogUrl:
-					dogBreed = "Hound"
-				else:
-					dogBreed = dogUrl.split("/")[-2]
-			await ctx.send(
-				embed=misc.bbEmbed("Random " + dogBreed.title())
-				.set_image(url=dogUrl)
-			)
+				dogBreed = dogUrl.split("/")[-2]
+			emb = misc.bbEmbed(
+				"Random " + dogBreed.title()
+			).set_image(url=dogUrl)
 		except Exception as err:
 			print(err)
-			report = (
-				"Something's gone wrong with the dog API! Please"
-				" inform my creator and he'll see what's going on."
+			emb = misc.bbEmbed(
+				"Something's gone wrong with the Dog API!",
+				"Please inform my creator and he'll see what's going on."
 			)
-			await ctx.send(report)
+		await ctx.send(embed = emb)
 		return
 	try:
-		await ctx.send(
-			embed=misc.bbEmbed("Random " + species.title())
-			.set_image(url=misc.animal(species))
-		)
+		emb = misc.bbEmbed(
+			"Random " + species.title()
+		).set_image(url=misc.animal(species))
 	except Exception as err:
 		print(err)
-		report = (
-			"Something's gone wrong! Please inform"
-			"my creator and he'll see what's going on."
+		emb = misc.bbEmbed(
+			"Something's gone wrong!",
+			"Please inform my creator and he'll see what's going on."
 		)
-		await ctx.send(report)
+	await ctx.send(embed = emb)
 
 
 @bot.command(name="help", aliases=("commands",))
@@ -494,9 +470,6 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 	try:
 		converter = commands.MemberConverter()
 		target = await converter.convert(ctx, target)
-		if target.id == 654133911558946837:  # If user tries to mute BB:
-			await ctx.send("I am too powerful to be muted. Stop trying.")
-			return
 	except Exception as err:
 		print(err)
 		await ctx.send(
@@ -506,6 +479,10 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 			)
 		)
 		return
+	else:
+		if target.id == 654133911558946837:  # If user tries to mute BB:
+			await ctx.send("I am too powerful to be muted. Stop trying.")
+			return
 	role = get(ctx.guild.roles, name="Muted")
 	if not role:  # Creates a Muted role.
 		role = await ctx.guild.create_role(
@@ -534,6 +511,10 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 				mString = " " + mPair[0] + ("" if duration == "1" else "s")
 	try:
 		await target.add_roles(role)
+	except Exception as err:
+		print(err)
+		await ctx.send(misc.hierarchyMsg)
+	else:
 		report = "Muted " + target.mention
 		report += (" for " + duration + mString + ".") if mTime else "."
 		emb = misc.bbEmbed("Beardless Bot Mute", report).set_author(
@@ -570,24 +551,25 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 						embed=logs.logUnmute(target, ctx.author)
 					)
 					return
-	except Exception as err:
-		print(err)
-		await ctx.send(misc.hierarchyMsg)
 
 
 @bot.command(name="unmute")
 async def cmdUnmute(ctx, target=None, *args):
 	if not ctx.guild:
 		return
-	try:
-		report = misc.naughty.format(ctx.author.mention)
-		if ctx.author.guild_permissions.manage_messages:
-			if not target:
-				report = f"Invalid target, {ctx.author.mention}."
-			else:
-				converter = commands.MemberConverter()
+	report = misc.naughty.format(ctx.author.mention)
+	if ctx.author.guild_permissions.manage_messages:
+		if not target:
+			report = f"Invalid target, {ctx.author.mention}."
+		else:
+			converter = commands.MemberConverter()
+			try:
 				target = await converter.convert(ctx, target)
 				await target.remove_roles(get(ctx.guild.roles, name="Muted"))
+			except Exception as err:
+				print(err)
+				report = misc.hierarchyMsg
+			else:
 				report = f"Unmuted {target.mention}."
 				for channel in ctx.guild.channels:
 					if channel.name == "bb-log":
@@ -595,10 +577,7 @@ async def cmdUnmute(ctx, target=None, *args):
 							embed=logs.logUnmute(target, ctx.author)
 						)
 						break
-		await ctx.send(embed=misc.bbEmbed("Beardless Bot Unmute", report))
-	except Exception as err:
-		print(err)
-		await ctx.send(misc.hierarchyMsg)
+	await ctx.send(embed=misc.bbEmbed("Beardless Bot Unmute", report))
 
 
 @bot.command(name="purge")
@@ -611,16 +590,15 @@ async def cmdPurge(ctx, num=None, *args):
 	else:
 		try:
 			mNum = int(num)
-			await ctx.channel.purge(
-				limit=mNum + 1,
-				check=lambda message: not message.pinned
-			)
 		except ValueError:
 			await ctx.send(
 				embed=misc.bbEmbed(
-					"Beardless Bot Purge",
-					"Invalid message number!"
+					"Beardless Bot Purge", "Invalid message number!"
 				)
+			)
+		else:
+			await ctx.channel.purge(
+				limit=mNum + 1, check=lambda msg: not msg.pinned
 			)
 
 
@@ -700,7 +678,7 @@ async def cmdTwitch(ctx, *args):
 
 
 @bot.command(name="spar")
-async def cmdSpar(ctx, region=None, *misc):
+async def cmdSpar(ctx, region=None, *args):
 	if not ctx.guild:
 		return
 	if ctx.channel.name != "looking-for-spar":
@@ -741,8 +719,8 @@ async def cmdSpar(ctx, region=None, *misc):
 		minutes, seconds = divmod(seconds, 60)
 		report = brawl.pingMsg(ctx.author.mention, hours, minutes, seconds)
 	await ctx.send(report)
-	if misc and role and not tooRecent:
-		await ctx.send("Additional info: \"{}\"".format(" ".join(misc)))
+	if args and role and not tooRecent:
+		await ctx.send("Additional info: \"{}\"".format(" ".join(args)))
 
 
 # Commands requiring a Brawlhalla API key:
@@ -768,10 +746,11 @@ async def cmdBrawlclaim(ctx, profUrl="None", *args):
 	else:
 		try:
 			brawl.claimProfile(ctx.author.id, brawlID)
-			report = "Profile claimed."
 		except Exception as err:
 			print(err)
 			report = brawl.reqLimit
+		else:
+			report = "Profile claimed."
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Brawlhalla Rank", report))
 
 
@@ -845,12 +824,13 @@ async def cmdBrawllegend(ctx, legend=None, *args):
 	if legend:
 		try:
 			legend = brawl.legendInfo(brawlKey, legend)
-			if legend:
-				await ctx.send(embed=legend)
-				return
 		except Exception as err:
 			print(err)
 			report = brawl.reqLimit
+		else:
+			if legend:
+				await ctx.send(embed=legend)
+				return
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Legend Info", report)
 	)
@@ -865,7 +845,7 @@ async def cmdTweet(ctx, *args):
 		await ctx.send(
 			embed=misc.bbEmbed(
 				"eggsoup(@eggsouptv)",
-				misc.formattedTweet(misc.tweet()),
+				misc.formattedTweet(),
 				0x1DA1F2
 			)
 		)
@@ -905,10 +885,7 @@ async def on_message(message):
 						message.guild.name
 					)
 					result, bonus = bucks.writeMoney(
-						message.author,
-						100000,
-						True,
-						True
+						message.author, 100000, True, True
 					)
 					if result == -1:
 						report = "Ping Captain No-Beard for your prize"
