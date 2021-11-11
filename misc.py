@@ -64,7 +64,9 @@ def truncTime(member):
 
 # Wrapper for discord.Embed init() that defaults to
 # commonly-used values and is easier to call
-def bbEmbed(name: str, value: str = "", col: int = 0xFFF994) -> discord.Embed:
+def bbEmbed(
+	name: str = "", value: str = "", col: int = 0xFFF994
+) -> discord.Embed:
 	return discord.Embed(title=name, description=value, color=col)
 
 
@@ -99,7 +101,6 @@ def animal(animalType: str, breed=None) -> str:
 			r = requests.get("https://aws.random.cat/meow")
 			if r.status_code == 200:
 				return r.json()["file"]
-			print(f"{r.status_code}; {r.reason}; cat; count {i + 1}")
 
 	if animalType == "dog":
 		for i in range(10):
@@ -192,7 +193,7 @@ def roll(message: str) -> int:
 				return (
 					randint(1, int(side))
 					+ modifier
-					* int(command[1+len(side):])
+					* int(command[1 + len(side):])
 				)
 			return randint(1, int(side)) if command == side else None
 	return None
@@ -264,7 +265,7 @@ def av(target: discord.Member, msg: discord.Message) -> discord.Embed:
 		target = memSearch(msg, target)
 	if target:
 		return (
-			bbEmbed("", "", target.color)
+			bbEmbed(col=target.color)
 			.set_image(url=target.avatar_url)
 			.set_author(name=str(target), icon_url=target.avatar_url)
 		)
@@ -398,10 +399,10 @@ def tweet() -> str:
 	chains = {}
 	keySize = randint(1, 2)
 	for i in range(len(words) - keySize):
-		key = " ".join(words[i:i+keySize])
+		key = " ".join(words[i:i + keySize])
 		if key not in chains:
 			chains[key] = []
-		chains[key].append(words[i+keySize])
+		chains[key].append(words[i + keySize])
 	key = s = choice(list(chains.keys()))
 	for i in range(randint(10, 35)):
 		word = choice(chains[key])

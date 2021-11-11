@@ -6,8 +6,7 @@ from random import choice
 
 import discord
 import requests
-import steam
-from steam.steamid import SteamID
+from steam.steamid import from_url
 
 from misc import bbEmbed
 
@@ -41,6 +40,7 @@ defaultPings = {
 	"aus": 0,
 	"eu": 0
 }
+
 
 def pingMsg(target: discord.Member, h: int, m: int, s: int) -> str:
 	def plural(t):
@@ -109,7 +109,7 @@ def fetchLegends() -> list:
 
 def getBrawlID(brawlKey: str, profileURL: str) -> int:
 	try:
-		steamID = steam.steamid.from_url(profileURL)
+		steamID = from_url(profileURL)
 		if not steamID:
 			return None
 		r = requests.get(

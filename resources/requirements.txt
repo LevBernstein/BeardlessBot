@@ -3,3 +3,4 @@ steam==1.2.0
 discord.py==1.7.3
 requests==2.25.1
 coverage==5.5
+flake8==4.0.1

@@ -39,8 +39,10 @@ noGameMsg = (
 # and is kept around until the player finishes the game.
 # An active Instance for a given user prevents the creation of a new
 # Instance. Instances are server-agnostic.
+
+
 class Instance:
-	def __init__(self, user: discord.User, bet: int):
+	def __init__(self, user: discord.User, bet: int, fix: bool = False):
 		self.user = user
 		self.bet = bet
 		self.cards = []
@@ -49,7 +51,7 @@ class Instance:
 		while self.dealerSum < 17:
 			self.dealerSum += randint(1, 10)
 		self.vals = (2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11)
-		self.message = self.startingHand()
+		self.message = self.startingHand(fix)
 
 	def perfect(self) -> int:
 		return sum(self.cards) == 21

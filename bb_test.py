@@ -1,10 +1,12 @@
 # Beardless Bot unit tests
 
 from json import load
+from random import choice
 
 import discord
 import pytest
 import requests
+from flake8.api import legacy as flake8
 
 import Bot
 import brawl
@@ -75,13 +77,20 @@ try:
 	with open("resources/brawlhallaKey.txt", "r") as f:
 		# In brawlhallaKey.txt, paste in your own Brawlhalla API key
 		brawlKey = f.readline()
-except Exception as err:
+except FileNotFoundError:
 	print(
 		"No Brawlhalla API key.",
-		"Brawlhalla-specific tests will not fire.\n",
-		err
+		"Brawlhalla-specific tests will fail.\n",
 	)
 	brawlKey = None
+
+
+def test_pep8Compliance():
+	styleGuide = flake8.get_style_guide(ignore=["W191", "W504", "W503"])
+	report = styleGuide.check_files(["./"])
+	assert len(report.get_statistics("W")) == 0
+	assert len(report.get_statistics("E")) == 0
+	assert len(report.get_statistics("F")) == 0
 
 
 def test_bot():
@@ -91,51 +100,10 @@ def test_bot():
 	assert Bot.bot.intents == discord.Intents.all()
 
 
-def test_animal():
-	imageTypes = (
-		"image/png",
-		"image/jpeg",
-		"image/jpg",
-		"image/gif",
-		"image/webp"
-	)
-	imageSigs = (
-		"b'\\xff\\xd8\\xff\\xe0\\x00\\x10JFIF",
-		"b'\\x89\\x50\\x4e\\x47\\x0d\\x",
-		"b'\\xff\\xd8\\xff\\xe2\\x024ICC_PRO",
-		"b'\\x89PNG\\r\\n\\x1a\\n\\",
-		"b'\\xff\\xd8\\xff\\xe1\\tPh"
-	)
-	for animalName in misc.animalList[:-4]:
-		print(animalName)
-		r = requests.get(misc.animal(animalName))
-		assert r.ok and r.headers["content-type"] in imageTypes
-
-	for animalName in misc.animalList[-4:]:
-		print(animalName)
-		# Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field;
-		# check if URL points to an image instead
-		r = requests.get(misc.animal(animalName))
-		print(str(r.content)[:30])
-		assert r.ok and any(
-			str(r.content).startswith(signature) for signature in imageSigs
-		)
-
-	breeds = misc.animal("dog", "breeds")[12:-1].split(", ")
-	assert len(breeds) >= 94
-	for breed in breeds:
-		r = requests.head(misc.animal("dog", breed))
-		assert r.ok and r.headers["content-type"] in imageTypes
-	assert misc.animal("dog", "invalidbreed").startswith("Breed not")
-	assert misc.animal("dog", "invalidbreed1234").startswith("Breed not")
-
-	with pytest.raises(Exception):
-		misc.animal("invalidAnimal")
-
-
 def test_fact():
 	with open("resources/facts.txt", "r") as f:
-		assert misc.fact() in f.read().splitlines()
+		lines = f.read().splitlines()
+	assert misc.fact() in lines
 
 
 def test_tweet():
@@ -436,6 +404,9 @@ def test_blackjack():
 	report, game = bucks.blackjack(bb, 0)
 	assert isinstance(game, bucks.Instance) or "You hit 21!" in report
 	bucks.reset(bb)
+	game = bucks.Instance(bb, "all", True)
+	assert "You hit 21!" in game.message
+	bucks.reset(bb)
 	report, game = bucks.blackjack(bb, "10000000000000")
 	assert report.startswith("You do not have")
 	bb.name = ",invalidname,"
@@ -569,16 +540,59 @@ def test_onJoin():
 	assert misc.onJoin(guild, role).title == "Hello, Test Guild!"
 
 
+def test_animal():
+	imageTypes = (
+		"image/png",
+		"image/jpeg",
+		"image/jpg",
+		"image/gif",
+		"image/webp"
+	)
+	imageSigs = (
+		"b'\\xff\\xd8\\xff\\xe0\\x00\\x10JFIF",
+		"b'\\x89\\x50\\x4e\\x47\\x0d\\x",
+		"b'\\xff\\xd8\\xff\\xe2\\x024ICC_PRO",
+		"b'\\x89PNG\\r\\n\\x1a\\n\\",
+		"b'\\xff\\xd8\\xff\\xe1\\tPh"
+	)
+	for animalName in misc.animalList[:-4]:
+		print(animalName)
+		r = requests.get(misc.animal(animalName))
+		assert r.ok and r.headers["content-type"] in imageTypes
+
+	for animalName in misc.animalList[-4:]:
+		print(animalName)
+		# Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field;
+		# check if URL points to an image instead
+		r = requests.get(misc.animal(animalName))
+		print(str(r.content)[:30])
+		assert r.ok and any(
+			str(r.content).startswith(signature) for signature in imageSigs
+		)
+
+	r = requests.get(misc.animal("dog"))
+	assert r.ok and r.headers["content-type"] in imageTypes
+
+	breeds = misc.animal("dog", "breeds")[12:-1].split(", ")
+	assert len(breeds) >= 94
+	r = requests.get(misc.animal("dog", choice(breeds)))
+	assert r.ok and r.headers["content-type"] in imageTypes
+	assert misc.animal("dog", "invalidbreed").startswith("Breed not")
+	assert misc.animal("dog", "invalidbreed1234").startswith("Breed not")
+
+	with pytest.raises(Exception):
+		misc.animal("invalidAnimal")
+
+
+# Tests for commands that require a Brawlhalla API key:
+
+
 def test_fetchBrawlID():
-	if not brawlKey:
-		return
 	assert brawl.fetchBrawlID(196354892208537600) == 7032472
 	assert not brawl.fetchBrawlID(654133911558946837)
 
 
 def test_claimProfile():
-	if not brawlKey:
-		return
 	with open("resources/claimedProfs.json", "r") as f:
 		profsLen = len(load(f))
 	brawl.claimProfile(196354892208537600, 1)
@@ -590,14 +604,10 @@ def test_claimProfile():
 
 
 def test_fetchLegends():
-	if not brawlKey:
-		return
 	assert len(brawl.fetchLegends()) == 54
 
 
 def test_getBrawlID():
-	if not brawlKey:
-		return
 	assert brawl.getBrawlID(
 		brawlKey,
 		"https://steamcommunity.com/id/beardless"
@@ -610,23 +620,17 @@ def test_getBrawlID():
 
 
 def test_getLegends():
-	if not brawlKey:
-		return
 	oldLegends = brawl.fetchLegends()
 	brawl.getLegends(brawlKey)
 	assert brawl.fetchLegends() == oldLegends
 
 
 def test_legendInfo():
-	if not brawlKey:
-		return
 	assert brawl.legendInfo(brawlKey, "hugin").title == "Munin, The Raven"
 	assert not brawl.legendInfo(brawlKey, "invalidname")
 
 
 def test_getRank():
-	if not brawlKey:
-		return
 	user = TestUser(id=0)
 	assert (
 		brawl.getRank(user, brawlKey).description ==
@@ -640,8 +644,6 @@ def test_getRank():
 
 
 def test_getStats():
-	if not brawlKey:
-		return
 	user = TestUser(id=0)
 	assert (
 		brawl.getStats(user, brawlKey).description ==
@@ -654,8 +656,6 @@ def test_getStats():
 
 
 def test_getClan():
-	if not brawlKey:
-		return
 	user = TestUser(id=0)
 	assert (
 		brawl.getClan(user, brawlKey).description ==
@@ -672,6 +672,4 @@ def test_getClan():
 
 
 def test_brawlCommands():
-	if not brawlKey:
-		return
 	assert len(brawl.brawlCommands().fields) == 6

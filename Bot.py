@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.3"
+__version__ = "Full Release 1.6.4"
 
 import asyncio
 from datetime import datetime
@@ -434,7 +434,7 @@ async def cmdAnimal(ctx, breed=None, *args):
 				"Something's gone wrong with the Dog API!",
 				"Please inform my creator and he'll see what's going on."
 			)
-		await ctx.send(embed = emb)
+		await ctx.send(embed=emb)
 		return
 	try:
 		emb = misc.bbEmbed(
@@ -446,7 +446,7 @@ async def cmdAnimal(ctx, breed=None, *args):
 			"Something's gone wrong!",
 			"Please inform my creator and he'll see what's going on."
 		)
-	await ctx.send(embed = emb)
+	await ctx.send(embed=emb)
 
 
 @bot.command(name="help", aliases=("commands",))
