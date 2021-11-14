@@ -627,6 +627,7 @@ def test_getLegends():
 
 def test_legendInfo():
 	assert brawl.legendInfo(brawlKey, "hugin").title == "Munin, The Raven"
+	assert brawl.legendInfo(brawlKey, "teros").title == "Teros, The Minotaur"
 	assert not brawl.legendInfo(brawlKey, "invalidname")
 
 

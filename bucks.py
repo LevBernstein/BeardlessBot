@@ -11,28 +11,27 @@ from misc import bbEmbed, memSearch
 
 
 commaWarn = (
-	"Beardless Bot gambling is available to Discord users"
-	" with a comma in their username. Please remove the"
-	" comma from your username, {}."
+	"Beardless Bot gambling is available to Discord"
+	" users with a comma in their username. Please"
+	" remove the comma from your username, {}."
 )
 
 buckMsg = (
-	"BeardlessBucks are this bot's special currency. You can earn"
-	" them by playing games. First, do !register to get yourself"
-	" started with a balance."
+	"BeardlessBucks are this bot's special currency."
+	" You can earn them by playing games. First, do"
+	" !register to get yourself started with a balance."
 )
 
 newUserMsg = (
-	"You were not registered for BeardlessBucks gambling,"
-	" so I have automatically registered you. You now have"
-	" 300 BeardlessBucks, {}."
+	"You were not registered for BeardlessBucks gambling, so I have"
+	" automatically registered you. You now have 300 BeardlessBucks, {}."
 )
 
 finMsg = "Please finish your game of blackjack first, {}."
 
 noGameMsg = (
-	"You do not currently have a game of blackjack going,"
-	" {}. Type !blackjack to start one."
+	"You do not currently have a game of blackjack"
+	" going, {}. Type !blackjack to start one."
 )
 
 # Blackjack class. New Instance is made for each game of Blackjack
@@ -42,6 +41,9 @@ noGameMsg = (
 
 
 class Instance:
+
+	cardVals = (2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11)
+
 	def __init__(self, user: discord.User, bet: int, fix: bool = False):
 		self.user = user
 		self.bet = bet
@@ -50,7 +52,6 @@ class Instance:
 		self.dealerSum = self.dealerUp
 		while self.dealerSum < 17:
 			self.dealerSum += randint(1, 10)
-		self.vals = (2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11)
 		self.message = self.startingHand(fix)
 
 	def perfect(self) -> int:
@@ -59,8 +60,8 @@ class Instance:
 	def startingHand(
 		self, fixBlackjack: bool = False, fixDoubleAces: bool = False
 	) -> str:
-		self.cards.append(choice(self.vals))
-		self.cards.append(choice(self.vals))
+		self.cards.append(choice(Instance.cardVals))
+		self.cards.append(choice(Instance.cardVals))
 		message = (
 			"Your starting hand consists of {} and {}. Your total is {}. "
 		).format(
@@ -85,22 +86,13 @@ class Instance:
 					" One of them will act as a 1. Your total is 12. "
 				)
 			message += (
-				"Type !hit to deal another card to yourself, or !stay to stop"
-				f" at your current total, {self.user.mention}."
+				"Type !hit to deal another card to yourself, or !stay"
+				f" to stop at your current total, {self.user.mention}."
 			)
 		return message
 
-	def cardName(self, card: int) -> str:
-		if card == 10:
-			return "a " + choice(("10", "Jack", "Queen", "King"))
-		if card == 11:
-			return "an Ace"
-		if card == 8:
-			return "an 8"
-		return "a " + str(card)
-
 	def deal(self, fix: bool = False) -> str:
-		dealt = choice(self.vals)
+		dealt = choice(Instance.cardVals)
 		self.cards.append(dealt)
 		self.message = (
 			f"You were dealt {self.cardName(dealt)},"
@@ -117,8 +109,8 @@ class Instance:
 				f" Your new total is {sum(self.cards)}. "
 			)
 		self.message += (
-			"Your card values are {}. The dealer is showing"
-			" {}, with one card face down."
+			"Your card values are {}. The dealer is"
+			" showing {}, with one card face down."
 		).format(", ".join(str(card) for card in self.cards), self.dealerUp)
 		if self.checkBust():
 			self.message += f" You busted. Game over, {self.user.mention}."
@@ -169,6 +161,16 @@ class Instance:
 				" Unfortunately, you bet nothing, so this was all pointless."
 			)
 		return change
+
+	@staticmethod
+	def cardName(card: int) -> str:
+		if card == 10:
+			return "a " + choice(("10", "Jack", "Queen", "King"))
+		if card == 11:
+			return "an Ace"
+		if card == 8:
+			return "an 8"
+		return "a " + str(card)
 
 
 # BeardlessBucks modifying/referencing methods:
@@ -280,8 +282,8 @@ def leaderboard() -> discord.Embed:
 def flip(author: discord.user, bet: str, fix: bool = False) -> str:
 	heads = randint(0, 1)
 	report = (
-		"Invalid bet. Please choose a number greater than or equal to 0,"
-		" or enter \"all\" to bet your whole balance, {}."
+		"Invalid bet. Please choose a number greater than or equal"
+		" to 0, or enter \"all\" to bet your whole balance, {}."
 	)
 	if bet == "all":
 		bet = "all" if heads else "-all"
@@ -296,48 +298,45 @@ def flip(author: discord.user, bet: str, fix: bool = False) -> str:
 		result, bank = writeMoney(author, 300, False, False)
 		if result == 2:
 			report = (
-				"You were not registered for BeardlessBucks gambling, so I"
-				" registered you. You now have 300 BeardlessBucks, {}."
+				"You were not registered for BeardlessBucks gambling, so"
+				" I registered you. You now have 300 BeardlessBucks, {}."
 			)
 		elif result == -1:
 			report = bank
-		elif not (
-			isinstance(bet, str)
-			or (isinstance(bet, int) and result == 0 and bet <= bank)
-		):
+		elif isinstance(bet, int) and bet > bank:
 			report = (
 				"You do not have enough BeardlessBucks to bet that much, {}!"
 			)
 		else:
-			if isinstance(bet, int) and not heads or fix:
+			if isinstance(bet, int) and (fix or not heads):
 				# Fix just used to help test
 				bet *= -1
 			result, bonus = writeMoney(author, bet, True, True)
 			if result == 2:
 				report = newUserMsg
+			elif heads or fix:
+				report = (
+					"Heads! You win! Your winnings have"
+					" been added to your balance, {}."
+				)
 			else:
 				report = (
 					"Tails! You lose! Your losses have been"
 					" deducted from your balance, {}."
 				)
-				if heads or fix:
-					report = (
-						"Heads! You win! Your winnings have"
-						" been added to your balance, {}."
-					)
-				if result == 0:
-					report += (
-						" Or, they would have been, if you had"
-						" actually bet anything."
-					)
+			if result == 0:
+				report += (
+					" Or, they would have been, if"
+					" you had actually bet anything."
+				)
 	return report.format(author.mention)
 
 
 def blackjack(author: discord.User, bet: str) -> str:
 	game = None
 	report = (
-		"Invalid bet. Please choose a number greater than or equal to 0,"
-		" or enter \"all\" to bet your whole balance, {}."
+		"Invalid bet. Please choose a number greater than or equal"
+		" to 0, or enter \"all\" to bet your whole balance, {}."
 	)
 	if bet != "all":
 		try:

@@ -12,10 +12,10 @@ from misc import bbEmbed
 
 
 badClaim = (
-	"Please do !brawlclaim followed by the URL of your steam profile.\n"
-	"Example: !brawlclaim https://steamcommunity.com/id/beardless\n"
-	"Alternatively, you can claim via your Brawlhalla ID, which you can"
-	" find in the top right corner of your inventory.\n"
+	"Please do !brawlclaim followed by the URL of your steam profile."
+	"\nExample: !brawlclaim https://steamcommunity.com/id/beardless"
+	"\nAlternatively, you can claim via your Brawlhalla ID, which"
+	" you can find in the top right corner of your inventory.\n"
 	"Example: !brawlclaim 7032472."
 )
 
@@ -417,5 +417,5 @@ def brawlCommands() -> discord.Embed:
 	return emb
 
 
-# TODO implement brawl ID lookup, leaderboard, glory
+# TODO implement leaderboard, glory
 # See: https://github.com/BrawlDB/gerard3/blob/master/src/utils/glory.js

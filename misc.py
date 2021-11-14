@@ -91,7 +91,7 @@ def memSearch(message: discord.Message, target) -> discord.Member:
 	return semiMatch if semiMatch else looseMatch
 
 
-def animal(animalType: str, breed=None) -> str:
+def animal(animalType: str, breed: str = None) -> str:
 	r = "Invalid Animal!"
 	if animalType == "cat":
 		# Cat API has been throwing 503 errors every other call,
@@ -362,8 +362,8 @@ def scamCheck(text: str) -> bool:
 	return all(
 		(
 			"http" in text,
-			("discord" in text or "dizcord" in text),
-			("nitro" in text or "gift" in text)
+			"discord" in text or "dizcord" in text,
+			"nitro" in text or "gift" in text
 		)
 	) or all(
 		(

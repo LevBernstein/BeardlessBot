@@ -1,8 +1,7 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.4"
+__version__ = "Full Release 1.6.5"
 
 import asyncio
-from datetime import datetime
 from random import choice, randint
 from sys import exit as sysExit
 from time import time
@@ -56,35 +55,34 @@ async def on_ready():
 
 @bot.event
 async def on_guild_join(guild):
-	global sparPings  # create sparPings entry for this new server
-	sparPings[guild.id] = brawl.defaultPings
 	print(f"Just joined {guild.name}!")
-	print("Beardless Bot is now in", len(bot.guilds), "servers.")
 	if not guild.me.guild_permissions.administrator:
 		print(f"Not given admin perms in {guild.name}.")
 		for channel in guild.channels:
 			try:
 				await channel.send(embed=misc.noPerms)
+				print(f"Sent no perms msg in {channel.name}.")
 				break
 			except Exception as err:
 				print(err)
 				pass
 		await guild.leave()
 		print(f"Left {guild.name}.")
-		print("Beardless Bot is now in", len(bot.guilds), "servers.")
 	else:
 		for channel in guild.channels:
 			try:
 				await channel.send(
 					embed=misc.onJoin(
-						guild,
-						get(guild.roles, name="Beardless Bot")
+						guild, get(guild.roles, name="Beardless Bot")
 					)
 				)
 				break
 			except Exception as err:
 				print(err)
 				pass
+		print("Beardless Bot is now in", len(bot.guilds), "servers.")
+		global sparPings  # create sparPings entry for this new server
+		sparPings[guild.id] = brawl.defaultPings
 
 
 @bot.event
@@ -116,6 +114,22 @@ async def on_bulk_message_delete(msgList):
 async def on_message_edit(before, after):
 	if before.guild and before.content != after.content:
 		# The above check prevents embeds from getting logged
+		if after.guild.name == "egg" and misc.scamCheck(after.content):
+			await after.author.add_roles(
+				get(after.guild.roles, name="Muted")
+			)
+			for channel in after.guild.channels:
+				if channel.name == "infractions":
+					await channel.send(
+						"Deleted possible scam nitro link sent by"
+						f" {after.author.mention} in {after.channel.mention}."
+						f"\nMessage content:\n{after.content}"
+					)
+					break
+			await after.channel.send(
+				"Deleted possible nitro scam link. Alerting mods."
+			)
+			await after.delete()
 		for channel in before.guild.channels:
 			if channel.name == "bb-log":
 				try:
@@ -234,12 +248,8 @@ async def cmdDeal(ctx, *args):
 			if game.user == ctx.author:
 				report = game.deal()
 				if game.checkBust() or game.perfect():
-					bucks.writeMoney(
-						ctx.author,
-						-game.bet if game.checkBust() else game.bet,
-						True,
-						True
-					)
+					game.checkBust()
+					bucks.writeMoney(ctx.author, game.bet, True, True)
 					games.pop(i)
 				break
 	await ctx.send(
@@ -262,10 +272,7 @@ async def cmdStay(ctx, *args):
 				report = game.message
 				if result and game.bet:
 					written, bonus = bucks.writeMoney(
-						ctx.author,
-						game.bet,
-						True,
-						True
+						ctx.author, game.bet, True, True
 					)
 					if written == -1:
 						report = bonus
@@ -273,8 +280,7 @@ async def cmdStay(ctx, *args):
 				break
 	await ctx.send(
 		embed=misc.bbEmbed(
-			"Beardless Bot Blackjack",
-			report.format(ctx.author.mention)
+			"Beardless Bot Blackjack", report.format(ctx.author.mention)
 		)
 	)
 
@@ -369,8 +375,7 @@ async def cmdRandomBrawl(ctx, ranType="None", *args):
 async def cmdFact(ctx, *args):
 	await ctx.send(
 		embed=misc.bbEmbed(
-			f"Beardless Bot Fun Fact #{randint(1, 111111111)}",
-			misc.fact()
+			f"Beardless Bot Fun Fact #{randint(1, 111111111)}", misc.fact()
 		)
 	)
 
@@ -387,15 +392,10 @@ async def cmdDefine(ctx, *words):
 
 @bot.command(name="ping")
 async def cmdPing(ctx, *args):
-	startTime = datetime.now()
-	message = await ctx.send(embed=misc.bbEmbed("Pinging..."))
-	report = "Beardless Bot's latency is {} ms.".format(
-		int((datetime.now() - startTime).total_seconds() * 1000)
-	)
-	await message.edit(
-		embed=misc.bbEmbed("Pinged!", report)
-		.set_thumbnail(url=bot.user.avatar_url)
-	)
+	emb = misc.bbEmbed(
+		"Pinged", f"Beardless Bot's latency is {int(1000 * bot.latency)} ms."
+	).set_thumbnail(url=bot.user.avatar_url)
+	await ctx.send(embed=emb)
 
 
 @bot.command(name="roll")
@@ -418,6 +418,13 @@ async def cmdAnimal(ctx, breed=None, *args):
 			breed = breed.lower()
 		try:
 			dogUrl = misc.animal("dog", breed)
+		except Exception as err:
+			print(err)
+			emb = misc.bbEmbed(
+				"Something's gone wrong with the Dog API!",
+				"Please inform my creator and he'll see what's going on."
+			)
+		else:
 			if any(dogUrl.startswith(s) for s in ("Breed", "Dog")):
 				await ctx.send(dogUrl)
 				return
@@ -428,12 +435,6 @@ async def cmdAnimal(ctx, breed=None, *args):
 			emb = misc.bbEmbed(
 				"Random " + dogBreed.title()
 			).set_image(url=dogUrl)
-		except Exception as err:
-			print(err)
-			emb = misc.bbEmbed(
-				"Something's gone wrong with the Dog API!",
-				"Please inform my creator and he'll see what's going on."
-			)
 		await ctx.send(embed=emb)
 		return
 	try:
@@ -494,8 +495,7 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 				read_messages=True
 			)
 		)
-	mTime = 0.0
-	mString = None
+	mTime = mString = None
 	if duration:
 		duration = duration.lower()
 		times = (
@@ -701,14 +701,12 @@ async def cmdSpar(ctx, region=None, *args):
 					role = get(ctx.guild.roles, name=key.upper())
 					if not role:
 						role = await ctx.guild.create_role(
-							name=key.upper(),
-							mentionable=False
+							name=key.upper(), mentionable=False
 						)
 					if time() - value > 7200:
 						sparPings[guild][key] = int(time())
 						report = "{} come spar {}!".format(
-							role.mention,
-							ctx.author.mention
+							role.mention, ctx.author.mention
 						)
 					else:
 						tooRecent = value
@@ -720,7 +718,7 @@ async def cmdSpar(ctx, region=None, *args):
 		report = brawl.pingMsg(ctx.author.mention, hours, minutes, seconds)
 	await ctx.send(report)
 	if args and role and not tooRecent:
-		await ctx.send("Additional info: \"{}\"".format(" ".join(args)))
+		await ctx.send(f"Additional info: \"{' '.join(args)}\"")
 
 
 # Commands requiring a Brawlhalla API key:
@@ -818,8 +816,7 @@ async def cmdBrawllegend(ctx, legend=None, *args):
 	if not brawlKey:
 		return
 	report = (
-		"Invalid legend! Please do !brawllegend"
-		" followed by a legend name."
+		"Invalid legend! Please do !brawllegend followed by a legend name."
 	)
 	if legend:
 		try:
@@ -868,73 +865,54 @@ async def cmdGuide(ctx, *args):
 		)
 
 
-@bot.event
-async def on_message(message):
-	if not message.author.bot:
-		if message.guild:
-			text = message.content.lower()
+@bot.listen("on_message")
+async def handleMessages(message):
+	if message.author.bot or not message.guild:
+		return
 
-			if secretWord and secretWord in text:
-				global secretFound
-				if not secretFound:
-					secretFound = True
-					print(
-						"Secret word found by",
-						message.author.name,
-						"in",
-						message.guild.name
-					)
-					result, bonus = bucks.writeMoney(
-						message.author, 100000, True, True
-					)
-					if result == -1:
-						report = "Ping Captain No-Beard for your prize"
-					else:
-						report = (
-							"100000 BeardlessBucks have"
-							" been added to your account"
-						)
-					await message.channel.send(
-						embed=misc.bbEmbed(
-							(
-								"Well done! You found the"
-								f" secret word, {secretWord}!"
-							),
-							f"{report}, {message.author.mention}!"
-						)
-					)
+	text = message.content.lower()
 
-			elif message.guild.name == "egg" and misc.scamCheck(text):
-				await message.author.add_roles(
-					get(message.guild.roles, name="Muted")
+	if message.guild.name == "egg" and misc.scamCheck(text):
+		await message.author.add_roles(get(message.guild.roles, name="Muted"))
+		for channel in message.guild.channels:
+			if channel.name == "infractions":
+				await channel.send(
+					"Deleted possible scam nitro link sent by"
+					f" {message.author.mention} in {message.channel.mention}."
+					f"\nMessage content:\n{message.content}"
 				)
-				for channel in message.guild.channels:
-					if channel.name == "infractions":
-						await channel.send(
-							(
-								"Deleted possible scam nitro link sent by"
-								" {} in {}.\nMessage content: {}"
-							)
-							.format(
-								message.author.mention,
-								message.channel.mention,
-								message.content
-							)
-						)
-						break
-				await message.channel.send(
-					"Deleted possible nitro scam link. Alerting mods."
-				)
-				await message.delete()
+				break
+		await message.channel.send(
+			"Deleted possible nitro scam link. Alerting mods."
+		)
+		await message.delete()
 
-			elif message.guild.name == "Day Care":
-				if "twitter.com/year_progress" in text:
-					await message.delete()
-		try:
-			# Needed in order to run commands alongside on_message
-			await bot.process_commands(message)
-		except Exception as err:
-			print(err)
+	elif message.guild.name == "Day Care":
+		if "twitter.com/year_progress" in text:
+			await message.delete()
+
+	elif secretWord and secretWord in text:
+		global secretFound
+		if secretFound:
+			return
+		secretFound = True
+		print(
+			f"Secret word, {secretWord}, found by"
+			f" {message.author.mention} in {message.guild.name}."
+		)
+		result, bonus = bucks.writeMoney(message.author, 100000, True, True)
+		if result == -1:
+			report = "Ping Captain No-Beard for your prize"
+		elif result == 2:
+			bucks.writeMoney(message.author, 100000, True, True)
+		else:
+			report = "100000 BeardlessBucks have been added to your account"
+		await message.channel.send(
+			embed=misc.bbEmbed(
+				f"Well done! You found the secret word, {secretWord}!",
+				f"{report}, {message.author.mention}!"
+			)
+		)
 
 
 if __name__ == "__main__":
@@ -942,19 +920,18 @@ if __name__ == "__main__":
 		with open("resources/token.txt", "r") as f:
 			# In token.txt, paste in your own Discord API token
 			token = f.readline()
-	except Exception as err:
-		print("Fatal error: no Discord API token. Shutting down.\n", err)
+	except FileNotFoundError:
+		print("Fatal error: no Discord API token. Shutting down.")
 		sysExit(-1)
 
 	try:
 		with open("resources/brawlhallaKey.txt", "r") as f:
 			# In brawlhallaKey.txt, paste in your own Brawlhalla API key
 			brawlKey = f.readline()
-	except Exception as err:
+	except FileNotFoundError:
 		print(
 			"No Brawlhalla API key. Brawlhalla-specific",
-			"commands will not be active.\n",
-			err
+			"commands will not be active."
 		)
 		brawlKey = None
 
@@ -972,7 +949,8 @@ if __name__ == "__main__":
 	global sparPings
 	sparPings = {}
 
+	# This array stores the active instances of blackjack.
 	global games
-	games = []  # Stores the active instances of blackjack.
+	games = []
 
 	bot.run(token)
