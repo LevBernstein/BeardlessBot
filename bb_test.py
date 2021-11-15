@@ -118,7 +118,7 @@ def test_tweet():
 def test_dice():
 	user = TestUser()
 	for sideNum in 4, 6, 8, 100, 10, 12, 20:
-		message = "!d" + str(sideNum)
+		message = "d" + str(sideNum)
 		sideRoll = misc.roll(message)
 		assert 1 <= sideRoll and sideRoll <= sideNum
 		assert (
@@ -126,15 +126,12 @@ def test_dice():
 			.description
 			.startswith("You got")
 		)
-	sideRoll = misc.roll("!d20-4")
+	sideRoll = misc.roll("d20-4")
 	assert -3 <= sideRoll and sideRoll <= 16
-	assert misc.rollReport("!d20-4", user).description.startswith("You got")
-	assert not misc.roll("!d9")
-	assert (
-		misc.rollReport("!d9", user)
-		.description
-		.startswith("Invalid side number.")
-	)
+	assert misc.rollReport("d20-4", user).description.startswith("You got")
+	assert not misc.roll("d9")
+	assert not misc.roll("invalidroll")
+	assert misc.rollReport("d9", user).description.startswith("Invalid")
 
 
 def test_logDeleteMsg():
@@ -203,8 +200,8 @@ def test_logMemberJoin():
 	member = TestUser()
 	assert (
 		logs.logMemberJoin(member).description ==
-		f"Member {member.mention} joined\nAccount registered on"
-		f" {misc.truncTime(member)}\nID: {member.id}"
+		f"Member {member.mention} joined\nAccount registered"
+		f" on {misc.truncTime(member)}\nID: {member.id}"
 	)
 
 
@@ -356,16 +353,22 @@ def test_reset():
 
 
 def test_writeMoney():
-	user = TestUser(id=654133911558946837)
-	assert bucks.writeMoney(user, "-all", False, False)
-	assert bucks.writeMoney(user, -1000000, True, False) == (-2, None)
+	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
+	bucks.reset(bb)
+	assert bucks.writeMoney(bb, "-all", False, False) == (0, 200)
+	assert bucks.writeMoney(bb, -1000000, True, False) == (-2, None)
 
 
 def test_leaderboard():
+	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	lb = bucks.leaderboard()
 	assert lb.title == "BeardlessBucks Leaderboard"
-	if len(lb.fields) >= 2:  # This check in case of an empty leaderboard
-		assert int(lb.fields[0].value) > int(lb.fields[1].value)
+	fields = lb.fields
+	if len(fields) >= 2:  # This check in case of an empty leaderboard
+		assert int(fields[0].value) > int(fields[1].value)
+	lb = bucks.leaderboard(bb)
+	assert len(lb.fields) == len(fields) + 1
+	assert len(bucks.leaderboard(TestUser()).fields) == len(fields)
 
 
 def test_define():
@@ -378,10 +381,7 @@ def test_define():
 
 def test_flip():
 	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
-	assert (
-		bucks.flip(bb, "0", True)
-		.endswith("if you had actually bet anything.")
-	)
+	assert bucks.flip(bb, "0", True).endswith("actually bet anything.")
 	assert bucks.flip(bb, "invalidbet").startswith("Invalid bet.")
 	bucks.reset(bb)
 	bucks.flip(bb, "all")

@@ -260,9 +260,8 @@ def reset(target: discord.User) -> discord.Embed:
 	return bbEmbed("BeardlessBucks Reset", report)
 
 
-def leaderboard() -> discord.Embed:
-	# TODO print user's position on lb
-	# worst case runtime = # entries in money.csv + runtime of sorted() + 10
+def leaderboard(target: discord.User = None) -> discord.Embed:
+	# Runtime = 2 * |money.csv| + runtime of sorted(money.csv) + 10
 	# = O(n) + O(nlogn) + 10 = O(nlogn)
 	diction = {}
 	emb = bbEmbed("BeardlessBucks Leaderboard")
@@ -273,9 +272,17 @@ def leaderboard() -> discord.Embed:
 				diction[(row[2])[:-5]] = int(row[1])
 	# Sort by value for each key in diction, which is BeardlessBucks balance
 	sortedDict = OrderedDict(sorted(diction.items(), key=itemgetter(1)))
+	if target:
+		try:
+			users = list(sortedDict.keys())
+			pos = len(users) - users.index(target.name)
+		except ValueError:
+			pos = None
 	for i in range(min(len(sortedDict), 10)):
 		head, body = sortedDict.popitem()
 		emb.add_field(name=(str(i + 1) + ". " + head), value=str(body))
+	if target and pos:
+		emb.add_field(name="Your position:", value=str(pos), inline=False)
 	return emb
 
 

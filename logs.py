@@ -63,7 +63,7 @@ def logClearReacts(msg: discord.Message, reactions: list) -> discord.Embed:
 		.set_author(name=str(msg.author), icon_url=msg.author.avatar_url)
 		.add_field(
 			name="Message content:",
-			value=contCheck(msg) + "\n[Jump to Message]({msg.jump_url})",
+			value=contCheck(msg) + f"\n[Jump to Message]({msg.jump_url})",
 		)
 		.add_field(
 			name="Reactions:",

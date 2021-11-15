@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release 1.6.5
+### Full Release 1.6.6
 
 A Discord bot supporting gambling (coin flips and blackjack),
 a currency system, fun facts, and more.
@@ -44,6 +44,16 @@ repository secret with the name BRAWLHALLAKEY. For more information, see
 
 * To use special colors, create roles named special red,
 special blue, special pink, and special orange.
+
+
+## Contributing to Beardless Bot
+
+Interested in improving Beardless Bot? Great! If you have an idea, feel
+free to open a Pull Request with an explanation of what your changes
+accomplish. There are also several issues open in the Issues tab that
+could use someone tackling them. Please make sure your code is PEP8
+compliant, with a column limit of 80.
+
 
 ## License
 

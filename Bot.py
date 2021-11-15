@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.5"
+__version__ = "Full Release 1.6.6"
 
 import asyncio
 from random import choice, randint
@@ -54,39 +54,40 @@ async def on_ready():
 
 
 @bot.event
-async def on_guild_join(guild):
+async def on_guild_join(guild: discord.Guild):
 	print(f"Just joined {guild.name}!")
 	if not guild.me.guild_permissions.administrator:
 		print(f"Not given admin perms in {guild.name}.")
 		for channel in guild.channels:
 			try:
 				await channel.send(embed=misc.noPerms)
-				print(f"Sent no perms msg in {channel.name}.")
-				break
 			except Exception as err:
 				print(err)
-				pass
+			else:
+				print(f"Sent no perms msg in {channel.name}.")
+				break
 		await guild.leave()
 		print(f"Left {guild.name}.")
 	else:
+		role = get(guild.roles, name="Beardless Bot")
+		await role.edit(colour=discord.Colour(0xFFF994))
 		for channel in guild.channels:
 			try:
-				await channel.send(
-					embed=misc.onJoin(
-						guild, get(guild.roles, name="Beardless Bot")
-					)
-				)
-				break
+				await channel.send(embed=misc.onJoin(guild, role))
 			except Exception as err:
 				print(err)
-				pass
+			else:
+				break
 		print("Beardless Bot is now in", len(bot.guilds), "servers.")
 		global sparPings  # create sparPings entry for this new server
 		sparPings[guild.id] = brawl.defaultPings
 
 
+# Event logging
+
+
 @bot.event
-async def on_message_delete(msg):
+async def on_message_delete(msg: discord.Message):
 	if msg.guild and (msg.channel.name != "bb-log" or msg.content):
 		# Prevents embeds from causing a loop
 		for channel in msg.guild.channels:
@@ -96,7 +97,7 @@ async def on_message_delete(msg):
 
 
 @bot.event
-async def on_bulk_message_delete(msgList):
+async def on_bulk_message_delete(msgList: list):
 	if msgList[0].guild:
 		# If one message in the list is in a guild, all are
 		for channel in msgList[0].guild.channels:
@@ -111,7 +112,7 @@ async def on_bulk_message_delete(msgList):
 
 
 @bot.event
-async def on_message_edit(before, after):
+async def on_message_edit(before: discord.Message, after: discord.Message):
 	if before.guild and before.content != after.content:
 		# The above check prevents embeds from getting logged
 		if after.guild.name == "egg" and misc.scamCheck(after.content):
@@ -140,7 +141,7 @@ async def on_message_edit(before, after):
 
 
 @bot.event
-async def on_reaction_clear(msg, reactions):
+async def on_reaction_clear(msg: discord.Message, reactions: list):
 	if msg.guild:
 		for channel in msg.guild.channels:
 			if channel.name == "bb-log":
@@ -154,7 +155,7 @@ async def on_reaction_clear(msg, reactions):
 
 
 @bot.event
-async def on_guild_channel_delete(ch):
+async def on_guild_channel_delete(ch: discord.abc.GuildChannel):
 	for channel in ch.guild.channels:
 		if channel.name == "bb-log":
 			await channel.send(embed=logs.logDeleteChannel(ch))
@@ -162,7 +163,7 @@ async def on_guild_channel_delete(ch):
 
 
 @bot.event
-async def on_guild_channel_create(ch):
+async def on_guild_channel_create(ch: discord.abc.GuildChannel):
 	for channel in ch.guild.channels:
 		if channel.name == "bb-log":
 			await channel.send(embed=logs.logCreateChannel(ch))
@@ -170,7 +171,7 @@ async def on_guild_channel_create(ch):
 
 
 @bot.event
-async def on_member_join(member):
+async def on_member_join(member: discord.Member):
 	for channel in member.guild.channels:
 		if channel.name == "bb-log":
 			await channel.send(embed=logs.logMemberJoin(member))
@@ -178,7 +179,7 @@ async def on_member_join(member):
 
 
 @bot.event
-async def on_member_remove(member):
+async def on_member_remove(member: discord.Member):
 	for channel in member.guild.channels:
 		if channel.name == "bb-log":
 			await channel.send(embed=logs.logMemberRemove(member))
@@ -186,7 +187,7 @@ async def on_member_remove(member):
 
 
 @bot.event
-async def on_member_update(before, after):
+async def on_member_update(before: discord.Member, after: discord.Member):
 	for channel in after.guild.channels:
 		if channel.name == "bb-log":
 			# This event covers nickname changes and role changes
@@ -203,7 +204,7 @@ async def on_member_update(before, after):
 
 
 @bot.event
-async def on_member_ban(guild, member):
+async def on_member_ban(guild: discord.Guild, member: discord.Member):
 	for channel in guild.channels:
 		if channel.name == "bb-log":
 			await channel.send(embed=logs.logBan(member))
@@ -211,11 +212,14 @@ async def on_member_ban(guild, member):
 
 
 @bot.event
-async def on_member_unban(guild, member):
+async def on_member_unban(guild: discord.Guild, member: discord.Member):
 	for channel in guild.channels:
 		if channel.name == "bb-log":
 			await channel.send(embed=logs.logUnban(member))
 			return
+
+
+# Commands
 
 
 @bot.command(name="flip")
@@ -241,9 +245,9 @@ async def cmdBlackjack(ctx, bet="10", *args):
 @bot.command(name="deal", aliases=("hit",))
 async def cmdDeal(ctx, *args):
 	if "," in ctx.author.name:
-		report = bucks.commaWarn
+		report = bucks.commaWarn.format(ctx.author.mention)
 	else:
-		report = bucks.noGameMsg
+		report = bucks.noGameMsg.format(ctx.author.mention)
 		for i, game in enumerate(games):
 			if game.user == ctx.author:
 				report = game.deal()
@@ -252,20 +256,15 @@ async def cmdDeal(ctx, *args):
 					bucks.writeMoney(ctx.author, game.bet, True, True)
 					games.pop(i)
 				break
-	await ctx.send(
-		embed=misc.bbEmbed(
-			"Beardless Bot Blackjack",
-			report.format(ctx.author.mention)
-		)
-	)
+	await ctx.send(embed=misc.bbEmbed("Beardless Bot Blackjack", report))
 
 
 @bot.command(name="stay", aliases=("stand",))
 async def cmdStay(ctx, *args):
 	if "," in ctx.author.name:
-		report = bucks.commaWarn
+		report = bucks.commaWarn.format(ctx.author.mention)
 	else:
-		report = bucks.noGameMsg
+		report = bucks.noGameMsg.format(ctx.author.mention)
 		for i, game in enumerate(games):
 			if game.user == ctx.author:
 				result = game.stay()
@@ -278,11 +277,7 @@ async def cmdStay(ctx, *args):
 						report = bonus
 				games.pop(i)
 				break
-	await ctx.send(
-		embed=misc.bbEmbed(
-			"Beardless Bot Blackjack", report.format(ctx.author.mention)
-		)
-	)
+	await ctx.send(embed=misc.bbEmbed("Beardless Bot Blackjack", report))
 
 
 @bot.command(name="hint", aliases=("hints",))
@@ -318,8 +313,7 @@ async def cmdPlaylist(ctx, *args):
 
 @bot.command(name="leaderboard", aliases=("leaderboards", "lb"))
 async def cmdLeaderboard(ctx, *args):
-	# TODO: also report user's position on the leaderboard?
-	await ctx.send(embed=bucks.leaderboard())
+	await ctx.send(embed=bucks.leaderboard(ctx.author))
 
 
 @bot.command(name="dice")
@@ -399,7 +393,7 @@ async def cmdPing(ctx, *args):
 
 
 @bot.command(name="roll")
-async def cmdRoll(ctx, dice, *args):
+async def cmdRoll(ctx, dice="None", *args):
 	await ctx.send(embed=misc.rollReport(dice, ctx.author))
 
 
@@ -488,7 +482,7 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 	if not role:  # Creates a Muted role.
 		role = await ctx.guild.create_role(
 			name="Muted",
-			colour=discord.Color(0x818386),
+			colour=discord.Colour(0x818386),
 			mentionable=False,
 			permissions=discord.Permissions(
 				send_messages=False,
@@ -622,7 +616,7 @@ async def cmdBuy(ctx, color="none", *args):
 			report = "You already have this special color, {}."
 		else:
 			if not role.color.value:
-				await role.edit(colour=colors[color])
+				await role.edit(colour=discord.Colour(colors[color]))
 			report = (
 				"Not enough BeardlessBucks. You need"
 				" 50000 to buy a special color, {}."

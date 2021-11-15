@@ -185,7 +185,10 @@ def define(word: str) -> discord.Embed:
 def roll(message: str) -> int:
 	# Takes a string of the format dn+b and rolls one
 	# n-sided die with a modifier of b. Modifier is optional.
-	command = message.split("d", 1)[1]
+	try:
+		command = message.split("d", 1)[1]
+	except IndexError:
+		return None
 	modifier = -1 if "-" in command else 1
 	for side in "4", "6", "8", "100", "10", "12", "20":
 		if command.startswith(side):
