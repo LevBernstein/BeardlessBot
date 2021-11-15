@@ -73,6 +73,19 @@ class TestMessage(discord.Message):
 		self.mentions = ()
 
 
+class TestRole(discord.Role):
+	def __init__(
+		self,
+		name: str = "Test Role",
+		id: int = 123456789
+	):
+		self.name = name
+		self.id = id
+		self.hoist = False
+		self.guild = discord.Guild
+		self.mentionable = True
+
+
 try:
 	with open("resources/brawlhallaKey.txt", "r") as f:
 		# In brawlhallaKey.txt, paste in your own Brawlhalla API key
@@ -130,7 +143,7 @@ def test_dice():
 	assert -3 <= sideRoll and sideRoll <= 16
 	assert misc.rollReport("d20-4", user).description.startswith("You got")
 	assert not misc.roll("d9")
-	assert not misc.roll("invalidroll")
+	assert not misc.roll("wrongroll")
 	assert misc.rollReport("d9", user).description.startswith("Invalid")
 
 
@@ -211,8 +224,7 @@ def test_logMemberRemove():
 		logs.logMemberRemove(member).description ==
 		f"Member {member.mention} left\nID: {member.id}"
 	)
-	member.roles = TestUser(), TestUser()
-	# hacky but works; TODO create test roles
+	member.roles = TestRole(), TestRole()
 	assert (
 		logs.logMemberRemove(member).fields[0].value ==
 		member.roles[1].mention
@@ -230,7 +242,7 @@ def test_logMemberNickChange():
 
 def test_logMemberRolesChange():
 	before = TestUser()
-	after = TestUser(roles=(TestUser(),))
+	after = TestUser(roles=(TestRole(),))
 	assert (
 		logs.logMemberRolesChange(before, after).description ==
 		f"Role {after.roles[0].mention} added to {after.mention}."
@@ -387,6 +399,8 @@ def test_flip():
 	bucks.flip(bb, "all")
 	balMsg = bucks.balance(bb, TestMessage("!bal", bb))
 	assert ("400" in balMsg.description or "0" in balMsg.description)
+	bucks.reset(bb)
+	bucks.flip(bb, "100")
 	assert bucks.flip(bb, "10000000000000").startswith("You do not have")
 	bucks.reset(bb)
 	assert "200" in bucks.balance(bb, TestMessage("!bal", bb)).description
@@ -481,13 +495,12 @@ def test_randomBrawl():
 
 def test_info():
 	text = TestMessage("!info searchterm")
-	namedUser = TestUser("searchterm")
+	namedUser = TestUser("searchterm", roles=(TestRole(), TestRole()))
 	text.guild.members = (TestUser(), namedUser)
-	namedUser.roles = (namedUser, namedUser)
 	namedUserInfo = misc.info("searchterm", text)
 	assert namedUserInfo.fields[0].value == misc.truncTime(namedUser) + " UTC"
 	assert namedUserInfo.fields[1].value == misc.truncTime(namedUser) + " UTC"
-	assert namedUserInfo.fields[2].value == namedUser.mention
+	assert namedUserInfo.fields[2].value == TestRole().mention
 	assert misc.info("!infoerror", text).title == "Invalid target!"
 
 
@@ -533,9 +546,7 @@ def test_scamCheck():
 def test_onJoin():
 	guild = discord.Guild
 	guild.name = "Test Guild"
-	role = discord.Role
-	role.name = "Test Role"
-	role.id = 0
+	role = TestRole(id=0)
 	guild.roles = role,
 	assert misc.onJoin(guild, role).title == "Hello, Test Guild!"
 

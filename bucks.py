@@ -54,7 +54,7 @@ class Instance:
 			self.dealerSum += randint(1, 10)
 		self.message = self.startingHand(fix)
 
-	def perfect(self) -> int:
+	def perfect(self) -> bool:
 		return sum(self.cards) == 21
 
 	def startingHand(
@@ -176,7 +176,8 @@ class Instance:
 # BeardlessBucks modifying/referencing methods:
 # writeMoney() is the helper method for checking or
 # modifying a given user's balance.
-# register() is used for signing up a new user to the BeardlessBucks system.
+# register() is used for signing up a new user
+# to the BeardlessBucks system.
 # balance() is essentially a more user-friendly wrapper for
 # writeMoney's balance lookup
 # reset() is used for resetting a given user to 200 BeardlessBucks.
@@ -292,8 +293,8 @@ def flip(author: discord.user, bet: str, fix: bool = False) -> str:
 		"Invalid bet. Please choose a number greater than or equal"
 		" to 0, or enter \"all\" to bet your whole balance, {}."
 	)
-	if bet == "all":
-		bet = "all" if heads else "-all"
+	if bet == "all" and not heads:
+		bet = "-all"
 	else:
 		try:
 			bet = int(bet)
