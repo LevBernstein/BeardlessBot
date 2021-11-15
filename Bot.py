@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.7"
+__version__ = "Full Release 1.6.8"
 
 import asyncio
 from random import choice, randint
@@ -79,7 +79,7 @@ async def on_guild_join(guild: discord.Guild):
 			else:
 				break
 		print("Beardless Bot is now in", len(bot.guilds), "servers.")
-		global sparPings  # create sparPings entry for this new server
+		global sparPings
 		sparPings[guild.id] = brawl.defaultPings
 
 
@@ -732,10 +732,7 @@ async def cmdBrawlclaim(ctx, profUrl="None", *args):
 		brawlID = int(profUrl)
 	else:
 		brawlID = brawl.getBrawlID(brawlKey, profUrl)
-	if not brawlID:
-		report = "Invalid profile URL/Brawlhalla ID! " if profUrl else ""
-		report += brawl.badClaim
-	else:
+	if brawlID:
 		try:
 			brawl.claimProfile(ctx.author.id, brawlID)
 		except Exception as err:
@@ -743,6 +740,9 @@ async def cmdBrawlclaim(ctx, profUrl="None", *args):
 			report = brawl.reqLimit
 		else:
 			report = "Profile claimed."
+	else:
+		report = "Invalid profile URL/Brawlhalla ID! " if profUrl else ""
+		report += brawl.badClaim
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Brawlhalla Rank", report))
 
 

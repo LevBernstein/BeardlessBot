@@ -379,7 +379,7 @@ def test_leaderboard():
 	if len(fields) >= 2:  # This check in case of an empty leaderboard
 		assert int(fields[0].value) > int(fields[1].value)
 	lb = bucks.leaderboard(bb)
-	assert len(lb.fields) == len(fields) + 1
+	assert len(lb.fields) == len(fields) + 2
 	assert len(bucks.leaderboard(TestUser()).fields) == len(fields)
 
 

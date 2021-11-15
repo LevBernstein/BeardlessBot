@@ -281,9 +281,17 @@ def leaderboard(target: discord.User = None) -> discord.Embed:
 			pos = None
 	for i in range(min(len(sortedDict), 10)):
 		head, body = sortedDict.popitem()
-		emb.add_field(name=(str(i + 1) + ". " + head), value=str(body))
+		emb.add_field(
+			name=(str(i + 1) + ". " + head),
+			value=str(body),
+			inline=(i != min(len(sortedDict), 10) - 1)
+		)
 	if target and pos:
-		emb.add_field(name="Your position:", value=str(pos), inline=False)
+		emb.add_field(name=f"{target.name}'s position:", value=str(pos))
+		emb.add_field(
+			name=f"{target.name}'s balance:",
+			value=str(sortedDict[target.name])
+		)
 	return emb
 
 
@@ -293,8 +301,9 @@ def flip(author: discord.user, bet: str, fix: bool = False) -> str:
 		"Invalid bet. Please choose a number greater than or equal"
 		" to 0, or enter \"all\" to bet your whole balance, {}."
 	)
-	if bet == "all" and not heads:
-		bet = "-all"
+	if bet == "all":
+		if not heads:
+			bet = "-all"
 	else:
 		try:
 			bet = int(bet)
