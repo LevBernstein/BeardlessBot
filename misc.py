@@ -62,7 +62,7 @@ def truncTime(member):
 	return str(member.created_at)[:-7]
 
 
-# Wrapper for discord.Embed init() that defaults to
+# Wrapper for discord.Embed.init() that defaults to
 # commonly-used values and is easier to call
 def bbEmbed(
 	name: str = "", value: str = "", col: int = 0xFFF994

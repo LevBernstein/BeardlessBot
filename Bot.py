@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.8"
+__version__ = "Full Release 1.6.9"
 
 import asyncio
 from random import choice, randint
@@ -362,7 +362,7 @@ async def cmdRohan(ctx, *args):
 
 @bot.command(name="random")
 async def cmdRandomBrawl(ctx, ranType="None", *args):
-	await ctx.send(embed=brawl.randomBrawl(ranType.lower()))
+	await ctx.send(embed=brawl.randomBrawl(ranType.lower(), brawlKey))
 
 
 @bot.command(name="fact")

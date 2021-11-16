@@ -53,7 +53,7 @@ def pingMsg(target: discord.Member, h: int, m: int, s: int) -> str:
 	).format(target, h, plural(h), m, plural(m), s, plural(s))
 
 
-def randomBrawl(ranType: str) -> discord.Embed:
+def randomBrawl(ranType: str, key: str = None) -> discord.Embed:
 	if ranType in ("legend", "weapon"):
 		if ranType == "legend":
 			choices = tuple(
@@ -75,15 +75,16 @@ def randomBrawl(ranType: str) -> discord.Embed:
 				"Blasters",
 				"Axe"
 			)
+		if ranType == "legend" and key:
+			return legendInfo(key, choice(choices).lower())
 		return bbEmbed(
 			"Random " + ranType.title(),
 			f"Your {ranType} is {choice(choices)}."
 		)
-	else:
-		return bbEmbed(
-			"Brawlhalla Randomizer",
-			"Please do !random legend or !random weapon."
-		)
+	return bbEmbed(
+		"Brawlhalla Randomizer",
+		"Please do !random legend or !random weapon."
+	)
 
 
 def claimProfile(discordID: int, brawlID: str):

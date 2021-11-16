@@ -263,7 +263,7 @@ def reset(target: discord.User) -> discord.Embed:
 
 def leaderboard(target: discord.User = None) -> discord.Embed:
 	# Runtime = 2 * |money.csv| + runtime of sorted(money.csv) + 10
-	# = O(n) + O(nlogn) + 10 = O(nlogn)
+	# = 2 * O(n) + O(nlogn) + 10 = O(nlogn)
 	diction = {}
 	emb = bbEmbed("BeardlessBucks Leaderboard")
 	with open("resources/money.csv") as csvfile:

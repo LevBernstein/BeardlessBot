@@ -486,13 +486,6 @@ def test_blackjack_startingHand():
 	)
 
 
-def test_randomBrawl():
-	assert brawl.randomBrawl("legend").title == "Random Legend"
-	assert brawl.randomBrawl("weapon").title == "Random Weapon"
-	assert brawl.randomBrawl("invalidrandom").title == "Brawlhalla Randomizer"
-	assert brawl.randomBrawl("invalidrandom").title == "Brawlhalla Randomizer"
-
-
 def test_info():
 	text = TestMessage("!info searchterm")
 	namedUser = TestUser("searchterm", roles=(TestRole(), TestRole()))
@@ -596,6 +589,14 @@ def test_animal():
 
 
 # Tests for commands that require a Brawlhalla API key:
+
+
+def test_randomBrawl():
+	assert brawl.randomBrawl("weapon").title == "Random Weapon"
+	assert brawl.randomBrawl("legend").title == "Random Legend"
+	assert len(brawl.randomBrawl("legend", brawlKey).fields) == 2
+	assert brawl.randomBrawl("invalidrandom").title == "Brawlhalla Randomizer"
+	assert brawl.randomBrawl("invalidrandom").title == "Brawlhalla Randomizer"
 
 
 def test_fetchBrawlID():
