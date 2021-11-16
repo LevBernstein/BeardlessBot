@@ -665,7 +665,7 @@ def test_getStats():
 	user.id = 196354892208537600
 	emb = brawl.getStats(user, brawlKey)
 	assert emb.footer.text == "Brawl ID 7032472"
-	assert len(emb.fields) == 3
+	assert len(emb.fields) in (3, 4)
 
 
 def test_getClan():

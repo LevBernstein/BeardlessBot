@@ -275,7 +275,6 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 
 
 def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
-	# TODO: add clan below name, make this look not terrible
 	brawlID = fetchBrawlID(target.id)
 	if not brawlID:
 		return bbEmbed(
@@ -298,9 +297,9 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 	emb = (
 		bbEmbed("Brawlhalla Stats for " + r["name"])
 		.set_footer(text=f"Brawl ID {brawlID}")
+		.add_field(name="Name", value=r["name"])
 		.add_field(name="Overall W/L", value=embVal)
 		.set_author(name=str(target), icon_url=target.avatar_url)
-		.add_field(name="Name", value=r["name"])
 	)
 	if "legends" in r:
 		topUsed = topWinrate = topDPS = topTTK = None
@@ -335,21 +334,18 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 				)
 		if all((topUsed, topWinrate, topDPS, topTTK)):
 			emb.add_field(
-				value=(
-					"**Most Played:** {}\n**Highest Winrate:** {}, {}%\n"
-					"**Highest Avg DPS:** {}, {}\n**Shortest Avg TTK:"
-					"** {}, {}s"
-				).format(
-					topUsed[0],
-					topWinrate[0],
-					topWinrate[1],
-					topDPS[0],
-					topDPS[1],
-					topTTK[0],
-					topTTK[1]
-				),
-				name="Legend Stats (20 game min)"
+				name="Legend Stats (20 game min)", value=(
+					f"**Most Played:** {topUsed[0]}\n**Highest Winrate:"
+					f"** {topWinrate[0]}, {topWinrate[1]}%\n**Highest Avg"
+					f" DPS:** {topDPS[0]}, {topDPS[1]}\n**Shortest Avg TTK:"
+					f"** {topTTK[0]}, {topTTK[1]}s"
+				)
 			)
+	if "clan" in r:
+		emb.add_field(
+			name="Clan",
+			value=f"{r['clan']['clan_name']}\nClan ID: {r['clan']['clan_id']}"
+		)
 	return emb
 
 
