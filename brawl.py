@@ -334,7 +334,8 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 				)
 		if all((topUsed, topWinrate, topDPS, topTTK)):
 			emb.add_field(
-				name="Legend Stats (20 game min)", value=(
+				name="Legend Stats (20 game min)",
+				value=(
 					f"**Most Played:** {topUsed[0]}\n**Highest Winrate:"
 					f"** {topWinrate[0]}, {topWinrate[1]}%\n**Highest Avg"
 					f" DPS:** {topDPS[0]}, {topDPS[1]}\n**Shortest Avg TTK:"
@@ -344,7 +345,7 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 	if "clan" in r:
 		emb.add_field(
 			name="Clan",
-			value=f"{r['clan']['clan_name']}\nClan ID: {r['clan']['clan_id']}"
+			value=f"{r['clan']['clan_name']}\nClan ID {r['clan']['clan_id']}"
 		)
 	return emb
 
@@ -388,6 +389,13 @@ def getClan(target: discord.Member, brawlKey: str) -> discord.Embed:
 				member["rank"],
 				member["xp"],
 				str(datetime.fromtimestamp(member["join_date"]))[:-9]
+			)
+		)
+		emb.add_field(
+			name=member["name"],
+			value=(
+				f"{member['rank']} ({member['xp']} xp)\nJoined "
+				+ str(datetime.fromtimestamp(member["join_date"]))[:-9]
 			)
 		)
 	return emb

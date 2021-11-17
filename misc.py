@@ -1,5 +1,6 @@
 # Beardless Bot miscellaneous methods
 
+from datetime import datetime
 from random import choice, randint
 
 import discord
@@ -65,9 +66,17 @@ def truncTime(member):
 # Wrapper for discord.Embed.init() that defaults to
 # commonly-used values and is easier to call
 def bbEmbed(
-	name: str = "", value: str = "", col: int = 0xFFF994
+	name: str = "",
+	value: str = "",
+	col: int = 0xFFF994,
+	showTime: bool = False
 ) -> discord.Embed:
-	return discord.Embed(title=name, description=value, color=col)
+	return discord.Embed(
+		title=name,
+		description=value,
+		color=col,
+		timestamp=datetime.utcnow() if showTime else discord.Embed.Empty
+	)
 
 
 # User lookup helper method. Finds user based on
