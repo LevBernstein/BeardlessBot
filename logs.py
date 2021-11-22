@@ -19,7 +19,7 @@ def logDeleteMsg(msg: discord.Message) -> discord.Embed:
 		f"**{msg.channel.mention}\n{contCheck(msg)}",
 		0xFF0000,
 		True
-	).set_author(name=str(msg.author), icon_url=msg.author.avatar_url)
+	).set_author(name=msg.author, icon_url=msg.author.avatar_url)
 
 
 def logPurge(msg: discord.Message, msgList: list) -> discord.Embed:
@@ -43,8 +43,7 @@ def logEditMsg(
 			True
 		)
 		.set_author(
-			name=str(before.author),
-			icon_url=before.author.avatar_url
+			name=before.author, icon_url=before.author.avatar_url
 		)
 		.add_field(name="Before:", value=before.content, inline=False)
 		.add_field(
@@ -64,7 +63,7 @@ def logClearReacts(msg: discord.Message, reactions: list) -> discord.Embed:
 			0xFF0000,
 			True
 		)
-		.set_author(name=str(msg.author), icon_url=msg.author.avatar_url)
+		.set_author(name=msg.author, icon_url=msg.author.avatar_url)
 		.add_field(
 			name="Message content:",
 			value=contCheck(msg) + f"\n[Jump to Message]({msg.jump_url})"
@@ -117,7 +116,7 @@ def logMemberNickChange(
 ) -> discord.Embed:
 	return (
 		bbEmbed("", f"Nickname of {after.mention} changed.", 0xFFFF00, True)
-		.set_author(name=str(after), icon_url=after.avatar_url)
+		.set_author(name=after, icon_url=after.avatar_url)
 		.add_field(name="Before:", value=before.nick, inline=False)
 		.add_field(name="After:", value=after.nick, inline=False)
 	)
@@ -138,7 +137,7 @@ def logMemberRolesChange(
 			break
 	return bbEmbed(
 		"", f"Role {newRole.mention} {verb} {after.mention}.", color, True
-	).set_author(name=str(after), icon_url=after.avatar_url)
+	).set_author(name=after, icon_url=after.avatar_url)
 
 
 def logBan(member: discord.Member) -> discord.Embed:
@@ -180,10 +179,10 @@ def logMute(
 		f"Muted {member.mention}{mid} in {message.channel.mention}.",
 		0xFF0000,
 		True
-	).set_author(name=str(message.author), icon_url=message.author.avatar_url)
+	).set_author(name=message.author, icon_url=message.author.avatar_url)
 
 
 def logUnmute(member: discord.Member, author: discord.Member) -> discord.Embed:
 	return bbEmbed(
 		"Beardless Bot Mute", f"Unmuted {member.mention}.", 0x00FF00, True
-	).set_author(name=str(author), icon_url=author.avatar_url)
+	).set_author(name=author, icon_url=author.avatar_url)
