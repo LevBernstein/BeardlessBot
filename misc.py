@@ -87,7 +87,7 @@ def memSearch(message: discord.Message, target) -> discord.Member:
 	term = str(target).lower()
 	semiMatch = looseMatch = None
 	for member in message.guild.members:
-		if term == str(member).lower() or target == str(member.id):
+		if term == str(member).lower() or term == str(member.id):
 			return member
 		if term == member.name.lower():
 			if "#" not in term:

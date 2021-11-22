@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.13"
+__version__ = "Full Release 1.6.14"
 
 import asyncio
 from random import choice, randint
@@ -289,20 +289,24 @@ async def cmdHints(ctx, *args):
 
 
 @bot.command(name="av", aliases=("avatar",))
-async def cmdAv(ctx, target=None, *args):
-	if not target:
-		target = ctx.author
-	if ctx.message.mentions:
+async def cmdAv(ctx, *target):
+	if target:
+		target = " ".join(target)
+	elif ctx.message.mentions:
 		target = ctx.message.mentions[0]
+	else:
+		target = ctx.author
 	await ctx.send(embed=misc.av(target, ctx.message))
 
 
 @bot.command(name="balance", aliases=("bal",))
-async def cmdBalance(ctx, target=None, *args):
-	if not target:
-		target = ctx.author
-	if ctx.message.mentions:
+async def cmdBalance(ctx, *target):
+	if target:
+		target = " ".join(target)
+	elif ctx.message.mentions:
 		target = ctx.message.mentions[0]
+	else:
+		target = ctx.author
 	await ctx.send(embed=bucks.balance(target, ctx.message))
 
 
@@ -746,10 +750,12 @@ async def cmdBrawlclaim(ctx, profUrl="None", *args):
 
 
 @bot.command(name="brawlrank")
-async def cmdBrawlrank(ctx, target=None, *args):
+async def cmdBrawlrank(ctx, *target):
 	if not (brawlKey and ctx.guild):
 		return
-	if not target:
+	if target:
+		target = " ".join(target)
+	else:
 		target = ctx.author
 	if not isinstance(target, discord.User):
 		report = "Invalid target!"
@@ -767,10 +773,12 @@ async def cmdBrawlrank(ctx, target=None, *args):
 
 
 @bot.command(name="brawlstats")
-async def cmdBrawlstats(ctx, target=None, *args):
+async def cmdBrawlstats(ctx, *target):
 	if not (brawlKey and ctx.guild):
 		return
-	if not target:
+	if target:
+		target = " ".join(target)
+	else:
 		target = ctx.author
 	if not isinstance(target, discord.User):
 		report = "Invalid target!"
@@ -788,10 +796,12 @@ async def cmdBrawlstats(ctx, target=None, *args):
 
 
 @bot.command(name="brawlclan")
-async def cmdBrawlclan(ctx, target=None, *args):
+async def cmdBrawlclan(ctx, *target):
 	if not (brawlKey and ctx.guild):
 		return
-	if not target:
+	if target:
+		target = " ".join(target)
+	else:
 		target = ctx.author
 	if not isinstance(target, discord.User):
 		report = "Invalid target!"
