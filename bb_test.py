@@ -135,9 +135,7 @@ def test_dice():
 		sideRoll = misc.roll(message)
 		assert 1 <= sideRoll and sideRoll <= sideNum
 		assert (
-			misc.rollReport(message, user)
-			.description
-			.startswith("You got")
+			misc.rollReport(message, user).description.startswith("You got")
 		)
 	sideRoll = misc.roll("d20-4")
 	assert -3 <= sideRoll and sideRoll <= 16
@@ -560,16 +558,13 @@ def test_animal():
 		"b'\\xff\\xd8\\xff\\xe1\\tPh"
 	)
 	for animalName in misc.animalList[:-4]:
-		print(animalName)
 		r = requests.get(misc.animal(animalName))
 		assert r.ok and r.headers["content-type"] in imageTypes
 
 	for animalName in misc.animalList[-4:]:
-		print(animalName)
 		# Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field;
 		# check if URL points to an image instead
 		r = requests.get(misc.animal(animalName))
-		print(str(r.content)[:30])
 		assert r.ok and any(
 			str(r.content).startswith(signature) for signature in imageSigs
 		)

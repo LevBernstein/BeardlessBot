@@ -87,7 +87,7 @@ def memSearch(message: discord.Message, target) -> discord.Member:
 	term = str(target).lower()
 	semiMatch = looseMatch = None
 	for member in message.guild.members:
-		if term == str(member).lower() or target == str(member.id):
+		if term == str(member).lower() or term == str(member.id):
 			return member
 		if term == member.name.lower():
 			if "#" not in term:
@@ -239,7 +239,7 @@ def info(target: discord.Member, msg: discord.Message) -> discord.Embed:
 				target.activity.name if target.activity else "",
 				target.color
 			)
-			.set_author(name=str(target), icon_url=target.avatar_url)
+			.set_author(name=target, icon_url=target.avatar_url)
 			.set_thumbnail(url=target.avatar_url)
 			.add_field(
 				name="Registered for Discord on",
@@ -279,7 +279,7 @@ def av(target: discord.Member, msg: discord.Message) -> discord.Embed:
 		return (
 			bbEmbed(col=target.color)
 			.set_image(url=target.avatar_url)
-			.set_author(name=str(target), icon_url=target.avatar_url)
+			.set_author(name=target, icon_url=target.avatar_url)
 		)
 	return bbEmbed(
 		"Invalid target!",
@@ -366,7 +366,7 @@ def hints() -> discord.Embed:
 		hints = f.read().splitlines()
 		emb = bbEmbed("Hints for Beardless Bot's Secret Word")
 		for i in range(len(hints)):
-			emb.add_field(name=str(i + 1), value=hints[i])
+			emb.add_field(name=i + 1, value=hints[i])
 		return emb
 
 
