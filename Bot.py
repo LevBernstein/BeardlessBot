@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.12"
+__version__ = "Full Release 1.6.14"
 
 import asyncio
 from random import choice, randint
@@ -289,20 +289,24 @@ async def cmdHints(ctx, *args):
 
 
 @bot.command(name="av", aliases=("avatar",))
-async def cmdAv(ctx, target=None, *args):
-	if not target:
-		target = ctx.author
-	if ctx.message.mentions:
+async def cmdAv(ctx, *target):
+	if target:
+		target = " ".join(target)
+	elif ctx.message.mentions:
 		target = ctx.message.mentions[0]
+	else:
+		target = ctx.author
 	await ctx.send(embed=misc.av(target, ctx.message))
 
 
 @bot.command(name="balance", aliases=("bal",))
-async def cmdBalance(ctx, target=None, *args):
-	if not target:
-		target = ctx.author
-	if ctx.message.mentions:
+async def cmdBalance(ctx, *target):
+	if target:
+		target = " ".join(target)
+	elif ctx.message.mentions:
 		target = ctx.message.mentions[0]
+	else:
+		target = ctx.author
 	await ctx.send(embed=bucks.balance(target, ctx.message))
 
 
@@ -403,7 +407,7 @@ async def cmdAnimal(ctx, breed=None, *args):
 	if species == "moose" or (breed and breed.lower() == "moose"):
 		await ctx.send(
 			file=discord.File(
-				f"resources/images/moose/moose{randint(1, 72)}.jpg"
+				f"resources/images/moose/moose{randint(1, 75)}.jpg"
 			)
 		)
 		return
@@ -512,13 +516,11 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 		report = "Muted " + target.mention
 		report += (" for " + duration + mString + ".") if mTime else "."
 		emb = misc.bbEmbed("Beardless Bot Mute", report).set_author(
-			name=str(ctx.author), icon_url=ctx.author.avatar_url
+			name=ctx.author, icon_url=ctx.author.avatar_url
 		)
 		if args:
 			emb.add_field(
-				name="Mute Reason:",
-				value=" ".join(args),
-				inline=False
+				name="Mute Reason:", value=" ".join(args), inline=False
 			)
 		await ctx.send(embed=emb)
 		# Iterate through channels, make Muted unable to send msgs
@@ -585,11 +587,10 @@ async def cmdPurge(ctx, num=None, *args):
 		try:
 			mNum = int(num)
 		except ValueError:
-			await ctx.send(
-				embed=misc.bbEmbed(
-					"Beardless Bot Purge", "Invalid message number!"
-				)
+			emb = misc.bbEmbed(
+				"Beardless Bot Purge", "Invalid message number!"
 			)
+			await ctx.send(embed=emb)
 		else:
 			await ctx.channel.purge(
 				limit=mNum + 1, check=lambda msg: not msg.pinned
@@ -743,14 +744,18 @@ async def cmdBrawlclaim(ctx, profUrl="None", *args):
 	else:
 		report = "Invalid profile URL/Brawlhalla ID! " if profUrl else ""
 		report += brawl.badClaim
-	await ctx.send(embed=misc.bbEmbed("Beardless Bot Brawlhalla Rank", report))
+	await ctx.send(
+		embed=misc.bbEmbed("Beardless Bot Brawlhalla Rank", report)
+	)
 
 
 @bot.command(name="brawlrank")
-async def cmdBrawlrank(ctx, target=None, *args):
+async def cmdBrawlrank(ctx, *target):
 	if not (brawlKey and ctx.guild):
 		return
-	if not target:
+	if target:
+		target = " ".join(target)
+	else:
 		target = ctx.author
 	if not isinstance(target, discord.User):
 		report = "Invalid target!"
@@ -762,14 +767,18 @@ async def cmdBrawlrank(ctx, target=None, *args):
 		except Exception as err:
 			print(err)
 			report = brawl.reqLimit
-	await ctx.send(embed=misc.bbEmbed("Beardless Bot Brawlhalla Rank", report))
+	await ctx.send(
+		embed=misc.bbEmbed("Beardless Bot Brawlhalla Rank", report)
+	)
 
 
 @bot.command(name="brawlstats")
-async def cmdBrawlstats(ctx, target=None, *args):
+async def cmdBrawlstats(ctx, *target):
 	if not (brawlKey and ctx.guild):
 		return
-	if not target:
+	if target:
+		target = " ".join(target)
+	else:
 		target = ctx.author
 	if not isinstance(target, discord.User):
 		report = "Invalid target!"
@@ -787,10 +796,12 @@ async def cmdBrawlstats(ctx, target=None, *args):
 
 
 @bot.command(name="brawlclan")
-async def cmdBrawlclan(ctx, target=None, *args):
+async def cmdBrawlclan(ctx, *target):
 	if not (brawlKey and ctx.guild):
 		return
-	if not target:
+	if target:
+		target = " ".join(target)
+	else:
 		target = ctx.author
 	if not isinstance(target, discord.User):
 		report = "Invalid target!"
@@ -802,7 +813,9 @@ async def cmdBrawlclan(ctx, target=None, *args):
 		except Exception as err:
 			print(err)
 			report = brawl.reqLimit
-	await ctx.send(embed=misc.bbEmbed("Beardless Bot Brawlhalla Clan", report))
+	await ctx.send(
+		embed=misc.bbEmbed("Beardless Bot Brawlhalla Clan", report)
+	)
 
 
 @bot.command(name="brawllegend")

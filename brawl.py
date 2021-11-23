@@ -41,6 +41,20 @@ defaultPings = {
 	"eu": 0
 }
 
+thumbBase = (
+	"https://static.wikia.nocookie.net/brawlhalla_gamepedia/images/"
+	"{}/Banner_Rank_{}.png/revision/latest/scale-to-width-down/{}"
+)
+
+rankedThumbnails = {
+	"Diamond": ("4/46", "Diamond", "84?cb=20161110140154"),
+	"Platinum": ("6/6e", "Platinum", "102?cb=20161110140140"),
+	"Gold": ("6/69", "Gold", "109?cb=20161110140126"),
+	"Silver": ("5/5c", "Silver", "119?cb=20161110140055"),
+	"Bronze": ("a/a6", "Bronze", "112?cb=20161110140114"),
+	"Tin": ("e/e1", "Tin", "112?cb=20161110140036")
+}
+
 
 def pingMsg(target: discord.Member, h: int, m: int, s: int) -> str:
 	def plural(t):
@@ -57,8 +71,7 @@ def randomBrawl(ranType: str, key: str = None) -> discord.Embed:
 	if ranType in ("legend", "weapon"):
 		if ranType == "legend":
 			choices = tuple(
-				legend["legend_name_key"].title()
-				for legend in fetchLegends()
+				legend["legend_name_key"].title() for legend in fetchLegends()
 			)
 		else:
 			choices = (
@@ -82,8 +95,7 @@ def randomBrawl(ranType: str, key: str = None) -> discord.Embed:
 			f"Your {ranType} is {choice(choices)}."
 		)
 	return bbEmbed(
-		"Brawlhalla Randomizer",
-		"Please do !random legend or !random weapon."
+		"Brawlhalla Randomizer", "Please do !random legend or !random weapon."
 	)
 
 
@@ -118,7 +130,7 @@ def getBrawlID(brawlKey: str, profileURL: str) -> int:
 			.format(steamID, brawlKey)
 		)
 		return r.json()["brawlhalla_id"]
-	except Exception:
+	except KeyError:
 		return None
 
 
@@ -218,7 +230,7 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 	emb = (
 		bbEmbed(f"{r['name']}, {r['region']}")
 		.set_footer(text=f"Brawl ID {brawlID}")
-		.set_author(name=str(target), icon_url=target.avatar_url)
+		.set_author(name=target, icon_url=target.avatar_url)
 	)
 	if "games" in r:
 		winRate = round(r["wins"] / r["games"] * 100, 1)
@@ -240,6 +252,9 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 		for key, value in rankColors.items():
 			if key in r["tier"]:
 				emb.color = value
+				emb.set_thumbnail(
+					url=thumbBase.format(*rankedThumbnails[key])
+				)
 				break
 	if "2v2" in r:
 		twosTeam = None
@@ -251,25 +266,24 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 			emb.add_field(
 				name="Ranked 2s",
 				value=(
-					"**{}\n{}** ({} / {} Peak)\n"
-					"{} W / {} L / {}% winrate"
-				).format(
-					twosTeam["teamname"],
-					twosTeam["tier"],
-					twosTeam["rating"],
-					twosTeam["peak_rating"],
-					twosTeam["wins"],
-					twosTeam["games"] - twosTeam["wins"],
-					round(twosTeam["wins"] / twosTeam["games"] * 100, 1)
+					f"**{twosTeam['teamname']}\n"
+					f"{twosTeam['tier']}** ({twosTeam['rating']} /"
+					f" {twosTeam['peak_rating']} Peak)\n{twosTeam['wins']}"
+					f" W / {twosTeam['games'] - twosTeam['wins']} L /"
+					f" {round(twosTeam['wins'] / twosTeam['games'] * 100, 1)}"
+					"% winrate"
 				)
 			)
 			if (
-				emb.color == discord.Color(0xFFF994)
+				emb.color.value == 0xFFF994
 				or twosTeam["rating"] > r["rating"]
 			):
 				for key, value in rankColors.items():
 					if key in twosTeam["tier"]:
 						emb.color = value
+						emb.set_thumbnail(
+							url=thumbBase.format(*rankedThumbnails[key])
+						)
 						break
 	return emb
 
@@ -299,7 +313,7 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 		.set_footer(text=f"Brawl ID {brawlID}")
 		.add_field(name="Name", value=r["name"])
 		.add_field(name="Overall W/L", value=embVal)
-		.set_author(name=str(target), icon_url=target.avatar_url)
+		.set_author(name=target, icon_url=target.avatar_url)
 	)
 	if "legends" in r:
 		topUsed = topWinrate = topDPS = topTTK = None
@@ -382,15 +396,6 @@ def getClan(target: discord.Member, brawlKey: str) -> discord.Embed:
 	).set_footer(text=f"Clan ID {r['clan_id']}")
 	for i in range(min(len(r["clan"]), 9)):
 		member = r["clan"][i]
-		emb.add_field(
-			name=member["name"],
-			value="{} ({} xp)\nJoined {}"
-			.format(
-				member["rank"],
-				member["xp"],
-				str(datetime.fromtimestamp(member["join_date"]))[:-9]
-			)
-		)
 		emb.add_field(
 			name=member["name"],
 			value=(
