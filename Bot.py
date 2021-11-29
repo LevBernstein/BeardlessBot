@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.14"
+__version__ = "Full Release 1.6.15"
 
 import asyncio
 from random import choice, randint
@@ -36,21 +36,32 @@ async def on_ready():
 		print("Status updated!")
 	except discord.HTTPException:
 		print("Failed to update status!")
-		print("You might be sending requests too quickly.")
+		if bot.is_ws_ratelimited():
+			print("You have rate limited for sending too many requests.")
 	try:
 		with open("resources/images/prof.png", "rb") as f:
 			await bot.user.edit(avatar=f.read())
 		print("Avatar updated!")
 	except discord.HTTPException:
 		print("Failed to update avatar!")
-		print("You might be sending requests too quickly.")
+		if bot.is_ws_ratelimited():
+			print("You have rate limited for sending too many requests.")
 	except FileNotFoundError:
 		print("Avatar file not found! Check your directory structure.")
-	print("Beardless Bot is in", len(bot.guilds), "servers.")
 	# Initialize ping waiting time to 0 for each server:
 	global sparPings
+	mems = 0
 	for guild in bot.guilds:
 		sparPings[guild.id] = brawl.defaultPings
+		mems += guild.member_count
+		await guild.chunk()
+	print(
+		"Beardless Bot serves",
+		mems,
+		"members across",
+		len(bot.guilds),
+		"servers."
+	)
 
 
 @bot.event
@@ -69,8 +80,6 @@ async def on_guild_join(guild: discord.Guild):
 		await guild.leave()
 		print(f"Left {guild.name}.")
 	else:
-		role = get(guild.roles, name="Beardless Bot")
-		await role.edit(colour=discord.Colour(0xFFF994))
 		for channel in guild.channels:
 			try:
 				await channel.send(embed=misc.onJoin(guild, role))
@@ -753,10 +762,7 @@ async def cmdBrawlclaim(ctx, profUrl="None", *args):
 async def cmdBrawlrank(ctx, *target):
 	if not (brawlKey and ctx.guild):
 		return
-	if target:
-		target = " ".join(target)
-	else:
-		target = ctx.author
+	target = " ".join(target) if target else ctx.author
 	if not isinstance(target, discord.User):
 		report = "Invalid target!"
 		target = misc.memSearch(ctx.message, target)
@@ -776,10 +782,7 @@ async def cmdBrawlrank(ctx, *target):
 async def cmdBrawlstats(ctx, *target):
 	if not (brawlKey and ctx.guild):
 		return
-	if target:
-		target = " ".join(target)
-	else:
-		target = ctx.author
+	target = " ".join(target) if target else ctx.author
 	if not isinstance(target, discord.User):
 		report = "Invalid target!"
 		target = misc.memSearch(ctx.message, target)
@@ -799,10 +802,7 @@ async def cmdBrawlstats(ctx, *target):
 async def cmdBrawlclan(ctx, *target):
 	if not (brawlKey and ctx.guild):
 		return
-	if target:
-		target = " ".join(target)
-	else:
-		target = ctx.author
+	target = " ".join(target) if target else ctx.author
 	if not isinstance(target, discord.User):
 		report = "Invalid target!"
 		target = misc.memSearch(ctx.message, target)
@@ -849,9 +849,9 @@ async def cmdTweet(ctx, *args):
 		await ctx.send(
 			embed=misc.bbEmbed(
 				"eggsoup(@eggsouptv)",
-				misc.formattedTweet(),
+				misc.formattedTweet(misc.tweet()),
 				0x1DA1F2
-			)
+			).set_thumbnail(url=misc.tweetThumb)
 		)
 
 
@@ -871,6 +871,11 @@ async def cmdGuide(ctx, *args):
 			)
 		)
 
+@bot.listen()
+async def on_command_error(ctx, err):
+	if isinstance(err, commands.CommandNotFound):
+		return
+	print(err)
 
 @bot.listen("on_message")
 async def handleMessages(message):

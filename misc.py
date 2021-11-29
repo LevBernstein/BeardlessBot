@@ -58,6 +58,16 @@ greetings = (
 	"Greetings!"
 )
 
+redditThumb = (
+	"https://b.thumbs.redditmedia.com/xJ1-nJJ"
+	"zHopKe25_bMxKgePiT3HWADjtxioxlku7qcM.png"
+)
+
+tweetThumb = (
+	"https://pbs.twimg.com/profile_images/13"
+	"97696436393836546/NgpD6O57_400x400.jpg"
+)
+
 
 def truncTime(member):
 	return str(member.created_at)[:-7]
@@ -427,7 +437,7 @@ def tweet() -> str:
 	return s[0].title() + s[1:]
 
 
-def formattedTweet(eggTweet: str = tweet()) -> str:
+def formattedTweet(eggTweet: str) -> str:
 	# Removes the last piece of punctuation to create a more realistic tweet
 	for i in range(len(eggTweet) - 1, -1, -1):
 		if eggTweet[i] in (".", "!", "?"):
@@ -499,10 +509,7 @@ redditEmb = (
 		"The Official Eggsoup Subreddit",
 		"https://www.reddit.com/r/eggsoup/"
 	)
-	.set_thumbnail(
-		url="https://b.thumbs.redditmedia.com/xJ1-nJJzHopK"
-		"e25_bMxKgePiT3HWADjtxioxlku7qcM.png"
-	)
+	.set_thumbnail(url=redditThumb)
 )
 
 animals = bbEmbed("Animal Photo Commands:").add_field(

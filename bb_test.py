@@ -15,7 +15,7 @@ import logs
 import misc
 
 
-class TestUser(discord.User):
+class MockUser(discord.User):
 	def __init__(
 		self,
 		name: str = "testname",
@@ -40,7 +40,7 @@ class TestUser(discord.User):
 		return "https://cdn.discordapp.com/embed/avatars/0.png"
 
 
-class TestChannel(discord.TextChannel):
+class MockChannel(discord.TextChannel):
 	def __init__(self):
 		self.name = "testchannelname"
 		self.guild = discord.Guild
@@ -52,16 +52,16 @@ class TestChannel(discord.TextChannel):
 		self.category_id = 0
 
 
-class TestMessage(discord.Message):
+class MockMessage(discord.Message):
 	def __init__(
 		self,
 		content: str = "testcontent",
-		author: discord.User = TestUser()
+		author: discord.User = MockUser()
 	):
 		self.author = author
 		self.content = content
 		self.id = 123456789
-		self.channel = TestChannel()
+		self.channel = MockChannel()
 		self.type = discord.MessageType.default
 		self.flags = discord.MessageFlags(
 			crossposted=False,
@@ -73,7 +73,7 @@ class TestMessage(discord.Message):
 		self.mentions = ()
 
 
-class TestRole(discord.Role):
+class MockRole(discord.Role):
 	def __init__(
 		self,
 		name: str = "Test Role",
@@ -129,7 +129,7 @@ def test_tweet():
 
 
 def test_dice():
-	user = TestUser()
+	user = MockUser()
 	for sideNum in 4, 6, 8, 100, 10, 12, 20:
 		message = "d" + str(sideNum)
 		sideRoll = misc.roll(message)
@@ -146,7 +146,7 @@ def test_dice():
 
 
 def test_logDeleteMsg():
-	msg = TestMessage()
+	msg = MockMessage()
 	assert (
 		logs.logDeleteMsg(msg).description ==
 		f"**Deleted message sent by {msg.author.mention}"
@@ -155,7 +155,7 @@ def test_logDeleteMsg():
 
 
 def test_logPurge():
-	msg = TestMessage()
+	msg = MockMessage()
 	assert (
 		logs.logPurge(msg, (msg, msg, msg)).description ==
 		f"Purged 2 messages in {msg.channel.mention}."
@@ -163,8 +163,8 @@ def test_logPurge():
 
 
 def test_logEditMsg():
-	before = TestMessage()
-	after = TestMessage("newcontent")
+	before = MockMessage()
+	after = MockMessage("newcontent")
 	emb = logs.logEditMsg(before, after)
 	assert (
 		emb.description ==
@@ -179,7 +179,7 @@ def test_logEditMsg():
 
 
 def test_logClearReacts():
-	msg = TestMessage()
+	msg = MockMessage()
 	emb = logs.logClearReacts(msg, (1, 2, 3))
 	assert (
 		emb.description.startswith(
@@ -192,7 +192,7 @@ def test_logClearReacts():
 
 
 def test_logDeleteChannel():
-	channel = TestChannel()
+	channel = MockChannel()
 	assert (
 		logs.logDeleteChannel(channel).description ==
 		f"Channel \"{channel.name}\" deleted."
@@ -200,7 +200,7 @@ def test_logDeleteChannel():
 
 
 def test_logCreateChannel():
-	channel = TestChannel()
+	channel = MockChannel()
 	assert (
 		logs.logCreateChannel(channel).description ==
 		f"Channel \"{channel.name}\" created."
@@ -208,7 +208,7 @@ def test_logCreateChannel():
 
 
 def test_logMemberJoin():
-	member = TestUser()
+	member = MockUser()
 	assert (
 		logs.logMemberJoin(member).description ==
 		f"Member {member.mention} joined\nAccount registered"
@@ -217,12 +217,12 @@ def test_logMemberJoin():
 
 
 def test_logMemberRemove():
-	member = TestUser()
+	member = MockUser()
 	assert (
 		logs.logMemberRemove(member).description ==
 		f"Member {member.mention} left\nID: {member.id}"
 	)
-	member.roles = TestRole(), TestRole()
+	member.roles = MockRole(), MockRole()
 	assert (
 		logs.logMemberRemove(member).fields[0].value ==
 		member.roles[1].mention
@@ -230,8 +230,8 @@ def test_logMemberRemove():
 
 
 def test_logMemberNickChange():
-	before = TestUser()
-	after = TestUser("testuser", "newnick")
+	before = MockUser()
+	after = MockUser("testuser", "newnick")
 	emb = logs.logMemberNickChange(before, after)
 	assert emb.description == "Nickname of " + after.mention + " changed."
 	assert emb.fields[0].value == before.nick
@@ -239,8 +239,8 @@ def test_logMemberNickChange():
 
 
 def test_logMemberRolesChange():
-	before = TestUser()
-	after = TestUser(roles=(TestRole(),))
+	before = MockUser()
+	after = MockUser(roles=(MockRole(),))
 	assert (
 		logs.logMemberRolesChange(before, after).description ==
 		f"Role {after.roles[0].mention} added to {after.mention}."
@@ -252,7 +252,7 @@ def test_logMemberRolesChange():
 
 
 def test_logBan():
-	member = TestUser()
+	member = MockUser()
 	assert (
 		logs.logBan(member).description ==
 		f"Member {member.mention} banned\n{member.name}"
@@ -260,7 +260,7 @@ def test_logBan():
 
 
 def test_logUnban():
-	member = TestUser()
+	member = MockUser()
 	assert (
 		logs.logUnban(member).description ==
 		f"Member {member.mention} unbanned\n{member.name}"
@@ -268,8 +268,8 @@ def test_logUnban():
 
 
 def test_logMute():
-	message = TestMessage()
-	member = TestUser()
+	message = MockMessage()
+	member = MockUser()
 	assert (
 		logs.logMute(member, message, "5", "hours", 18000).description ==
 		f"Muted {member.mention} for 5 hours in {message.channel.mention}."
@@ -281,17 +281,17 @@ def test_logMute():
 
 
 def test_logUnmute():
-	member = TestUser()
+	member = MockUser()
 	assert (
-		logs.logUnmute(member, TestUser()).description ==
+		logs.logUnmute(member, MockUser()).description ==
 		f"Unmuted {member.mention}."
 	)
 
 
 def test_memSearch():
-	text = TestMessage()
-	namedUser = TestUser("searchterm", "testnick", "9999")
-	text.guild.members = (TestUser(), namedUser)
+	text = MockMessage()
+	namedUser = MockUser("searchterm", "testnick", "9999")
+	text.guild.members = (MockUser(), namedUser)
 	contentList = "searchterm#9999", "searchterm", "search", "testnick"
 	for content in contentList:
 		text.content = content
@@ -304,7 +304,7 @@ def test_memSearch():
 
 
 def test_register():
-	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
+	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	bucks.reset(bb)
 	assert (
 		bucks.register(bb).description ==
@@ -319,9 +319,9 @@ def test_register():
 
 
 def test_balance():
-	text = TestMessage(
+	text = MockMessage(
 		"!bal",
-		TestUser(
+		MockUser(
 			"Beardless Bot",
 			"Beardless Bot",
 			5757,
@@ -332,7 +332,7 @@ def test_balance():
 		bucks.balance(text.author, text).description ==
 		f"{text.author.mention}'s balance is 200 BeardlessBucks."
 	)
-	text.guild.members = (TestUser(), text.author)
+	text.guild.members = (MockUser(), text.author)
 	text.content = "!balance " + text.author.name
 	assert (
 		bucks.balance(text.author, text).description ==
@@ -353,7 +353,7 @@ def test_balance():
 
 
 def test_reset():
-	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
+	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	assert (
 		bucks.reset(bb).description ==
 		f"You have been reset to 200 BeardlessBucks, {bb.mention}."
@@ -363,14 +363,14 @@ def test_reset():
 
 
 def test_writeMoney():
-	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
+	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	bucks.reset(bb)
 	assert bucks.writeMoney(bb, "-all", False, False) == (0, 200)
 	assert bucks.writeMoney(bb, -1000000, True, False) == (-2, None)
 
 
 def test_leaderboard():
-	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
+	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	lb = bucks.leaderboard()
 	assert lb.title == "BeardlessBucks Leaderboard"
 	fields = lb.fields
@@ -378,7 +378,7 @@ def test_leaderboard():
 		assert int(fields[0].value) > int(fields[1].value)
 	lb = bucks.leaderboard(bb)
 	assert len(lb.fields) == len(fields) + 2
-	assert len(bucks.leaderboard(TestUser()).fields) == len(fields)
+	assert len(bucks.leaderboard(MockUser()).fields) == len(fields)
 
 
 def test_define():
@@ -390,24 +390,24 @@ def test_define():
 
 
 def test_flip():
-	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
+	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	assert bucks.flip(bb, "0", True).endswith("actually bet anything.")
 	assert bucks.flip(bb, "invalidbet").startswith("Invalid bet.")
 	bucks.reset(bb)
 	bucks.flip(bb, "all")
-	balMsg = bucks.balance(bb, TestMessage("!bal", bb))
+	balMsg = bucks.balance(bb, MockMessage("!bal", bb))
 	assert ("400" in balMsg.description or "0" in balMsg.description)
 	bucks.reset(bb)
 	bucks.flip(bb, "100")
 	assert bucks.flip(bb, "10000000000000").startswith("You do not have")
 	bucks.reset(bb)
-	assert "200" in bucks.balance(bb, TestMessage("!bal", bb)).description
+	assert "200" in bucks.balance(bb, MockMessage("!bal", bb)).description
 	bb.name = ",invalidname,"
 	assert bucks.flip(bb, "0") == bucks.commaWarn.format(bb.mention)
 
 
 def test_blackjack():
-	bb = TestUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
+	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	assert bucks.blackjack(bb, "invalidbet")[0].startswith("Invalid bet.")
 	bucks.reset(bb)
 	report, game = bucks.blackjack(bb, "all")
@@ -426,13 +426,13 @@ def test_blackjack():
 
 
 def test_blackjack_perfect():
-	game = bucks.Instance(TestUser(), 10)
+	game = bucks.Instance(MockUser(), 10)
 	game.cards = 10, 11
 	assert game.perfect()
 
 
 def test_blackjack_deal():
-	game = bucks.Instance(TestUser(), 10)
+	game = bucks.Instance(MockUser(), 10)
 	game.cards = [2, 3]
 	game.deal()
 	assert len(game.cards) == 3
@@ -445,7 +445,7 @@ def test_blackjack_deal():
 
 
 def test_blackjack_cardName():
-	game = bucks.Instance(TestUser(), 10)
+	game = bucks.Instance(MockUser(), 10)
 	assert game.cardName(10) in ("a 10", "a Jack", "a Queen", "a King")
 	assert game.cardName(11) == "an Ace"
 	assert game.cardName(8) == "an 8"
@@ -453,13 +453,13 @@ def test_blackjack_cardName():
 
 
 def test_blackjack_checkBust():
-	game = bucks.Instance(TestUser(), 10)
+	game = bucks.Instance(MockUser(), 10)
 	game.cards = 10, 10, 10
 	assert game.checkBust()
 
 
 def test_blackjack_stay():
-	game = bucks.Instance(TestUser(), 0)
+	game = bucks.Instance(MockUser(), 0)
 	game.cards = [10, 10, 1]
 	game.dealerSum = 25
 	assert game.stay() == 1
@@ -472,7 +472,7 @@ def test_blackjack_stay():
 
 
 def test_blackjack_startingHand():
-	game = bucks.Instance(TestUser(), 10)
+	game = bucks.Instance(MockUser(), 10)
 	game.cards = []
 	game.message = game.startingHand()
 	assert len(game.cards) == 2
@@ -485,26 +485,26 @@ def test_blackjack_startingHand():
 
 
 def test_info():
-	text = TestMessage("!info searchterm")
-	namedUser = TestUser("searchterm", roles=(TestRole(), TestRole()))
-	text.guild.members = (TestUser(), namedUser)
+	text = MockMessage("!info searchterm")
+	namedUser = MockUser("searchterm", roles=(MockRole(), MockRole()))
+	text.guild.members = (MockUser(), namedUser)
 	namedUserInfo = misc.info("searchterm", text)
 	assert namedUserInfo.fields[0].value == misc.truncTime(namedUser) + " UTC"
 	assert namedUserInfo.fields[1].value == misc.truncTime(namedUser) + " UTC"
-	assert namedUserInfo.fields[2].value == TestRole().mention
+	assert namedUserInfo.fields[2].value == MockRole().mention
 	assert misc.info("!infoerror", text).title == "Invalid target!"
 
 
 def test_av():
-	text = TestMessage("!av searchterm")
-	namedUser = TestUser("searchterm")
-	text.guild.members = (TestUser(), namedUser)
+	text = MockMessage("!av searchterm")
+	namedUser = MockUser("searchterm")
+	text.guild.members = (MockUser(), namedUser)
 	assert misc.av("searchterm", text).image.url == namedUser.avatar_url
 	assert misc.av("error", text).title == "Invalid target!"
 
 
 def test_commands():
-	text = TestMessage()
+	text = MockMessage()
 	text.guild = None
 	assert len(misc.bbCommands(text).fields) == 15
 
@@ -515,7 +515,7 @@ def test_hints():
 
 
 def test_pingMsg():
-	namedUser = TestUser("likesToPing")
+	namedUser = MockUser("likesToPing")
 	assert (
 		brawl.pingMsg(namedUser.mention, 1, 1, 1)
 		.endswith("You can ping again in 1 hour, 1 minute, and 1 second.")
@@ -537,7 +537,7 @@ def test_scamCheck():
 def test_onJoin():
 	guild = discord.Guild
 	guild.name = "Test Guild"
-	role = TestRole(id=0)
+	role = MockRole(id=0)
 	guild.roles = role,
 	assert misc.onJoin(guild, role).title == "Hello, Test Guild!"
 
@@ -639,7 +639,7 @@ def test_legendInfo():
 
 
 def test_getRank():
-	user = TestUser(id=0)
+	user = MockUser(id=0)
 	assert (
 		brawl.getRank(user, brawlKey).description ==
 		brawl.unclaimed.format(user.mention)
@@ -652,7 +652,7 @@ def test_getRank():
 
 
 def test_getStats():
-	user = TestUser(id=0)
+	user = MockUser(id=0)
 	assert (
 		brawl.getStats(user, brawlKey).description ==
 		brawl.unclaimed.format(user.mention)
@@ -664,7 +664,7 @@ def test_getStats():
 
 
 def test_getClan():
-	user = TestUser(id=0)
+	user = MockUser(id=0)
 	assert (
 		brawl.getClan(user, brawlKey).description ==
 		brawl.unclaimed.format(user.mention)
