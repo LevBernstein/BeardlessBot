@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.15"
+__version__ = "Full Release 1.6.16"
 
 import asyncio
 from random import choice, randint
@@ -80,6 +80,7 @@ async def on_guild_join(guild: discord.Guild):
 		await guild.leave()
 		print(f"Left {guild.name}.")
 	else:
+		role = get(guild.roles, name="Beardless Bot")
 		for channel in guild.channels:
 			try:
 				await channel.send(embed=misc.onJoin(guild, role))
@@ -871,11 +872,13 @@ async def cmdGuide(ctx, *args):
 			)
 		)
 
+
 @bot.listen()
 async def on_command_error(ctx, err):
 	if isinstance(err, commands.CommandNotFound):
 		return
 	print(err)
+
 
 @bot.listen("on_message")
 async def handleMessages(message):
