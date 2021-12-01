@@ -283,7 +283,7 @@ def info(target: discord.Member, msg: discord.Message) -> discord.Embed:
 
 
 def av(target: discord.Member, msg: discord.Message) -> discord.Embed:
-	if not isinstance(target, discord.User):
+	if not isinstance(target, discord.Member):
 		target = memSearch(msg, target)
 	if target:
 		return (

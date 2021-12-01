@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.16"
+__version__ = "Full Release 1.6.17"
 
 import asyncio
 from random import choice, randint
@@ -300,34 +300,53 @@ async def cmdHints(ctx, *args):
 
 @bot.command(name="av", aliases=("avatar",))
 async def cmdAv(ctx, *target):
-	if target:
-		target = " ".join(target)
-	elif ctx.message.mentions:
+	if ctx.message.mentions:
 		target = ctx.message.mentions[0]
+	elif target:
+		target = " ".join(target)
 	else:
 		target = ctx.author
 	await ctx.send(embed=misc.av(target, ctx.message))
 
 
+@bot.command(name="info")
+async def cmdInfo(ctx, *target):
+	if not ctx.guild:
+		return
+	if ctx.message.mentions:
+		target = ctx.message.mentions[0]
+	elif target:
+		target = " ".join(target)
+	else:
+		target = ctx.author
+	await ctx.send(embed=misc.info(target, ctx.message))
+
+
 @bot.command(name="balance", aliases=("bal",))
 async def cmdBalance(ctx, *target):
-	if target:
-		target = " ".join(target)
-	elif ctx.message.mentions:
+	if ctx.message.mentions:
 		target = ctx.message.mentions[0]
+	elif target:
+		target = " ".join(target)
 	else:
 		target = ctx.author
 	await ctx.send(embed=bucks.balance(target, ctx.message))
 
 
+@bot.command(name="leaderboard", aliases=("leaderboards", "lb"))
+async def cmdLeaderboard(ctx, *target):
+	if ctx.message.mentions:
+		target = ctx.message.mentions[0]
+	elif target:
+		target = " ".join(target)
+	else:
+		target = ctx.author
+	await ctx.send(embed=bucks.leaderboard(target, ctx.message))
+
+
 @bot.command(name="playlist", aliases=("music",))
 async def cmdPlaylist(ctx, *args):
 	await ctx.send(misc.spotify)
-
-
-@bot.command(name="leaderboard", aliases=("leaderboards", "lb"))
-async def cmdLeaderboard(ctx, *args):
-	await ctx.send(embed=bucks.leaderboard(ctx.author))
 
 
 @bot.command(name="dice")
@@ -436,10 +455,7 @@ async def cmdAnimal(ctx, breed=None, *args):
 			if any(dogUrl.startswith(s) for s in ("Breed", "Dog")):
 				await ctx.send(dogUrl)
 				return
-			if "hound" in dogUrl:
-				dogBreed = "Hound"
-			else:
-				dogBreed = dogUrl.split("/")[-2]
+			dogBreed = "Hound" if "hound" in dogUrl else dogUrl.split("/")[-2]
 			emb = misc.bbEmbed(
 				"Random " + dogBreed.title()
 			).set_image(url=dogUrl)
@@ -649,17 +665,6 @@ async def cmdBuy(ctx, color="none", *args):
 			report.format(ctx.author.mention)
 		)
 	)
-
-
-@bot.command(name="info")
-async def cmdInfo(ctx, target=None, *args):
-	if not ctx.guild:
-		return
-	if not target:
-		target = ctx.author
-	if ctx.message.mentions:
-		target = ctx.message.mentions[0]
-	await ctx.send(embed=misc.info(target, ctx.message))
 
 
 @bot.command(name="pins")

@@ -262,16 +262,22 @@ def writeMoney(
 						# Don't have enough to bet that much:
 						return -2, None
 					newLine = ",".join((row[0], newBank, str(member)))
-					with open("resources/money.csv", "r") as oldMoney:
-						newMoney = (
-							"".join([i for i in oldMoney])
-							.replace(",".join(row), newLine)
-						)
-					with open("resources/money.csv", "w") as money:
-						money.writelines(newMoney)
-					return 1, newBank
-				# No change in balance:
-				return 0, int(row[1])
+					result = 1
+				else:
+					# No change in balance. Rewrites lines anyway, to
+					# update stringified version of member
+					newLine = ",".join((row[0], row[1], str(member)))
+					newBank = int(row[1])
+					result = 0
+				with open("resources/money.csv", "r") as oldMoney:
+					newMoney = (
+						"".join([i for i in oldMoney])
+						.replace(",".join(row), newLine)
+					)
+				with open("resources/money.csv", "w") as money:
+					money.writelines(newMoney)
+				return result, newBank
+
 	with open("resources/money.csv", "a") as money:
 		money.write(f"\r\n{member.id},300,{member}")
 	return (
@@ -347,7 +353,9 @@ def reset(target: discord.User) -> discord.Embed:
 	return bbEmbed("BeardlessBucks Reset", report)
 
 
-def leaderboard(target: discord.User = None) -> discord.Embed:
+def leaderboard(
+	target: discord.User = None, msg: discord.Message = None
+) -> discord.Embed:
 	"""
 	Finds the top min(len(money.csv), 10) users
 	by balance in money.csv.
@@ -365,28 +373,31 @@ def leaderboard(target: discord.User = None) -> discord.Embed:
 	"""
 	diction = {}
 	emb = bbEmbed("BeardlessBucks Leaderboard")
+	if target and msg and not isinstance(target, discord.User):
+		target = memSearch(msg, target)
+	if target:
+		writeMoney(target, 300, False, False)
 	with open("resources/money.csv") as csvfile:
 		for row in csv.reader(csvfile, delimiter=","):
-			if int(row[1]):
-				# Don't display info for people with 0 BeardlessBucks
-				diction[(row[2])[:-5]] = int(row[1])
+			diction[row[2]] = int(row[1])
 	# Sort by value for each key in diction, which is BeardlessBucks balance
 	sortedDict = OrderedDict(sorted(diction.items(), key=itemgetter(1)))
 	if target:
 		users = list(sortedDict.keys())
 		try:
-			pos = len(users) - users.index(target.name)
+			pos = len(users) - users.index(str(target))
+			targetBal = sortedDict[str(target)]
 		except ValueError:
 			pos = None
 	for i in range(min(len(sortedDict), 10)):
 		head, body = sortedDict.popitem()
 		lastEntry = (i != min(len(sortedDict), 10) - 1)
-		emb.add_field(name=f"{i + 1}. {head}", value=body, inline=lastEntry)
+		emb.add_field(
+			name=f"{i + 1}. {head[:-5]}", value=body, inline=lastEntry
+		)
 	if target and pos:
 		emb.add_field(name=f"{target.name}'s position:", value=pos)
-		emb.add_field(
-			name=f"{target.name}'s balance:", value=sortedDict[target.name]
-		)
+		emb.add_field(name=f"{target.name}'s balance:", value=targetBal)
 	return emb
 
 
@@ -417,7 +428,7 @@ def flip(author: discord.user, bet: str, debug: bool = False) -> str:
 			bet = int(bet)
 		except ValueError:
 			bet = -1
-	if (isinstance(bet, str) and "all" in bet) or (bet >= 0):
+	if (isinstance(bet, str) and "all" in bet) or bet >= 0:
 		result, bank = writeMoney(author, 300, False, False)
 		if result == 2:
 			report = (

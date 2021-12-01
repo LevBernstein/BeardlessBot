@@ -376,9 +376,8 @@ def test_leaderboard():
 	fields = lb.fields
 	if len(fields) >= 2:  # This check in case of an empty leaderboard
 		assert int(fields[0].value) > int(fields[1].value)
-	lb = bucks.leaderboard(bb)
+	lb = bucks.leaderboard(bb, MockMessage(author=bb))
 	assert len(lb.fields) == len(fields) + 2
-	assert len(bucks.leaderboard(MockUser()).fields) == len(fields)
 
 
 def test_define():

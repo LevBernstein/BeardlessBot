@@ -126,8 +126,8 @@ def getBrawlID(brawlKey: str, profileURL: str) -> int:
 		if not steamID:
 			return None
 		r = requests.get(
-			"https://api.brawlhalla.com/search?steamid={}&api_key={}"
-			.format(steamID, brawlKey)
+			"https://api.brawlhalla.com/search?"
+			f"steamid={steamID}&api_key={brawlKey}"
 		)
 		return r.json()["brawlhalla_id"]
 	except KeyError:
@@ -211,8 +211,8 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 			"Beardless Bot Brawlhalla Rank", unclaimed.format(target.mention)
 		)
 	r = requests.get(
-		"https://api.brawlhalla.com/player/{}/ranked?api_key={}"
-		.format(brawlID, brawlKey)
+		"https://api.brawlhalla.com/player/"
+		f"{brawlID}/ranked?api_key={brawlKey}"
 	).json()
 	if len(r) < 4:
 		return bbEmbed(
@@ -295,8 +295,8 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 			"Beardless Bot Brawlhalla Stats", unclaimed.format(target.mention)
 		)
 	r = requests.get(
-		"https://api.brawlhalla.com/player/{}/stats?api_key={}"
-		.format(brawlID, brawlKey)
+		"https://api.brawlhalla.com/player/"
+		f"{brawlID}/stats?api_key={brawlKey}"
 	).json()
 	if len(r) < 4:
 		noStats = (
@@ -374,8 +374,8 @@ def getClan(target: discord.Member, brawlKey: str) -> discord.Embed:
 	# one to get clan from clan ID. As a result, this command is very slow.
 	# TODO: Try to find a way around this.
 	r = requests.get(
-		"https://api.brawlhalla.com/player/{}/stats?api_key={}"
-		.format(brawlID, brawlKey)
+		"https://api.brawlhalla.com/player/"
+		f"{brawlID}/stats?api_key={brawlKey}"
 	).json()
 	if "clan" not in r:
 		return bbEmbed(
