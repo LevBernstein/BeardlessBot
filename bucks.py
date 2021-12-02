@@ -300,12 +300,13 @@ def register(target: discord.User) -> discord.Embed:
 		discord.Embed: the report of the target's registration.
 	"""
 	result, bonus = writeMoney(target, 300, False, False)
-	report = (
-		"You are already in the system! Hooray! You"
-		f" have {bonus} BeardlessBucks, {target.mention}."
-	)
 	if result in (-1, 2):
 		report = bonus
+	else:
+		report = (
+			"You are already in the system! Hooray! You"
+			f" have {bonus} BeardlessBucks, {target.mention}."
+		)
 	return bbEmbed("BeardlessBucks Registration", report)
 
 
@@ -347,9 +348,13 @@ def reset(target: discord.User) -> discord.Embed:
 		discord.Embed: the report of the target's balance reset.
 	"""
 	result, bonus = writeMoney(target, 200, True, False)
-	report = f"You have been reset to 200 BeardlessBucks, {target.mention}."
 	if result in (-1, 2):
 		report = bonus
+	else:
+		report = (
+			"You have been reset to 200"
+			f" BeardlessBucks, {target.mention}."
+		)
 	return bbEmbed("BeardlessBucks Reset", report)
 
 

@@ -1,6 +1,7 @@
-pytest==6.0.2
-steam==1.2.0
+coverage==6.2
+coverage-badge==1.1.0
 discord.py==1.7.3
-requests==2.25.1
-coverage==5.5
 flake8==4.0.1
+pytest==6.2.5
+requests==2.26.0
+steam==1.2.0

@@ -1,11 +1,13 @@
 # Beardless Bot
 
-### Full Release 1.6.17
+### Full Release 1.6.18
+
+![Coverage badge](./resources/coverage.svg)
 
 A Discord bot supporting gambling (coin flips and blackjack),
 a currency system, fun facts, and more.
 
-Originally created for use in eggsoup's discord server.
+Originally created for use in eggsoup's Discord server.
 
 If you just want to add the bot to your own Discord
 server while I host it, you can simply
@@ -36,6 +38,8 @@ commands covered by unit tests, you'll need to define a
 repository secret with the name BRAWLHALLAKEY. For more information, see
 [this guide](https://docs.github.com/en/actions/reference/encrypted-secrets).
 
+6. Run `python3 Bot.py` to start the bot.
+
 ## Setup
 
 * To use the !spar command, create a channel named looking-for-spar.
@@ -52,7 +56,7 @@ Interested in improving Beardless Bot? Great! If you have an idea, feel
 free to open a Pull Request with an explanation of what your changes
 accomplish. There are also several issues open in the Issues tab that
 could use someone tackling them. Please make sure your code is PEP8
-compliant, with a column limit of 80.
+compliant (except for tabs), with a column limit of 80.
 
 
 ## License

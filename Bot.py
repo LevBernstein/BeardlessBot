@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.17"
+__version__ = "Full Release 1.6.18"
 
 import asyncio
 from random import choice, randint
@@ -436,7 +436,7 @@ async def cmdAnimal(ctx, breed=None, *args):
 	if species == "moose" or (breed and breed.lower() == "moose"):
 		await ctx.send(
 			file=discord.File(
-				f"resources/images/moose/moose{randint(1, 75)}.jpg"
+				f"resources/images/moose/moose{randint(1, 85)}.jpg"
 			)
 		)
 		return
