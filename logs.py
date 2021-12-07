@@ -1,5 +1,7 @@
 # Beadless Bot event logging methods
 
+from typing import List
+
 import discord
 
 from misc import prof, bbEmbed, truncTime
@@ -8,7 +10,7 @@ from misc import prof, bbEmbed, truncTime
 # TODO: Implement logging for threads, once BB migrates to nextcord
 
 
-def contCheck(msg):
+def contCheck(msg: discord.Message) -> str:
 	return msg.content if msg.content else "Embed"
 
 
@@ -22,7 +24,9 @@ def logDeleteMsg(msg: discord.Message) -> discord.Embed:
 	).set_author(name=msg.author, icon_url=msg.author.avatar_url)
 
 
-def logPurge(msg: discord.Message, msgList: list) -> discord.Embed:
+def logPurge(
+	msg: discord.Message, msgList: List[discord.Message]
+) -> discord.Embed:
 	return bbEmbed(
 		"",
 		f"Purged {len(msgList) - 1} messages in {msg.channel.mention}.",
@@ -54,7 +58,9 @@ def logEditMsg(
 	)
 
 
-def logClearReacts(msg: discord.Message, reactions: list) -> discord.Embed:
+def logClearReacts(
+	msg: discord.Message, reactions: List[discord.Reaction]
+) -> discord.Embed:
 	return (
 		bbEmbed(
 			"",
@@ -75,13 +81,13 @@ def logClearReacts(msg: discord.Message, reactions: list) -> discord.Embed:
 	)
 
 
-def logDeleteChannel(channel: discord.TextChannel) -> discord.Embed:
+def logDeleteChannel(channel: discord.abc.GuildChannel) -> discord.Embed:
 	return bbEmbed(
 		"", f'Channel "{channel.name}" deleted.', 0xFF0000, True
 	).set_author(name="Channel deleted", icon_url=prof)
 
 
-def logCreateChannel(channel: discord.TextChannel) -> discord.Embed:
+def logCreateChannel(channel: discord.abc.GuildChannel) -> discord.Embed:
 	return bbEmbed(
 		"", f'Channel "{channel.name}" created.', 0x00FF00, True
 	).set_author(name="Channel created", icon_url=prof)

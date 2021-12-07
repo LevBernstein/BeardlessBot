@@ -4,6 +4,7 @@ import csv
 from collections import OrderedDict
 from operator import itemgetter
 from random import choice, randint
+from typing import Tuple, Union
 
 import discord
 
@@ -67,7 +68,12 @@ class Instance:
 
 	cardVals = (2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11)
 
-	def __init__(self, user: discord.User, bet: int, debug: bool = False):
+	def __init__(
+		self,
+		user: Union[discord.User, discord.Member],
+		bet: int,
+		debug: bool = False
+	):
 		"""
 		Args:
 			user (discord.User): The user who is playing this game
@@ -229,8 +235,10 @@ class Instance:
 
 
 def writeMoney(
-	member: discord.User, amount, writing: bool, adding: bool
-) -> tuple:
+	member: Union[discord.User, discord.Member],
+	amount, writing: bool,
+	adding: bool
+) -> Tuple[int, Union[str, int, None]]:
 	"""
 	Helper method for checking or modifying a user's BeardlessBucks balance.
 
@@ -289,7 +297,7 @@ def writeMoney(
 	)
 
 
-def register(target: discord.User) -> discord.Embed:
+def register(target: Union[discord.User, discord.Member]) -> discord.Embed:
 	"""
 	Register a new user for BeardlessBucks.
 
@@ -310,7 +318,10 @@ def register(target: discord.User) -> discord.Embed:
 	return bbEmbed("BeardlessBucks Registration", report)
 
 
-def balance(target: discord.Member, msg: discord.Message) -> discord.Embed:
+def balance(
+	target: Union[discord.User, discord.Member],
+	msg: discord.Message
+) -> discord.Embed:
 	"""
 	Checks a user's BeardlessBucks balance.
 
@@ -337,7 +348,7 @@ def balance(target: discord.Member, msg: discord.Message) -> discord.Embed:
 	return bbEmbed("BeardlessBucks Balance", report)
 
 
-def reset(target: discord.User) -> discord.Embed:
+def reset(target: Union[discord.User, discord.Member]) -> discord.Embed:
 	"""
 	Resets a user's Beardless balance to 200.
 
@@ -359,7 +370,8 @@ def reset(target: discord.User) -> discord.Embed:
 
 
 def leaderboard(
-	target: discord.User = None, msg: discord.Message = None
+	target: Union[discord.User, discord.Member] = None,
+	msg: discord.Message = None
 ) -> discord.Embed:
 	"""
 	Finds the top min(len(money.csv), 10) users
@@ -406,7 +418,11 @@ def leaderboard(
 	return emb
 
 
-def flip(author: discord.user, bet: str, debug: bool = False) -> str:
+def flip(
+	author: Union[discord.User, discord.Member],
+	bet: str,
+	debug: bool = False
+) -> str:
 	"""
 	Gambles a certain number of BeardlessBucks on a coin toss.
 
@@ -470,7 +486,9 @@ def flip(author: discord.user, bet: str, debug: bool = False) -> str:
 	return report.format(author.mention)
 
 
-def blackjack(author: discord.User, bet: str) -> str:
+def blackjack(
+	author: Union[discord.User, discord.Member], bet: str
+) -> Tuple[str, Union[Instance, None]]:
 	"""
 	Gambles a certain number of BeardlessBucks on blackjack.
 

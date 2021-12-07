@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from random import choice, randint
+from typing import Union
 
 import discord
 import requests
@@ -37,12 +38,6 @@ hierarchyMsg = (
 	" Raise my place in the role hierarchy, please."
 )
 
-spotify = (
-	"Here's my playlist (Discord will only show the first hundred songs):\n"
-	"https://open.spotify.com/playlist/"
-	"2JSGLsBJ6kVbGY1B7LP4Zi?si=Zku_xewGTiuVkneXTLCqeg"
-)
-
 naughty = "You do not have permission to use this command, {}."
 
 greetings = (
@@ -69,7 +64,7 @@ tweetThumb = (
 )
 
 
-def truncTime(member):
+def truncTime(member: Union[discord.User, discord.Member]):
 	return str(member.created_at)[:-7]
 
 
@@ -93,7 +88,9 @@ def bbEmbed(
 # username and/or discriminator (#1234).
 # Runs in linear time; worst case, does not find a
 # loosely-matching target, takes O(n) operations
-def memSearch(message: discord.Message, target) -> discord.Member:
+def memSearch(
+	message: discord.Message, target: str
+) -> Union[discord.Member, None]:
 	term = str(target).lower()
 	semiMatch = looseMatch = None
 	for member in message.guild.members:
@@ -123,7 +120,7 @@ def animal(animalType: str, breed: str = None) -> str:
 
 	if animalType == "dog":
 		for i in range(10):
-			# Dog API has been throwing 522 errors, not sure why
+			# Dog API has been throwing 522 errors
 			if not breed:
 				r = requests.get("https://dog.ceo/api/breeds/image/random")
 				if r.status_code == 200:
@@ -187,7 +184,7 @@ def define(word: str) -> discord.Embed:
 		desc = ""
 		if j[0]["phonetics"] and "audio" in j[0]["phonetics"][0]:
 			desc = f"Audio: https:{j[0]['phonetics'][0]['audio']}"
-		emb = bbEmbed(word.upper(), desc)
+		emb = bbEmbed(j[0]["word"].upper(), desc)
 		i = 0
 		for entry in j:
 			for meaning in entry["meanings"]:
@@ -201,7 +198,7 @@ def define(word: str) -> discord.Embed:
 	return bbEmbed("Beardless Bot Definitions", "Invalid word!")
 
 
-def roll(message: str) -> int:
+def roll(message: str) -> Union[int, None]:
 	# Takes a string of the format dn+b and rolls one
 	# n-sided die with a modifier of b. Modifier is optional.
 	try:
@@ -212,23 +209,24 @@ def roll(message: str) -> int:
 	for side in "4", "6", "8", "100", "10", "12", "20":
 		if command.startswith(side):
 			if len(command) > len(side) and command[len(side)] in ("+", "-"):
-				return (
-					randint(1, int(side))
-					+ modifier
-					* int(command[1 + len(side):])
-				)
+				b = modifier * int(command[1 + len(side):])
+				return randint(1, int(side)) + b
 			return randint(1, int(side)) if command == side else None
 	return None
 
 
-def rollReport(text: str, author: discord.User) -> discord.Embed:
-	result = str(roll(text.lower()))
-	report = (
-		"Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100, as well"
-		" as modifiers. No spaces allowed. Ex: !roll d4+3"
-	)
-	if result != "None":
+def rollReport(
+	text: str,
+	author: Union[discord.User, discord.Member]
+) -> discord.Embed:
+	result = roll(text.lower())
+	if result is not None:
 		report = f"You got {result}, {author.mention}."
+	else:
+		report = (
+			"Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100,"
+			" as well as modifiers. No spaces allowed. Ex: !roll d4+3"
+		)
 	return bbEmbed("Beardless Bot Dice", report)
 
 
@@ -241,13 +239,12 @@ def info(target: discord.Member, msg: discord.Message) -> discord.Embed:
 	if not isinstance(target, discord.User):
 		target = memSearch(msg, target)
 	if target:
-		# Discord occasionally reports people with an activity as not
-		# having one; if so, go invisible and back online
+		# Discord occasionally reports people with an activity as
+		# not having one; if so, go invisible and back online
 		emb = (
 			bbEmbed(
-				"",
-				target.activity.name if target.activity else "",
-				target.color
+				value=target.activity.name if target.activity else "",
+				col=target.color
 			)
 			.set_author(name=target, icon_url=target.avatar_url)
 			.set_thumbnail(url=target.avatar_url)
@@ -271,14 +268,7 @@ def info(target: discord.Member, msg: discord.Message) -> discord.Embed:
 			# Reverse target.roles in order to make them
 			# display in decreasing order of power
 	else:
-		emb = bbEmbed(
-			"Invalid target!",
-			(
-				"Please choose a valid target. Valid targets"
-				" are either a ping or a username."
-			),
-			0xFF0000
-		)
+		emb = invalidTargetEmbed
 	return emb
 
 
@@ -291,17 +281,10 @@ def av(target: discord.Member, msg: discord.Message) -> discord.Embed:
 			.set_image(url=target.avatar_url)
 			.set_author(name=target, icon_url=target.avatar_url)
 		)
-	return bbEmbed(
-		"Invalid target!",
-		(
-			"Please choose a valid target. Valid targets"
-			" are either a ping or a username."
-		),
-		0xFF0000,
-	)
+	return invalidTargetEmbed
 
 
-def bbCommands(ctx) -> discord.Embed:
+def bbCommands(ctx: discord.ext.commands.Context) -> discord.Embed:
 	emb = bbEmbed("Beardless Bot Commands")
 	if not ctx.guild:
 		commandNum = 15
@@ -374,10 +357,10 @@ def bbCommands(ctx) -> discord.Embed:
 def hints() -> discord.Embed:
 	with open("resources/hints.txt", "r") as f:
 		hints = f.read().splitlines()
-		emb = bbEmbed("Hints for Beardless Bot's Secret Word")
-		for i in range(len(hints)):
-			emb.add_field(name=i + 1, value=hints[i])
-		return emb
+	emb = bbEmbed("Hints for Beardless Bot's Secret Word")
+	for i in range(len(hints)):
+		emb.add_field(name=i + 1, value=hints[i])
+	return emb
 
 
 def scamCheck(text: str) -> bool:
@@ -513,12 +496,21 @@ redditEmb = (
 )
 
 animals = bbEmbed("Animal Photo Commands:").add_field(
-	inline=False,
 	name="!dog",
 	value=(
 		"Can also do !dog breeds to see breeds you"
 		" can get pictures of with !dog [breed]"
-	)
+	),
+	inline=False
 )
 for animalName in animalList:
 	animals.add_field(name="!" + animalName, value="_ _")
+
+invalidTargetEmbed = bbEmbed(
+	"Invalid target!",
+	(
+		"Please choose a valid target. Valid targets"
+		" are either a ping or a username."
+	),
+	0xFF0000
+)

@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.18"
+__version__ = "Full Release 1.6.19"
 
 import asyncio
 from random import choice, randint
@@ -344,11 +344,6 @@ async def cmdLeaderboard(ctx, *target):
 	await ctx.send(embed=bucks.leaderboard(target, ctx.message))
 
 
-@bot.command(name="playlist", aliases=("music",))
-async def cmdPlaylist(ctx, *args):
-	await ctx.send(misc.spotify)
-
-
 @bot.command(name="dice")
 async def cmdDice(ctx, *args):
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Dice", misc.diceMsg))
@@ -436,7 +431,7 @@ async def cmdAnimal(ctx, breed=None, *args):
 	if species == "moose" or (breed and breed.lower() == "moose"):
 		await ctx.send(
 			file=discord.File(
-				f"resources/images/moose/moose{randint(1, 85)}.jpg"
+				f"resources/images/moose/moose{randint(1, 87)}.jpg"
 			)
 		)
 		return
@@ -671,20 +666,6 @@ async def cmdBuy(ctx, color="none", *args):
 async def cmdPins(ctx, *args):
 	if ctx.guild and ctx.channel.name == "looking-for-spar":
 		await ctx.send(embed=misc.sparPins)
-
-
-@bot.command(name="twitch")
-async def cmdTwitch(ctx, *args):
-	adr = (
-		"https://static-cdn.jtvnw.net/jtv_user_pictures/"
-		"capnnobeard-profile_image-423aa718d334e220-70x70.jpeg"
-	)
-	await ctx.send(
-		embed=misc.bbEmbed(
-			"Captain No-Beard's Twitch Stream",
-			"https://twitch.tv/capnnobeard"
-		).set_thumbnail(url=adr)
-	)
 
 
 @bot.command(name="spar")

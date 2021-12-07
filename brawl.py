@@ -3,6 +3,7 @@
 from datetime import datetime
 from json import dump, load
 from random import choice
+from typing import Union
 
 import discord
 import requests
@@ -107,7 +108,7 @@ def claimProfile(discordID: int, brawlID: str):
 		dump(profs, g, indent=4)
 
 
-def fetchBrawlID(discordID: int) -> int:
+def fetchBrawlID(discordID: int) -> Union[int, None]:
 	with open("resources/claimedProfs.json") as f:
 		for key, value in load(f).items():
 			if key == str(discordID):
@@ -120,7 +121,7 @@ def fetchLegends() -> list:
 		return load(f)
 
 
-def getBrawlID(brawlKey: str, profileURL: str) -> int:
+def getBrawlID(brawlKey: str, profileURL: str) -> Union[int, None]:
 	try:
 		steamID = from_url(profileURL)
 		if not steamID:
@@ -146,7 +147,7 @@ def getLegends(brawlKey: str):
 		)
 
 
-def legendInfo(brawlKey: str, legendName: str) -> discord.Embed:
+def legendInfo(brawlKey: str, legendName: str) -> Union[discord.Embed, None]:
 	# TODO: add legend images as thumbnail
 	if legendName == "hugin":
 		legendName = "munin"
