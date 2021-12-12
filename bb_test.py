@@ -163,7 +163,7 @@ def test_logPurge():
 
 
 def test_logEditMsg():
-	before = MockMessage()
+	before = MockMessage("oldcontent")
 	after = MockMessage("newcontent")
 	emb = logs.logEditMsg(before, after)
 	assert (

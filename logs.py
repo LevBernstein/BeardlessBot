@@ -46,13 +46,11 @@ def logEditMsg(
 			0xFFFF00,
 			True
 		)
-		.set_author(
-			name=before.author, icon_url=before.author.avatar_url
-		)
-		.add_field(name="Before:", value=before.content, inline=False)
+		.set_author(name=before.author, icon_url=before.author.avatar_url)
+		.add_field(name="Before:", value=contCheck(before), inline=False)
 		.add_field(
 			name="After:",
-			value=f"{after.content}\n[Jump to Message]({after.jump_url})",
+			value=f"{contCheck(after)}\n[Jump to Message]({after.jump_url})",
 			inline=False
 		)
 	)

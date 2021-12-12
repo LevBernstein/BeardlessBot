@@ -1,10 +1,11 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.19"
+__version__ = "Full Release 1.6.20"
 
 import asyncio
 from random import choice, randint
 from sys import exit as sysExit
 from time import time
+from typing import List
 
 import discord
 from discord.ext import commands
@@ -29,25 +30,21 @@ bot = commands.Bot(
 @bot.event
 async def on_ready():
 	print("Beardless Bot online!")
+
+	status = discord.Game(name="try !blackjack and !flip")
 	try:
-		await bot.change_presence(
-			activity=discord.Game(name="try !blackjack and !flip")
-		)
+		await bot.change_presence(activity=status)
 		print("Status updated!")
-	except discord.HTTPException:
-		print("Failed to update status!")
-		if bot.is_ws_ratelimited():
-			print("You have rate limited for sending too many requests.")
-	try:
 		with open("resources/images/prof.png", "rb") as f:
 			await bot.user.edit(avatar=f.read())
 		print("Avatar updated!")
 	except discord.HTTPException:
-		print("Failed to update avatar!")
+		print("Failed to update avatar/status!")
 		if bot.is_ws_ratelimited():
-			print("You have rate limited for sending too many requests.")
+			print("You have been rate limited for sending too many requests.")
 	except FileNotFoundError:
 		print("Avatar file not found! Check your directory structure.")
+
 	# Initialize ping waiting time to 0 for each server:
 	global sparPings
 	mems = 0
@@ -55,6 +52,7 @@ async def on_ready():
 		sparPings[guild.id] = brawl.defaultPings
 		mems += guild.member_count
 		await guild.chunk()
+
 	print(
 		"Beardless Bot serves",
 		mems,
@@ -67,19 +65,8 @@ async def on_ready():
 @bot.event
 async def on_guild_join(guild: discord.Guild):
 	print(f"Just joined {guild.name}!")
-	if not guild.me.guild_permissions.administrator:
-		print(f"Not given admin perms in {guild.name}.")
-		for channel in guild.channels:
-			try:
-				await channel.send(embed=misc.noPerms)
-			except Exception as err:
-				print(err)
-			else:
-				print(f"Sent no perms msg in {channel.name}.")
-				break
-		await guild.leave()
-		print(f"Left {guild.name}.")
-	else:
+
+	if guild.me.guild_permissions.administrator:
 		role = get(guild.roles, name="Beardless Bot")
 		for channel in guild.channels:
 			try:
@@ -91,6 +78,18 @@ async def on_guild_join(guild: discord.Guild):
 		print("Beardless Bot is now in", len(bot.guilds), "servers.")
 		global sparPings
 		sparPings[guild.id] = brawl.defaultPings
+	else:
+		print(f"Not given admin perms in {guild.name}.")
+		for channel in guild.channels:
+			try:
+				await channel.send(embed=misc.noPerms)
+			except Exception as err:
+				print(err)
+			else:
+				print(f"Sent no perms msg in {channel.name}.")
+				break
+		await guild.leave()
+		print(f"Left {guild.name}.")
 
 
 # Event logging
@@ -107,24 +106,21 @@ async def on_message_delete(msg: discord.Message):
 
 
 @bot.event
-async def on_bulk_message_delete(msgList: list):
-	if msgList[0].guild:
-		# If one message in the list is in a guild, all are
-		for channel in msgList[0].guild.channels:
-			if channel.name == "bb-log":
-				try:
-					await channel.send(
-						embed=logs.logPurge(msgList[0], msgList)
-					)
-				except Exception as err:
-					print(err)
-				return
+async def on_bulk_message_delete(msgList: List[discord.Message]):
+	for channel in msgList[0].guild.channels:
+		if channel.name == "bb-log":
+			try:
+				await channel.send(
+					embed=logs.logPurge(msgList[0], msgList)
+				)
+			except Exception as err:
+				print(err)
+			return
 
 
 @bot.event
 async def on_message_edit(before: discord.Message, after: discord.Message):
-	if before.guild and before.content != after.content:
-		# The above check prevents embeds from getting logged
+	if before.guild:
 		if after.guild.name == "egg" and misc.scamCheck(after.content):
 			await after.author.add_roles(
 				get(after.guild.roles, name="Muted")
@@ -151,7 +147,9 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
 
 
 @bot.event
-async def on_reaction_clear(msg: discord.Message, reactions: list):
+async def on_reaction_clear(
+	msg: discord.Message, reactions: List[discord.Reaction]
+):
 	if msg.guild:
 		for channel in msg.guild.channels:
 			if channel.name == "bb-log":
@@ -229,7 +227,7 @@ async def on_member_unban(guild: discord.Guild, member: discord.Member):
 			return
 
 
-# Commands
+# Commands:
 
 
 @bot.command(name="flip")
@@ -873,20 +871,29 @@ async def handleMessages(message):
 
 	text = message.content.lower()
 
-	if message.guild.name == "egg" and misc.scamCheck(text):
-		await message.author.add_roles(get(message.guild.roles, name="Muted"))
+	if misc.scamCheck(text):
+		auth = message.author
+		try:
+			await auth.add_roles(get(message.guild.roles, name="Muted"))
+		except Exception as err:
+			print(err)
 		for channel in message.guild.channels:
-			if channel.name == "infractions":
+			if channel.name in ("infractions", "bb-log"):
 				await channel.send(
 					"Deleted possible scam nitro link sent by"
-					f" {message.author.mention} in {message.channel.mention}."
+					f" {auth.mention} in {message.channel.mention}."
 					f"\nMessage content:\n{message.content}"
 				)
-				break
 		await message.channel.send(
-			"Deleted possible nitro scam link. Alerting mods."
+			"**Deleted possible nitro scam link. Alerting mods.**"
 		)
 		await message.delete()
+		await auth.send(
+			"This is an automated message. You have sent a message that has"
+			" been identified as containing a scam nitro link. Your account"
+			" may have been compromised. Please take the appropriate measures"
+			" and be sure to reach out to an admin if you need help."
+		)
 
 	elif message.guild.name == "Day Care":
 		if "twitter.com/year_progress" in text:

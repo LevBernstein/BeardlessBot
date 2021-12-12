@@ -64,7 +64,7 @@ tweetThumb = (
 )
 
 
-def truncTime(member: Union[discord.User, discord.Member]):
+def truncTime(member: Union[discord.User, discord.Member]) -> str:
 	return str(member.created_at)[:-7]
 
 
