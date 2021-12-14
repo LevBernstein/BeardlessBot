@@ -119,7 +119,7 @@ def getMaxMeese() -> int:
 				yield int(moose[5:-4])
 
 	r = requests.get("https://github.com/LevBernstein/moosePictures/")
-	soup = BeautifulSoup(r.content.decode("utf-8", "html.parser"), "lxml")
+	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 	return max(meeseFinder(soup.stripped_strings))
 
 
