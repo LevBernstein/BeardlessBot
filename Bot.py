@@ -1,15 +1,15 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.0.2"
+__version__ = "Full Release 1.7.1"
 
 import asyncio
 from random import choice, randint
-from sys import exit as sysExit
 from time import time
 from typing import List
 
 import discord
 from discord.ext import commands
 from discord.utils import get
+from dotenv import dotenv_values
 
 import brawl
 import bucks
@@ -920,34 +920,21 @@ async def handleMessages(message):
 
 
 if __name__ == "__main__":
-	try:
-		with open("resources/token.txt", "r") as f:
-			# In token.txt, paste in your own Discord API token
-			token = f.readline()
-	except FileNotFoundError:
-		print("Fatal error: no Discord API token. Shutting down.")
-		sysExit(-1)
 
-	try:
-		with open("resources/brawlhallaKey.txt", "r") as f:
-			# In brawlhallaKey.txt, paste in your own Brawlhalla API key
-			brawlKey = f.readline()
-	except FileNotFoundError:
+	env = dotenv_values(".env")
+
+	brawlKey = env["BRAWLKEY"]
+	if not brawlKey:
 		print(
 			"No Brawlhalla API key. Brawlhalla-specific",
 			"commands will not be active."
 		)
-		brawlKey = None
 
 	try:
-		with open("resources/secretWord.txt") as f:
-			secretWord = f.readline()
-			if len(secretWord) < 2:
-				raise Exception
-		secretFound = False
-	except Exception:
-		print("Secret word has not been defined. Continuing as normal.")
+		secretWord = env["SECRETWORD"]
+	except KeyError:
 		secretWord = None
+		print("Secret word has not been defined. Continuing as normal.")
 
 	# This dictionary is for keeping track of pings in the lfs channels.
 	sparPings = {}
@@ -957,4 +944,4 @@ if __name__ == "__main__":
 
 	meese = misc.getMaxMeese()
 
-	bot.run(token)
+	bot.run(env["DISCORDTOKEN"])

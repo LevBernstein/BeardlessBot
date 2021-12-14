@@ -1,9 +1,6 @@
-token.txt
-secretWord.txt
+.env
 *.swp
 __pycache__
 testResults.md
 .coverage
 htmlcov/*
-brawlhallaKey.txt
-weatherKey.txt
