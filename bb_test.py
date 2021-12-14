@@ -1,6 +1,8 @@
 # Beardless Bot unit tests
 
+from dotenv import dotenv_values
 from json import load
+from os import environ
 from random import choice
 from typing import Tuple
 
@@ -87,16 +89,12 @@ class MockRole(discord.Role):
 		self.mentionable = True
 
 
-try:
-	with open("resources/brawlhallaKey.txt", "r") as f:
-		# In brawlhallaKey.txt, paste in your own Brawlhalla API key
-		brawlKey = f.readline()
-except FileNotFoundError:
-	print(
-		"No Brawlhalla API key.",
-		"Brawlhalla-specific tests will fail.\n",
-	)
-	brawlKey = None
+brawlKey = environ.get("BRAWLKEY")
+if not brawlKey:
+	env = dotenv_values(".env")
+	brawlKey = env["BRAWLKEY"]
+if not brawlKey:
+	print("No Brawlhalla API key. Brawlhalla-specific tests will fail.\n")
 
 
 def test_pep8Compliance():
@@ -508,6 +506,7 @@ def test_av():
 
 
 def test_commands():
+	# TODO: switch to creating a Context object
 	text = MockMessage()
 	text.guild = None
 	assert len(misc.bbCommands(text).fields) == 15

@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release 1.7.0.2 ![Coverage badge](./resources/coverage.svg)
+### Full Release 1.7.1 ![Coverage badge](./resources/coverage.svg)
 
 A Discord bot supporting gambling (coin flips and blackjack),
 a currency system, fun facts, and more.
@@ -21,22 +21,19 @@ follow the steps outlined directly below in [Installation](#installation).
 2. Download [Python 3](https://python.org/downloads), and then
 run `pip3 install -r resources/requirements.txt`.
 
-3. Create a file named "token.txt" that contains your Discord API token
-(you can get a token [here](https://discord.com/developers/applications)).
+3. Create a file named ".env" in the same directory as Bot.py. Insert
+into it the line `DICORDTOKEN=yourtoken`, where yourtoken is the Discord API
+token you get from [here](https://discord.com/developers/applications).
 
-4. Place the token file in the resources folder.
-
-5. As of Full Release v1.3.0, Beardless Bot
-supports calls to the Brawlhalla API.
-If you don't have [an API key](https://dev.brawlhalla.com/),
-those commands will simply be disabled; the Bot will work fine.
-If you do have an API key, place it in a file named "brawlhallaKey.txt"
-in the resources folder. If you want to fork this repo and have Brawlhalla
-commands covered by unit tests, you'll need to define a
-repository secret with the name BRAWLHALLAKEY. For more information, see
+4. As of Full Release v1.3.0, Beardless Bot supports calls to the Brawlhalla
+API. If you don't have [an API key](https://dev.brawlhalla.com/), those
+commands will simply be disabled; the Bot will work fine. If you do have an
+API key, place it in .env as `BRAWLKEY=yourkey`. If you want to fork this repo
+and have Brawlhalla commands covered by unit tests, you'll need to define a
+repository secret with the name BRAWLKEY. For more information, see
 [this guide](https://docs.github.com/en/actions/reference/encrypted-secrets).
 
-6. Run `python3 Bot.py` to start the bot.
+5. Run `python3 Bot.py` to start the bot.
 
 ## Setup
 
