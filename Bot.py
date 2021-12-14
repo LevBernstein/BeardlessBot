@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.1"
+__version__ = "Full Release 1.7.1.1"
 
 import asyncio
 from random import choice, randint
