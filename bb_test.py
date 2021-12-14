@@ -2,6 +2,7 @@
 
 from json import load
 from random import choice
+from typing import Tuple
 
 import discord
 import pytest
@@ -159,6 +160,10 @@ def test_logPurge():
 	assert (
 		logs.logPurge(msg, (msg, msg, msg)).description ==
 		f"Purged 2 messages in {msg.channel.mention}."
+	)
+	assert (
+		logs.logPurge(msg, (msg,) * 105).description ==
+		f"Purged 99+ messages in {msg.channel.mention}."
 	)
 
 
@@ -542,6 +547,12 @@ def test_onJoin():
 
 
 def test_animal():
+
+	def goodURL(
+		request: requests.models.Response, fileTypes: Tuple[str]
+	) -> bool:
+		return request.ok and request.headers["content-type"] in imageTypes
+
 	imageTypes = (
 		"image/png",
 		"image/jpeg",
@@ -558,7 +569,7 @@ def test_animal():
 	)
 	for animalName in misc.animalList[:-4]:
 		r = requests.get(misc.animal(animalName))
-		assert r.ok and r.headers["content-type"] in imageTypes
+		assert goodURL(r, imageTypes)
 
 	for animalName in misc.animalList[-4:]:
 		# Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field;
@@ -569,14 +580,20 @@ def test_animal():
 		)
 
 	r = requests.get(misc.animal("dog"))
-	assert r.ok and r.headers["content-type"] in imageTypes
+	assert goodURL(r, imageTypes)
 
 	breeds = misc.animal("dog", "breeds")[12:-1].split(", ")
 	assert len(breeds) >= 94
 	r = requests.get(misc.animal("dog", choice(breeds)))
-	assert r.ok and r.headers["content-type"] in imageTypes
+	assert goodURL(r, imageTypes)
 	assert misc.animal("dog", "invalidbreed").startswith("Breed not")
 	assert misc.animal("dog", "invalidbreed1234").startswith("Breed not")
+
+	meese = misc.getMaxMeese()
+	moose = misc.animal("dog", "moose", meese)
+	assert int((moose.split("moose")[2])[:-4]) <= meese
+	r = requests.get(moose)
+	assert goodURL(r, imageTypes)
 
 	with pytest.raises(Exception):
 		misc.animal("invalidAnimal")

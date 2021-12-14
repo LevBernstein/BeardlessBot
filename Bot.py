@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.6.20"
+__version__ = "Full Release 1.7.0"
 
 import asyncio
 from random import choice, randint
@@ -39,7 +39,7 @@ async def on_ready():
 			await bot.user.edit(avatar=f.read())
 		print("Avatar updated!")
 	except discord.HTTPException:
-		print("Failed to update avatar/status!")
+		print("Failed to update avatar or status!")
 		if bot.is_ws_ratelimited():
 			print("You have been rate limited for sending too many requests.")
 	except FileNotFoundError:
@@ -120,7 +120,7 @@ async def on_bulk_message_delete(msgList: List[discord.Message]):
 
 @bot.event
 async def on_message_edit(before: discord.Message, after: discord.Message):
-	if before.guild:
+	if before.guild and (before.content != after.content):
 		if after.guild.name == "egg" and misc.scamCheck(after.content):
 			await after.author.add_roles(
 				get(after.guild.roles, name="Muted")
@@ -427,11 +427,7 @@ async def cmdRoll(ctx, dice="None", *args):
 async def cmdAnimal(ctx, breed=None, *args):
 	species = ctx.invoked_with.lower()
 	if species == "moose" or (breed and breed.lower() == "moose"):
-		await ctx.send(
-			file=discord.File(
-				f"resources/images/moose/moose{randint(1, 87)}.jpg"
-			)
-		)
+		await ctx.send(misc.animal("moose", "moose", meese))
 		return
 	if species == "dog":
 		if breed:
@@ -954,11 +950,11 @@ if __name__ == "__main__":
 		secretWord = None
 
 	# This dictionary is for keeping track of pings in the lfs channels.
-	global sparPings
 	sparPings = {}
 
 	# This array stores the active instances of blackjack.
-	global games
 	games = []
+
+	meese = misc.getMaxMeese()
 
 	bot.run(token)

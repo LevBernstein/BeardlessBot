@@ -1,10 +1,12 @@
 # Beardless Bot miscellaneous methods
 
+from bs4 import BeautifulSoup
 from datetime import datetime
 from random import choice, randint
-from typing import Union
+from typing import Iterator, List, Union
 
 import discord
+from discord.ext import commands
 import requests
 
 
@@ -107,7 +109,21 @@ def memSearch(
 	return semiMatch if semiMatch else looseMatch
 
 
-def animal(animalType: str, breed: str = None) -> str:
+# The following method also appears in my Moose API.
+
+
+def getMaxMeese() -> int:
+	def meeseFinder(meese: List[str]) -> Iterator[int]:
+		for moose in meese:
+			if moose.startswith("moose") and moose.endswith(".jpg"):
+				yield int(moose[5:-4])
+
+	r = requests.get("https://github.com/LevBernstein/moosePictures/")
+	soup = BeautifulSoup(r.content.decode("utf-8", "html.parser"), "lxml")
+	return max(meeseFinder(soup.stripped_strings))
+
+
+def animal(animalType: str, breed: str = None, meese: int = 0) -> str:
 	r = "Invalid Animal!"
 	if animalType == "cat":
 		# Cat API has been throwing 503 errors every other call,
@@ -125,6 +141,8 @@ def animal(animalType: str, breed: str = None) -> str:
 				r = requests.get("https://dog.ceo/api/breeds/image/random")
 				if r.status_code == 200:
 					return r.json()["message"]
+			if breed == "moose":
+				break
 			elif breed.startswith("breeds"):
 				r = requests.get("https://dog.ceo/api/breeds/list/all")
 				if r.status_code == 200:
@@ -171,6 +189,12 @@ def animal(animalType: str, breed: str = None) -> str:
 
 	if animalType == "bear":
 		return f"https://placebear.com/{randint(200, 400)}/{randint(200,400)}"
+
+	if meese and "moose" in (animalType, breed):
+		return (
+			"https://raw.githubusercontent.com/LevBernstein/"
+			f"moosePictures/main/moose{randint(1, meese)}.jpg"
+		)
 
 	raise Exception(str(r) + ": " + animalType)
 
@@ -284,7 +308,7 @@ def av(target: discord.Member, msg: discord.Message) -> discord.Embed:
 	return invalidTargetEmbed
 
 
-def bbCommands(ctx: discord.ext.commands.Context) -> discord.Embed:
+def bbCommands(ctx: commands.Context) -> discord.Embed:
 	emb = bbEmbed("Beardless Bot Commands")
 	if not ctx.guild:
 		commandNum = 15

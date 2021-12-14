@@ -27,9 +27,13 @@ def logDeleteMsg(msg: discord.Message) -> discord.Embed:
 def logPurge(
 	msg: discord.Message, msgList: List[discord.Message]
 ) -> discord.Embed:
+
+	def purgeReport(msgList: List[discord.Message]) -> str:
+		return "99+" if len(msgList) > 99 else str(len(msgList) - 1)
+
 	return bbEmbed(
 		"",
-		f"Purged {len(msgList) - 1} messages in {msg.channel.mention}.",
+		f"Purged {purgeReport(msgList)} messages in {msg.channel.mention}.",
 		0xFF0000,
 		True
 	).set_author(name="Purge!", icon_url=prof)
