@@ -4,11 +4,12 @@ from dotenv import dotenv_values
 from json import load
 from os import environ
 from random import choice
-from typing import Tuple
+from typing import List, Tuple, Union
 
 import discord
 import pytest
 import requests
+from discord.ext import commands
 from flake8.api import legacy as flake8
 
 import Bot
@@ -46,7 +47,6 @@ class MockUser(discord.User):
 class MockChannel(discord.TextChannel):
 	def __init__(self):
 		self.name = "testchannelname"
-		self.guild = discord.Guild
 		self.id = 123456789
 		self.position = 0
 		self.slowmode_delay = 0
@@ -59,7 +59,8 @@ class MockMessage(discord.Message):
 	def __init__(
 		self,
 		content: str = "testcontent",
-		author: discord.User = MockUser()
+		author: discord.User = MockUser(),
+		guild: Union[discord.Guild, None] = None
 	):
 		self.author = author
 		self.content = content
@@ -73,6 +74,7 @@ class MockMessage(discord.Message):
 			source_message_deleted=False,
 			urgent=False
 		)
+		self.guild = guild
 		self.mentions = ()
 
 
@@ -85,8 +87,65 @@ class MockRole(discord.Role):
 		self.name = name
 		self.id = id
 		self.hoist = False
-		self.guild = discord.Guild
 		self.mentionable = True
+
+
+class MockGuild(discord.Guild):
+
+	class FlagWrapper():
+		class FlagValues():
+			def __init__(self):
+				self.joined = True
+				self.online = True
+				self.voice = True
+
+		def __init__(self):
+			self.member_cache_flags = self.FlagValues()
+			self.self_id = 1
+			self.shard_count = 1
+
+	def __init__(
+		self,
+		members: List[discord.User] = [MockUser(), MockUser()],
+		numMembers: int = 1,
+		name: str = "Test Guild",
+		id: int = 0,
+		channels: List[discord.TextChannel] = [MockChannel()],
+		roles: List[discord.Role] = [MockRole()]
+	):
+		self._state = self.FlagWrapper()
+		self.name = name
+		self.id = id
+		self._members = {}
+		self._channels = {}
+		self._roles = {}
+		for i, m in enumerate(members):
+			m.guild = self
+			self._members[i] = m
+		self._member_count = len(self._members)
+		for i, c in enumerate(channels):
+			c.guild = self
+			self._channels[i] = c
+		for i, r in enumerate(roles):
+			r.guild = self
+			self._roles[i] = r
+
+
+class MockContext(commands.Context):
+	def __init__(
+		self,
+		bot: commands.Bot,
+		message: discord.Message = MockMessage(),
+		channel: discord.TextChannel = MockChannel(),
+		author: discord.User = MockUser()
+	):
+		self.bot = bot
+		self.prefix = bot.command_prefix
+		message.state = 0
+		self.message = message
+		self.channel = channel
+		self.author = author
+		self.guild = MockGuild()
 
 
 brawlKey = environ.get("BRAWLKEY")
@@ -292,10 +351,9 @@ def test_logUnmute():
 
 
 def test_memSearch():
-	text = MockMessage()
 	namedUser = MockUser("searchterm", "testnick", "9999")
-	text.guild.members = (MockUser(), namedUser)
 	contentList = "searchterm#9999", "searchterm", "search", "testnick"
+	text = MockMessage("", guild=MockGuild(members=(MockUser(), namedUser)))
 	for content in contentList:
 		text.content = content
 		assert misc.memSearch(text, content) == namedUser
@@ -316,30 +374,30 @@ def test_register():
 	)
 	bb.name = ",badname,"
 	assert (
-		bucks.register(bb).description ==
-		bucks.commaWarn.format(bb.mention)
+		bucks.register(bb).description == bucks.commaWarn.format(bb.mention)
 	)
 
 
 def test_balance():
+	auth = MockUser(
+		"Beardless Bot",
+		"Beardless Bot",
+		5757,
+		654133911558946837
+	)
 	text = MockMessage(
 		"!bal",
-		MockUser(
-			"Beardless Bot",
-			"Beardless Bot",
-			5757,
-			654133911558946837
-		)
+		auth,
+		MockGuild(members=(MockUser(), auth))
 	)
 	assert (
-		bucks.balance(text.author, text).description ==
-		f"{text.author.mention}'s balance is 200 BeardlessBucks."
+		bucks.balance(auth, text).description ==
+		f"{auth.mention}'s balance is 200 BeardlessBucks."
 	)
-	text.guild.members = (MockUser(), text.author)
-	text.content = "!balance " + text.author.name
+	text.content = "!balance " + auth.name
 	assert (
-		bucks.balance(text.author, text).description ==
-		f"{text.author.mention}'s balance is 200 BeardlessBucks."
+		bucks.balance(auth, text).description ==
+		f"{auth.mention}'s balance is 200 BeardlessBucks."
 	)
 	text.content = "!balance"
 	text.author.name = ",badname,"
@@ -487,9 +545,9 @@ def test_blackjack_startingHand():
 
 
 def test_info():
-	text = MockMessage("!info searchterm")
 	namedUser = MockUser("searchterm", roles=(MockRole(), MockRole()))
-	text.guild.members = (MockUser(), namedUser)
+	guild = MockGuild(members=(MockUser(), namedUser))
+	text = MockMessage("!info searchterm", guild=guild)
 	namedUserInfo = misc.info("searchterm", text)
 	assert namedUserInfo.fields[0].value == misc.truncTime(namedUser) + " UTC"
 	assert namedUserInfo.fields[1].value == misc.truncTime(namedUser) + " UTC"
@@ -498,18 +556,17 @@ def test_info():
 
 
 def test_av():
-	text = MockMessage("!av searchterm")
 	namedUser = MockUser("searchterm")
-	text.guild.members = (MockUser(), namedUser)
+	guild = MockGuild(members=(MockUser(), namedUser))
+	text = MockMessage("!av searchterm", guild=guild)
 	assert misc.av("searchterm", text).image.url == namedUser.avatar_url
 	assert misc.av("error", text).title == "Invalid target!"
 
 
 def test_commands():
-	# TODO: switch to creating a Context object
-	text = MockMessage()
-	text.guild = None
-	assert len(misc.bbCommands(text).fields) == 15
+	ctx = MockContext(Bot.bot)
+	ctx.guild = None
+	assert len(misc.bbCommands(ctx).fields) == 15
 
 
 def test_hints():

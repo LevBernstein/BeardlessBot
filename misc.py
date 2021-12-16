@@ -118,7 +118,10 @@ def animal(animalType: str, breed: str = None) -> str:
 		if r.status_code == 200:
 			soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 			moose = choice(
-				tuple(m for m in soup.stripped_strings if m.endswith("jpg"))
+				tuple(
+					m for m in soup.stripped_strings
+					if m.startswith("moose") and m.endswith(".jpg")
+				)
 			)
 
 			return (
@@ -193,7 +196,7 @@ def animal(animalType: str, breed: str = None) -> str:
 		r = requests.get("https://github.com/a9-i/frog/tree/main/ImgSetOpt")
 		soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 		frog = choice(
-			tuple(f for f in soup.stripped_strings if f.endswith("jpg"))
+			tuple(f for f in soup.stripped_strings if f.endswith(".jpg"))
 		)
 
 		return (
