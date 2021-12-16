@@ -567,8 +567,7 @@ def test_animal():
 		"b'\\xff\\xd8\\xff\\xe1\\tPh"
 	)
 	for animalName in misc.animalList[:-4]:
-		r = requests.get(misc.animal(animalName))
-		assert goodURL(r, imageTypes)
+		assert goodURL(requests.get(misc.animal(animalName)), imageTypes)
 
 	for animalName in misc.animalList[-4:]:
 		# Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field;
@@ -578,8 +577,7 @@ def test_animal():
 			str(r.content).startswith(signature) for signature in imageSigs
 		)
 
-	r = requests.get(misc.animal("dog"))
-	assert goodURL(r, imageTypes)
+	assert goodURL(requests.get(misc.animal("dog")), imageTypes)
 
 	breeds = misc.animal("dog", "breeds")[12:-1].split(", ")
 	assert len(breeds) >= 94
@@ -588,11 +586,7 @@ def test_animal():
 	assert misc.animal("dog", "invalidbreed").startswith("Breed not")
 	assert misc.animal("dog", "invalidbreed1234").startswith("Breed not")
 
-	meese = misc.getMaxMeese()
-	moose = misc.animal("dog", "moose", meese)
-	assert int((moose.split("moose")[2])[:-4]) <= meese
-	r = requests.get(moose)
-	assert goodURL(r, imageTypes)
+	assert goodURL(requests.get(misc.animal("dog", "moose")), imageTypes)
 
 	with pytest.raises(Exception):
 		misc.animal("invalidAnimal")

@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.1.1"
+__version__ = "Full Release 1.7.2"
 
 import asyncio
 from random import choice, randint
@@ -427,7 +427,17 @@ async def cmdRoll(ctx, dice="None", *args):
 async def cmdAnimal(ctx, breed=None, *args):
 	species = ctx.invoked_with.lower()
 	if species == "moose" or (breed and breed.lower() == "moose"):
-		await ctx.send(misc.animal("moose", "moose", meese))
+		try:
+			moose = misc.animal("moose", "moose")
+		except Exception as err:
+			print(err)
+			emb = misc.bbEmbed(
+				"Something's gone wrong with the Moose API!",
+				"Please inform my creator and he'll see what's going on."
+			)
+		else:
+			emb = misc.bbEmbed("Random Moose").set_image(url=moose)
+		await ctx.send(embed=emb)
 		return
 	if species == "dog":
 		if breed:
@@ -941,7 +951,5 @@ if __name__ == "__main__":
 
 	# This array stores the active instances of blackjack.
 	games = []
-
-	meese = misc.getMaxMeese()
 
 	bot.run(env["DISCORDTOKEN"])

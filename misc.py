@@ -3,7 +3,7 @@
 from bs4 import BeautifulSoup
 from datetime import datetime
 from random import choice, randint
-from typing import Iterator, List, Union
+from typing import Union
 
 import discord
 from discord.ext import commands
@@ -27,6 +27,7 @@ animalList = (
 	"rabbit",
 	"panda",
 	"lizard",
+	"frog",
 	"axolotl",
 	"bear",
 	"bird",
@@ -109,40 +110,29 @@ def memSearch(
 	return semiMatch if semiMatch else looseMatch
 
 
-# The following method also appears in my Moose API.
-
-
-def getMaxMeese() -> int:
-	def meeseFinder(meese: List[str]) -> Iterator[int]:
-		for moose in meese:
-			if moose.startswith("moose") and moose.endswith(".jpg"):
-				yield int(moose[5:-4])
-
-	r = requests.get("https://github.com/LevBernstein/moosePictures/")
-	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
-	return max(meeseFinder(soup.stripped_strings))
-
-
-def animal(animalType: str, breed: str = None, meese: int = 0) -> str:
+def animal(animalType: str, breed: str = None) -> str:
 	r = "Invalid Animal!"
-	if animalType == "cat":
-		# Cat API has been throwing 503 errors every other call,
-		# likely due to rate limiting
-		for i in range(10):
-			# The loop is to try to make another request if one pulls a 503.
-			r = requests.get("https://aws.random.cat/meow")
-			if r.status_code == 200:
-				return r.json()["file"]
 
-	if animalType == "dog":
+	if "moose" in (animalType, breed):
+		r = requests.get("https://github.com/LevBernstein/moosePictures/")
+		if r.status_code == 200:
+			soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
+			moose = choice(
+				tuple(m for m in soup.stripped_strings if m.endswith("jpg"))
+			)
+
+			return (
+				"https://raw.githubusercontent.com/"
+				f"LevBernstein/moosePictures/main/{moose}"
+			)
+
+	elif animalType == "dog":
 		for i in range(10):
 			# Dog API has been throwing 522 errors
 			if not breed:
 				r = requests.get("https://dog.ceo/api/breeds/image/random")
 				if r.status_code == 200:
 					return r.json()["message"]
-			if breed == "moose":
-				break
 			elif breed.startswith("breeds"):
 				r = requests.get("https://dog.ceo/api/breeds/list/all")
 				if r.status_code == 200:
@@ -162,12 +152,21 @@ def animal(animalType: str, breed: str = None, meese: int = 0) -> str:
 			else:
 				return "Breed not found! Do !dog breeds to see all breeds."
 
-	if animalType in ("bunny", "rabbit"):
+	elif animalType == "cat":
+		# Cat API has been throwing 503 errors every other call,
+		# likely due to rate limiting
+		for i in range(10):
+			# The loop is to try to make another request if one pulls a 503.
+			r = requests.get("https://aws.random.cat/meow")
+			if r.status_code == 200:
+				return r.json()["file"]
+
+	elif animalType in ("bunny", "rabbit"):
 		r = requests.get("https://api.bunnies.io/v2/loop/random/?media=gif")
 		if r.status_code == 200:
 			return r.json()["media"]["gif"]
 
-	if animalType in ("panda", "koala", "bird", "raccoon", "kangaroo", "fox"):
+	elif animalType in ("panda", "koala", "bird", "raccoon", "kangaroo", "fox"):
 		if animalType == "fox":
 			r = requests.get("https://randomfox.ca/floof/")
 		else:
@@ -177,7 +176,7 @@ def animal(animalType: str, breed: str = None, meese: int = 0) -> str:
 		if r.status_code == 200:
 			return r.json()["image"]
 
-	if animalType in ("duck", "lizard", "axolotl"):
+	elif animalType in ("duck", "lizard", "axolotl"):
 		if animalType == "duck":
 			r = requests.get("https://random-d.uk/api/quack")
 		elif animalType == "lizard":
@@ -187,13 +186,19 @@ def animal(animalType: str, breed: str = None, meese: int = 0) -> str:
 		if r.status_code == 200:
 			return r.json()["url"]
 
-	if animalType == "bear":
+	elif animalType == "bear":
 		return f"https://placebear.com/{randint(200, 400)}/{randint(200,400)}"
 
-	if meese and "moose" in (animalType, breed):
+	elif animalType == "frog":
+		r = requests.get("https://github.com/a9-i/frog/tree/main/ImgSetOpt")
+		soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
+		frog = choice(
+			tuple(f for f in soup.stripped_strings if f.endswith("jpg"))
+		)
+
 		return (
-			"https://raw.githubusercontent.com/LevBernstein/"
-			f"moosePictures/main/moose{randint(1, meese)}.jpg"
+			"https://raw.githubusercontent.com/"
+			f"a9-i/frog/main/ImgSetOpt/{frog}"
 		)
 
 	raise Exception(str(r) + ": " + animalType)
