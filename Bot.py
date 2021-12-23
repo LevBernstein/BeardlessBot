@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.3"
+__version__ = "Full Release 1.7.4"
 
 import asyncio
 from random import choice, randint
@@ -40,8 +40,6 @@ async def on_ready():
 		print("Avatar updated!")
 	except discord.HTTPException:
 		print("Failed to update avatar or status!")
-		if bot.is_ws_ratelimited():
-			print("You have been rate limited for sending too many requests.")
 	except FileNotFoundError:
 		print("Avatar file not found! Check your directory structure.")
 
@@ -896,9 +894,10 @@ async def handleMessages(message):
 		await message.delete()
 		await auth.send(
 			"This is an automated message. You have sent a message that has"
-			" been identified as containing a scam nitro link. Your account"
-			" may have been compromised. Please take the appropriate measures"
-			" and be sure to reach out to an admin if you need help."
+			" been identified as containing a scam nitro link in"
+			f" **{message.guild}**. Your account may have been compromised."
+			" Please take the appropriate measures and be sure to reach out"
+			" to an admin if you need help."
 		)
 
 	elif message.guild.name == "Day Care":

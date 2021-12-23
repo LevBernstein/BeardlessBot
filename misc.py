@@ -1,13 +1,14 @@
 # Beardless Bot miscellaneous methods
 
-from bs4 import BeautifulSoup
 from datetime import datetime
 from random import choice, randint
+import re
 from typing import Union
 
 import discord
-from discord.ext import commands
 import requests
+from bs4 import BeautifulSoup
+from discord.ext import commands
 
 
 diceMsg = (
@@ -396,19 +397,9 @@ def hints() -> discord.Embed:
 
 
 def scamCheck(text: str) -> bool:
-	return all(
-		(
-			"http" in text,
-			"discord" in text or "dizcord" in text,
-			"nitro" in text or "gift" in text
-		)
-	) or all(
-		(
-			"@everyone" in text,
-			"http" in text,
-			any(("nitro" in text, "gift" in text, "discord" in text))
-		)
-	)
+	checkOne = re.compile(r"^.*https?://di\wc\wr\w\.\w{2,4}.*", re.IGNORECASE)
+	checkTwo = re.compile(r"^.*(nitro|gift|@everyone).*", re.IGNORECASE)
+	return bool(checkOne.match(text)) and bool(checkTwo.match(text))
 
 
 def onJoin(guild: discord.Guild, role: discord.Role) -> discord.Embed:

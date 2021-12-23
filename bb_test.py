@@ -113,22 +113,13 @@ class MockGuild(discord.Guild):
 		channels: List[discord.TextChannel] = [MockChannel()],
 		roles: List[discord.Role] = [MockRole()]
 	):
-		self._state = self.FlagWrapper()
 		self.name = name
 		self.id = id
-		self._members = {}
-		self._channels = {}
-		self._roles = {}
-		for i, m in enumerate(members):
-			m.guild = self
-			self._members[i] = m
+		self._state = self.FlagWrapper()
+		self._channels = {i: c for i, c in enumerate(channels)}
+		self._roles = {i: r for i, r in enumerate(roles)}
+		self._members = {i: m for i, m in enumerate(members)}
 		self._member_count = len(self._members)
-		for i, c in enumerate(channels):
-			c.guild = self
-			self._channels[i] = c
-		for i, r in enumerate(roles):
-			r.guild = self
-			self._roles[i] = r
 
 
 class MockContext(commands.Context):
@@ -137,7 +128,8 @@ class MockContext(commands.Context):
 		bot: commands.Bot,
 		message: discord.Message = MockMessage(),
 		channel: discord.TextChannel = MockChannel(),
-		author: discord.User = MockUser()
+		author: discord.User = MockUser(),
+		guild: Union[discord.Guild, None] = MockGuild()
 	):
 		self.bot = bot
 		self.prefix = bot.command_prefix
@@ -145,7 +137,7 @@ class MockContext(commands.Context):
 		self.message = message
 		self.channel = channel
 		self.author = author
-		self.guild = MockGuild()
+		self.guild = guild
 
 
 brawlKey = environ.get("BRAWLKEY")
@@ -353,7 +345,7 @@ def test_logUnmute():
 def test_memSearch():
 	namedUser = MockUser("searchterm", "testnick", "9999")
 	contentList = "searchterm#9999", "searchterm", "search", "testnick"
-	text = MockMessage("", guild=MockGuild(members=(MockUser(), namedUser)))
+	text = MockMessage(guild=MockGuild(members=(MockUser(), namedUser)))
 	for content in contentList:
 		text.content = content
 		assert misc.memSearch(text, content) == namedUser
@@ -564,8 +556,7 @@ def test_av():
 
 
 def test_commands():
-	ctx = MockContext(Bot.bot)
-	ctx.guild = None
+	ctx = MockContext(Bot.bot, guild=None)
 	assert len(misc.bbCommands(ctx).fields) == 15
 
 
@@ -587,8 +578,8 @@ def test_pingMsg():
 
 
 def test_scamCheck():
-	assert misc.scamCheck("http://freediscordnitro.com.")
-	assert misc.scamCheck("@everyone http://scamlink.com free nitro!")
+	assert misc.scamCheck("http://dizcort.com free nitro!")
+	assert misc.scamCheck("@everyone http://didcord.gg free nitro!")
 	assert not misc.scamCheck(
 		"Hey Discord friends, check out https://top.gg/bot/654133911558946837"
 	)
