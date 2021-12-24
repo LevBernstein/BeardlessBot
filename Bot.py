@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.4"
+__version__ = "Full Release 1.7.5"
 
 import asyncio
 from random import choice, randint
@@ -25,6 +25,20 @@ bot = commands.Bot(
 	owner_id=196354892208537600
 	# Replace owner_id with your Discord id
 )
+
+
+async def createMutedRole(guild: discord.Guild) -> discord.Role:
+	role = await guild.create_role(
+		name="Muted",
+		colour=discord.Colour(0x818386),
+		mentionable=False,
+		permissions=discord.Permissions(
+			send_messages=False, read_messages=True
+		)
+	)
+	for channel in guild.channels:
+		await channel.set_permissions(role, send_messages=False)
+	return role
 
 
 @bot.event
@@ -69,8 +83,8 @@ async def on_guild_join(guild: discord.Guild):
 		for channel in guild.channels:
 			try:
 				await channel.send(embed=misc.onJoin(guild, role))
-			except Exception as err:
-				print(err)
+			except Exception as e:
+				print(e)
 			else:
 				break
 		print("Beardless Bot is now in", len(bot.guilds), "servers.")
@@ -81,8 +95,8 @@ async def on_guild_join(guild: discord.Guild):
 		for channel in guild.channels:
 			try:
 				await channel.send(embed=misc.noPerms)
-			except Exception as err:
-				print(err)
+			except Exception as e:
+				print(e)
 			else:
 				print(f"Sent no perms msg in {channel.name}.")
 				break
@@ -111,8 +125,8 @@ async def on_bulk_message_delete(msgList: List[discord.Message]):
 				await channel.send(
 					embed=logs.logPurge(msgList[0], msgList)
 				)
-			except Exception as err:
-				print(err)
+			except Exception as e:
+				print(e)
 			return
 
 
@@ -139,8 +153,8 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
 			if channel.name == "bb-log":
 				try:
 					await channel.send(embed=logs.logEditMsg(before, after))
-				except Exception as err:
-					print(err)
+				except Exception as e:
+					print(e)
 				return
 
 
@@ -148,16 +162,15 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
 async def on_reaction_clear(
 	msg: discord.Message, reactions: List[discord.Reaction]
 ):
-	if msg.guild:
-		for channel in msg.guild.channels:
-			if channel.name == "bb-log":
-				try:
-					await channel.send(
-						embed=logs.logClearReacts(msg, reactions)
-					)
-				except Exception as err:
-					print(err)
-				return
+	if not msg.guild:
+		return
+	for channel in msg.guild.channels:
+		if channel.name == "bb-log":
+			try:
+				await channel.send(embed=logs.logClearReacts(msg, reactions))
+			except Exception as e:
+				print(e)
+			return
 
 
 @bot.event
@@ -254,13 +267,13 @@ async def cmdDeal(ctx, *args):
 		report = bucks.commaWarn.format(ctx.author.mention)
 	else:
 		report = bucks.noGameMsg.format(ctx.author.mention)
-		for i, game in enumerate(games):
+		for game in games:
 			if game.user == ctx.author:
 				report = game.deal()
 				if game.checkBust() or game.perfect():
 					game.checkBust()
 					bucks.writeMoney(ctx.author, game.bet, True, True)
-					games.pop(i)
+					games.remove(game)
 				break
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Blackjack", report))
 
@@ -271,7 +284,7 @@ async def cmdStay(ctx, *args):
 		report = bucks.commaWarn.format(ctx.author.mention)
 	else:
 		report = bucks.noGameMsg.format(ctx.author.mention)
-		for i, game in enumerate(games):
+		for game in games:
 			if game.user == ctx.author:
 				result = game.stay()
 				report = game.message
@@ -281,7 +294,7 @@ async def cmdStay(ctx, *args):
 					)
 					if written == -1:
 						report = bonus
-				games.pop(i)
+				games.remove(game)
 				break
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Blackjack", report))
 
@@ -424,26 +437,27 @@ async def cmdRoll(ctx, dice="None", *args):
 @bot.command(name="dog", aliases=misc.animalList + ("moose",))
 async def cmdAnimal(ctx, breed=None, *args):
 	species = ctx.invoked_with.lower()
-	if species == "moose" or (breed and breed.lower() == "moose"):
+	if breed:
+		breed = breed.lower()
+	if "moose" in (species, breed):
 		try:
 			moose = misc.animal("moose", "moose")
-		except Exception as err:
-			print(err)
+		except Exception as e:
+			print(species, breed, e)
 			emb = misc.bbEmbed(
 				"Something's gone wrong with the Moose API!",
 				"Please inform my creator and he'll see what's going on."
 			)
 		else:
+			print(moose)
 			emb = misc.bbEmbed("Random Moose").set_image(url=moose)
 		await ctx.send(embed=emb)
 		return
 	if species == "dog":
-		if breed:
-			breed = breed.lower()
 		try:
 			dogUrl = misc.animal("dog", breed)
-		except Exception as err:
-			print(err)
+		except Exception as e:
+			print(species, breed, e)
 			emb = misc.bbEmbed(
 				"Something's gone wrong with the Dog API!",
 				"Please inform my creator and he'll see what's going on."
@@ -462,8 +476,8 @@ async def cmdAnimal(ctx, breed=None, *args):
 		emb = misc.bbEmbed(
 			"Random " + species.title()
 		).set_image(url=misc.animal(species))
-	except Exception as err:
-		print(err)
+	except Exception as e:
+		print(e)
 		emb = misc.bbEmbed(
 			"Something's gone wrong!",
 			"Please inform my creator and he'll see what's going on."
@@ -489,11 +503,12 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 	if not target:
 		await ctx.send(f"Please specify a target, {ctx.author.mention}.")
 		return
+	# TODO: switch to converter in arg
 	try:
 		converter = commands.MemberConverter()
 		target = await converter.convert(ctx, target)
-	except Exception as err:
-		print(err)
+	except Exception as e:
+		print(e)
 		await ctx.send(
 			embed=misc.bbEmbed(
 				"Beardless Bot Mute",
@@ -506,16 +521,8 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 			await ctx.send("I am too powerful to be muted. Stop trying.")
 			return
 	role = get(ctx.guild.roles, name="Muted")
-	if not role:  # Creates a Muted role.
-		role = await ctx.guild.create_role(
-			name="Muted",
-			colour=discord.Colour(0x818386),
-			mentionable=False,
-			permissions=discord.Permissions(
-				send_messages=False,
-				read_messages=True
-			)
-		)
+	if not role:
+		role = await createMutedRole(ctx.guild)
 	mTime = mString = None
 	if duration:
 		duration = duration.lower()
@@ -532,8 +539,8 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 				mString = " " + mPair[0] + ("" if duration == "1" else "s")
 	try:
 		await target.add_roles(role)
-	except Exception as err:
-		print(err)
+	except Exception as e:
+		print(e)
 		await ctx.send(misc.hierarchyMsg)
 	else:
 		report = "Muted " + target.mention
@@ -548,7 +555,6 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 		await ctx.send(embed=emb)
 		# Iterate through channels, make Muted unable to send msgs
 		for channel in ctx.guild.channels:
-			await channel.set_permissions(role, send_messages=False)
 			if channel.name == "bb-log":
 				await channel.send(
 					embed=logs.logMute(
@@ -559,7 +565,9 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 						mTime
 					)
 				)
-		if mTime:  # Autounmute
+				break
+		if mTime:
+			# Autounmute
 			print("Muted", target, "for", mTime, "in", ctx.guild.name)
 			await asyncio.sleep(mTime)
 			await target.remove_roles(role)
@@ -578,15 +586,13 @@ async def cmdUnmute(ctx, target=None, *args):
 		return
 	report = misc.naughty.format(ctx.author.mention)
 	if ctx.author.guild_permissions.manage_messages:
-		if not target:
-			report = f"Invalid target, {ctx.author.mention}."
-		else:
+		if target:
 			converter = commands.MemberConverter()
 			try:
 				target = await converter.convert(ctx, target)
 				await target.remove_roles(get(ctx.guild.roles, name="Muted"))
-			except Exception as err:
-				print(err)
+			except Exception as e:
+				print(e)
 				report = misc.hierarchyMsg
 			else:
 				report = f"Unmuted {target.mention}."
@@ -596,17 +602,14 @@ async def cmdUnmute(ctx, target=None, *args):
 							embed=logs.logUnmute(target, ctx.author)
 						)
 						break
+		else:
+			report = f"Invalid target, {ctx.author.mention}."
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Unmute", report))
 
 
 @bot.command(name="purge")
 async def cmdPurge(ctx, num=None, *args):
-	if not ctx.guild:
-		return
-	if not ctx.author.guild_permissions.manage_messages:
-		desc = misc.naughty.format(ctx.author.mention)
-		await ctx.send(embed=misc.bbEmbed("Beardless Bot Purge", desc))
-	else:
+	if ctx.guild and ctx.author.guild_permissions.manage_messages:
 		try:
 			mNum = int(num)
 		except ValueError:
@@ -618,6 +621,9 @@ async def cmdPurge(ctx, num=None, *args):
 			await ctx.channel.purge(
 				limit=mNum + 1, check=lambda msg: not msg.pinned
 			)
+	elif ctx.guild:
+		desc = misc.naughty.format(ctx.author.mention)
+		await ctx.send(embed=misc.bbEmbed("Beardless Bot Purge", desc))
 
 
 @bot.command(name="buy")
@@ -674,14 +680,14 @@ async def cmdPins(ctx, *args):
 async def cmdSpar(ctx, region=None, *args):
 	if not ctx.guild:
 		return
+	author = ctx.author.mention
 	if ctx.channel.name != "looking-for-spar":
-		report = "Please only use !spar in looking-for-spar, {}."
-		await ctx.send(report.format(ctx.author.mention))
+		await ctx.send(f"Please only use !spar in looking-for-spar, {author}.")
 		return
 	if not region:
 		await ctx.send(embed=misc.sparPins)
 		return
-	report = brawl.badRegion.format(ctx.author.mention)
+	report = brawl.badRegion.format(author)
 	tooRecent = role = None
 	global sparPings
 	region = region.lower()
@@ -698,9 +704,7 @@ async def cmdSpar(ctx, region=None, *args):
 						)
 					if time() - value > 7200:
 						sparPings[guild][key] = int(time())
-						report = "{} come spar {}!".format(
-							role.mention, ctx.author.mention
-						)
+						report = f"{role.mention} come spar {author}"
 					else:
 						tooRecent = value
 					break
@@ -708,7 +712,7 @@ async def cmdSpar(ctx, region=None, *args):
 	if role and tooRecent:
 		hours, seconds = divmod(7200 - (int(time()) - tooRecent), 3600)
 		minutes, seconds = divmod(seconds, 60)
-		report = brawl.pingMsg(ctx.author.mention, hours, minutes, seconds)
+		report = brawl.pingMsg(author, hours, minutes, seconds)
 	await ctx.send(report)
 	if args and role and not tooRecent:
 		await ctx.send(f"Additional info: \"{' '.join(args)}\"")
@@ -734,8 +738,8 @@ async def cmdBrawlclaim(ctx, profUrl="None", *args):
 	if brawlID:
 		try:
 			brawl.claimProfile(ctx.author.id, brawlID)
-		except Exception as err:
-			print(err)
+		except Exception as e:
+			print(e)
 			report = brawl.reqLimit
 		else:
 			report = "Profile claimed."
@@ -759,8 +763,8 @@ async def cmdBrawlrank(ctx, *target):
 		try:
 			await ctx.send(embed=brawl.getRank(target, brawlKey))
 			return
-		except Exception as err:
-			print(err)
+		except Exception as e:
+			print(e)
 			report = brawl.reqLimit
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Rank", report)
@@ -779,8 +783,8 @@ async def cmdBrawlstats(ctx, *target):
 		try:
 			await ctx.send(embed=brawl.getStats(target, brawlKey))
 			return
-		except Exception as err:
-			print(err)
+		except Exception as e:
+			print(e)
 			report = brawl.reqLimit
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Stats", report)
@@ -799,8 +803,8 @@ async def cmdBrawlclan(ctx, *target):
 		try:
 			await ctx.send(embed=brawl.getClan(target, brawlKey))
 			return
-		except Exception as err:
-			print(err)
+		except Exception as e:
+			print(e)
 			report = brawl.reqLimit
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Clan", report)
@@ -817,8 +821,8 @@ async def cmdBrawllegend(ctx, legend=None, *args):
 	if legend:
 		try:
 			legend = brawl.legendInfo(brawlKey, legend)
-		except Exception as err:
-			print(err)
+		except Exception as e:
+			print(e)
 			report = brawl.reqLimit
 		else:
 			if legend:
@@ -862,10 +866,10 @@ async def cmdGuide(ctx, *args):
 
 
 @bot.listen()
-async def on_command_error(ctx, err):
-	if isinstance(err, commands.CommandNotFound):
+async def on_command_error(ctx, e):
+	if isinstance(e, commands.CommandNotFound):
 		return
-	print(err)
+	print(e)
 
 
 @bot.listen("on_message")
@@ -876,29 +880,23 @@ async def handleMessages(message):
 	text = message.content.lower()
 
 	if misc.scamCheck(text):
-		auth = message.author
-		try:
-			await auth.add_roles(get(message.guild.roles, name="Muted"))
-		except Exception as err:
-			print(err)
+		author = message.author
+		role = get(message.guild.roles, name="Muted")
+		if not role:
+			role = await createMutedRole(message.guild)
+		await author.add_roles(role)
 		for channel in message.guild.channels:
 			if channel.name in ("infractions", "bb-log"):
 				await channel.send(
 					"Deleted possible scam nitro link sent by"
-					f" {auth.mention} in {message.channel.mention}."
+					f" {author.mention} in {message.channel.mention}."
 					f"\nMessage content:\n{message.content}"
 				)
 		await message.channel.send(
 			"**Deleted possible nitro scam link. Alerting mods.**"
 		)
 		await message.delete()
-		await auth.send(
-			"This is an automated message. You have sent a message that has"
-			" been identified as containing a scam nitro link in"
-			f" **{message.guild}**. Your account may have been compromised."
-			" Please take the appropriate measures and be sure to reach out"
-			" to an admin if you need help."
-		)
+		await author.send(misc.scamDM.format(message.guild))
 
 	elif message.guild.name == "Day Care":
 		if "twitter.com/year_progress" in text:
@@ -910,8 +908,8 @@ async def handleMessages(message):
 			return
 		secretFound = True
 		print(
-			f"Secret word, {secretWord}, found by"
-			f" {message.author.mention} in {message.guild.name}."
+			f"Secret word, {secretWord}, found by",
+			f"{message.author.mention} in {message.guild.name}."
 		)
 		result, bonus = bucks.writeMoney(message.author, 100000, True, True)
 		if result == -1:
@@ -932,8 +930,10 @@ if __name__ == "__main__":
 
 	env = dotenv_values(".env")
 
-	brawlKey = env["BRAWLKEY"]
-	if not brawlKey:
+	try:
+		brawlKey = env["BRAWLKEY"]
+	except KeyError:
+		brawlKey = None
 		print(
 			"No Brawlhalla API key. Brawlhalla-specific",
 			"commands will not be active."
@@ -951,4 +951,12 @@ if __name__ == "__main__":
 	# This array stores the active instances of blackjack.
 	games = []
 
-	bot.run(env["DISCORDTOKEN"])
+	try:
+		bot.run(env["DISCORDTOKEN"])
+	except KeyError:
+		print(
+			"Fatal error! DISCORDTOKEN environment variable has not",
+			"been defined. See: README.MD's installation section."
+		)
+	except discord.DiscordException as e:
+		print(e)

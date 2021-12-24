@@ -112,11 +112,9 @@ class Instance:
 		self.cards.append(choice(Instance.cardVals))
 		self.cards.append(choice(Instance.cardVals))
 		message = (
-			"Your starting hand consists of {} and {}. Your total is {}. "
-		).format(
-			self.cardName(self.cards[0]),
-			self.cardName(self.cards[1]),
-			sum(self.cards)
+			f"Your starting hand consists of {self.cardName(self.cards[0])}"
+			f" and {self.cardName(self.cards[1])}."
+			f" Your total is {sum(self.cards)}. "
 		)
 		if self.perfect() or debugBlackjack:
 			message += f"You hit 21! You win, {self.user.mention}!"
@@ -236,7 +234,8 @@ class Instance:
 
 def writeMoney(
 	member: Union[discord.User, discord.Member],
-	amount, writing: bool,
+	amount: Union[str, int],
+	writing: bool,
 	adding: bool
 ) -> Tuple[int, Union[str, int, None]]:
 	"""
@@ -244,7 +243,7 @@ def writeMoney(
 
 	Args:
 		member (discord.User): The target user
-		amount (int or str): The amount to change member's balance by
+		amount (str or int): The amount to change member's balance by
 		writing (bool): Whether to modify member's balance
 		adding (bool): Whether to add to or overwrite member's balance
 
@@ -333,9 +332,9 @@ def balance(
 		discord.Embed: the report of the target's balance.
 	"""
 	report = (
-		"Invalid user! Please @ a user when you do !balance (or"
-		" enter their username), or do !balance without a target"
-		f" to see your own balance, {msg.author.mention}."
+		"Invalid user! Please @ a user when you do !balance"
+		" (or enter their username), or do !balance without a"
+		f" target to see your own balance, {msg.author.mention}."
 	)
 	if not isinstance(target, discord.User):
 		target = memSearch(msg, target)

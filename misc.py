@@ -537,3 +537,10 @@ invalidTargetEmbed = bbEmbed(
 	),
 	0xFF0000
 )
+
+scamDM = (
+	"This is an automated message. You have sent a message that has"
+	" been identified as containing a scam nitro link in **{}**. Your"
+	" account may  have been compromised. Please take the appropriate"
+	" measures and be sure to reach out to an admin if you need help."
+)

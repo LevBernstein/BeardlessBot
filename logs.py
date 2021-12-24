@@ -77,8 +77,7 @@ def logClearReacts(
 			value=contCheck(msg) + f"\n[Jump to Message]({msg.jump_url})"
 		)
 		.add_field(
-			name="Reactions:",
-			value=", ".join(str(reaction) for reaction in reactions)
+			name="Reactions:", value=", ".join(str(r) for r in reactions)
 		)
 	)
 
@@ -190,7 +189,9 @@ def logMute(
 	).set_author(name=message.author, icon_url=message.author.avatar_url)
 
 
-def logUnmute(member: discord.Member, author: discord.Member) -> discord.Embed:
+def logUnmute(
+	member: discord.Member, author: discord.Member
+) -> discord.Embed:
 	return bbEmbed(
 		"Beardless Bot Mute", f"Unmuted {member.mention}.", 0x00FF00, True
 	).set_author(name=author, icon_url=author.avatar_url)
