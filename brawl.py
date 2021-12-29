@@ -131,7 +131,7 @@ def getBrawlID(brawlKey: str, profileURL: str) -> Union[int, None]:
 			f"steamid={steamID}&api_key={brawlKey}"
 		)
 		return r.json()["brawlhalla_id"]
-	except KeyError:
+	except TypeError:
 		return None
 
 

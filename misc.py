@@ -397,9 +397,19 @@ def hints() -> discord.Embed:
 
 
 def scamCheck(text: str) -> bool:
-	checkOne = re.compile(r"^.*https?://di\wc\wr\w\.\w{2,4}.*", re.IGNORECASE)
-	checkTwo = re.compile(r"^.*(nitro|gift|@everyone).*", re.IGNORECASE)
-	return bool(checkOne.match(text)) and bool(checkTwo.match(text))
+	msg = text.lower()
+	checkOne = re.compile(r"^.*https?://d\w\wc\wr(d|t)\.\w{2,4}.*")
+	checkTwo = re.compile(r"^.*(nitro|gift|@everyone).*")
+	checkThree = all((
+		"http" in msg, "@everyone" in msg, ("nitro" in msg or "discord" in msg)
+	))
+	checkFour = re.compile(r"^.*https?://d\w\wc\wr\wn\wtr\w\.\w{2,5}.*")
+
+	return (
+		(
+			bool(checkOne.match(msg)) or bool(checkFour.match(msg))
+		) and bool(checkTwo.match(msg))
+	) or checkThree
 
 
 def onJoin(guild: discord.Guild, role: discord.Role) -> discord.Embed:

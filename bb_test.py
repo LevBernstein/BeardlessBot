@@ -1,5 +1,6 @@
 # Beardless Bot unit tests
 
+import asyncio
 from dotenv import dotenv_values
 from json import load
 from os import environ
@@ -19,7 +20,26 @@ import logs
 import misc
 
 
+# TODO: add _state attribute to all mock objects
+
+
+# MockUser class is a superset of discord.User with some features of
+# discord.Member; still working on adding all features of discord.Member,
+# at which point I will switch the parent from discord.User to discord.Member
+
 class MockUser(discord.User):
+
+	class MockUserState():
+		def __init__(self):
+			self._guilds = {}
+			self.allowed_mentions = discord.AllowedMentions(everyone=True)
+			self.loop = asyncio.new_event_loop()
+			self.http = discord.http.HTTPClient(loop=self.loop)
+			self.user = None
+
+		def _get_private_channel_by_user(self, id):
+			return MockChannel()
+
 	def __init__(
 		self,
 		name: str = "testname",
@@ -33,10 +53,16 @@ class MockUser(discord.User):
 		self.id = id
 		self.discriminator = discriminator
 		self.bot = False
-		self.avatar = self.default_avatar
+		self.avatar = str(self.default_avatar)
 		self.roles = roles
 		self.joined_at = self.created_at
 		self.activity = None
+		self.system = False
+		self._public_flags = 0
+		self._state = self.MockUserState()
+
+	def set_state(self):
+		self._state.user = self
 
 	def avatar_url_as(self, format=None, size=1024):
 		# Discord doesn't like it when you construct its objects manually;
@@ -53,6 +79,7 @@ class MockChannel(discord.TextChannel):
 		self.nsfw = False
 		self._type = 0
 		self.category_id = 0
+		self.guild = None
 
 
 class MockMessage(discord.Message):
@@ -76,6 +103,7 @@ class MockMessage(discord.Message):
 		)
 		self.guild = guild
 		self.mentions = ()
+		self.mention_everyone = False
 
 
 class MockRole(discord.Role):
@@ -120,6 +148,7 @@ class MockGuild(discord.Guild):
 		self._roles = {i: r for i, r in enumerate(roles)}
 		self._members = {i: m for i, m in enumerate(members)}
 		self._member_count = len(self._members)
+		self.owner_id = 123456789
 
 
 class MockContext(commands.Context):
@@ -558,6 +587,11 @@ def test_av():
 def test_commands():
 	ctx = MockContext(Bot.bot, guild=None)
 	assert len(misc.bbCommands(ctx).fields) == 15
+	ctx.guild = MockGuild()
+	ctx.author.guild_permissions = discord.Permissions(manage_messages=True)
+	assert len(misc.bbCommands(ctx).fields) == 20
+	ctx.author.guild_permissions = discord.Permissions(manage_messages=False)
+	assert len(misc.bbCommands(ctx).fields) == 17
 
 
 def test_hints():
@@ -580,6 +614,7 @@ def test_pingMsg():
 def test_scamCheck():
 	assert misc.scamCheck("http://dizcort.com free nitro!")
 	assert misc.scamCheck("@everyone http://didcord.gg free nitro!")
+	assert misc.scamCheck("gift nitro http://d1zcordn1tr0.co.uk free!")
 	assert not misc.scamCheck(
 		"Hey Discord friends, check out https://top.gg/bot/654133911558946837"
 	)
@@ -673,13 +708,14 @@ def test_fetchLegends():
 
 def test_getBrawlID():
 	assert brawl.getBrawlID(
-		brawlKey,
-		"https://steamcommunity.com/id/beardless"
+		brawlKey, "https://steamcommunity.com/id/beardless"
 	) == 7032472
 	assert not brawl.getBrawlID(brawlKey, "badurl")
 	assert not brawl.getBrawlID(
-		brawlKey,
-		"https://steamcommunity.com/badurl"
+		brawlKey, "https://steamcommunity.com/badurl"
+	)
+	assert not brawl.getBrawlID(
+		brawlKey, "https://steamcommunity.com/id/dksjnw"
 	)
 
 
@@ -701,10 +737,15 @@ def test_getRank():
 		brawl.getRank(user, brawlKey).description ==
 		brawl.unclaimed.format(user.mention)
 	)
-	user.id = 743238109898211389  # 12502880
+	user.id = 743238109898211389
 	assert (
 		brawl.getRank(user, brawlKey).footer.text ==
 		"Brawl ID 12502880"
+	)
+	user.id = 196354892208537600
+	assert (
+		brawl.getRank(user, brawlKey).description ==
+		"You haven't played ranked yet this season."
 	)
 
 
