@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.6"
+__version__ = "Full Release 1.7.7"
 
 import asyncio
 from random import choice, randint
@@ -28,6 +28,7 @@ bot = commands.Bot(
 
 
 async def createMutedRole(guild: discord.Guild) -> discord.Role:
+	overwrite = discord.PermissionOverwrite(send_messages=False)
 	role = await guild.create_role(
 		name="Muted",
 		colour=discord.Colour(0x818386),
@@ -37,7 +38,7 @@ async def createMutedRole(guild: discord.Guild) -> discord.Role:
 		)
 	)
 	for channel in guild.channels:
-		await channel.set_permissions(role, send_messages=False)
+		await channel.set_permissions(role, overwrite=overwrite)
 	return role
 
 
@@ -133,21 +134,21 @@ async def on_bulk_message_delete(msgList: List[discord.Message]):
 @bot.event
 async def on_message_edit(before: discord.Message, after: discord.Message):
 	if before.guild and (before.content != after.content):
-		if after.guild.name == "egg" and misc.scamCheck(after.content):
+		if misc.scamCheck(after.content):
 			await after.author.add_roles(
 				get(after.guild.roles, name="Muted")
 			)
 			for channel in after.guild.channels:
-				if channel.name == "infractions":
+				if channel.name in ("infractions", "bb-log"):
 					await channel.send(
-						"Deleted possible scam nitro link sent by"
-						f" {after.author.mention} in {after.channel.mention}."
-						f"\nMessage content:\n{after.content}"
+						misc.scamReport.format(
+							after.author.mention,
+							after.channel.mention,
+							after.content
+						)
 					)
-					break
-			await after.channel.send(
-				"Deleted possible nitro scam link. Alerting mods."
-			)
+			await after.channel.send(misc.scamDelete)
+			await after.author.send(misc.scamDM.format(after.guild))
 			await after.delete()
 		for channel in before.guild.channels:
 			if channel.name == "bb-log":
@@ -869,7 +870,7 @@ async def cmdGuide(ctx, *args):
 async def on_command_error(ctx, e):
 	if isinstance(e, commands.CommandNotFound):
 		return
-	print(e)
+	print(e, ctx.invoked_with, ctx.message, ctx.guild, sep="\n")
 
 
 @bot.listen("on_message")
@@ -888,15 +889,15 @@ async def handleMessages(message):
 		for channel in message.guild.channels:
 			if channel.name in ("infractions", "bb-log"):
 				await channel.send(
-					"Deleted possible scam nitro link sent by"
-					f" {author.mention} in {message.channel.mention}."
-					f"\nMessage content:\n{message.content}"
+					misc.scamReport.format(
+						author.mention,
+						message.channel.mention,
+						message.content
+					)
 				)
-		await message.channel.send(
-			"**Deleted possible nitro scam link. Alerting mods.**"
-		)
-		await message.delete()
+		await message.channel.send(misc.scamDelete)
 		await author.send(misc.scamDM.format(message.guild))
+		await message.delete()
 
 	elif message.guild.name == "Day Care":
 		if "twitter.com/year_progress" in text:

@@ -554,3 +554,9 @@ scamDM = (
 	" account may  have been compromised. Please take the appropriate"
 	" measures and be sure to reach out to an admin if you need help."
 )
+
+scamReport = (
+	"Deleted possible scam nitro link sent by {} in {}.\nMessage content:\n{}"
+)
+
+scamDelete = "**Deleted possible nitro scam link. Alerting mods.**"
