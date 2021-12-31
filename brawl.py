@@ -3,7 +3,7 @@
 from datetime import datetime
 from json import dump, load
 from random import choice
-from typing import Union
+from typing import Dict, Union
 
 import discord
 import requests
@@ -57,6 +57,35 @@ rankedThumbnails = {
 }
 
 
+rankColors = {
+	"Diamond": 0x3D2399,
+	"Platinum": 0x0051B4,
+	"Gold": 0xF8D06A,
+	"Silver": 0xBBBBBB,
+	"Bronze": 0x674B25,
+	"Tin": 0x355536
+}
+
+weapons = (
+	"Sword",
+	"Spear",
+	"Orb",
+	"Cannon",
+	"Hammer",
+	"Scythe",
+	"Greatsword",
+	"Bow",
+	"Gauntlets",
+	"Katars",
+	"Blasters",
+	"Axe"
+)
+
+
+def brawlWinRate(j: Dict[str, int]) -> float:
+	return round(j["wins"] / j["games"] * 100, 1)
+
+
 def pingMsg(target: discord.Member, h: int, m: int, s: int) -> str:
 	def plural(t):
 		return "" if t == 1 else "s"
@@ -74,23 +103,10 @@ def randomBrawl(ranType: str, key: str = None) -> discord.Embed:
 			choices = tuple(
 				legend["legend_name_key"].title() for legend in fetchLegends()
 			)
+			if key:
+				return legendInfo(key, choice(choices).lower())
 		else:
-			choices = (
-				"Sword",
-				"Spear",
-				"Orb",
-				"Cannon",
-				"Hammer",
-				"Scythe",
-				"Greatsword",
-				"Bow",
-				"Gauntlets",
-				"Katars",
-				"Blasters",
-				"Axe"
-			)
-		if ranType == "legend" and key:
-			return legendInfo(key, choice(choices).lower())
+			choices = weapons
 		return bbEmbed(
 			"Random " + ranType.title(),
 			f"Your {ranType} is {choice(choices)}."
@@ -157,23 +173,21 @@ def legendInfo(brawlKey: str, legendName: str) -> Union[discord.Embed, None]:
 				"https://api.brawlhalla.com/legend/{}/?api_key={}"
 				.format(legend["legend_id"], brawlKey)
 			).json()
+
 			# Problematic extra space in 2nd quote for these legends:
 			if legendName in ("reno", "teros", "hattori"):
 				spaceCheck = -2
 			else:
 				spaceCheck = -1
-			quoteOne = (
-				r["bio_quote"]
-				+ " *"
-				+ (r["bio_quote_about_attrib"])[1:-1]
-				+ "*"
+
+			quoteOne = "{} *{}*".format(
+				r["bio_quote"], (r["bio_quote_about_attrib"])[1:-1]
 			).replace("\\n", " ")
-			quoteTwo = (
-				r["bio_quote_from"]
-				+ " *"
-				+ (r["bio_quote_from_attrib"])[1:spaceCheck]
-				+ "*"
+
+			quoteTwo = "{} *{}*".format(
+				r["bio_quote_from"], (r["bio_quote_from_attrib"])[1:spaceCheck]
 			).replace("\\n", " ")
+
 			bio = "\n\n".join(
 				(
 					r["bio_text"].replace("\n", "\n\n"),
@@ -220,21 +234,13 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 			"Beardless Bot Brawlhalla Rank",
 			"You haven't played ranked yet this season."
 		)
-	rankColors = {
-		"Diamond": 0x3D2399,
-		"Platinum": 0x0051B4,
-		"Gold": 0xF8D06A,
-		"Silver": 0xBBBBBB,
-		"Bronze": 0x674B25,
-		"Tin": 0x355536
-	}
 	emb = (
 		bbEmbed(f"{r['name']}, {r['region']}")
 		.set_footer(text=f"Brawl ID {brawlID}")
 		.set_author(name=target, icon_url=target.avatar_url)
 	)
 	if "games" in r:
-		winRate = round(r["wins"] / r["games"] * 100, 1)
+		winRate = brawlWinRate(r)
 		embVal = (
 			f"**{r['tier']}** ({r['rating']}/{r['peak_rating']} Peak)\n"
 			f"{r['wins']} W / {r['games'] - r['wins']} L / {winRate}% winrate"
@@ -271,14 +277,10 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 					f"{twosTeam['tier']}** ({twosTeam['rating']} /"
 					f" {twosTeam['peak_rating']} Peak)\n{twosTeam['wins']}"
 					f" W / {twosTeam['games'] - twosTeam['wins']} L /"
-					f" {round(twosTeam['wins'] / twosTeam['games'] * 100, 1)}"
-					"% winrate"
+					f" {brawlWinRate(twosTeam)}% winrate"
 				)
 			)
-			if (
-				emb.color.value == 0xFFF994
-				or twosTeam["rating"] > r["rating"]
-			):
+			if emb.color.value == 0xFFF994 or twosTeam["rating"] > r["rating"]:
 				for key, value in rankColors.items():
 					if key in twosTeam["tier"]:
 						emb.color = value
@@ -306,8 +308,8 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 		)
 		return bbEmbed("Beardless Bot Brawlhalla Stats", noStats)
 	embVal = (
-		f"{r['wins']} Wins / {r['games'] - r['wins']} Losses\n{r['games']}"
-		f" Games\n{round(r['wins'] / r['games'] * 100, 1)}% Winrate"
+		f"{r['wins']} Wins / {r['games'] - r['wins']} Losses"
+		f"\n{r['games']} Games\n{brawlWinRate(r)}% Winrate"
 	)
 	emb = (
 		bbEmbed("Brawlhalla Stats for " + r["name"])
@@ -322,26 +324,24 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 			if not topUsed or topUsed[1] < legend["xp"]:
 				topUsed = legend["legend_name_key"].title(), legend["xp"]
 			if legend["games"] and (
-				not topWinrate
-				or topWinrate[1]
-				< round(legend["wins"] / legend["games"] * 100, 1)
+				topWinrate is None or topWinrate[1] < brawlWinRate(legend)
 			):
 				topWinrate = (
-					legend["legend_name_key"].title(),
-					round(legend["wins"] / legend["games"] * 100, 1)
+					legend["legend_name_key"].title(), brawlWinRate(legend)
 				)
 			if legend["matchtime"] and (
-				not topDPS
-				or topDPS[1]
-				< round(int(legend["damagedealt"]) / legend["matchtime"], 1)
+				topDPS is None or topDPS[1] < round(
+					int(legend["damagedealt"]) / legend["matchtime"], 1
+				)
 			):
 				topDPS = (
 					legend["legend_name_key"].title(),
 					round(int(legend["damagedealt"]) / legend["matchtime"], 1)
 				)
 			if legend["kos"] and (
-				not topTTK
-				or topTTK[1] > round(legend["matchtime"] / legend["kos"], 1)
+				topTTK is None or topTTK[1] > round(
+					legend["matchtime"] / legend["kos"], 1
+				)
 			):
 				topTTK = (
 					legend["legend_name_key"].title(),

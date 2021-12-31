@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.7"
+__version__ = "Full Release 1.7.8"
 
 import asyncio
 from random import choice, randint
@@ -16,6 +16,11 @@ import bucks
 import logs
 import misc
 
+# This dictionary is for keeping track of pings in the lfs channels.
+sparPings = {}
+
+# This array stores the active instances of blackjack.
+games = []
 
 bot = commands.Bot(
 	command_prefix="!",
@@ -28,6 +33,15 @@ bot = commands.Bot(
 
 
 async def createMutedRole(guild: discord.Guild) -> discord.Role:
+	"""
+	Creates a "Muted" role that prevents users from sending messages.
+
+	Args:
+		guild (discord.Guild): The guild in which to create the role
+
+	Returns:
+		discord.Role: The Muted role.
+	"""
 	overwrite = discord.PermissionOverwrite(send_messages=False)
 	role = await guild.create_role(
 		name="Muted",
@@ -945,12 +959,6 @@ if __name__ == "__main__":
 	except KeyError:
 		secretWord = None
 		print("Secret word has not been defined. Continuing as normal.")
-
-	# This dictionary is for keeping track of pings in the lfs channels.
-	sparPings = {}
-
-	# This array stores the active instances of blackjack.
-	games = []
 
 	try:
 		bot.run(env["DISCORDTOKEN"])

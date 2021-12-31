@@ -5,7 +5,7 @@ from dotenv import dotenv_values
 from json import load
 from os import environ
 from random import choice
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import discord
 import pytest
@@ -20,29 +20,109 @@ import logs
 import misc
 
 
-# TODO: add _state attribute to all mock objects
+# TODO: add _state attribute to all mock objects, inherit from State
+# Switch to a single MockState class that can handle all objects
+
+
+class MockHTTPClient(discord.http.HTTPClient):
+	def __init__(
+		self,
+		loop: asyncio.AbstractEventLoop,
+		user: discord.User = None
+	):
+		self.loop = loop
+		self.user_agent = user
+		self.token = None
+		self.proxy = None
+		self.proxy_auth = None
+		self._locks = {}
+		# self._global_over = asyncio.Event()
+		# self._global_over.clear()
+		# self._global_over.set()
+		# self._HTTPClient__session = None
+
+	async def create_role(
+		self, roleId: int, reason: Union[str, None] = None, **fields: Any
+	) -> Dict[str, Any]:
+		data = {
+			"id": roleId,
+			"name": fields["name"] if "name" in fields else "TestRole"
+		}
+
+		if "hoist" in fields:
+			data["hoist"] = fields["hoist"]
+		if "mentionable" in fields:
+			data["mentionable"] = fields["mentionable"]
+		if "colour" in fields:
+			data["colour"] = fields["colour"]
+		if "permissions" in fields:
+			data["permissions"] = fields["permissions"]
+
+		return data
+
+	async def send_message(
+		self,
+		channel_id: Union[str, int],
+		content: Union[str, None] = None,
+		*,
+		tts: bool = False,
+		embed: Union[discord.Embed, None] = None,
+		embeds: Union[List[discord.Embed], None] = None,
+		nonce: Union[str, None] = None,
+		allowed_mentions: Union[Dict[str, Any], None] = None,
+		message_reference: Union[Dict[str, Any], None] = None,
+		stickers: Union[List[discord.Sticker], None] = None,
+		components: Union[List[Any], None] = None
+	) -> Dict[str, Any]:
+		data = {
+			"attachments": [],
+			"edited_timestamp": None,
+			"type": discord.Message,
+			"pinned": False,
+			"mention_everyone": ("@everyone" in content) if content else False,
+			"tts": tts,
+			"author": MockUser()
+		}
+		if content:
+			data["content"] = content
+		if embed:
+			data["embeds"] = [embed]
+		elif embeds:
+			data["embeds"] = embeds
+		else:
+			data["embeds"] = []
+		if nonce:
+			data["nonce"] = nonce
+		if allowed_mentions:
+			data["allowed_mentions"] = allowed_mentions
+		if message_reference:
+			data["message_reference"] = message_reference
+		if components:
+			data["components"] = components
+		if stickers:
+			data["stickers"] = stickers
+		return data
 
 
 # MockUser class is a superset of discord.User with some features of
 # discord.Member; still working on adding all features of discord.Member,
 # at which point I will switch the parent from discord.User to discord.Member
 
+
 class MockUser(discord.User):
 
-	class MockState():
-
-		class MockHTTPClient(discord.http.HTTPClient):
-			def __init__(self, loop):
-				self.loop = loop
-
+	class MockUserState():
 		def __init__(self):
 			self._guilds = {}
 			self.allowed_mentions = discord.AllowedMentions(everyone=True)
 			self.loop = asyncio.new_event_loop()
-			self.http = self.MockHTTPClient(self.loop)
+			self.http = MockHTTPClient(self.loop)
 			self.user = None
 
-		def _get_private_channel_by_user(self, id):
+		def setClientUser(self):
+			self.http.user_agent = self.user
+
+		def _get_private_channel_by_user(self, id: int):
 			return MockChannel()
 
 	def __init__(
@@ -51,7 +131,7 @@ class MockUser(discord.User):
 		nick: str = "testnick",
 		discriminator: str = "0000",
 		id: int = 123456789,
-		roles=()
+		roles: List[discord.Role] = []
 	):
 		self.name = name
 		self.nick = nick
@@ -64,69 +144,86 @@ class MockUser(discord.User):
 		self.activity = None
 		self.system = False
 		self._public_flags = 0
-		self._state = self.MockState()
+		self._state = self.MockUserState()
 
-	def set_state(self):
+	def setStateUser(self):
 		self._state.user = self
-
-	def avatar_url_as(self, format=None, size=1024):
-		# Discord doesn't like it when you construct its objects manually;
-		# the avatar_url field is entirely broken. Here, I overwrite it.
-		return "https://cdn.discordapp.com/embed/avatars/0.png"
+		self._state.setClientUser()
 
 
+# TODO: edit Messageable.send() to add messages to self.messages
 class MockChannel(discord.TextChannel):
 
-	class MockState():
-
-		class MockHTTPClient(discord.http.HTTPClient):
-			def __init__(self, loop, user):
-				self.loop = loop
-				self.user_agent = user
-				self.token = None
-				self.proxy = None
-				self.proxy_auth = None
-				self._locks = {}
-				# self._global_over = asyncio.Event()
-				# self._global_over.set()
-				# self._HTTPClient__session = None
-
-		def __init__(self, user):
+	class MockChannelState():
+		def __init__(
+			self, user: Union[discord.User, None] = None, messageNum: int = 0
+		):
 			self.loop = asyncio.new_event_loop()
-			self.http = self.MockHTTPClient(self.loop, user)
+			self.http = MockHTTPClient(self.loop, user)
+			self.allowed_mentions = discord.AllowedMentions(everyone=True)
+			self.messageNum = messageNum
+			# TODO: self.last_message_id
+
+		def create_message(
+			self, *, channel: discord.abc.Messageable, data: Dict
+		) -> discord.Message:
+			data["id"] = self.messageNum
+			self.messageNum += 1
+			return discord.Message(state=self, channel=channel, data=data)
+
+		def store_user(self, data: Dict) -> discord.User:
+			return MockUser()
 
 	class Mock_Overwrites():
-		def __init__(self, id, type, allow, deny):
+		def __init__(
+			self,
+			id: int,
+			type: int,
+			allow: discord.Permissions,
+			deny: discord.Permissions
+		):
 			self.id = id
 			self.type = type
 			self.allow = allow
 			self.deny = deny
 
-	def __init__(self):
+	def __init__(self, messages=[]):
 		self.name = "testchannelname"
 		self.id = 123456789
 		self.position = 0
 		self.slowmode_delay = 0
 		self.nsfw = False
-		self._type = 0
+		self.topic = None
 		self.category_id = 0
 		self.guild = None
-		self._state = self.MockState(Bot.bot)
+		self.messages = []
+		self._type = 0
+		self._state = self.MockChannelState(messageNum=len(messages))
 		self._overwrites = []
 
 	async def set_permissions(
-		self, target, *, overwrite, reason=None
+		self,
+		target: Union[discord.Role, discord.User],
+		*,
+		overwrite: discord.PermissionOverwrite,
+		reason: Union[str, None] = None
 	):
-		p = overwrite.pair()
-		o = self.Mock_Overwrites(
-			target.id,
-			0 if isinstance(target, discord.Role) else 1,
-			p[0].value,
-			p[1].value
+		pair = overwrite.pair()
+		self._overwrites.append(
+			self.Mock_Overwrites(
+				target.id,
+				0 if isinstance(target, discord.Role) else 1,
+				pair[0].value,
+				pair[1].value
+			)
 		)
-		self._overwrites.append(o)
+
+	def history(self):
+		# TODO: make self.send() add message to self.messages
+		return list(reversed(self.messages))
 
 
+# TODO: Write message.edit()
 class MockMessage(discord.Message):
 	def __init__(
 		self,
@@ -139,68 +236,42 @@ class MockMessage(discord.Message):
 		self.id = 123456789
 		self.channel = MockChannel()
 		self.type = discord.MessageType.default
-		self.flags = discord.MessageFlags(
-			crossposted=False,
-			is_crossposted=False,
-			suppress_embeds=False,
-			source_message_deleted=False,
-			urgent=False
-		)
+		self.flags = discord.MessageFlags()
 		self.guild = guild
-		self.mentions = ()
+		self.mentions = []
 		self.mention_everyone = False
 
 
+# TODO: switch to MockRole(guild, **kwargs) factory method
 class MockRole(discord.Role):
 	def __init__(
 		self,
 		name: str = "Test Role",
-		id: int = 123456789
+		id: int = 123456789,
+		permissions: Union[int, discord.Permissions] = 1879573680
 	):
 		self.name = name
 		self.id = id
 		self.hoist = False
 		self.mentionable = True
+		self._permissions = (
+			permissions if isinstance(permissions, int) else permissions.value
+		)
 
 
 class MockGuild(discord.Guild):
 
-	class MockState():
-
-		class MockHTTPClient(discord.http.HTTPClient):
-			def __init__(self, loop: asyncio.AbstractEventLoop):
-				self.loop = loop
-
-			async def create_role(
-				self, id: int, reason: Union[str, None], **fields
-			) -> Dict:
-				data = {
-					"id": id,
-					"name": fields["name"] if "name" in fields else "TestRole"
-				}
-
-				if "hoist" in fields:
-					data["hoist"] = fields["hoist"]
-				if "mentionable" in fields:
-					data["mentionable"] = fields["mentionable"]
-				if "color" in fields:
-					data["color"] = fields["color"]
-				if "permissions" in fields:
-					data["permissions"] = fields["permissions"]
-
-				return data
-
+	class MockGuildState():
 		def __init__(self):
 			self.member_cache_flags = discord.MemberCacheFlags.all()
 			self.self_id = 1
 			self.shard_count = 1
 			self.loop = asyncio.new_event_loop()
-			self.http = self.MockHTTPClient(self.loop)
+			self.http = MockHTTPClient(self.loop)
 
 	def __init__(
 		self,
 		members: List[discord.User] = [MockUser(), MockUser()],
-		numMembers: int = 1,
 		name: str = "Test Guild",
 		id: int = 0,
 		channels: List[discord.TextChannel] = [MockChannel()],
@@ -208,7 +279,7 @@ class MockGuild(discord.Guild):
 	):
 		self.name = name
 		self.id = id
-		self._state = self.MockState()
+		self._state = self.MockGuildState()
 		self._channels = {i: c for i, c in enumerate(channels)}
 		self._roles = {i: r for i, r in enumerate(roles)}
 		self._members = {i: m for i, m in enumerate(members)}
@@ -222,7 +293,7 @@ class MockGuild(discord.Guild):
 		permissions: discord.Permissions,
 		mentionable: bool = False,
 		hoist: bool = False,
-		color: Union[discord.Color, int] = 0,
+		colour: Union[discord.Colour, int] = 0,
 		**args
 	) -> discord.Role:
 
@@ -231,12 +302,10 @@ class MockGuild(discord.Guild):
 			"permissions": str(permissions.value),
 			"mentionable": mentionable,
 			"hoist": hoist,
-			"color": color if isinstance(color, int) else color.value,
+			"colour": colour if isinstance(colour, int) else colour.value
 		}
 
-		data = await self._state.http.create_role(
-			len(self.roles), reason=None, **fields
-		)
+		data = await self._state.http.create_role(len(self.roles), **fields)
 		role = discord.Role(guild=self, data=data, state=self._state)
 		self._roles[len(self.roles)] = role
 
@@ -259,6 +328,66 @@ class MockContext(commands.Context):
 		self.channel = channel
 		self.author = author
 		self.guild = guild
+		if guild:
+			if channel and channel not in guild.channels:
+				self.guild._channels[len(self.guild.channels)] = channel
+			if author and author not in guild.members:
+				self.guild._members[len(self.guild.members)] = author
+
+
+class MockBot(commands.Bot):
+
+	class MockBotWebsocket():
+
+		PRESENCE = 3
+
+		def __init__(self, bot):
+			self.bot = bot
+
+		async def change_presence(
+			self, *, activity=None, status=None, afk=False
+		):
+			# TODO: change "afk" to "since" for new versions of discord.py
+			data = {
+				"op": self.PRESENCE,
+				"d": {
+					"activities": [activity],
+					"afk": afk,
+					"status": status
+				}
+			}
+			await self.send(data)
+
+		async def send(self, data, /):
+			self.bot.status = data["d"]["status"]
+			self.bot.activity = data["d"]["activities"][0]
+			return data
+
+	class MockClientUser(discord.ClientUser):
+		def __init__(self, bot):
+			baseUser = MockUser()
+			self._state = baseUser._state
+			self.id = 0
+			self.name = "testclientuser"
+			self.discriminator = "0000"
+			self.avatar = baseUser.avatar
+			self.bot = bot
+			self.verified = True
+			self.mfa_enabled = False
+
+		async def edit(self, avatar):
+			self.avatar = avatar
+
+	def __init__(self, bot: commands.Bot):
+		self.command_prefix = bot.command_prefix
+		self.case_insensitive = bot.case_insensitive
+		self._help_command = bot.help_command
+		self._intents = bot.intents
+		self.owner_id = bot.owner_id
+		self.status = ""
+		self.ws = self.MockBotWebsocket(self)
+		self._connection = bot._connection
+		self._connection.user = self.MockClientUser(self)
 
 
 brawlKey = environ.get("BRAWLKEY")
@@ -278,6 +407,18 @@ def test_pep8Compliance():
 	assert len(report.get_statistics("F")) == 0
 
 
+def test_mockContextChannels():
+	ctx = MockContext(
+		Bot.bot, channel=MockChannel(), guild=MockGuild(channels=[])
+	)
+	assert ctx.channel in ctx.guild.channels
+
+
+def test_mockContextMembers():
+	ctx = MockContext(Bot.bot, author=MockUser(), guild=MockGuild(members=[]))
+	assert ctx.author in ctx.guild.members
+
+
 def test_createMutedRole():
 	g = MockGuild(roles=[])
 	role = asyncio.run(Bot.createMutedRole(g))
@@ -285,17 +426,19 @@ def test_createMutedRole():
 	assert len(g.roles) == 1
 
 
-def test_bot():
-	assert Bot.bot.command_prefix == "!"
-	assert Bot.bot.case_insensitive is True
-	assert Bot.bot.help_command is None
-	assert Bot.bot.intents == discord.Intents.all()
-
-
 def test_fact():
 	with open("resources/facts.txt", "r") as f:
 		lines = f.read().splitlines()
 	assert misc.fact() in lines
+
+
+def test_onReady():
+	Bot.bot = MockBot(Bot.bot)
+	asyncio.run(Bot.on_ready())
+	assert Bot.bot.activity.name == "try !blackjack and !flip"
+	assert Bot.bot.status == "online"
+	with open("resources/images/prof.png", "rb") as f:
+		assert Bot.bot.user.avatar == f.read()
 
 
 def test_tweet():
@@ -346,8 +489,10 @@ def test_logPurge():
 
 
 def test_logEditMsg():
-	before = MockMessage("oldcontent")
-	after = MockMessage("newcontent")
+	g = MockGuild()
+	before = asyncio.run(g.channels[0].send("oldcontent"))
+	after = asyncio.run(g.channels[0].send("newcontent"))
+	# TODO: change to message.edit()
 	emb = logs.logEditMsg(before, after)
 	assert (
 		emb.description ==
@@ -680,7 +825,7 @@ def test_av():
 	namedUser = MockUser("searchterm")
 	guild = MockGuild(members=(MockUser(), namedUser))
 	text = MockMessage("!av searchterm", guild=guild)
-	assert misc.av("searchterm", text).image.url == namedUser.avatar_url
+	assert misc.av("searchterm", text).image.url == str(namedUser.avatar_url)
 	assert misc.av("error", text).title == "Invalid target!"
 
 
