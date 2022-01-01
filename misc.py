@@ -1,8 +1,8 @@
 # Beardless Bot miscellaneous methods
 
+import re
 from datetime import datetime
 from random import choice, randint
-import re
 from typing import Union
 
 import discord
@@ -102,13 +102,15 @@ def bbEmbed(
 	)
 
 
-# User lookup helper method. Finds user based on
-# username and/or discriminator (#1234).
-# Runs in linear time; worst case, does not find a
-# loosely-matching target, takes O(n) operations
 def memSearch(
 	message: discord.Message, target: str
 ) -> Union[discord.Member, None]:
+	"""
+	User lookup helper method. Finds user based on
+	username and/or discriminator (#1234).
+	Runs in linear time; worst case, does not find a
+	loosely-matching target, takes O(n) operations
+	"""
 	term = str(target).lower()
 	semiMatch = looseMatch = None
 	for member in message.guild.members:

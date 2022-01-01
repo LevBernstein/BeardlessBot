@@ -28,7 +28,7 @@ class MockHTTPClient(discord.http.HTTPClient):
 	def __init__(
 		self,
 		loop: asyncio.AbstractEventLoop,
-		user: discord.User = None
+		user: Union[discord.User, None] = None
 	):
 		self.loop = loop
 		self.user_agent = user
@@ -81,10 +81,9 @@ class MockHTTPClient(discord.http.HTTPClient):
 			"pinned": False,
 			"mention_everyone": ("@everyone" in content) if content else False,
 			"tts": tts,
-			"author": MockUser()
+			"author": MockUser(),
+			"content": content if content else ""
 		}
-		if content:
-			data["content"] = content
 		if embed:
 			data["embeds"] = [embed]
 		elif embeds:
@@ -107,6 +106,7 @@ class MockHTTPClient(discord.http.HTTPClient):
 # MockUser class is a superset of discord.User with some features of
 # discord.Member; still working on adding all features of discord.Member,
 # at which point I will switch the parent from discord.User to discord.Member
+# TODO: give default @everyone role
 
 
 class MockUser(discord.User):
@@ -187,15 +187,20 @@ class MockChannel(discord.TextChannel):
 			self.allow = allow
 			self.deny = deny
 
-	def __init__(self, messages=[]):
-		self.name = "testchannelname"
+	def __init__(
+		self,
+		name: str = "testchannelname",
+		guild: Union[discord.Guild, None] = None,
+		messages: List[discord.Message] = []
+	):
+		self.name = name
 		self.id = 123456789
 		self.position = 0
 		self.slowmode_delay = 0
 		self.nsfw = False
 		self.topic = None
 		self.category_id = 0
-		self.guild = None
+		self.guild = guild
 		self.messages = []
 		self._type = 0
 		self._state = self.MockChannelState(messageNum=len(messages))
@@ -223,18 +228,19 @@ class MockChannel(discord.TextChannel):
 		return list(reversed(self.messages))
 
 
-# TODO: Write message.edit()
+# TODO: Write message.edit(), message.delete()
 class MockMessage(discord.Message):
 	def __init__(
 		self,
 		content: str = "testcontent",
 		author: discord.User = MockUser(),
-		guild: Union[discord.Guild, None] = None
+		guild: Union[discord.Guild, None] = None,
+		channel: discord.TextChannel = MockChannel()
 	):
 		self.author = author
 		self.content = content
 		self.id = 123456789
-		self.channel = MockChannel()
+		self.channel = channel
 		self.type = discord.MessageType.default
 		self.flags = discord.MessageFlags()
 		self.guild = guild
@@ -268,6 +274,7 @@ class MockGuild(discord.Guild):
 			self.shard_count = 1
 			self.loop = asyncio.new_event_loop()
 			self.http = MockHTTPClient(self.loop)
+			self.user = MockUser()
 
 	def __init__(
 		self,
@@ -294,7 +301,7 @@ class MockGuild(discord.Guild):
 		mentionable: bool = False,
 		hoist: bool = False,
 		colour: Union[discord.Colour, int] = 0,
-		**args
+		**kwargs: Any
 	) -> discord.Role:
 
 		fields = {
@@ -341,11 +348,15 @@ class MockBot(commands.Bot):
 
 		PRESENCE = 3
 
-		def __init__(self, bot):
+		def __init__(self, bot: commands.Bot):
 			self.bot = bot
 
 		async def change_presence(
-			self, *, activity=None, status=None, afk=False
+			self,
+			*,
+			activity: Union[discord.Activity, None] = None,
+			status: Union[str, None] = None,
+			afk: bool = False
 		):
 			# TODO: change "afk" to "since" for new versions of discord.py
 			data = {
@@ -358,13 +369,13 @@ class MockBot(commands.Bot):
 			}
 			await self.send(data)
 
-		async def send(self, data, /):
+		async def send(self, data: Dict[str, any], /):
 			self.bot.status = data["d"]["status"]
 			self.bot.activity = data["d"]["activities"][0]
 			return data
 
 	class MockClientUser(discord.ClientUser):
-		def __init__(self, bot):
+		def __init__(self, bot: commands.Bot):
 			baseUser = MockUser()
 			self._state = baseUser._state
 			self.id = 0
@@ -375,7 +386,7 @@ class MockBot(commands.Bot):
 			self.verified = True
 			self.mfa_enabled = False
 
-		async def edit(self, avatar):
+		async def edit(self, avatar: str):
 			self.avatar = avatar
 
 	def __init__(self, bot: commands.Bot):
@@ -426,19 +437,146 @@ def test_createMutedRole():
 	assert len(g.roles) == 1
 
 
-def test_fact():
-	with open("resources/facts.txt", "r") as f:
-		lines = f.read().splitlines()
-	assert misc.fact() in lines
-
-
-def test_onReady():
+def test_on_ready():
 	Bot.bot = MockBot(Bot.bot)
 	asyncio.run(Bot.on_ready())
 	assert Bot.bot.activity.name == "try !blackjack and !flip"
 	assert Bot.bot.status == "online"
 	with open("resources/images/prof.png", "rb") as f:
 		assert Bot.bot.user.avatar == f.read()
+
+
+def test_on_message_delete():
+	m = MockMessage(channel=MockChannel(name="bb-log"))
+	m.guild = MockGuild(channels=[m.channel])
+	emb = asyncio.run(Bot.on_message_delete(m))
+	log = logs.logDeleteMsg(m)
+	assert emb.description == log.description
+	assert log.description == (
+		f"**Deleted message sent by {m.author.mention}"
+		f" in **{m.channel.mention}\n{m.content}"
+	)
+	'''
+	# TODO: append sent messages to channel.messages
+	assert any(
+		(i.embed.description == log.description for i in m.channel.history())
+	)
+	'''
+
+
+def test_on_bulk_message_delete():
+	m = MockMessage(channel=MockChannel(name="bb-log"))
+	m.guild = MockGuild(channels=[m.channel])
+	messages = [m, m, m]
+	emb = asyncio.run(Bot.on_bulk_message_delete(messages))
+	log = logs.logPurge(messages[0], messages)
+	assert emb.description == log.description
+	assert log.description == f"Purged 2 messages in {m.channel.mention}."
+	'''
+	# TODO: append sent messages to channel.messages
+	assert any(
+		(i.embed.description == log.description for i in m.channel.history())
+	)
+	'''
+	messages = [m] * 105
+	emb = asyncio.run(Bot.on_bulk_message_delete(messages))
+	log = logs.logPurge(messages[0], messages)
+	assert emb.description == log.description
+	assert log.description == f"Purged 99+ messages in {m.channel.mention}."
+
+
+def test_on_guild_channel_delete():
+	g = MockGuild(channels=[MockChannel(name="bb-log")])
+	channel = MockChannel(guild=g)
+	emb = asyncio.run(Bot.on_guild_channel_delete(channel))
+	log = logs.logDeleteChannel(channel)
+	assert emb.description == log.description
+	assert log.description == f"Channel \"{channel.name}\" deleted."
+	'''
+	# TODO: append sent messages to channel.messages
+	assert any(
+		(i.embed.description == log.description for i in m.channel.history())
+	)
+	'''
+
+
+def test_on_guild_channel_create():
+	g = MockGuild(channels=[MockChannel(name="bb-log")])
+	channel = MockChannel(guild=g)
+	emb = asyncio.run(Bot.on_guild_channel_create(channel))
+	log = logs.logCreateChannel(channel)
+	assert emb.description == log.description
+	assert log.description == f"Channel \"{channel.name}\" created."
+	'''
+	# TODO: append sent messages to channel.messages
+	assert any(
+		(i.embed.description == log.description for i in m.channel.history())
+	)
+	'''
+
+
+def test_on_member_ban():
+	g = MockGuild(channels=[MockChannel(name="bb-log")])
+	member = MockUser()
+	emb = asyncio.run(Bot.on_member_ban(g, member))
+	log = logs.logBan(member)
+	assert emb.description == log.description
+	assert log.description == f"Member {member.mention} banned\n{member.name}"
+	'''
+	# TODO: append sent messages to channel.messages
+	assert any(
+		(i.embed.description == log.description for i in m.channel.history())
+	)
+	'''
+
+
+def test_on_member_unban():
+	g = MockGuild(channels=[MockChannel(name="bb-log")])
+	member = MockUser()
+	emb = asyncio.run(Bot.on_member_unban(g, member))
+	log = logs.logUnban(member)
+	assert emb.description == log.description
+	assert (
+		log.description == f"Member {member.mention} unbanned\n{member.name}"
+	)
+	'''
+	# TODO: append sent messages to channel.messages
+	assert any(
+		(i.embed.description == log.description for i in m.channel.history())
+	)
+	'''
+
+
+def test_on_member_join():
+	member = MockUser()
+	member.guild = MockGuild(channels=[MockChannel(name="bb-log")])
+	emb = asyncio.run(Bot.on_member_join(member))
+	log = logs.logMemberJoin(member)
+	assert emb.description == log.description
+	assert log.description == (
+		f"Member {member.mention} joined\nAccount registered"
+		f" on {misc.truncTime(member)}\nID: {member.id}"
+	)
+
+
+def test_on_member_remove():
+	member = MockUser()
+	member.guild = MockGuild(channels=[MockChannel(name="bb-log")])
+	emb = asyncio.run(Bot.on_member_remove(member))
+	log = logs.logMemberRemove(member)
+	assert emb.description == log.description
+	assert log.description == f"Member {member.mention} left\nID: {member.id}"
+	member.roles = [MockRole(), MockRole()]
+	emb = asyncio.run(Bot.on_member_remove(member))
+	log = logs.logMemberRemove(member)
+	assert emb.description == log.description
+	assert log.fields[0].value == member.roles[1].mention
+
+
+def test_fact():
+	with open("resources/facts.txt", "r") as f:
+		lines = f.read().splitlines()
+	assert misc.fact() in lines
 
 
 def test_tweet():
@@ -454,38 +592,15 @@ def test_dice():
 	user = MockUser()
 	for sideNum in 4, 6, 8, 100, 10, 12, 20:
 		message = "d" + str(sideNum)
-		sideRoll = misc.roll(message)
-		assert 1 <= sideRoll and sideRoll <= sideNum
+		assert misc.roll(message) in range(1, sideNum + 1)
 		assert (
 			misc.rollReport(message, user).description.startswith("You got")
 		)
-	sideRoll = misc.roll("d20-4")
-	assert -3 <= sideRoll and sideRoll <= 16
+	assert misc.roll("d20-4") in range(-3, 17)
 	assert misc.rollReport("d20-4", user).description.startswith("You got")
 	assert not misc.roll("d9")
 	assert not misc.roll("wrongroll")
 	assert misc.rollReport("d9", user).description.startswith("Invalid")
-
-
-def test_logDeleteMsg():
-	msg = MockMessage()
-	assert (
-		logs.logDeleteMsg(msg).description ==
-		f"**Deleted message sent by {msg.author.mention}"
-		f" in **{msg.channel.mention}\n{msg.content}"
-	)
-
-
-def test_logPurge():
-	msg = MockMessage()
-	assert (
-		logs.logPurge(msg, (msg, msg, msg)).description ==
-		f"Purged 2 messages in {msg.channel.mention}."
-	)
-	assert (
-		logs.logPurge(msg, (msg,) * 105).description ==
-		f"Purged 99+ messages in {msg.channel.mention}."
-	)
 
 
 def test_logEditMsg():
@@ -519,44 +634,6 @@ def test_logClearReacts():
 	assert emb.fields[1].value == "1, 2, 3"
 
 
-def test_logDeleteChannel():
-	channel = MockChannel()
-	assert (
-		logs.logDeleteChannel(channel).description ==
-		f"Channel \"{channel.name}\" deleted."
-	)
-
-
-def test_logCreateChannel():
-	channel = MockChannel()
-	assert (
-		logs.logCreateChannel(channel).description ==
-		f"Channel \"{channel.name}\" created."
-	)
-
-
-def test_logMemberJoin():
-	member = MockUser()
-	assert (
-		logs.logMemberJoin(member).description ==
-		f"Member {member.mention} joined\nAccount registered"
-		f" on {misc.truncTime(member)}\nID: {member.id}"
-	)
-
-
-def test_logMemberRemove():
-	member = MockUser()
-	assert (
-		logs.logMemberRemove(member).description ==
-		f"Member {member.mention} left\nID: {member.id}"
-	)
-	member.roles = MockRole(), MockRole()
-	assert (
-		logs.logMemberRemove(member).fields[0].value ==
-		member.roles[1].mention
-	)
-
-
 def test_logMemberNickChange():
 	before = MockUser()
 	after = MockUser("testuser", "newnick")
@@ -576,22 +653,6 @@ def test_logMemberRolesChange():
 	assert (
 		logs.logMemberRolesChange(after, before).description ==
 		f"Role {after.roles[0].mention} removed from {before.mention}."
-	)
-
-
-def test_logBan():
-	member = MockUser()
-	assert (
-		logs.logBan(member).description ==
-		f"Member {member.mention} banned\n{member.name}"
-	)
-
-
-def test_logUnban():
-	member = MockUser()
-	assert (
-		logs.logUnban(member).description ==
-		f"Member {member.mention} unbanned\n{member.name}"
 	)
 
 

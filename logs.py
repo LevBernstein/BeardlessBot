@@ -1,10 +1,10 @@
 # Beadless Bot event logging methods
 
-from typing import List
+from typing import List, Union
 
 import discord
 
-from misc import prof, bbEmbed, truncTime
+from misc import bbEmbed, prof, truncTime
 
 
 # TODO: Implement logging for threads, once BB migrates to nextcord
@@ -176,9 +176,9 @@ def logUnban(member: discord.Member) -> discord.Embed:
 def logMute(
 	member: discord.Member,
 	message: str,
-	duration: str,
-	mString: str,
-	mTime: float,
+	duration: Union[str, None],
+	mString: Union[str, None],
+	mTime: Union[float, None],
 ) -> discord.Embed:
 	mid = f" for {duration} {mString}" if mTime else ""
 	return bbEmbed(

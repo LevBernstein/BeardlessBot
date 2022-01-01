@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.8"
+__version__ = "Full Release 1.7.9"
 
 import asyncio
 from random import choice, randint
@@ -15,6 +15,7 @@ import brawl
 import bucks
 import logs
 import misc
+
 
 # This dictionary is for keeping track of pings in the lfs channels.
 sparPings = {}
@@ -123,26 +124,24 @@ async def on_guild_join(guild: discord.Guild):
 
 
 @bot.event
-async def on_message_delete(msg: discord.Message):
+async def on_message_delete(msg: discord.Message) -> discord.Embed:
 	if msg.guild and (msg.channel.name != "bb-log" or msg.content):
-		# Prevents embeds from causing a loop
 		for channel in msg.guild.channels:
 			if channel.name == "bb-log":
-				await channel.send(embed=logs.logDeleteMsg(msg))
-				return
+				emb = logs.logDeleteMsg(msg)
+				await channel.send(embed=emb)
+				return emb
 
 
 @bot.event
-async def on_bulk_message_delete(msgList: List[discord.Message]):
+async def on_bulk_message_delete(
+	msgList: List[discord.Message]
+) -> discord.Embed:
 	for channel in msgList[0].guild.channels:
 		if channel.name == "bb-log":
-			try:
-				await channel.send(
-					embed=logs.logPurge(msgList[0], msgList)
-				)
-			except Exception as e:
-				print(e)
-			return
+			emb = logs.logPurge(msgList[0], msgList)
+			await channel.send(embed=emb)
+			return emb
 
 
 @bot.event
@@ -176,60 +175,62 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
 @bot.event
 async def on_reaction_clear(
 	msg: discord.Message, reactions: List[discord.Reaction]
-):
-	if not msg.guild:
-		return
+) -> discord.Embed:
 	for channel in msg.guild.channels:
 		if channel.name == "bb-log":
-			try:
-				await channel.send(embed=logs.logClearReacts(msg, reactions))
-			except Exception as e:
-				print(e)
-			return
+			emb = logs.logClearReacts(msg, reactions)
+			await channel.send(embed=emb)
+			return emb
 
 
 @bot.event
-async def on_guild_channel_delete(ch: discord.abc.GuildChannel):
+async def on_guild_channel_delete(
+	ch: discord.abc.GuildChannel
+) -> discord.Embed:
 	for channel in ch.guild.channels:
 		if channel.name == "bb-log":
-			await channel.send(embed=logs.logDeleteChannel(ch))
-			return
+			emb = logs.logDeleteChannel(ch)
+			await channel.send(embed=emb)
+			return emb
 
 
 @bot.event
-async def on_guild_channel_create(ch: discord.abc.GuildChannel):
+async def on_guild_channel_create(
+	ch: discord.abc.GuildChannel
+) -> discord.Embed:
 	for channel in ch.guild.channels:
 		if channel.name == "bb-log":
-			await channel.send(embed=logs.logCreateChannel(ch))
-			return
+			emb = logs.logCreateChannel(ch)
+			await channel.send(embed=emb)
+			return emb
 
 
 @bot.event
-async def on_member_join(member: discord.Member):
+async def on_member_join(member: discord.Member) -> discord.Embed:
 	for channel in member.guild.channels:
 		if channel.name == "bb-log":
-			await channel.send(embed=logs.logMemberJoin(member))
-			return
+			emb = logs.logMemberJoin(member)
+			await channel.send(emb)
+			return emb
 
 
 @bot.event
-async def on_member_remove(member: discord.Member):
+async def on_member_remove(member: discord.Member) -> discord.Embed:
 	for channel in member.guild.channels:
 		if channel.name == "bb-log":
-			await channel.send(embed=logs.logMemberRemove(member))
-			return
+			emb = logs.logMemberRemove(member)
+			await channel.send(embed=emb)
+			return emb
 
 
 @bot.event
 async def on_member_update(before: discord.Member, after: discord.Member):
 	for channel in after.guild.channels:
 		if channel.name == "bb-log":
-			# This event covers nickname changes and role changes
 			if before.nick != after.nick:
 				await channel.send(
 					embed=logs.logMemberNickChange(before, after)
 				)
-			# as such, need separate log msgs for each
 			elif before.roles != after.roles:
 				await channel.send(
 					embed=logs.logMemberRolesChange(before, after)
@@ -241,16 +242,18 @@ async def on_member_update(before: discord.Member, after: discord.Member):
 async def on_member_ban(guild: discord.Guild, member: discord.Member):
 	for channel in guild.channels:
 		if channel.name == "bb-log":
-			await channel.send(embed=logs.logBan(member))
-			return
+			emb = logs.logBan(member)
+			await channel.send(embed=emb)
+			return emb
 
 
 @bot.event
 async def on_member_unban(guild: discord.Guild, member: discord.Member):
 	for channel in guild.channels:
 		if channel.name == "bb-log":
-			await channel.send(embed=logs.logUnban(member))
-			return
+			emb = logs.logUnban(member)
+			await channel.send(embed=emb)
+			return emb
 
 
 # Commands:
