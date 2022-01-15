@@ -4,7 +4,7 @@ import csv
 from collections import OrderedDict
 from operator import itemgetter
 from random import choice, randint
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
 import discord
 
@@ -375,8 +375,8 @@ def leaderboard(
 	"""
 	Finds the top min(len(money.csv), 10) users
 	by balance in money.csv.
-	Runtime = 2 * |money.csv| + runtime of sorted(money.csv) + 10
-	= 2 * O(n) + O(nlogn) + 10 = O(nlogn).
+	Runtime = |money.csv| + runtime of sorted(money.csv) + 10
+	= O(n) + O(nlogn) + 10 = O(nlogn).
 
 	Args:
 		target (discord.User): The user calling leaderboard()
@@ -533,3 +533,8 @@ def blackjack(
 				writeMoney(author, bet, True, True)
 				game = None
 	return report.format(author.mention), game
+
+
+def activeGame(games: List[Instance], author: discord.User) -> bool:
+	"""Checks if a user has an active game of Blackjack."""
+	return any(author == game.user for game in games)

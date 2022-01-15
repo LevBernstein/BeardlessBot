@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.9"
+__version__ = "Full Release 1.7.10"
 
 import asyncio
 from random import choice, randint
@@ -77,7 +77,7 @@ async def on_ready():
 	global sparPings
 	mems = 0
 	for guild in bot.guilds:
-		sparPings[guild.id] = brawl.defaultPings
+		sparPings[guild.id] = {r: 0 for r in brawl.regions}
 		mems += guild.member_count
 		await guild.chunk()
 
@@ -105,7 +105,7 @@ async def on_guild_join(guild: discord.Guild):
 				break
 		print("Beardless Bot is now in", len(bot.guilds), "servers.")
 		global sparPings
-		sparPings[guild.id] = brawl.defaultPings
+		sparPings[guild.id] = {r: 0 for r in brawl.regions}
 	else:
 		print(f"Not given admin perms in {guild.name}.")
 		for channel in guild.channels:
@@ -165,10 +165,7 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
 			await after.delete()
 		for channel in before.guild.channels:
 			if channel.name == "bb-log":
-				try:
-					await channel.send(embed=logs.logEditMsg(before, after))
-				except Exception as e:
-					print(e)
+				await channel.send(embed=logs.logEditMsg(before, after))
 				return
 
 
@@ -210,7 +207,7 @@ async def on_member_join(member: discord.Member) -> discord.Embed:
 	for channel in member.guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logMemberJoin(member)
-			await channel.send(emb)
+			await channel.send(embed=emb)
 			return emb
 
 
@@ -228,14 +225,12 @@ async def on_member_update(before: discord.Member, after: discord.Member):
 	for channel in after.guild.channels:
 		if channel.name == "bb-log":
 			if before.nick != after.nick:
-				await channel.send(
-					embed=logs.logMemberNickChange(before, after)
-				)
+				emb = logs.logMemberNickChange(before, after)
 			elif before.roles != after.roles:
-				await channel.send(
-					embed=logs.logMemberRolesChange(before, after)
-				)
-			return
+				emb = logs.logMemberRolesChange(before, after)
+			if before.nick != after.nick or before.roles != after.roles:
+				await channel.send(embed=emb)
+				return emb
 
 
 @bot.event
@@ -261,7 +256,7 @@ async def on_member_unban(guild: discord.Guild, member: discord.Member):
 
 @bot.command(name="flip")
 async def cmdFlip(ctx, bet="10", *args):
-	if any(ctx.author == game.user for game in games):
+	if bucks.activeGame(games, ctx.author):
 		report = bucks.finMsg.format(ctx.author.mention)
 	else:
 		report = bucks.flip(ctx.author, bet.lower())
@@ -270,7 +265,7 @@ async def cmdFlip(ctx, bet="10", *args):
 
 @bot.command(name="blackjack", aliases=("bj",))
 async def cmdBlackjack(ctx, bet="10", *args):
-	if any(ctx.author == game.user for game in games):
+	if bucks.activeGame(games, ctx.author):
 		report = bucks.finMsg.format(ctx.author.mention)
 	else:
 		report, game = bucks.blackjack(ctx.author, bet)
@@ -713,7 +708,8 @@ async def cmdSpar(ctx, region=None, *args):
 		region = region[:2] + "-" + region[2]
 	for guild, pings in sparPings.items():
 		if guild == ctx.guild.id:
-			for key, value in sparPings[guild].items():
+			d = sparPings[ctx.guild.id]
+			for key, value in d.items():
 				if key == region:
 					role = get(ctx.guild.roles, name=key.upper())
 					if not role:
@@ -721,7 +717,7 @@ async def cmdSpar(ctx, region=None, *args):
 							name=key.upper(), mentionable=False
 						)
 					if time() - value > 7200:
-						sparPings[guild][key] = int(time())
+						d[key] = int(time())
 						report = f"{role.mention} come spar {author}"
 					else:
 						tooRecent = value
@@ -757,7 +753,7 @@ async def cmdBrawlclaim(ctx, profUrl="None", *args):
 		try:
 			brawl.claimProfile(ctx.author.id, brawlID)
 		except Exception as e:
-			print(e)
+			print(e, ctx.message.content, ctx.author, ctx.guild, sep=" ")
 			report = brawl.reqLimit
 		else:
 			report = "Profile claimed."
@@ -782,7 +778,7 @@ async def cmdBrawlrank(ctx, *target):
 			await ctx.send(embed=brawl.getRank(target, brawlKey))
 			return
 		except Exception as e:
-			print(e)
+			print(e, ctx.message.content, ctx.author, ctx.guild, sep=" ")
 			report = brawl.reqLimit
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Rank", report)
@@ -802,7 +798,7 @@ async def cmdBrawlstats(ctx, *target):
 			await ctx.send(embed=brawl.getStats(target, brawlKey))
 			return
 		except Exception as e:
-			print(e)
+			print(e, ctx.message.content, ctx.author, ctx.guild, sep=" ")
 			report = brawl.reqLimit
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Stats", report)
@@ -822,7 +818,7 @@ async def cmdBrawlclan(ctx, *target):
 			await ctx.send(embed=brawl.getClan(target, brawlKey))
 			return
 		except Exception as e:
-			print(e)
+			print(e, ctx.message.content, ctx.author, ctx.guild, sep=" ")
 			report = brawl.reqLimit
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Clan", report)
@@ -840,7 +836,7 @@ async def cmdBrawllegend(ctx, legend=None, *args):
 		try:
 			legend = brawl.legendInfo(brawlKey, legend)
 		except Exception as e:
-			print(e)
+			print(e, ctx.message.content, ctx.author, ctx.guild, sep=" ")
 			report = brawl.reqLimit
 		else:
 			if legend:
@@ -887,7 +883,7 @@ async def cmdGuide(ctx, *args):
 async def on_command_error(ctx, e):
 	if isinstance(e, commands.CommandNotFound):
 		return
-	print(e, ctx.invoked_with, ctx.message, ctx.guild, sep="\n")
+	print("\n", e, ctx.invoked_with, ctx.message.content, ctx.guild, sep="\n")
 
 
 @bot.listen("on_message")

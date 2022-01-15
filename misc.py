@@ -156,10 +156,8 @@ def animal(animalType: str, breed: str = None) -> str:
 			elif breed.startswith("breeds"):
 				r = requests.get("https://dog.ceo/api/breeds/list/all")
 				if r.status_code == 200:
-					return (
-						"Dog breeds: "
-						+ ", ".join(dog for dog in r.json()["message"])
-						+ "."
+					return "Dog breeds: {}.".format(
+						", ".join(dog for dog in r.json()["message"])
 					)
 			elif breed.isalpha():
 				r = requests.get(
@@ -414,36 +412,42 @@ def hints() -> discord.Embed:
 
 def scamCheck(text: str) -> bool:
 	msg = text.lower()
+	words = msg.split()
 	checkOne = re.compile(r"^.*https?://d\w\wc\wr(d|t)\.\w{2,4}.*")
 	checkTwo = re.compile(r"^.*(nitro|gift|@everyone).*")
-	checkThree = all((
-		"http" in msg, "@everyone" in msg, ("nitro" in msg or "discord" in msg)
+	checkThree = re.compile(r"^.*https?://d\w\wc\wr\wn\wtr\w\.\w{2,5}.*")
+	checkFour = all((
+		"http" in msg,
+		"@everyone" in words,
+		any(("nitro" in words, "discord" in words, ".gift/" in msg)),
+		any((
+			"free" in words,
+			"airdrop" in words,
+			"gift" in msg,
+			"left over" in msg
+		))
 	))
-	checkFour = re.compile(r"^.*https?://d\w\wc\wr\wn\wtr\w\.\w{2,5}.*")
 
 	return (
 		(
-			bool(checkOne.match(msg)) or bool(checkFour.match(msg))
+			bool(checkOne.match(msg)) or bool(checkThree.match(msg))
 		) and bool(checkTwo.match(msg))
-	) or checkThree
+	) or checkFour
 
 
 def onJoin(guild: discord.Guild, role: discord.Role) -> discord.Embed:
 	lines = (
 		f"Thanks for adding me to {guild.name}! There are"
-		" a few things you can do to unlock my full potential.",
-		"If you want event logging, make a channel named #bb-log.",
-		"If you want a region-based sparring system, "
-		"make a channel named #looking-for-spar.",
-		"If you want special color roles, purchasable with BeardlessBucks,"
-		" create roles named special red/blue/orange/pink.",
-		f"Don't forget to move my {role.mention} role up to the top"
+		" a few things you can do to unlock my full potential."
+		"\nIf you want event logging, make a channel named #bb-log."
+		"\nIf you want a region-based sparring system, "
+		"make a channel named #looking-for-spar."
+		"\nIf you want special color roles, purchasable with BeardlessBucks,"
+		" create roles named special red/blue/orange/pink."
+		f"\nDon't forget to move my {role.mention} role up to the top"
 		" of the role hierarchy in order to allow me to moderate all users."
 	)
-	return (
-		bbEmbed(f"Hello, {guild.name}!", "\n".join(lines))
-		.set_thumbnail(url=prof)
-	)
+	return bbEmbed(f"Hello, {guild.name}!", lines).set_thumbnail(url=prof)
 
 
 # The following Markov chain code was originally provided by CSTUY SHIP.
@@ -487,10 +491,9 @@ reasons = (
 	" to contact my creator, Captain No-Beard#7511."
 )
 
-noPerms = (
-	bbEmbed("I need admin perms!", reasons, 0xFF0000)
-	.set_author(name="Beardless Bot", icon_url=prof)
-)
+noPerms = bbEmbed(
+	"I need admin perms!", reasons, 0xFF0000
+).set_author(name="Beardless Bot", icon_url=prof)
 
 addUrl = (
 	"(https://discord.com/api/oauth2/authorize?client_id="
@@ -499,8 +502,7 @@ addUrl = (
 
 joinMsg = (
 	bbEmbed(
-		"Want to add this bot to your server?",
-		"[Click this link!]" + addUrl
+		"Want to add this bot to your server?", "[Click this link!]" + addUrl
 	)
 	.set_thumbnail(url=prof)
 	.add_field(
@@ -512,12 +514,12 @@ joinMsg = (
 )
 
 sparDesc = (
-	"Do the command !spar [region] [other info].\n"
-	"For instance, to find a diamond from US-E to play 2s with, I would do:\n"
-	"**!spar US-E looking for a diamond 2s partner**.\n"
-	"Valid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA.\n"
-	"!spar has a 2 hour cooldown.\n"
-	"Please use the roles channel to give yourself the correct roles."
+	"Do the command !spar [region] [other info]."
+	"\nFor instance, to find a diamond from US-E to play 2s with, I would do:"
+	"\n**!spar US-E looking for a diamond 2s partner**."
+	"\nValid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA."
+	"\n!spar has a 2 hour cooldown."
+	"\nPlease use the roles channel to give yourself the correct roles."
 )
 
 sparPins = (

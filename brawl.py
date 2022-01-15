@@ -3,7 +3,7 @@
 from datetime import datetime
 from json import dump, load
 from random import choice
-from typing import Dict, Union
+from typing import Any, Dict, Tuple, Union
 
 import discord
 import requests
@@ -32,16 +32,6 @@ reqLimit = (
 
 unclaimed = "{} needs to claim their profile first! Do !brawlclaim."
 
-defaultPings = {
-	"jpn": 0,
-	"brz": 0,
-	"us-w": 0,
-	"us-e": 0,
-	"sea": 0,
-	"aus": 0,
-	"eu": 0
-}
-
 thumbBase = (
 	"https://static.wikia.nocookie.net/brawlhalla_gamepedia/images/"
 	"{}/Banner_Rank_{}.png/revision/latest/scale-to-width-down/{}"
@@ -55,7 +45,6 @@ rankedThumbnails = {
 	"Bronze": ("a/a6", "Bronze", "112?cb=20161110140114"),
 	"Tin": ("e/e1", "Tin", "112?cb=20161110140036")
 }
-
 
 rankColors = {
 	"Diamond": 0x3D2399,
@@ -79,6 +68,16 @@ weapons = (
 	"Katars",
 	"Blasters",
 	"Axe"
+)
+
+regions = (
+	"jpn",
+	"brz",
+	"us-w",
+	"us-e",
+	"sea",
+	"aus",
+	"eu"
 )
 
 
@@ -116,7 +115,7 @@ def randomBrawl(ranType: str, key: str = None) -> discord.Embed:
 	)
 
 
-def claimProfile(discordID: int, brawlID: str):
+def claimProfile(discordID: int, brawlID: int):
 	with open("resources/claimedProfs.json", "r") as f:
 		profs = load(f)
 	profs[str(discordID)] = brawlID
@@ -137,16 +136,18 @@ def fetchLegends() -> list:
 		return load(f)
 
 
+def apiCall(route: str, arg: str, key: str, amp: str = "?") -> Dict[str, Any]:
+	url = f"https://api.brawlhalla.com/{route}{arg}{amp}api_key={key}"
+	return requests.get(url).json()
+
+
 def getBrawlID(brawlKey: str, profileURL: str) -> Union[int, None]:
 	try:
 		steamID = from_url(profileURL)
 		if not steamID:
 			return None
-		r = requests.get(
-			"https://api.brawlhalla.com/search?"
-			f"steamid={steamID}&api_key={brawlKey}"
-		)
-		return r.json()["brawlhalla_id"]
+		r = apiCall("search?steamid=", steamID, brawlKey, "&")
+		return r["brawlhalla_id"]
 	except TypeError:
 		return None
 
@@ -154,13 +155,7 @@ def getBrawlID(brawlKey: str, profileURL: str) -> Union[int, None]:
 def getLegends(brawlKey: str):
 	# run whenever a new legend is released
 	with open("resources/legends.json", "w") as f:
-		dump(
-			requests.get(
-				f"https://api.brawlhalla.com/legend/all/?api_key={brawlKey}"
-			).json(),
-			f,
-			indent=4
-		)
+		dump(apiCall("legend/", "all/", brawlKey), f, indent=4)
 
 
 def legendInfo(brawlKey: str, legendName: str) -> Union[discord.Embed, None]:
@@ -169,10 +164,7 @@ def legendInfo(brawlKey: str, legendName: str) -> Union[discord.Embed, None]:
 		legendName = "munin"
 	for legend in fetchLegends():
 		if legendName in legend["legend_name_key"]:
-			r = requests.get(
-				"https://api.brawlhalla.com/legend/{}/?api_key={}"
-				.format(legend["legend_id"], brawlKey)
-			).json()
+			r = apiCall("legend/", str(legend["legend_id"]) + "/", brawlKey)
 
 			# Problematic extra space in 2nd quote for these legends:
 			if legendName in ("reno", "teros", "hattori"):
@@ -188,14 +180,12 @@ def legendInfo(brawlKey: str, legendName: str) -> Union[discord.Embed, None]:
 				r["bio_quote_from"], (r["bio_quote_from_attrib"])[1:spaceCheck]
 			).replace("\\n", " ")
 
-			bio = "\n\n".join(
-				(
-					r["bio_text"].replace("\n", "\n\n"),
-					"**Quotes**",
-					quoteOne,
-					quoteTwo
-				)
-			)
+			bio = "\n\n".join((
+				r["bio_text"].replace("\n", "\n\n"),
+				"**Quotes**",
+				quoteOne,
+				quoteTwo
+			))
 			# TODO: Use to get legend images:
 			# legendLinkName = r["bio_name"].replace(" ", "_")
 			return (
@@ -225,10 +215,7 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Rank", unclaimed.format(target.mention)
 		)
-	r = requests.get(
-		"https://api.brawlhalla.com/player/"
-		f"{brawlID}/ranked?api_key={brawlKey}"
-	).json()
+	r = apiCall("player/", str(brawlID) + "/ranked", brawlKey)
 	if len(r) < 4:
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Rank",
@@ -292,15 +279,21 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 
 
 def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
+
+	def getTopDPS(legend: Dict[str, Any]) -> Tuple[str, float]:
+		dps = round(int(legend["damagedealt"]) / legend["matchtime"], 1)
+		return (legend["legend_name_key"].title(), dps)
+
+	def getTopTTK(legend: Dict[str, Any]) -> Tuple[str, float]:
+		ttk = round(legend["matchtime"] / legend["kos"], 1)
+		return (legend["legend_name_key"].title(), ttk)
+
 	brawlID = fetchBrawlID(target.id)
 	if not brawlID:
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Stats", unclaimed.format(target.mention)
 		)
-	r = requests.get(
-		"https://api.brawlhalla.com/player/"
-		f"{brawlID}/stats?api_key={brawlKey}"
-	).json()
+	r = apiCall("player/", str(brawlID) + "/stats", brawlKey)
 	if len(r) < 4:
 		noStats = (
 			"This profile doesn't have stats associated with it."
@@ -322,7 +315,7 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 		topUsed = topWinrate = topDPS = topTTK = None
 		for legend in r["legends"]:
 			if not topUsed or topUsed[1] < legend["xp"]:
-				topUsed = legend["legend_name_key"].title(), legend["xp"]
+				topUsed = (legend["legend_name_key"].title(), legend["xp"])
 			if legend["games"] and (
 				topWinrate is None or topWinrate[1] < brawlWinRate(legend)
 			):
@@ -330,23 +323,13 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 					legend["legend_name_key"].title(), brawlWinRate(legend)
 				)
 			if legend["matchtime"] and (
-				topDPS is None or topDPS[1] < round(
-					int(legend["damagedealt"]) / legend["matchtime"], 1
-				)
+				topDPS is None or topDPS[1] < getTopDPS(legend)[1]
 			):
-				topDPS = (
-					legend["legend_name_key"].title(),
-					round(int(legend["damagedealt"]) / legend["matchtime"], 1)
-				)
+				topDPS = getTopDPS(legend)
 			if legend["kos"] and (
-				topTTK is None or topTTK[1] > round(
-					legend["matchtime"] / legend["kos"], 1
-				)
+				topTTK is None or topTTK[1] > getTopTTK(legend)[1]
 			):
-				topTTK = (
-					legend["legend_name_key"].title(),
-					round(legend["matchtime"] / legend["kos"], 1)
-				)
+				topTTK = getTopTTK(legend)
 		if all((topUsed, topWinrate, topDPS, topTTK)):
 			emb.add_field(
 				name="Legend Stats (20 game min)",
@@ -358,10 +341,8 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 				)
 			)
 	if "clan" in r:
-		emb.add_field(
-			name="Clan",
-			value=f"{r['clan']['clan_name']}\nClan ID {r['clan']['clan_id']}"
-		)
+		val = f"{r['clan']['clan_name']}\nClan ID {r['clan']['clan_id']}"
+		emb.add_field(name="Clan", value=val)
 	return emb
 
 
@@ -374,18 +355,12 @@ def getClan(target: discord.Member, brawlKey: str) -> discord.Embed:
 	# Takes two API calls: one to get clan ID from player stats,
 	# one to get clan from clan ID. As a result, this command is very slow.
 	# TODO: Try to find a way around this.
-	r = requests.get(
-		"https://api.brawlhalla.com/player/"
-		f"{brawlID}/stats?api_key={brawlKey}"
-	).json()
+	r = apiCall("player/", str(brawlID) + "/stats", brawlKey)
 	if "clan" not in r:
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Clan", "You are not in a clan!"
 		)
-	r = requests.get(
-		"https://api.brawlhalla.com/clan/{}/?api_key={}"
-		.format(r["clan"]["clan_id"], brawlKey)
-	).json()
+	r = apiCall("clan/", str(r["clan"]["clan_id"]) + "/", brawlKey)
 	emb = bbEmbed(
 		r["clan_name"],
 		"**Clan Created:** {}\n**Experience:** {}\n**Members:** {}"
@@ -397,13 +372,11 @@ def getClan(target: discord.Member, brawlKey: str) -> discord.Embed:
 	).set_footer(text=f"Clan ID {r['clan_id']}")
 	for i in range(min(len(r["clan"]), 9)):
 		member = r["clan"][i]
-		emb.add_field(
-			name=member["name"],
-			value=(
-				f"{member['rank']} ({member['xp']} xp)\nJoined "
-				+ str(datetime.fromtimestamp(member["join_date"]))[:-9]
-			)
+		val = (
+			f"{member['rank']} ({member['xp']} xp)\n"
+			"Joined " + str(datetime.fromtimestamp(member["join_date"]))[:-9]
 		)
+		emb.add_field(name=member["name"], value=val)
 	return emb
 
 

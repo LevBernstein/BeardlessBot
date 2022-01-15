@@ -6,5 +6,5 @@ python3 -m coverage run --include=$(echo $PWD)/* -m \
 	pytest -Wignore --tb=line |& tee -a testResults.md;
 python3 -m coverage report -m |& tee -a testResults.md;
 rm resources/images/coverage.svg;
-python3 -m coverage_badge -q -p -o resources/images/coverage.svg;
+python3 -m coverage_badge -q -o resources/images/coverage.svg;
 rm .coverage;

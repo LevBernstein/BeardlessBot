@@ -21,7 +21,7 @@ import misc
 
 
 # TODO: add _state attribute to all mock objects, inherit from State
-# Switch to a single MockState class that can handle all objects
+# Switch to a single MockState class for all Messageable objects
 
 
 class MockHTTPClient(discord.http.HTTPClient):
@@ -36,10 +36,6 @@ class MockHTTPClient(discord.http.HTTPClient):
 		self.proxy = None
 		self.proxy_auth = None
 		self._locks = {}
-		# self._global_over = asyncio.Event()
-		# self._global_over.clear()
-		# self._global_over.set()
-		# self._HTTPClient__session = None
 
 	async def create_role(
 		self, roleId: int, reason: Union[str, None] = None, **fields: Any
@@ -107,23 +103,34 @@ class MockHTTPClient(discord.http.HTTPClient):
 # discord.Member; still working on adding all features of discord.Member,
 # at which point I will switch the parent from discord.User to discord.Member
 # TODO: give default @everyone role
-
-
+# TODO: edit Messageable.send() to add messages to self.messages
 class MockUser(discord.User):
 
 	class MockUserState():
-		def __init__(self):
+		def __init__(self, messageNum: int = 0):
 			self._guilds = {}
 			self.allowed_mentions = discord.AllowedMentions(everyone=True)
 			self.loop = asyncio.new_event_loop()
 			self.http = MockHTTPClient(self.loop)
 			self.user = None
+			self.last_message_id = messageNum
+			self.channel = MockChannel()
+
+		def create_message(
+			self, *, channel: discord.abc.Messageable, data: Dict
+		) -> discord.Message:
+			data["id"] = self.last_message_id
+			self.last_message_id += 1
+			return discord.Message(state=self, channel=channel, data=data)
+
+		def store_user(self, data: Dict) -> discord.User:
+			return MockUser()
 
 		def setClientUser(self):
 			self.http.user_agent = self.user
 
 		def _get_private_channel_by_user(self, id: int):
-			return MockChannel()
+			return self.channel
 
 	def __init__(
 		self,
@@ -143,8 +150,9 @@ class MockUser(discord.User):
 		self.joined_at = self.created_at
 		self.activity = None
 		self.system = False
+		self.messages = []
 		self._public_flags = 0
-		self._state = self.MockUserState()
+		self._state = self.MockUserState(messageNum=len(self.messages))
 
 	def setStateUser(self):
 		self._state.user = self
@@ -161,18 +169,18 @@ class MockChannel(discord.TextChannel):
 			self.loop = asyncio.new_event_loop()
 			self.http = MockHTTPClient(self.loop, user)
 			self.allowed_mentions = discord.AllowedMentions(everyone=True)
-			self.messageNum = messageNum
-			# TODO: self.last_message_id
+			self.user = user
+			self.last_message_id = messageNum
 
 		def create_message(
 			self, *, channel: discord.abc.Messageable, data: Dict
 		) -> discord.Message:
-			data["id"] = self.messageNum
-			self.messageNum += 1
+			data["id"] = self.last_message_id
+			self.last_message_id += 1
 			return discord.Message(state=self, channel=channel, data=data)
 
 		def store_user(self, data: Dict) -> discord.User:
-			return MockUser()
+			return self.user if self.user else MockUser()
 
 	class Mock_Overwrites():
 		def __init__(
@@ -287,10 +295,10 @@ class MockGuild(discord.Guild):
 		self.name = name
 		self.id = id
 		self._state = self.MockGuildState()
-		self._channels = {i: c for i, c in enumerate(channels)}
-		self._roles = {i: r for i, r in enumerate(roles)}
 		self._members = {i: m for i, m in enumerate(members)}
 		self._member_count = len(self._members)
+		self._channels = {i: c for i, c in enumerate(channels)}
+		self._roles = {i: r for i, r in enumerate(roles)}
 		self.owner_id = 123456789
 
 	async def create_role(
@@ -320,6 +328,29 @@ class MockGuild(discord.Guild):
 
 
 class MockContext(commands.Context):
+
+	class MockContextState():
+		def __init__(
+			self,
+			user: Union[discord.User, None] = None,
+			channel: discord.TextChannel = MockChannel()
+		):
+			self.loop = asyncio.new_event_loop()
+			self.http = MockHTTPClient(self.loop, user)
+			self.allowed_mentions = discord.AllowedMentions(everyone=True)
+			self.user = user
+			self.channel = channel
+
+		def create_message(
+			self, *, channel: discord.abc.Messageable, data: Dict
+		) -> discord.Message:
+			data["id"] = self.channel._state.last_message_id
+			self.channel._state.last_message_id += 1
+			return discord.Message(state=self, channel=channel, data=data)
+
+		def store_user(self, data: Dict) -> discord.User:
+			return self.user if self.user else MockUser()
+
 	def __init__(
 		self,
 		bot: commands.Bot,
@@ -330,16 +361,15 @@ class MockContext(commands.Context):
 	):
 		self.bot = bot
 		self.prefix = bot.command_prefix
-		message.state = 0
 		self.message = message
 		self.channel = channel
 		self.author = author
 		self.guild = guild
-		if guild:
-			if channel and channel not in guild.channels:
-				self.guild._channels[len(self.guild.channels)] = channel
-			if author and author not in guild.members:
-				self.guild._members[len(self.guild.members)] = author
+		if guild and channel not in guild.channels:
+			self.guild._channels[len(self.guild.channels)] = channel
+		if guild and author not in guild.members:
+			self.guild._members[len(self.guild.members)] = author
+		self._state = self.MockContextState(channel=self.channel)
 
 
 class MockBot(commands.Bot):
@@ -411,7 +441,7 @@ if not brawlKey:
 
 
 def test_pep8Compliance():
-	styleGuide = flake8.get_style_guide(ignore=["W191", "W504", "W503"])
+	styleGuide = flake8.get_style_guide(ignore=["W191"])
 	report = styleGuide.check_files(["./"])
 	assert len(report.get_statistics("W")) == 0
 	assert len(report.get_statistics("E")) == 0
@@ -434,7 +464,7 @@ def test_createMutedRole():
 	g = MockGuild(roles=[])
 	role = asyncio.run(Bot.createMutedRole(g))
 	assert role.name == "Muted"
-	assert len(g.roles) == 1
+	assert len(g.roles) == 1 and g.roles[0] == role
 
 
 def test_on_ready():
@@ -456,12 +486,12 @@ def test_on_message_delete():
 		f"**Deleted message sent by {m.author.mention}"
 		f" in **{m.channel.mention}\n{m.content}"
 	)
-	'''
+	"""
 	# TODO: append sent messages to channel.messages
 	assert any(
 		(i.embed.description == log.description for i in m.channel.history())
 	)
-	'''
+	"""
 
 
 def test_on_bulk_message_delete():
@@ -472,12 +502,12 @@ def test_on_bulk_message_delete():
 	log = logs.logPurge(messages[0], messages)
 	assert emb.description == log.description
 	assert log.description == f"Purged 2 messages in {m.channel.mention}."
-	'''
+	"""
 	# TODO: append sent messages to channel.messages
 	assert any(
 		(i.embed.description == log.description for i in m.channel.history())
 	)
-	'''
+	"""
 	messages = [m] * 105
 	emb = asyncio.run(Bot.on_bulk_message_delete(messages))
 	log = logs.logPurge(messages[0], messages)
@@ -492,12 +522,12 @@ def test_on_guild_channel_delete():
 	log = logs.logDeleteChannel(channel)
 	assert emb.description == log.description
 	assert log.description == f"Channel \"{channel.name}\" deleted."
-	'''
+	"""
 	# TODO: append sent messages to channel.messages
 	assert any(
-		(i.embed.description == log.description for i in m.channel.history())
+		(i.embed.description == log.description for i in channel.history())
 	)
-	'''
+	"""
 
 
 def test_on_guild_channel_create():
@@ -507,12 +537,12 @@ def test_on_guild_channel_create():
 	log = logs.logCreateChannel(channel)
 	assert emb.description == log.description
 	assert log.description == f"Channel \"{channel.name}\" created."
-	'''
+	"""
 	# TODO: append sent messages to channel.messages
 	assert any(
-		(i.embed.description == log.description for i in m.channel.history())
+		(i.embed.description == log.description for i in channel.history())
 	)
-	'''
+	"""
 
 
 def test_on_member_ban():
@@ -522,12 +552,12 @@ def test_on_member_ban():
 	log = logs.logBan(member)
 	assert emb.description == log.description
 	assert log.description == f"Member {member.mention} banned\n{member.name}"
-	'''
+	"""
 	# TODO: append sent messages to channel.messages
 	assert any(
-		(i.embed.description == log.description for i in m.channel.history())
+		(i.embed.description == log.description for i in channel.history())
 	)
-	'''
+	"""
 
 
 def test_on_member_unban():
@@ -539,12 +569,13 @@ def test_on_member_unban():
 	assert (
 		log.description == f"Member {member.mention} unbanned\n{member.name}"
 	)
-	'''
+	"""
 	# TODO: append sent messages to channel.messages
+	channel = member.guild.channels[0]
 	assert any(
-		(i.embed.description == log.description for i in m.channel.history())
+		(i.embed.description == log.description for i in channel.history())
 	)
-	'''
+	"""
 
 
 def test_on_member_join():
@@ -557,6 +588,13 @@ def test_on_member_join():
 		f"Member {member.mention} joined\nAccount registered"
 		f" on {misc.truncTime(member)}\nID: {member.id}"
 	)
+	"""
+	# TODO: append sent messages to channel.messages
+	channel = member.guild.channels[0]
+	assert any(
+		(i.embed.description == log.description for i in channel.history())
+	)
+	"""
 
 
 def test_on_member_remove():
@@ -571,6 +609,40 @@ def test_on_member_remove():
 	log = logs.logMemberRemove(member)
 	assert emb.description == log.description
 	assert log.fields[0].value == member.roles[1].mention
+	"""
+	# TODO: append sent messages to channel.messages
+	channel = member.guild.channels[0]
+	assert any(
+		(i.embed.description == log.description for i in channel.history())
+	)
+	"""
+
+
+"""
+def test_on_message_edit():
+	member = MockUser()
+	g = MockGuild(
+		channels=[MockChannel(name="bb-log"), MockChannel(name="infractions")]
+	)
+	asyncio.run(Bot.createMutedRole(g))
+	before = MockMessage(content="old", author=member, guild=g)
+	after = MockMessage(content="new", author=member, guild=g)
+	# TODO: write discord.Message.delete(). Requires _state for discord.Message
+	emb = asyncio.run(Bot.on_message_edit(before, after)
+	log = logs.logEditMsg(before, after)
+	assert emb.description == log.description
+	# Insert content of test_logEditMsg
+	'''
+	# TODO: append sent messages to channel.messages, user.messages
+	channel = member.guild.channels[0]
+	assert any(
+		(i.embed.description == log.description for i in channel.history())
+	)
+	'''
+"""
+
+
+# TODO: now that mock context has state, write tests for other Bot methods
 
 
 def test_fact():
@@ -607,16 +679,13 @@ def test_logEditMsg():
 	g = MockGuild()
 	before = asyncio.run(g.channels[0].send("oldcontent"))
 	after = asyncio.run(g.channels[0].send("newcontent"))
-	# TODO: change to message.edit()
 	emb = logs.logEditMsg(before, after)
-	assert (
-		emb.description ==
+	assert emb.description == (
 		f"Messaged edited by {after.author.mention}"
 		f" in {after.channel.mention}."
 	)
 	assert emb.fields[0].value == before.content
-	assert (
-		emb.fields[1].value ==
+	assert emb.fields[1].value == (
 		f"{after.content}\n[Jump to Message]({after.jump_url})"
 	)
 
@@ -646,12 +715,10 @@ def test_logMemberNickChange():
 def test_logMemberRolesChange():
 	before = MockUser()
 	after = MockUser(roles=(MockRole(),))
-	assert (
-		logs.logMemberRolesChange(before, after).description ==
+	assert logs.logMemberRolesChange(before, after).description == (
 		f"Role {after.roles[0].mention} added to {after.mention}."
 	)
-	assert (
-		logs.logMemberRolesChange(after, before).description ==
+	assert logs.logMemberRolesChange(after, before).description == (
 		f"Role {after.roles[0].mention} removed from {before.mention}."
 	)
 
@@ -659,20 +726,17 @@ def test_logMemberRolesChange():
 def test_logMute():
 	message = MockMessage()
 	member = MockUser()
-	assert (
-		logs.logMute(member, message, "5", "hours", 18000).description ==
+	assert logs.logMute(member, message, "5", "hours", 18000).description == (
 		f"Muted {member.mention} for 5 hours in {message.channel.mention}."
 	)
-	assert (
-		logs.logMute(member, message, None, None, None).description ==
+	assert logs.logMute(member, message, None, None, None).description == (
 		f"Muted {member.mention} in {message.channel.mention}."
 	)
 
 
 def test_logUnmute():
 	member = MockUser()
-	assert (
-		logs.logUnmute(member, MockUser()).description ==
+	assert logs.logUnmute(member, MockUser()).description == (
 		f"Unmuted {member.mention}."
 	)
 
@@ -694,15 +758,12 @@ def test_memSearch():
 def test_register():
 	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	bucks.reset(bb)
-	assert (
-		bucks.register(bb).description ==
+	assert bucks.register(bb).description == (
 		"You are already in the system! Hooray! You"
 		f" have 200 BeardlessBucks, {bb.mention}."
 	)
 	bb.name = ",badname,"
-	assert (
-		bucks.register(bb).description == bucks.commaWarn.format(bb.mention)
-	)
+	assert bucks.register(bb).description == bucks.commaWarn.format(bb.mention)
 
 
 def test_balance():
@@ -717,19 +778,16 @@ def test_balance():
 		auth,
 		MockGuild(members=(MockUser(), auth))
 	)
-	assert (
-		bucks.balance(auth, text).description ==
+	assert bucks.balance(auth, text).description == (
 		f"{auth.mention}'s balance is 200 BeardlessBucks."
 	)
 	text.content = "!balance " + auth.name
-	assert (
-		bucks.balance(auth, text).description ==
+	assert bucks.balance(auth, text).description == (
 		f"{auth.mention}'s balance is 200 BeardlessBucks."
 	)
 	text.content = "!balance"
 	text.author.name = ",badname,"
-	assert (
-		bucks.balance(text.author, text).description ==
+	assert bucks.balance(text.author, text).description == (
 		bucks.commaWarn.format(text.author.mention)
 	)
 	text.content = "!balance invaliduser"
@@ -742,8 +800,7 @@ def test_balance():
 
 def test_reset():
 	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
-	assert (
-		bucks.reset(bb).description ==
+	assert bucks.reset(bb).description == (
 		f"You have been reset to 200 BeardlessBucks, {bb.mention}."
 	)
 	bb.name = ",badname,"
@@ -764,6 +821,9 @@ def test_leaderboard():
 	fields = lb.fields
 	if len(fields) >= 2:  # This check in case of an empty leaderboard
 		assert int(fields[0].value) > int(fields[1].value)
+	user = MockUser(name="bad,name", id=0)
+	lb = bucks.leaderboard(user, MockMessage(author=user))
+	assert len(lb.fields) == len(fields)
 	lb = bucks.leaderboard(bb, MockMessage(author=bb))
 	assert len(lb.fields) == len(fields) + 2
 
@@ -865,15 +925,20 @@ def test_blackjack_startingHand():
 	assert len(game.cards) == 2
 	assert game.message.startswith("Your starting hand consists of ")
 	assert "You hit 21!" in game.startingHand(True)
-	assert (
-		game.startingHand(False, True)
-		.startswith("Your starting hand consists of two Aces.")
-	)
+	assert "two Aces" in game.startingHand(False, True)
+
+
+def test_activeGame():
+	author = MockUser(name="target", id=0)
+	games = [bucks.Instance(MockUser(name="not", id=1), 10)] * 9
+	assert not bucks.activeGame(games, author)
+	games.append(bucks.Instance(author, 10))
+	assert bucks.activeGame(games, author)
 
 
 def test_info():
-	namedUser = MockUser("searchterm", roles=(MockRole(), MockRole()))
-	guild = MockGuild(members=(MockUser(), namedUser))
+	namedUser = MockUser("searchterm", roles=[MockRole(), MockRole()])
+	guild = MockGuild(members=[MockUser(), namedUser])
 	text = MockMessage("!info searchterm", guild=guild)
 	namedUserInfo = misc.info("searchterm", text)
 	assert namedUserInfo.fields[0].value == misc.truncTime(namedUser) + " UTC"
@@ -884,7 +949,7 @@ def test_info():
 
 def test_av():
 	namedUser = MockUser("searchterm")
-	guild = MockGuild(members=(MockUser(), namedUser))
+	guild = MockGuild(members=[MockUser(), namedUser])
 	text = MockMessage("!av searchterm", guild=guild)
 	assert misc.av("searchterm", text).image.url == str(namedUser.avatar_url)
 	assert misc.av("error", text).title == "Invalid target!"
@@ -927,10 +992,8 @@ def test_scamCheck():
 
 
 def test_onJoin():
-	guild = discord.Guild
-	guild.name = "Test Guild"
 	role = MockRole(id=0)
-	guild.roles = role,
+	guild = MockGuild(name="Test Guild", roles=[role])
 	assert misc.onJoin(guild, role).title == "Hello, Test Guild!"
 
 
@@ -1039,26 +1102,20 @@ def test_legendInfo():
 
 def test_getRank():
 	user = MockUser(id=0)
-	assert (
-		brawl.getRank(user, brawlKey).description ==
+	assert brawl.getRank(user, brawlKey).description == (
 		brawl.unclaimed.format(user.mention)
 	)
 	user.id = 743238109898211389
-	assert (
-		brawl.getRank(user, brawlKey).footer.text ==
-		"Brawl ID 12502880"
-	)
+	assert brawl.getRank(user, brawlKey).footer.text == "Brawl ID 12502880"
 	user.id = 196354892208537600
-	assert (
-		brawl.getRank(user, brawlKey).description ==
+	assert brawl.getRank(user, brawlKey).description == (
 		"You haven't played ranked yet this season."
 	)
 
 
 def test_getStats():
 	user = MockUser(id=0)
-	assert (
-		brawl.getStats(user, brawlKey).description ==
+	assert brawl.getStats(user, brawlKey).description == (
 		brawl.unclaimed.format(user.mention)
 	)
 	user.id = 196354892208537600
@@ -1069,15 +1126,13 @@ def test_getStats():
 
 def test_getClan():
 	user = MockUser(id=0)
-	assert (
-		brawl.getClan(user, brawlKey).description ==
+	assert brawl.getClan(user, brawlKey).description == (
 		brawl.unclaimed.format(user.mention)
 	)
 	user.id = 196354892208537600
 	assert brawl.getClan(user, brawlKey).title == "DinersDriveInsDives"
 	brawl.claimProfile(196354892208537600, 5895238)
-	assert (
-		brawl.getClan(user, brawlKey).description ==
+	assert brawl.getClan(user, brawlKey).description == (
 		"You are not in a clan!"
 	)
 	brawl.claimProfile(196354892208537600, 7032472)
