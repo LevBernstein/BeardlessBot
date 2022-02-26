@@ -11,7 +11,11 @@ from misc import bbEmbed, prof, truncTime
 
 
 def contCheck(msg: discord.Message) -> str:
-	return msg.content if msg.content else "Embed"
+	if msg.content:
+		if len(msg.content) > 1024:
+			return "**Message length exceeds 1024 characters.**"
+		return msg.content
+	return "**Embed**"
 
 
 def logDeleteMsg(msg: discord.Message) -> discord.Embed:
@@ -175,10 +179,10 @@ def logUnban(member: discord.Member) -> discord.Embed:
 
 def logMute(
 	member: discord.Member,
-	message: str,
+	message: discord.Message,
 	duration: Union[str, None],
 	mString: Union[str, None],
-	mTime: Union[float, None],
+	mTime: Union[float, None]
 ) -> discord.Embed:
 	mid = f" for {duration} {mString}" if mTime else ""
 	return bbEmbed(

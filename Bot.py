@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.10"
+__version__ = "Full Release 1.7.11"
 
 import asyncio
 from random import choice, randint
@@ -31,6 +31,16 @@ bot = commands.Bot(
 	owner_id=196354892208537600
 	# Replace owner_id with your Discord id
 )
+
+
+def log(e: Exception, ctx: commands.Context):
+	print(
+		f"Exception: {e}\n",
+		f"Command: {ctx.invoked_with}\n",
+		f"Author: {ctx.author}\n",
+		f"Content: {logs.contCheck(ctx.message)}\n",
+		f"Guild: {ctx.guild}\n"
+	)
 
 
 async def createMutedRole(guild: discord.Guild) -> discord.Role:
@@ -431,7 +441,14 @@ async def cmdAnimals(ctx, *args):
 
 @bot.command(name="define")
 async def cmdDefine(ctx, *words):
-	await ctx.send(embed=misc.define(" ".join(words)))
+	try:
+		await ctx.send(embed=misc.define(" ".join(words)))
+	except Exception as e:
+		await ctx.send(
+			"The API I use to get definitions is experiencing server outages"
+			" and performance issues. Please be patient."
+		)
+		log(e, ctx)
 
 
 @bot.command(name="ping")
@@ -456,7 +473,7 @@ async def cmdAnimal(ctx, breed=None, *args):
 		try:
 			moose = misc.animal("moose", "moose")
 		except Exception as e:
-			print(species, breed, e)
+			log(e, ctx)
 			emb = misc.bbEmbed(
 				"Something's gone wrong with the Moose API!",
 				"Please inform my creator and he'll see what's going on."
@@ -490,7 +507,7 @@ async def cmdAnimal(ctx, breed=None, *args):
 			"Random " + species.title()
 		).set_image(url=misc.animal(species))
 	except Exception as e:
-		print(e)
+		log(e, ctx)
 		emb = misc.bbEmbed(
 			"Something's gone wrong!",
 			"Please inform my creator and he'll see what's going on."
@@ -521,7 +538,7 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 		converter = commands.MemberConverter()
 		target = await converter.convert(ctx, target)
 	except Exception as e:
-		print(e)
+		log(e, ctx)
 		await ctx.send(
 			embed=misc.bbEmbed(
 				"Beardless Bot Mute",
@@ -553,7 +570,7 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 	try:
 		await target.add_roles(role)
 	except Exception as e:
-		print(e)
+		log(e, ctx)
 		await ctx.send(misc.hierarchyMsg)
 	else:
 		report = "Muted " + target.mention
@@ -605,7 +622,7 @@ async def cmdUnmute(ctx, target=None, *args):
 				target = await converter.convert(ctx, target)
 				await target.remove_roles(get(ctx.guild.roles, name="Muted"))
 			except Exception as e:
-				print(e)
+				log(e, ctx)
 				report = misc.hierarchyMsg
 			else:
 				report = f"Unmuted {target.mention}."
@@ -753,7 +770,7 @@ async def cmdBrawlclaim(ctx, profUrl="None", *args):
 		try:
 			brawl.claimProfile(ctx.author.id, brawlID)
 		except Exception as e:
-			print(e, ctx.message.content, ctx.author, ctx.guild, sep=" ")
+			log(e, ctx)
 			report = brawl.reqLimit
 		else:
 			report = "Profile claimed."
@@ -778,7 +795,7 @@ async def cmdBrawlrank(ctx, *target):
 			await ctx.send(embed=brawl.getRank(target, brawlKey))
 			return
 		except Exception as e:
-			print(e, ctx.message.content, ctx.author, ctx.guild, sep=" ")
+			log(e, ctx)
 			report = brawl.reqLimit
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Rank", report)
@@ -798,7 +815,7 @@ async def cmdBrawlstats(ctx, *target):
 			await ctx.send(embed=brawl.getStats(target, brawlKey))
 			return
 		except Exception as e:
-			print(e, ctx.message.content, ctx.author, ctx.guild, sep=" ")
+			log(e, ctx)
 			report = brawl.reqLimit
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Stats", report)
@@ -818,7 +835,7 @@ async def cmdBrawlclan(ctx, *target):
 			await ctx.send(embed=brawl.getClan(target, brawlKey))
 			return
 		except Exception as e:
-			print(e, ctx.message.content, ctx.author, ctx.guild, sep=" ")
+			log(e, ctx)
 			report = brawl.reqLimit
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Clan", report)
@@ -836,7 +853,7 @@ async def cmdBrawllegend(ctx, legend=None, *args):
 		try:
 			legend = brawl.legendInfo(brawlKey, legend)
 		except Exception as e:
-			print(e, ctx.message.content, ctx.author, ctx.guild, sep=" ")
+			log(e, ctx)
 			report = brawl.reqLimit
 		else:
 			if legend:
@@ -853,13 +870,10 @@ async def cmdBrawllegend(ctx, legend=None, *args):
 @bot.command(name="tweet", aliases=("eggtweet",))
 async def cmdTweet(ctx, *args):
 	if ctx.guild and ctx.guild.id == 442403231864324119:
-		await ctx.send(
-			embed=misc.bbEmbed(
-				"eggsoup(@eggsouptv)",
-				misc.formattedTweet(misc.tweet()),
-				0x1DA1F2
-			).set_thumbnail(url=misc.tweetThumb)
-		)
+		emb = misc.bbEmbed(
+			"eggsoup(@eggsouptv)", misc.formattedTweet(misc.tweet()), 0x1DA1F2
+		).set_thumbnail(url=misc.tweetThumb)
+		await ctx.send(embed=emb)
 
 
 @bot.command(name="reddit")
@@ -883,7 +897,16 @@ async def cmdGuide(ctx, *args):
 async def on_command_error(ctx, e):
 	if isinstance(e, commands.CommandNotFound):
 		return
-	print("\n", e, ctx.invoked_with, ctx.message.content, ctx.guild, sep="\n")
+	if isinstance(
+		e, (commands.UnexpectedQuoteError, commands.ExpectedClosingQuoteError)
+	):
+		await ctx.send(
+			embed=misc.bbEmbed(
+				"Careful with quotation marks!",
+				"Error: Either put everything in quotes or nothing."
+			)
+		)
+	log(e, ctx)
 
 
 @bot.listen("on_message")

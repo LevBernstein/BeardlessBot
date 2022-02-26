@@ -688,6 +688,7 @@ def test_logEditMsg():
 	assert emb.fields[1].value == (
 		f"{after.content}\n[Jump to Message]({after.jump_url})"
 	)
+	# TODO: edit after to have content of len > 1024 via message.edit
 
 
 def test_logClearReacts():
@@ -831,8 +832,8 @@ def test_leaderboard():
 def test_define():
 	word = misc.define("test")
 	assert word.title == "TEST" and word.description.startswith("Audio: ")
-	word = misc.define("pgp")
-	assert word.title == "PGP" and word.description == ""
+	word = misc.define("gtg")
+	assert word.title == "GTG" and word.description == ""
 	assert misc.define("invalidword").description == "Invalid word!"
 
 
