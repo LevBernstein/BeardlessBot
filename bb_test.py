@@ -1112,6 +1112,10 @@ def test_getRank():
 	assert brawl.getRank(user, brawlKey).description == (
 		"You haven't played ranked yet this season."
 	)
+	brawl.claimProfile(196354892208537600, 93812)
+	user.id = 196354892208537600
+	assert brawl.getRank(user, brawlKey).color.value == 0x3D2399
+	brawl.claimProfile(196354892208537600, 7032472)
 
 
 def test_getStats():

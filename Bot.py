@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.11"
+__version__ = "Full Release 1.7.12"
 
 import asyncio
 from random import choice, randint
@@ -534,10 +534,10 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 		await ctx.send(f"Please specify a target, {ctx.author.mention}.")
 		return
 	# TODO: switch to converter in arg
+	converter = commands.MemberConverter()
 	try:
-		converter = commands.MemberConverter()
 		target = await converter.convert(ctx, target)
-	except Exception as e:
+	except commands.MemberNotFound as e:
 		log(e, ctx)
 		await ctx.send(
 			embed=misc.bbEmbed(
@@ -621,6 +621,9 @@ async def cmdUnmute(ctx, target=None, *args):
 			try:
 				target = await converter.convert(ctx, target)
 				await target.remove_roles(get(ctx.guild.roles, name="Muted"))
+			except commands.MemberNotFound as e:
+				log(e, ctx)
+				report = "Invalid target! Target must be a mention or user ID."
 			except Exception as e:
 				log(e, ctx)
 				report = misc.hierarchyMsg
