@@ -427,12 +427,13 @@ def scamCheck(text: str) -> bool:
 			"left over" in msg
 		))
 	))
+	checkFive = re.compile(r"^.*https://discord.gift/.*")
 
-	return (
+	return ((
 		(
 			bool(checkOne.match(msg)) or bool(checkThree.match(msg))
 		) and bool(checkTwo.match(msg))
-	) or checkFour
+	) or checkFour) and not bool(checkFive.match(msg))
 
 
 def onJoin(guild: discord.Guild, role: discord.Role) -> discord.Embed:

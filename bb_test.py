@@ -990,6 +990,9 @@ def test_scamCheck():
 	assert not misc.scamCheck(
 		"Hey Discord friends, check out https://top.gg/bot/654133911558946837"
 	)
+	assert not misc.scamCheck(
+		"Here's an actual gift link https://discord.gift/s23d35fls55d13l1fjds"
+	)
 
 
 def test_onJoin():
