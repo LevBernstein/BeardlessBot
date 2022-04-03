@@ -646,5 +646,17 @@
         "dexterity": "6",
         "defense": "4",
         "speed": "7"
+    },
+    {
+        "legend_id": 59,
+        "legend_name_key": "arcadia",
+        "bio_name": "Arcadia",
+        "bio_aka": "The Faerie Queen",
+        "weapon_one": "Spear",
+        "weapon_two": "Greatsword",
+        "strength": "7",
+        "dexterity": "7",
+        "defense": "4",
+        "speed": "4"
     }
 ]

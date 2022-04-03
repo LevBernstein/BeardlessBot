@@ -476,6 +476,15 @@ def test_on_ready():
 		assert Bot.bot.user.avatar == f.read()
 
 
+def test_contCheck():
+	m = MockMessage(content="e")
+	assert logs.contCheck(m) == "e"
+	m.content = ""
+	assert logs.contCheck(m) == "**Embed**"
+	m.content = "e" * 1025
+	assert logs.contCheck(m) == "**Message length exceeds 1024 characters.**"
+
+
 def test_on_message_delete():
 	m = MockMessage(channel=MockChannel(name="bb-log"))
 	m.guild = MockGuild(channels=[m.channel])
@@ -834,7 +843,7 @@ def test_define():
 	assert word.title == "TEST" and word.description.startswith("Audio: ")
 	word = misc.define("gtg")
 	assert word.title == "GTG" and word.description == ""
-	assert misc.define("invalidword").description == "Invalid word!"
+	assert misc.define("invalidword").description == "No results found."
 
 
 def test_flip():
@@ -1073,10 +1082,6 @@ def test_claimProfile():
 	assert brawl.fetchBrawlID(196354892208537600) == 1
 	brawl.claimProfile(196354892208537600, 7032472)
 	assert brawl.fetchBrawlID(196354892208537600) == 7032472
-
-
-def test_fetchLegends():
-	assert len(brawl.fetchLegends()) == 54
 
 
 def test_getBrawlID():

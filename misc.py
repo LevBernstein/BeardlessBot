@@ -17,8 +17,8 @@ diceMsg = (
 )
 
 prof = (
-	"https://cdn.discordapp.com/avatars/654133911558946837/"
-	"78c6e18d8febb2339b5513134fa76b94.webp?size=1024"
+	"https://cdn.discordapp.com/attachments/613030322644451349/"
+	"947434005878435910/CapGift.jpg"
 )
 
 animalList = (
@@ -71,7 +71,7 @@ tweetThumb = (
 scamDM = (
 	"This is an automated message. You have sent a message that has"
 	" been identified as containing a scam nitro link in **{}**. Your"
-	" account may  have been compromised. Please take the appropriate"
+	" account may have been compromised. Please take the appropriate"
 	" measures and be sure to reach out to an admin if you need help."
 )
 
@@ -229,8 +229,9 @@ def define(word: str) -> discord.Embed:
 	if r.status_code == 200:
 		j = r.json()
 		desc = ""
-		if j[0]["phonetics"] and "audio" in j[0]["phonetics"][0]:
-			desc = f"Audio: https:{j[0]['phonetics'][0]['audio']}"
+		p = j[0]["phonetics"]
+		if p and "audio" in p[0] and p[0]["audio"]:
+			desc = f"Audio: {j[0]['phonetics'][0]['audio']}"
 		emb = bbEmbed(j[0]["word"].upper(), desc)
 		i = 0
 		for entry in j:
@@ -242,7 +243,7 @@ def define(word: str) -> discord.Embed:
 						value=definition["definition"]
 					)
 		return emb
-	return bbEmbed("Beardless Bot Definitions", "Invalid word!")
+	return bbEmbed("Beardless Bot Definitions", "No results found.")
 
 
 def roll(message: str) -> Union[int, None]:

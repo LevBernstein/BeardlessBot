@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.13"
+__version__ = "Full Release 1.7.14"
 
 import asyncio
 from random import choice, randint
@@ -112,6 +112,7 @@ async def on_guild_join(guild: discord.Guild):
 			except Exception as e:
 				print(e)
 			else:
+				print(f"Sent join message in {channel.name}.")
 				break
 		print("Beardless Bot is now in", len(bot.guilds), "servers.")
 		global sparPings
@@ -158,9 +159,10 @@ async def on_bulk_message_delete(
 async def on_message_edit(before: discord.Message, after: discord.Message):
 	if before.guild and (before.content != after.content):
 		if misc.scamCheck(after.content):
-			await after.author.add_roles(
-				get(after.guild.roles, name="Muted")
-			)
+			role = get(after.guild.roles, name="Muted")
+			if not role:
+				role = await createMutedRole(after.guild)
+			await after.author.add_roles(role)
 			for channel in after.guild.channels:
 				if channel.name in ("infractions", "bb-log"):
 					await channel.send(
@@ -234,13 +236,14 @@ async def on_member_remove(member: discord.Member) -> discord.Embed:
 async def on_member_update(before: discord.Member, after: discord.Member):
 	for channel in after.guild.channels:
 		if channel.name == "bb-log":
+			emb = None
 			if before.nick != after.nick:
 				emb = logs.logMemberNickChange(before, after)
 			elif before.roles != after.roles:
 				emb = logs.logMemberRolesChange(before, after)
-			if before.nick != after.nick or before.roles != after.roles:
+			if emb:
 				await channel.send(embed=emb)
-				return emb
+			return emb
 
 
 @bot.event
@@ -543,6 +546,7 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 			embed=misc.bbEmbed(
 				"Beardless Bot Mute",
 				"Invalid target! Target must be a mention or user ID."
+				"\nSpecific error: " + e
 			)
 		)
 		return
