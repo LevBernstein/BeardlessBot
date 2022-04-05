@@ -318,7 +318,7 @@ def register(target: Union[discord.User, discord.Member]) -> discord.Embed:
 
 
 def balance(
-	target: Union[discord.User, discord.Member],
+	target: Union[discord.User, discord.Member, str],
 	msg: discord.Message
 ) -> discord.Embed:
 	"""

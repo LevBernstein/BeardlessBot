@@ -9,11 +9,13 @@ from misc import bbEmbed, prof, truncTime
 
 # TODO: Implement logging for threads, once BB migrates to nextcord
 
+msgMaxLength = "**Message length exceeds 1024 characters.**"
+
 
 def contCheck(msg: discord.Message) -> str:
 	if msg.content:
 		if len(msg.content) > 1024:
-			return "**Message length exceeds 1024 characters.**"
+			return msgMaxLength
 		return msg.content
 	return "**Embed**"
 

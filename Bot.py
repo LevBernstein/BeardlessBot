@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.14"
+__version__ = "Full Release 1.7.15"
 
 import asyncio
 from random import choice, randint
@@ -177,8 +177,9 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
 			await after.delete()
 		for channel in before.guild.channels:
 			if channel.name == "bb-log":
-				await channel.send(embed=logs.logEditMsg(before, after))
-				return
+				emb = logs.logEditMsg(before, after)
+				await channel.send(embed=emb)
+				return emb
 
 
 @bot.event

@@ -440,12 +440,11 @@ if not brawlKey:
 		print("No Brawlhalla API key. Brawlhalla-specific tests will fail.\n")
 
 
-def test_pep8Compliance():
+@pytest.mark.parametrize("letter", ["W", "E", "F"])
+def test_pep8Compliance(letter):
 	styleGuide = flake8.get_style_guide(ignore=["W191"])
 	report = styleGuide.check_files(["./"])
-	assert len(report.get_statistics("W")) == 0
-	assert len(report.get_statistics("E")) == 0
-	assert len(report.get_statistics("F")) == 0
+	assert len(report.get_statistics(letter)) == 0
 
 
 def test_mockContextChannels():
@@ -476,13 +475,13 @@ def test_on_ready():
 		assert Bot.bot.user.avatar == f.read()
 
 
-def test_contCheck():
-	m = MockMessage(content="e")
-	assert logs.contCheck(m) == "e"
-	m.content = ""
-	assert logs.contCheck(m) == "**Embed**"
-	m.content = "e" * 1025
-	assert logs.contCheck(m) == "**Message length exceeds 1024 characters.**"
+@pytest.mark.parametrize(
+	"content,description",
+	[("e", "e"), ("", "**Embed**"), ("e" * 1025, logs.msgMaxLength)]
+)
+def test_contCheck(content, description):
+	m = MockMessage(content)
+	assert logs.contCheck(m) == description
 
 
 def test_on_message_delete():
@@ -627,7 +626,6 @@ def test_on_member_remove():
 	"""
 
 
-"""
 def test_on_message_edit():
 	member = MockUser()
 	g = MockGuild(
@@ -636,19 +634,28 @@ def test_on_message_edit():
 	asyncio.run(Bot.createMutedRole(g))
 	before = MockMessage(content="old", author=member, guild=g)
 	after = MockMessage(content="new", author=member, guild=g)
-	# TODO: write discord.Message.delete(). Requires _state for discord.Message
-	emb = asyncio.run(Bot.on_message_edit(before, after)
+	emb = asyncio.run(Bot.on_message_edit(before, after))
 	log = logs.logEditMsg(before, after)
 	assert emb.description == log.description
-	# Insert content of test_logEditMsg
-	'''
-	# TODO: append sent messages to channel.messages, user.messages
-	channel = member.guild.channels[0]
-	assert any(
-		(i.embed.description == log.description for i in channel.history())
+	assert emb.description == (
+		f"Messaged edited by {after.author.mention}"
+		f" in {after.channel.mention}."
 	)
-	'''
-"""
+	assert emb.fields[0].value == before.content
+	assert emb.fields[1].value == (
+		f"{after.content}\n[Jump to Message]({after.jump_url})"
+	)
+	# TODO: append sent msgs to channel.messages, user.messages, allowing
+	# testing for scamCheck == True
+	#after.content = "http://dizcort.com free nitro!"
+	#emb = asyncio.run(Bot.on_message_edit(before, after))
+	#assert g.channels[0].messages[0].content.startswith("Deleted possible")
+	# TODO: edit after to have content of len > 1024 via message.edit
+	#channel = member.guild.channels[0]
+	#assert any(
+		#(i.embed.description == log.description for i in channel.history())
+	#)
+
 
 
 # TODO: now that mock context has state, write tests for other Bot methods
@@ -669,35 +676,21 @@ def test_tweet():
 	assert len(eggTweet) >= 11 and len(eggTweet) <= 37
 
 
-def test_dice():
+@pytest.mark.parametrize("side", [4, 6, 8, 10, 12, 20, 100])
+def test_dice_regular(side):
 	user = MockUser()
-	for sideNum in 4, 6, 8, 100, 10, 12, 20:
-		message = "d" + str(sideNum)
-		assert misc.roll(message) in range(1, sideNum + 1)
-		assert (
-			misc.rollReport(message, user).description.startswith("You got")
-		)
+	text = "d" + str(side)
+	assert misc.roll(text) in range(1, side + 1)
+	assert (misc.rollReport(text, user).description.startswith("You got"))
+
+
+def test_dice_irregular():
+	user = MockUser()
 	assert misc.roll("d20-4") in range(-3, 17)
 	assert misc.rollReport("d20-4", user).description.startswith("You got")
-	assert not misc.roll("d9")
 	assert not misc.roll("wrongroll")
+	assert not misc.roll("d9")
 	assert misc.rollReport("d9", user).description.startswith("Invalid")
-
-
-def test_logEditMsg():
-	g = MockGuild()
-	before = asyncio.run(g.channels[0].send("oldcontent"))
-	after = asyncio.run(g.channels[0].send("newcontent"))
-	emb = logs.logEditMsg(before, after)
-	assert emb.description == (
-		f"Messaged edited by {after.author.mention}"
-		f" in {after.channel.mention}."
-	)
-	assert emb.fields[0].value == before.content
-	assert emb.fields[1].value == (
-		f"{after.content}\n[Jump to Message]({after.jump_url})"
-	)
-	# TODO: edit after to have content of len > 1024 via message.edit
 
 
 def test_logClearReacts():
@@ -751,17 +744,28 @@ def test_logUnmute():
 	)
 
 
-def test_memSearch():
+@pytest.mark.parametrize(
+	"username,content", [
+		("searchterm", "searchterm#9999"),
+		("searchterm", "searchterm"),
+		("searchterm", "search"),
+		("searchterm", "testnick"),
+		("hash#name", "hash#name")
+	]
+)
+def test_memSearch_valid(username, content):
+	namedUser = MockUser(username, "testnick", "9999")
+	text = MockMessage(
+		content=content, guild=MockGuild(members=(MockUser(), namedUser))
+	)
+	assert misc.memSearch(text, content) == namedUser
+
+
+def test_memSearch_invalid():
 	namedUser = MockUser("searchterm", "testnick", "9999")
-	contentList = "searchterm#9999", "searchterm", "search", "testnick"
-	text = MockMessage(guild=MockGuild(members=(MockUser(), namedUser)))
-	for content in contentList:
-		text.content = content
-		assert misc.memSearch(text, content) == namedUser
-	namedUser.name = "hash#name"
-	text.content = "hash#name"
-	assert misc.memSearch(text, text.content) == namedUser
-	text.content = "invalidterm"
+	text = MockMessage(
+		content="invalidterm", guild=MockGuild(members=(MockUser(), namedUser))
+	)
 	assert not misc.memSearch(text, text.content)
 
 
@@ -776,36 +780,16 @@ def test_register():
 	assert bucks.register(bb).description == bucks.commaWarn.format(bb.mention)
 
 
-def test_balance():
-	auth = MockUser(
-		"Beardless Bot",
-		"Beardless Bot",
-		5757,
-		654133911558946837
-	)
-	text = MockMessage(
-		"!bal",
-		auth,
-		MockGuild(members=(MockUser(), auth))
-	)
-	assert bucks.balance(auth, text).description == (
-		f"{auth.mention}'s balance is 200 BeardlessBucks."
-	)
-	text.content = "!balance " + auth.name
-	assert bucks.balance(auth, text).description == (
-		f"{auth.mention}'s balance is 200 BeardlessBucks."
-	)
-	text.content = "!balance"
-	text.author.name = ",badname,"
-	assert bucks.balance(text.author, text).description == (
-		bucks.commaWarn.format(text.author.mention)
-	)
-	text.content = "!balance invaliduser"
-	assert (
-		bucks.balance("badtarget", text)
-		.description
-		.startswith("Invalid user!")
-	)
+@pytest.mark.parametrize(
+	"target,result", [
+		(MockUser("Test", "", 5757, 654133911558946837), "'s balance is"),
+		(MockUser(","), bucks.commaWarn.format("<@123456789>")),
+		("Invalid user", "Invalid user!")
+	]
+)
+def test_balance(target, result):
+	msg = MockMessage("!bal", guild=MockGuild())
+	assert result in bucks.balance(target, msg).description
 
 
 def test_reset():
@@ -1065,7 +1049,6 @@ def test_randomBrawl():
 	assert brawl.randomBrawl("legend").title == "Random Legend"
 	assert len(brawl.randomBrawl("legend", brawlKey).fields) == 2
 	assert brawl.randomBrawl("invalidrandom").title == "Brawlhalla Randomizer"
-	assert brawl.randomBrawl("invalidrandom").title == "Brawlhalla Randomizer"
 
 
 def test_fetchBrawlID():
@@ -1084,17 +1067,16 @@ def test_claimProfile():
 	assert brawl.fetchBrawlID(196354892208537600) == 7032472
 
 
-def test_getBrawlID():
-	assert brawl.getBrawlID(
-		brawlKey, "https://steamcommunity.com/id/beardless"
-	) == 7032472
-	assert not brawl.getBrawlID(brawlKey, "badurl")
-	assert not brawl.getBrawlID(
-		brawlKey, "https://steamcommunity.com/badurl"
-	)
-	assert not brawl.getBrawlID(
-		brawlKey, "https://steamcommunity.com/id/dksjnw"
-	)
+@pytest.mark.parametrize(
+	"url,result", [
+		("https://steamcommunity.com/id/beardless", 7032472),
+		("badurl", None),
+		("https://steamcommunity.com/badurl", None),
+		("https://steamcommunity.com/badurl", None)
+	]
+)
+def test_getBrawlID(url, result):
+	assert brawl.getBrawlID(brawlKey, url) == result
 
 
 def test_getLegends():

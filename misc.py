@@ -246,11 +246,11 @@ def define(word: str) -> discord.Embed:
 	return bbEmbed("Beardless Bot Definitions", "No results found.")
 
 
-def roll(message: str) -> Union[int, None]:
+def roll(text: str) -> Union[int, None]:
 	# Takes a string of the format dn+b and rolls one
 	# n-sided die with a modifier of b. Modifier is optional.
 	try:
-		command = message.split("d", 1)[1]
+		command = text.split("d", 1)[1]
 	except IndexError:
 		return None
 	modifier = -1 if "-" in command else 1
