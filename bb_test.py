@@ -647,15 +647,16 @@ def test_on_message_edit():
 	)
 	# TODO: append sent msgs to channel.messages, user.messages, allowing
 	# testing for scamCheck == True
-	#after.content = "http://dizcort.com free nitro!"
-	#emb = asyncio.run(Bot.on_message_edit(before, after))
-	#assert g.channels[0].messages[0].content.startswith("Deleted possible")
+	'''
+	after.content = "http://dizcort.com free nitro!"
+	emb = asyncio.run(Bot.on_message_edit(before, after))
+	assert g.channels[0].messages[0].content.startswith("Deleted possible")
 	# TODO: edit after to have content of len > 1024 via message.edit
-	#channel = member.guild.channels[0]
-	#assert any(
-		#(i.embed.description == log.description for i in channel.history())
-	#)
-
+	channel = member.guild.channels[0]
+	assert any(
+		(i.embed.description == log.description for i in channel.history())
+	)
+	'''
 
 
 # TODO: now that mock context has state, write tests for other Bot methods
