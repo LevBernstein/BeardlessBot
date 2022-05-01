@@ -4,6 +4,7 @@ import re
 from datetime import datetime
 from random import choice, randint
 from typing import Union
+from urllib.parse import quote_plus
 
 import discord
 import requests
@@ -81,6 +82,16 @@ scamReport = (
 
 scamDelete = "**Deleted possible nitro scam link. Alerting mods.**"
 
+joinMsg = (
+	"Thanks for adding me to {}! There are a few things you can do to unlock "
+	"my full potential.\nIf you want event logging, make a channel named "
+	"#bb-log.\nIf you want a region-based sparring system, make a channel "
+	"named #looking-for-spar.\nIf you want special color roles, purchasable "
+	"with BeardlessBucks, create roles named special red/blue/orange/pink.\n"
+	"Don't forget to move my {} role up to the top of the role hierarchy in "
+	"order to allow me to moderate all users."
+)
+
 
 def truncTime(member: Union[discord.User, discord.Member]) -> str:
 	return str(member.created_at)[:-7]
@@ -127,8 +138,8 @@ def memSearch(
 	return semiMatch if semiMatch else looseMatch
 
 
-def animal(animalType: str, breed: str = None) -> str:
-	r = "Invalid Animal!"
+def animal(animalType: str, breed: Union[str, None] = None) -> str:
+	r = "Invalid Animal"
 
 	if "moose" in (animalType, breed):
 		r = requests.get("https://github.com/LevBernstein/moosePictures/")
@@ -438,18 +449,21 @@ def scamCheck(text: str) -> bool:
 
 
 def onJoin(guild: discord.Guild, role: discord.Role) -> discord.Embed:
-	lines = (
-		f"Thanks for adding me to {guild.name}! There are"
-		" a few things you can do to unlock my full potential."
-		"\nIf you want event logging, make a channel named #bb-log."
-		"\nIf you want a region-based sparring system, "
-		"make a channel named #looking-for-spar."
-		"\nIf you want special color roles, purchasable with BeardlessBucks,"
-		" create roles named special red/blue/orange/pink."
-		f"\nDon't forget to move my {role.mention} role up to the top"
-		" of the role hierarchy in order to allow me to moderate all users."
-	)
-	return bbEmbed(f"Hello, {guild.name}!", lines).set_thumbnail(url=prof)
+	return bbEmbed(
+		f"Hello, {guild.name}!", joinMsg.format(guild.name, role.mention)
+	).set_thumbnail(url=prof)
+
+
+def search(searchterm: str = "") -> discord.Embed:
+	try:
+		return bbEmbed(
+			"Search Results",
+			"https://www.google.com/search?q=" + quote_plus(searchterm)
+		).set_thumbnail(url=prof)
+	except TypeError:
+		return bbEmbed(
+			"Invalid Search!", "Please enter a valid searchterm."
+		).set_thumbnail(url=prof)
 
 
 # The following Markov chain code was originally provided by CSTUY SHIP.
@@ -502,7 +516,7 @@ addUrl = (
 	"654133911558946837&permissions=8&scope=bot)"
 )
 
-joinMsg = (
+inviteMsg = (
 	bbEmbed(
 		"Want to add this bot to your server?", "[Click this link!]" + addUrl
 	)

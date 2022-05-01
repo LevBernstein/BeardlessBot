@@ -73,7 +73,7 @@ class Instance:
 		user: Union[discord.User, discord.Member],
 		bet: int,
 		debug: bool = False
-	):
+	) -> None:
 		"""
 		Args:
 			user (discord.User): The user who is playing this game

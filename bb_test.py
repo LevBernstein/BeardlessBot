@@ -6,6 +6,7 @@ from json import load
 from os import environ
 from random import choice
 from typing import Any, Dict, List, Tuple, Union
+from urllib.parse import quote_plus
 
 import discord
 import pytest
@@ -20,6 +21,29 @@ import logs
 import misc
 
 
+imageTypes = (
+	"image/png",
+	"image/jpeg",
+	"image/jpg",
+	"image/gif",
+	"image/webp"
+)
+
+imageSigs = (
+	"b'\\xff\\xd8\\xff\\xe0\\x00\\x10JFIF",
+	"b'\\x89\\x50\\x4e\\x47\\x0d\\x",
+	"b'\\xff\\xd8\\xff\\xe2\\x024ICC_PRO",
+	"b'\\x89PNG\\r\\n\\x1a\\n\\",
+	"b'\\xff\\xd8\\xff\\xe1\\tPh"
+)
+
+
+def goodURL(
+	request: requests.models.Response, fileTypes: Tuple[str]
+) -> bool:
+	return request.ok and request.headers["content-type"] in imageTypes
+
+
 # TODO: add _state attribute to all mock objects, inherit from State
 # Switch to a single MockState class for all Messageable objects
 
@@ -29,7 +53,7 @@ class MockHTTPClient(discord.http.HTTPClient):
 		self,
 		loop: asyncio.AbstractEventLoop,
 		user: Union[discord.User, None] = None
-	):
+	) -> None:
 		self.loop = loop
 		self.user_agent = user
 		self.token = None
@@ -107,7 +131,7 @@ class MockHTTPClient(discord.http.HTTPClient):
 class MockUser(discord.User):
 
 	class MockUserState():
-		def __init__(self, messageNum: int = 0):
+		def __init__(self, messageNum: int = 0) -> None:
 			self._guilds = {}
 			self.allowed_mentions = discord.AllowedMentions(everyone=True)
 			self.loop = asyncio.new_event_loop()
@@ -117,19 +141,19 @@ class MockUser(discord.User):
 			self.channel = MockChannel()
 
 		def create_message(
-			self, *, channel: discord.abc.Messageable, data: Dict
+			self, *, channel: discord.abc.Messageable, data: Dict[str, Any]
 		) -> discord.Message:
 			data["id"] = self.last_message_id
 			self.last_message_id += 1
 			return discord.Message(state=self, channel=channel, data=data)
 
-		def store_user(self, data: Dict) -> discord.User:
+		def store_user(self, data: Dict[str, Any]) -> discord.User:
 			return MockUser()
 
-		def setClientUser(self):
+		def setClientUser(self) -> None:
 			self.http.user_agent = self.user
 
-		def _get_private_channel_by_user(self, id: int):
+		def _get_private_channel_by_user(self, id: int) -> discord.TextChannel:
 			return self.channel
 
 	def __init__(
@@ -139,7 +163,7 @@ class MockUser(discord.User):
 		discriminator: str = "0000",
 		id: int = 123456789,
 		roles: List[discord.Role] = []
-	):
+	) -> None:
 		self.name = name
 		self.nick = nick
 		self.id = id
@@ -154,7 +178,7 @@ class MockUser(discord.User):
 		self._public_flags = 0
 		self._state = self.MockUserState(messageNum=len(self.messages))
 
-	def setStateUser(self):
+	def setStateUser(self) -> None:
 		self._state.user = self
 		self._state.setClientUser()
 
@@ -165,7 +189,7 @@ class MockChannel(discord.TextChannel):
 	class MockChannelState():
 		def __init__(
 			self, user: Union[discord.User, None] = None, messageNum: int = 0
-		):
+		) -> None:
 			self.loop = asyncio.new_event_loop()
 			self.http = MockHTTPClient(self.loop, user)
 			self.allowed_mentions = discord.AllowedMentions(everyone=True)
@@ -173,7 +197,7 @@ class MockChannel(discord.TextChannel):
 			self.last_message_id = messageNum
 
 		def create_message(
-			self, *, channel: discord.abc.Messageable, data: Dict
+			self, *, channel: discord.abc.Messageable, data: Dict[str, Any]
 		) -> discord.Message:
 			data["id"] = self.last_message_id
 			self.last_message_id += 1
@@ -189,7 +213,7 @@ class MockChannel(discord.TextChannel):
 			type: int,
 			allow: discord.Permissions,
 			deny: discord.Permissions
-		):
+		) -> None:
 			self.id = id
 			self.type = type
 			self.allow = allow
@@ -200,7 +224,7 @@ class MockChannel(discord.TextChannel):
 		name: str = "testchannelname",
 		guild: Union[discord.Guild, None] = None,
 		messages: List[discord.Message] = []
-	):
+	) -> None:
 		self.name = name
 		self.id = 123456789
 		self.position = 0
@@ -220,7 +244,7 @@ class MockChannel(discord.TextChannel):
 		*,
 		overwrite: discord.PermissionOverwrite,
 		reason: Union[str, None] = None
-	):
+	) -> None:
 		pair = overwrite.pair()
 		self._overwrites.append(
 			self.Mock_Overwrites(
@@ -231,7 +255,7 @@ class MockChannel(discord.TextChannel):
 			)
 		)
 
-	def history(self):
+	def history(self) -> List[discord.Message]:
 		# TODO: make self.send() add message to self.messages
 		return list(reversed(self.messages))
 
@@ -244,7 +268,7 @@ class MockMessage(discord.Message):
 		author: discord.User = MockUser(),
 		guild: Union[discord.Guild, None] = None,
 		channel: discord.TextChannel = MockChannel()
-	):
+	) -> None:
 		self.author = author
 		self.content = content
 		self.id = 123456789
@@ -263,7 +287,7 @@ class MockRole(discord.Role):
 		name: str = "Test Role",
 		id: int = 123456789,
 		permissions: Union[int, discord.Permissions] = 1879573680
-	):
+	) -> None:
 		self.name = name
 		self.id = id
 		self.hoist = False
@@ -276,7 +300,7 @@ class MockRole(discord.Role):
 class MockGuild(discord.Guild):
 
 	class MockGuildState():
-		def __init__(self):
+		def __init__(self) -> None:
 			self.member_cache_flags = discord.MemberCacheFlags.all()
 			self.self_id = 1
 			self.shard_count = 1
@@ -291,7 +315,7 @@ class MockGuild(discord.Guild):
 		id: int = 0,
 		channels: List[discord.TextChannel] = [MockChannel()],
 		roles: List[discord.Role] = [MockRole()]
-	):
+	) -> None:
 		self.name = name
 		self.id = id
 		self._state = self.MockGuildState()
@@ -334,7 +358,7 @@ class MockContext(commands.Context):
 			self,
 			user: Union[discord.User, None] = None,
 			channel: discord.TextChannel = MockChannel()
-		):
+		) -> None:
 			self.loop = asyncio.new_event_loop()
 			self.http = MockHTTPClient(self.loop, user)
 			self.allowed_mentions = discord.AllowedMentions(everyone=True)
@@ -358,7 +382,7 @@ class MockContext(commands.Context):
 		channel: discord.TextChannel = MockChannel(),
 		author: discord.User = MockUser(),
 		guild: Union[discord.Guild, None] = MockGuild()
-	):
+	) -> None:
 		self.bot = bot
 		self.prefix = bot.command_prefix
 		self.message = message
@@ -378,7 +402,7 @@ class MockBot(commands.Bot):
 
 		PRESENCE = 3
 
-		def __init__(self, bot: commands.Bot):
+		def __init__(self, bot: commands.Bot) -> None:
 			self.bot = bot
 
 		async def change_presence(
@@ -387,7 +411,7 @@ class MockBot(commands.Bot):
 			activity: Union[discord.Activity, None] = None,
 			status: Union[str, None] = None,
 			afk: bool = False
-		):
+		) -> None:
 			# TODO: change "afk" to "since" for new versions of discord.py
 			data = {
 				"op": self.PRESENCE,
@@ -399,13 +423,13 @@ class MockBot(commands.Bot):
 			}
 			await self.send(data)
 
-		async def send(self, data: Dict[str, any], /):
+		async def send(self, data: Dict[str, any], /) -> Dict[str, Any]:
 			self.bot.status = data["d"]["status"]
 			self.bot.activity = data["d"]["activities"][0]
 			return data
 
 	class MockClientUser(discord.ClientUser):
-		def __init__(self, bot: commands.Bot):
+		def __init__(self, bot: commands.Bot) -> None:
 			baseUser = MockUser()
 			self._state = baseUser._state
 			self.id = 0
@@ -416,10 +440,10 @@ class MockBot(commands.Bot):
 			self.verified = True
 			self.mfa_enabled = False
 
-		async def edit(self, avatar: str):
+		async def edit(self, avatar: str) -> None:
 			self.avatar = avatar
 
-	def __init__(self, bot: commands.Bot):
+	def __init__(self, bot: commands.Bot) -> None:
 		self.command_prefix = bot.command_prefix
 		self.case_insensitive = bot.case_insensitive
 		self._help_command = bot.help_command
@@ -441,32 +465,32 @@ if not brawlKey:
 
 
 @pytest.mark.parametrize("letter", ["W", "E", "F"])
-def test_pep8Compliance(letter):
+def test_pep8Compliance(letter: str) -> None:
 	styleGuide = flake8.get_style_guide(ignore=["W191"])
 	report = styleGuide.check_files(["./"])
 	assert len(report.get_statistics(letter)) == 0
 
 
-def test_mockContextChannels():
+def test_mockContextChannels() -> None:
 	ctx = MockContext(
 		Bot.bot, channel=MockChannel(), guild=MockGuild(channels=[])
 	)
 	assert ctx.channel in ctx.guild.channels
 
 
-def test_mockContextMembers():
+def test_mockContextMembers() -> None:
 	ctx = MockContext(Bot.bot, author=MockUser(), guild=MockGuild(members=[]))
 	assert ctx.author in ctx.guild.members
 
 
-def test_createMutedRole():
+def test_createMutedRole() -> None:
 	g = MockGuild(roles=[])
 	role = asyncio.run(Bot.createMutedRole(g))
 	assert role.name == "Muted"
 	assert len(g.roles) == 1 and g.roles[0] == role
 
 
-def test_on_ready():
+def test_on_ready() -> None:
 	Bot.bot = MockBot(Bot.bot)
 	asyncio.run(Bot.on_ready())
 	assert Bot.bot.activity.name == "try !blackjack and !flip"
@@ -479,12 +503,12 @@ def test_on_ready():
 	"content,description",
 	[("e", "e"), ("", "**Embed**"), ("e" * 1025, logs.msgMaxLength)]
 )
-def test_contCheck(content, description):
+def test_contCheck(content: str, description: str) -> None:
 	m = MockMessage(content)
 	assert logs.contCheck(m) == description
 
 
-def test_on_message_delete():
+def test_on_message_delete() -> None:
 	m = MockMessage(channel=MockChannel(name="bb-log"))
 	m.guild = MockGuild(channels=[m.channel])
 	emb = asyncio.run(Bot.on_message_delete(m))
@@ -502,7 +526,7 @@ def test_on_message_delete():
 	"""
 
 
-def test_on_bulk_message_delete():
+def test_on_bulk_message_delete() -> None:
 	m = MockMessage(channel=MockChannel(name="bb-log"))
 	m.guild = MockGuild(channels=[m.channel])
 	messages = [m, m, m]
@@ -523,7 +547,7 @@ def test_on_bulk_message_delete():
 	assert log.description == f"Purged 99+ messages in {m.channel.mention}."
 
 
-def test_on_guild_channel_delete():
+def test_on_guild_channel_delete() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	channel = MockChannel(guild=g)
 	emb = asyncio.run(Bot.on_guild_channel_delete(channel))
@@ -538,7 +562,7 @@ def test_on_guild_channel_delete():
 	"""
 
 
-def test_on_guild_channel_create():
+def test_on_guild_channel_create() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	channel = MockChannel(guild=g)
 	emb = asyncio.run(Bot.on_guild_channel_create(channel))
@@ -553,7 +577,7 @@ def test_on_guild_channel_create():
 	"""
 
 
-def test_on_member_ban():
+def test_on_member_ban() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	member = MockUser()
 	emb = asyncio.run(Bot.on_member_ban(g, member))
@@ -568,7 +592,7 @@ def test_on_member_ban():
 	"""
 
 
-def test_on_member_unban():
+def test_on_member_unban() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	member = MockUser()
 	emb = asyncio.run(Bot.on_member_unban(g, member))
@@ -586,7 +610,7 @@ def test_on_member_unban():
 	"""
 
 
-def test_on_member_join():
+def test_on_member_join() -> None:
 	member = MockUser()
 	member.guild = MockGuild(channels=[MockChannel(name="bb-log")])
 	emb = asyncio.run(Bot.on_member_join(member))
@@ -605,7 +629,7 @@ def test_on_member_join():
 	"""
 
 
-def test_on_member_remove():
+def test_on_member_remove() -> None:
 	member = MockUser()
 	member.guild = MockGuild(channels=[MockChannel(name="bb-log")])
 	emb = asyncio.run(Bot.on_member_remove(member))
@@ -626,7 +650,7 @@ def test_on_member_remove():
 	"""
 
 
-def test_on_message_edit():
+def test_on_message_edit() -> None:
 	member = MockUser()
 	g = MockGuild(
 		channels=[MockChannel(name="bb-log"), MockChannel(name="infractions")]
@@ -662,13 +686,13 @@ def test_on_message_edit():
 # TODO: now that mock context has state, write tests for other Bot methods
 
 
-def test_fact():
+def test_fact() -> None:
 	with open("resources/facts.txt", "r") as f:
 		lines = f.read().splitlines()
 	assert misc.fact() in lines
 
 
-def test_tweet():
+def test_tweet() -> None:
 	eggTweet = misc.tweet()
 	assert ("\n" + eggTweet).startswith(misc.formattedTweet(eggTweet))
 	assert "." not in misc.formattedTweet("test tweet.")
@@ -678,14 +702,14 @@ def test_tweet():
 
 
 @pytest.mark.parametrize("side", [4, 6, 8, 10, 12, 20, 100])
-def test_dice_regular(side):
+def test_dice_regular(side: int) -> None:
 	user = MockUser()
 	text = "d" + str(side)
 	assert misc.roll(text) in range(1, side + 1)
 	assert (misc.rollReport(text, user).description.startswith("You got"))
 
 
-def test_dice_irregular():
+def test_dice_irregular() -> None:
 	user = MockUser()
 	assert misc.roll("d20-4") in range(-3, 17)
 	assert misc.rollReport("d20-4", user).description.startswith("You got")
@@ -694,7 +718,7 @@ def test_dice_irregular():
 	assert misc.rollReport("d9", user).description.startswith("Invalid")
 
 
-def test_logClearReacts():
+def test_logClearReacts() -> None:
 	msg = MockMessage()
 	emb = logs.logClearReacts(msg, (1, 2, 3))
 	assert (
@@ -707,7 +731,7 @@ def test_logClearReacts():
 	assert emb.fields[1].value == "1, 2, 3"
 
 
-def test_logMemberNickChange():
+def test_logMemberNickChange() -> None:
 	before = MockUser()
 	after = MockUser("testuser", "newnick")
 	emb = logs.logMemberNickChange(before, after)
@@ -716,7 +740,7 @@ def test_logMemberNickChange():
 	assert emb.fields[1].value == after.nick
 
 
-def test_logMemberRolesChange():
+def test_logMemberRolesChange() -> None:
 	before = MockUser()
 	after = MockUser(roles=(MockRole(),))
 	assert logs.logMemberRolesChange(before, after).description == (
@@ -727,7 +751,7 @@ def test_logMemberRolesChange():
 	)
 
 
-def test_logMute():
+def test_logMute() -> None:
 	message = MockMessage()
 	member = MockUser()
 	assert logs.logMute(member, message, "5", "hours", 18000).description == (
@@ -738,7 +762,7 @@ def test_logMute():
 	)
 
 
-def test_logUnmute():
+def test_logUnmute() -> None:
 	member = MockUser()
 	assert logs.logUnmute(member, MockUser()).description == (
 		f"Unmuted {member.mention}."
@@ -754,7 +778,7 @@ def test_logUnmute():
 		("hash#name", "hash#name")
 	]
 )
-def test_memSearch_valid(username, content):
+def test_memSearch_valid(username: str, content: str) -> None:
 	namedUser = MockUser(username, "testnick", "9999")
 	text = MockMessage(
 		content=content, guild=MockGuild(members=(MockUser(), namedUser))
@@ -762,7 +786,7 @@ def test_memSearch_valid(username, content):
 	assert misc.memSearch(text, content) == namedUser
 
 
-def test_memSearch_invalid():
+def test_memSearch_invalid() -> None:
 	namedUser = MockUser("searchterm", "testnick", "9999")
 	text = MockMessage(
 		content="invalidterm", guild=MockGuild(members=(MockUser(), namedUser))
@@ -770,7 +794,7 @@ def test_memSearch_invalid():
 	assert not misc.memSearch(text, text.content)
 
 
-def test_register():
+def test_register() -> None:
 	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	bucks.reset(bb)
 	assert bucks.register(bb).description == (
@@ -788,12 +812,12 @@ def test_register():
 		("Invalid user", "Invalid user!")
 	]
 )
-def test_balance(target, result):
+def test_balance(target: discord.User, result: str) -> None:
 	msg = MockMessage("!bal", guild=MockGuild())
 	assert result in bucks.balance(target, msg).description
 
 
-def test_reset():
+def test_reset() -> None:
 	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	assert bucks.reset(bb).description == (
 		f"You have been reset to 200 BeardlessBucks, {bb.mention}."
@@ -802,14 +826,14 @@ def test_reset():
 	assert bucks.reset(bb).description == bucks.commaWarn.format(bb.mention)
 
 
-def test_writeMoney():
+def test_writeMoney() -> None:
 	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	bucks.reset(bb)
 	assert bucks.writeMoney(bb, "-all", False, False) == (0, 200)
 	assert bucks.writeMoney(bb, -1000000, True, False) == (-2, None)
 
 
-def test_leaderboard():
+def test_leaderboard() -> None:
 	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	lb = bucks.leaderboard()
 	assert lb.title == "BeardlessBucks Leaderboard"
@@ -823,7 +847,7 @@ def test_leaderboard():
 	assert len(lb.fields) == len(fields) + 2
 
 
-def test_define():
+def test_define() -> None:
 	word = misc.define("test")
 	assert word.title == "TEST" and word.description.startswith("Audio: ")
 	word = misc.define("gtg")
@@ -831,7 +855,7 @@ def test_define():
 	assert misc.define("invalidword").description == "No results found."
 
 
-def test_flip():
+def test_flip() -> None:
 	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	assert bucks.flip(bb, "0", True).endswith("actually bet anything.")
 	assert bucks.flip(bb, "invalidbet").startswith("Invalid bet.")
@@ -848,7 +872,7 @@ def test_flip():
 	assert bucks.flip(bb, "0") == bucks.commaWarn.format(bb.mention)
 
 
-def test_blackjack():
+def test_blackjack() -> None:
 	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, 654133911558946837)
 	assert bucks.blackjack(bb, "invalidbet")[0].startswith("Invalid bet.")
 	bucks.reset(bb)
@@ -867,13 +891,13 @@ def test_blackjack():
 	assert bucks.blackjack(bb, "all")[0] == bucks.commaWarn.format(bb.mention)
 
 
-def test_blackjack_perfect():
+def test_blackjack_perfect() -> None:
 	game = bucks.Instance(MockUser(), 10)
 	game.cards = 10, 11
 	assert game.perfect()
 
 
-def test_blackjack_deal():
+def test_blackjack_deal() -> None:
 	game = bucks.Instance(MockUser(), 10)
 	game.cards = [2, 3]
 	game.deal()
@@ -886,7 +910,7 @@ def test_blackjack_deal():
 	assert "You hit 21!" in game.deal(True)
 
 
-def test_blackjack_cardName():
+def test_blackjack_cardName() -> None:
 	game = bucks.Instance(MockUser(), 10)
 	assert game.cardName(10) in ("a 10", "a Jack", "a Queen", "a King")
 	assert game.cardName(11) == "an Ace"
@@ -894,13 +918,13 @@ def test_blackjack_cardName():
 	assert game.cardName(5) == "a 5"
 
 
-def test_blackjack_checkBust():
+def test_blackjack_checkBust() -> None:
 	game = bucks.Instance(MockUser(), 10)
 	game.cards = 10, 10, 10
 	assert game.checkBust()
 
 
-def test_blackjack_stay():
+def test_blackjack_stay() -> None:
 	game = bucks.Instance(MockUser(), 0)
 	game.cards = [10, 10, 1]
 	game.dealerSum = 25
@@ -913,7 +937,7 @@ def test_blackjack_stay():
 	assert game.stay() == 0
 
 
-def test_blackjack_startingHand():
+def test_blackjack_startingHand() -> None:
 	game = bucks.Instance(MockUser(), 10)
 	game.cards = []
 	game.message = game.startingHand()
@@ -923,7 +947,7 @@ def test_blackjack_startingHand():
 	assert "two Aces" in game.startingHand(False, True)
 
 
-def test_activeGame():
+def test_activeGame() -> None:
 	author = MockUser(name="target", id=0)
 	games = [bucks.Instance(MockUser(name="not", id=1), 10)] * 9
 	assert not bucks.activeGame(games, author)
@@ -931,7 +955,7 @@ def test_activeGame():
 	assert bucks.activeGame(games, author)
 
 
-def test_info():
+def test_info() -> None:
 	namedUser = MockUser("searchterm", roles=[MockRole(), MockRole()])
 	guild = MockGuild(members=[MockUser(), namedUser])
 	text = MockMessage("!info searchterm", guild=guild)
@@ -942,7 +966,7 @@ def test_info():
 	assert misc.info("!infoerror", text).title == "Invalid target!"
 
 
-def test_av():
+def test_av() -> None:
 	namedUser = MockUser("searchterm")
 	guild = MockGuild(members=[MockUser(), namedUser])
 	text = MockMessage("!av searchterm", guild=guild)
@@ -950,7 +974,7 @@ def test_av():
 	assert misc.av("error", text).title == "Invalid target!"
 
 
-def test_commands():
+def test_commands() -> None:
 	ctx = MockContext(Bot.bot, guild=None)
 	assert len(misc.bbCommands(ctx).fields) == 15
 	ctx.guild = MockGuild()
@@ -960,12 +984,12 @@ def test_commands():
 	assert len(misc.bbCommands(ctx).fields) == 17
 
 
-def test_hints():
+def test_hints() -> None:
 	with open("resources/hints.txt", "r") as f:
 		assert len(misc.hints().fields) == len(f.read().splitlines())
 
 
-def test_pingMsg():
+def test_pingMsg() -> None:
 	namedUser = MockUser("likesToPing")
 	assert (
 		brawl.pingMsg(namedUser.mention, 1, 1, 1)
@@ -977,7 +1001,7 @@ def test_pingMsg():
 	)
 
 
-def test_scamCheck():
+def test_scamCheck() -> None:
 	assert misc.scamCheck("http://dizcort.com free nitro!")
 	assert misc.scamCheck("@everyone http://didcord.gg free nitro!")
 	assert misc.scamCheck("gift nitro http://d1zcordn1tr0.co.uk free!")
@@ -989,55 +1013,53 @@ def test_scamCheck():
 	)
 
 
-def test_onJoin():
+# TODO: switch to mock context, add test for error with quotation mark
+@pytest.mark.parametrize("searchterm", ["Русская лексика", "two words", ""])
+def test_search_valid(searchterm: str) -> None:
+	url = "https://www.google.com/search?q=" + quote_plus(searchterm)
+	assert url == misc.search(searchterm).description
+	r = requests.get(url)
+	assert r.ok
+
+
+def test_search_invalid() -> None:
+	assert misc.search(5).title == "Invalid Search!"
+
+
+def test_onJoin() -> None:
 	role = MockRole(id=0)
 	guild = MockGuild(name="Test Guild", roles=[role])
-	assert misc.onJoin(guild, role).title == "Hello, Test Guild!"
+	emb = misc.onJoin(guild, role)
+	assert emb.title == "Hello, Test Guild!"
+	assert emb.description == misc.joinMsg.format(guild.name, role.mention)
 
 
-def test_animal():
+@pytest.mark.parametrize("animalName", list(misc.animalList[:-4]) + ["dog"])
+def test_animal_with_goodUrl(animalName: str) -> None:
+	assert goodURL(requests.get(misc.animal(animalName)), imageTypes)
 
-	def goodURL(
-		request: requests.models.Response, fileTypes: Tuple[str]
-	) -> bool:
-		return request.ok and request.headers["content-type"] in imageTypes
 
-	imageTypes = (
-		"image/png",
-		"image/jpeg",
-		"image/jpg",
-		"image/gif",
-		"image/webp"
+@pytest.mark.parametrize("animalName", misc.animalList[-4:])
+def test_animal_with_imageSigs(animalName: str) -> None:
+	# Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field;
+	# check if URL points to an image instead
+	r = requests.get(misc.animal(animalName))
+	assert r.ok and any(
+		str(r.content).startswith(signature) for signature in imageSigs
 	)
-	imageSigs = (
-		"b'\\xff\\xd8\\xff\\xe0\\x00\\x10JFIF",
-		"b'\\x89\\x50\\x4e\\x47\\x0d\\x",
-		"b'\\xff\\xd8\\xff\\xe2\\x024ICC_PRO",
-		"b'\\x89PNG\\r\\n\\x1a\\n\\",
-		"b'\\xff\\xd8\\xff\\xe1\\tPh"
-	)
-	for animalName in misc.animalList[:-4]:
-		assert goodURL(requests.get(misc.animal(animalName)), imageTypes)
 
-	for animalName in misc.animalList[-4:]:
-		# Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field;
-		# check if URL points to an image instead
-		r = requests.get(misc.animal(animalName))
-		assert r.ok and any(
-			str(r.content).startswith(signature) for signature in imageSigs
-		)
 
-	assert goodURL(requests.get(misc.animal("dog")), imageTypes)
-
+def test_animal_dog_breed() -> None:
 	breeds = misc.animal("dog", "breeds")[12:-1].split(", ")
 	assert len(breeds) >= 94
 	r = requests.get(misc.animal("dog", choice(breeds)))
 	assert goodURL(r, imageTypes)
 	assert misc.animal("dog", "invalidbreed").startswith("Breed not")
 	assert misc.animal("dog", "invalidbreed1234").startswith("Breed not")
-
 	assert goodURL(requests.get(misc.animal("dog", "moose")), imageTypes)
 
+
+def test_invalid_animal_raises_exception() -> None:
 	with pytest.raises(Exception):
 		misc.animal("invalidAnimal")
 
@@ -1045,19 +1067,19 @@ def test_animal():
 # Tests for commands that require a Brawlhalla API key:
 
 
-def test_randomBrawl():
+def test_randomBrawl() -> None:
 	assert brawl.randomBrawl("weapon").title == "Random Weapon"
 	assert brawl.randomBrawl("legend").title == "Random Legend"
 	assert len(brawl.randomBrawl("legend", brawlKey).fields) == 2
 	assert brawl.randomBrawl("invalidrandom").title == "Brawlhalla Randomizer"
 
 
-def test_fetchBrawlID():
+def test_fetchBrawlID() -> None:
 	assert brawl.fetchBrawlID(196354892208537600) == 7032472
 	assert not brawl.fetchBrawlID(654133911558946837)
 
 
-def test_claimProfile():
+def test_claimProfile() -> None:
 	with open("resources/claimedProfs.json", "r") as f:
 		profsLen = len(load(f))
 	brawl.claimProfile(196354892208537600, 1)
@@ -1076,23 +1098,23 @@ def test_claimProfile():
 		("https://steamcommunity.com/badurl", None)
 	]
 )
-def test_getBrawlID(url, result):
+def test_getBrawlID(url: str, result: Union[int, None]) -> None:
 	assert brawl.getBrawlID(brawlKey, url) == result
 
 
-def test_getLegends():
+def test_getLegends() -> None:
 	oldLegends = brawl.fetchLegends()
 	brawl.getLegends(brawlKey)
 	assert brawl.fetchLegends() == oldLegends
 
 
-def test_legendInfo():
+def test_legendInfo() -> None:
 	assert brawl.legendInfo(brawlKey, "hugin").title == "Munin, The Raven"
 	assert brawl.legendInfo(brawlKey, "teros").title == "Teros, The Minotaur"
 	assert not brawl.legendInfo(brawlKey, "invalidname")
 
 
-def test_getRank():
+def test_getRank() -> None:
 	user = MockUser(id=0)
 	assert brawl.getRank(user, brawlKey).description == (
 		brawl.unclaimed.format(user.mention)
@@ -1109,7 +1131,7 @@ def test_getRank():
 	brawl.claimProfile(196354892208537600, 7032472)
 
 
-def test_getStats():
+def test_getStats() -> None:
 	user = MockUser(id=0)
 	assert brawl.getStats(user, brawlKey).description == (
 		brawl.unclaimed.format(user.mention)
@@ -1120,7 +1142,7 @@ def test_getStats():
 	assert len(emb.fields) in (3, 4)
 
 
-def test_getClan():
+def test_getClan() -> None:
 	user = MockUser(id=0)
 	assert brawl.getClan(user, brawlKey).description == (
 		brawl.unclaimed.format(user.mention)
@@ -1134,5 +1156,5 @@ def test_getClan():
 	brawl.claimProfile(196354892208537600, 7032472)
 
 
-def test_brawlCommands():
+def test_brawlCommands() -> None:
 	assert len(brawl.brawlCommands().fields) == 6

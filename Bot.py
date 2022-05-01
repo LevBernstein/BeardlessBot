@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.16"
+__version__ = "Full Release 1.7.17"
 
 import asyncio
 from random import choice, randint
@@ -414,9 +414,9 @@ async def cmdSource(ctx, *args):
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Fun Facts", source))
 
 
-@bot.command(name="add", aliases=("join",))
+@bot.command(name="add", aliases=("join", "invite"))
 async def cmdAdd(ctx, *args):
-	await ctx.send(embed=misc.joinMsg)
+	await ctx.send(embed=misc.inviteMsg)
 
 
 @bot.command(name="rohan")
@@ -650,7 +650,9 @@ async def cmdPurge(ctx, num=None, *args):
 	if ctx.guild and ctx.author.guild_permissions.manage_messages:
 		try:
 			mNum = int(num)
-		except ValueError:
+			if mNum < 0:
+				raise ValueError
+		except (TypeError, ValueError):
 			emb = misc.bbEmbed(
 				"Beardless Bot Purge", "Invalid message number!"
 			)
@@ -754,7 +756,9 @@ async def cmdSpar(ctx, region=None, *args):
 		report = brawl.pingMsg(author, hours, minutes, seconds)
 	await ctx.send(report)
 	if args and role and not tooRecent:
-		await ctx.send(f"Additional info: \"{' '.join(args)}\"")
+		await ctx.send(
+			f"Additional info: \"{' '.join(args)}\"".replace("@", "")
+		)
 
 
 # Commands requiring a Brawlhalla API key:
@@ -859,7 +863,7 @@ async def cmdBrawllegend(ctx, legend=None, *args):
 	)
 	if legend:
 		try:
-			legend = brawl.legendInfo(brawlKey, legend)
+			legend = brawl.legendInfo(brawlKey, legend.lower())
 		except Exception as e:
 			log(e, ctx)
 			report = brawl.reqLimit
@@ -899,6 +903,11 @@ async def cmdGuide(ctx, *args):
 				"https://www.youtube.com/watch?v=nH0TOoJIU80"
 			)
 		)
+
+
+@bot.command(name="search", aliases=("google", "lmgtfy"))
+async def cmdSearch(ctx, *words):
+	await ctx.send(embed=misc.search(" ".join(words)))
 
 
 @bot.listen()
