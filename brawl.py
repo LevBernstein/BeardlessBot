@@ -30,7 +30,7 @@ reqLimit = (
 	" Please wait 15 minutes and try again later."
 )
 
-unclaimed = "{} needs to claim their profile first! Do !brawlclaim."
+unclaimed = "{} needs to claim their profile first! " + badClaim
 
 thumbBase = (
 	"https://static.wikia.nocookie.net/brawlhalla_gamepedia/images/"

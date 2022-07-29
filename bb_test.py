@@ -1005,6 +1005,7 @@ def test_scamCheck() -> None:
 	assert misc.scamCheck("http://dizcort.com free nitro!")
 	assert misc.scamCheck("@everyone http://didcord.gg free nitro!")
 	assert misc.scamCheck("gift nitro http://d1zcordn1tr0.co.uk free!")
+	assert misc.scamCheck("hey @everyone check it! http://discocl.com/ nitro!")
 	assert not misc.scamCheck(
 		"Hey Discord friends, check out https://top.gg/bot/654133911558946837"
 	)
@@ -1125,9 +1126,9 @@ def test_getRank() -> None:
 	assert brawl.getRank(user, brawlKey).description == (
 		"You haven't played ranked yet this season."
 	)
-	brawl.claimProfile(196354892208537600, 93812)
+	brawl.claimProfile(196354892208537600, 12502880)
 	user.id = 196354892208537600
-	assert brawl.getRank(user, brawlKey).color.value == 0x3D2399
+	assert brawl.getRank(user, brawlKey).color.value == 0x0051B4
 	brawl.claimProfile(196354892208537600, 7032472)
 
 

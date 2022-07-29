@@ -424,28 +424,30 @@ def hints() -> discord.Embed:
 
 def scamCheck(text: str) -> bool:
 	msg = text.lower()
-	words = msg.split()
 	checkOne = re.compile(r"^.*https?://d\w\wc\wr(d|t)\.\w{2,4}.*")
 	checkTwo = re.compile(r"^.*(nitro|gift|@everyone).*")
 	checkThree = re.compile(r"^.*https?://d\w\wc\wr\wn\wtr\w\.\w{2,5}.*")
 	checkFour = all((
 		"http" in msg,
-		"@everyone" in words,
-		any(("nitro" in words, "discord" in words, ".gift/" in msg)),
+		"@everyone" in msg,
+		any(("nitro" in msg, "discord" in msg, ".gift/" in msg)),
 		any((
-			"free" in words,
-			"airdrop" in words,
+			"free" in msg,
+			"airdrop" in msg,
 			"gift" in msg,
-			"left over" in msg
+			"left over" in msg,
+			"discocl" in msg
 		))
 	))
 	checkFive = re.compile(r"^.*https://discord.gift/.*")
 
-	return ((
+	return (
 		(
-			bool(checkOne.match(msg)) or bool(checkThree.match(msg))
-		) and bool(checkTwo.match(msg))
-	) or checkFour) and not bool(checkFive.match(msg))
+			(
+				bool(checkOne.match(msg)) or bool(checkThree.match(msg))
+			) and bool(checkTwo.match(msg))
+		) or checkFour
+	) and not bool(checkFive.match(msg))
 
 
 def onJoin(guild: discord.Guild, role: discord.Role) -> discord.Embed:
@@ -456,14 +458,13 @@ def onJoin(guild: discord.Guild, role: discord.Role) -> discord.Embed:
 
 def search(searchterm: str = "") -> discord.Embed:
 	try:
-		return bbEmbed(
+		emb = bbEmbed(
 			"Search Results",
 			"https://www.google.com/search?q=" + quote_plus(searchterm)
-		).set_thumbnail(url=prof)
+		)
 	except TypeError:
-		return bbEmbed(
-			"Invalid Search!", "Please enter a valid searchterm."
-		).set_thumbnail(url=prof)
+		emb = bbEmbed("Invalid Search!", "Please enter a valid search term.")
+	return emb.set_thumbnail(url=prof)
 
 
 # The following Markov chain code was originally provided by CSTUY SHIP.
