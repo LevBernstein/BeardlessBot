@@ -1,6 +1,6 @@
 # Beadless Bot event logging methods
 
-from typing import List, Union
+from typing import List, Optional
 
 import discord
 
@@ -182,9 +182,9 @@ def logUnban(member: discord.Member) -> discord.Embed:
 def logMute(
 	member: discord.Member,
 	message: discord.Message,
-	duration: Union[str, None],
-	mString: Union[str, None],
-	mTime: Union[float, None]
+	duration: Optional[str],
+	mString: Optional[str],
+	mTime: Optional[float]
 ) -> discord.Embed:
 	mid = f" for {duration} {mString}" if mTime else ""
 	return bbEmbed(

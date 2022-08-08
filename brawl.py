@@ -3,7 +3,7 @@
 from datetime import datetime
 from json import dump, load
 from random import choice
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
 import discord
 import requests
@@ -86,7 +86,7 @@ def brawlWinRate(j: Dict[str, int]) -> float:
 
 
 def pingMsg(target: discord.Member, h: int, m: int, s: int) -> str:
-	def plural(t):
+	def plural(t: int):
 		return "" if t == 1 else "s"
 
 	return (
@@ -123,7 +123,7 @@ def claimProfile(discordID: int, brawlID: int):
 		dump(profs, g, indent=4)
 
 
-def fetchBrawlID(discordID: int) -> Union[int, None]:
+def fetchBrawlID(discordID: int) -> Optional[int]:
 	with open("resources/claimedProfs.json") as f:
 		for key, value in load(f).items():
 			if key == str(discordID):
@@ -141,10 +141,9 @@ def apiCall(route: str, arg: str, key: str, amp: str = "?") -> Dict[str, Any]:
 	return requests.get(url).json()
 
 
-def getBrawlID(brawlKey: str, profileURL: str) -> Union[int, None]:
+def getBrawlID(brawlKey: str, profileURL: str) -> Optional[int]:
 	try:
-		steamID = from_url(profileURL)
-		if not steamID:
+		if not (steamID := from_url(profileURL)):
 			return None
 		r = apiCall("search?steamid=", steamID, brawlKey, "&")
 		return r["brawlhalla_id"]
@@ -158,7 +157,7 @@ def getLegends(brawlKey: str):
 		dump(apiCall("legend/", "all/", brawlKey), f, indent=4)
 
 
-def legendInfo(brawlKey: str, legendName: str) -> Union[discord.Embed, None]:
+def legendInfo(brawlKey: str, legendName: str) -> Optional[discord.Embed]:
 	# TODO: add legend images as thumbnail
 	if legendName == "hugin":
 		legendName = "munin"
@@ -210,13 +209,11 @@ def legendInfo(brawlKey: str, legendName: str) -> Union[discord.Embed, None]:
 def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 	# TODO: add rank images as thumbnail, clan below name;
 	# download local copies of rank images bc there's no easy format on wiki
-	brawlID = fetchBrawlID(target.id)
-	if not brawlID:
+	if not (brawlID := fetchBrawlID(target.id)):
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Rank", unclaimed.format(target.mention)
 		)
-	r = apiCall("player/", str(brawlID) + "/ranked", brawlKey)
-	if len(r) < 4:
+	if len(r := apiCall("player/", str(brawlID) + "/ranked", brawlKey)) < 4:
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Rank",
 			"You haven't played ranked yet this season."
@@ -288,13 +285,11 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 		ttk = round(legend["matchtime"] / legend["kos"], 1)
 		return (legend["legend_name_key"].title(), ttk)
 
-	brawlID = fetchBrawlID(target.id)
-	if not brawlID:
+	if not (brawlID := fetchBrawlID(target.id)):
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Stats", unclaimed.format(target.mention)
 		)
-	r = apiCall("player/", str(brawlID) + "/stats", brawlKey)
-	if len(r) < 4:
+	if len(r := apiCall("player/", str(brawlID) + "/stats", brawlKey)) < 4:
 		noStats = (
 			"This profile doesn't have stats associated with it."
 			" Please make sure you've claimed the correct profile."
@@ -347,8 +342,7 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 
 
 def getClan(target: discord.Member, brawlKey: str) -> discord.Embed:
-	brawlID = fetchBrawlID(target.id)
-	if not brawlID:
+	if not (brawlID := fetchBrawlID(target.id)):
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Clan", unclaimed.format(target.mention)
 		)

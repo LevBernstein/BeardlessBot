@@ -3,7 +3,7 @@
 import re
 from datetime import datetime
 from random import choice, randint
-from typing import Union
+from typing import Optional, Union
 from urllib.parse import quote_plus
 
 import discord
@@ -32,6 +32,7 @@ animalList = (
 	"frog",
 	"axolotl",
 	"bear",
+	"zoo",
 	"bird",
 	"koala",
 	"raccoon",
@@ -115,7 +116,7 @@ def bbEmbed(
 
 def memSearch(
 	message: discord.Message, target: str
-) -> Union[discord.Member, None]:
+) -> Optional[discord.Member]:
 	"""
 	User lookup helper method. Finds user based on
 	username and/or discriminator (#1234).
@@ -138,7 +139,7 @@ def memSearch(
 	return semiMatch if semiMatch else looseMatch
 
 
-def animal(animalType: str, breed: Union[str, None] = None) -> str:
+def animal(animalType: str, breed: Optional[str] = None) -> str:
 	r = "Invalid Animal"
 
 	if "moose" in (animalType, breed):
@@ -205,15 +206,17 @@ def animal(animalType: str, breed: Union[str, None] = None) -> str:
 		if r.status_code == 200:
 			return r.json()["image"]
 
-	elif animalType in ("duck", "lizard", "axolotl"):
+	elif animalType in ("duck", "lizard"):
 		if animalType == "duck":
 			r = requests.get("https://random-d.uk/api/quack")
-		elif animalType == "lizard":
-			r = requests.get("https://nekos.life/api/v2/img/lizard")
 		else:
-			r = requests.get("https://axoltlapi.herokuapp.com/")
+			r = requests.get("https://nekos.life/api/v2/img/lizard")
 		if r.status_code == 200:
 			return r.json()["url"]
+
+	elif animalType == "zoo":
+		r = requests.get("https://zoo-animal-api.herokuapp.com/animals/rand")
+		return r.json()["image_link"]
 
 	elif animalType == "bear":
 		return f"https://placebear.com/{randint(200, 400)}/{randint(200,400)}"
@@ -229,6 +232,11 @@ def animal(animalType: str, breed: Union[str, None] = None) -> str:
 			"https://raw.githubusercontent.com/"
 			f"a9-i/frog/main/ImgSetOpt/{frog}"
 		)
+
+	if animalType == "axolotl":
+		r = requests.get("https://axoltlapi.herokuapp.com/").json()["url"]
+		if not r.startswith("404"):
+			return r
 
 	raise Exception(str(r) + ": " + animalType)
 
@@ -257,7 +265,7 @@ def define(word: str) -> discord.Embed:
 	return bbEmbed("Beardless Bot Definitions", "No results found.")
 
 
-def roll(text: str) -> Union[int, None]:
+def roll(text: str) -> Optional[int]:
 	# Takes a string of the format dn+b and rolls one
 	# n-sided die with a modifier of b. Modifier is optional.
 	try:
@@ -278,8 +286,7 @@ def rollReport(
 	text: str,
 	author: Union[discord.User, discord.Member]
 ) -> discord.Embed:
-	result = roll(text.lower())
-	if result is not None:
+	if (result := roll(text.lower())) is not None:
 		report = f"You got {result}, {author.mention}."
 	else:
 		report = (
@@ -429,7 +436,7 @@ def scamCheck(text: str) -> bool:
 	checkThree = re.compile(r"^.*https?://d\w\wc\wr\wn\wtr\w\.\w{2,5}.*")
 	checkFour = all((
 		"http" in msg,
-		"@everyone" in msg,
+		"@everyone" in msg or "stym" in msg,
 		any(("nitro" in msg, "discord" in msg, ".gift/" in msg)),
 		any((
 			"free" in msg,
@@ -474,8 +481,7 @@ def tweet() -> str:
 	chains = {}
 	keySize = randint(1, 2)
 	for i in range(len(words) - keySize):
-		key = " ".join(words[i:i + keySize])
-		if key not in chains:
+		if (key := " ".join(words[i:i + keySize])) not in chains:
 			chains[key] = []
 		chains[key].append(words[i + keySize])
 	key = s = choice(list(chains.keys()))

@@ -5,7 +5,7 @@ from dotenv import dotenv_values
 from json import load
 from os import environ
 from random import choice
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import quote_plus
 
 import discord
@@ -28,6 +28,8 @@ imageTypes = (
 	"image/gif",
 	"image/webp"
 )
+
+# Zoo API headers report text for some reason
 
 imageSigs = (
 	"b'\\xff\\xd8\\xff\\xe0\\x00\\x10JFIF",
@@ -52,7 +54,7 @@ class MockHTTPClient(discord.http.HTTPClient):
 	def __init__(
 		self,
 		loop: asyncio.AbstractEventLoop,
-		user: Union[discord.User, None] = None
+		user: Optional[discord.User] = None
 	) -> None:
 		self.loop = loop
 		self.user_agent = user
@@ -62,7 +64,7 @@ class MockHTTPClient(discord.http.HTTPClient):
 		self._locks = {}
 
 	async def create_role(
-		self, roleId: int, reason: Union[str, None] = None, **fields: Any
+		self, roleId: int, reason: Optional[str] = None, **fields: Any
 	) -> Dict[str, Any]:
 		data = {
 			"id": roleId,
@@ -83,16 +85,16 @@ class MockHTTPClient(discord.http.HTTPClient):
 	async def send_message(
 		self,
 		channel_id: Union[str, int],
-		content: Union[str, None] = None,
+		content: Optional[str] = None,
 		*,
 		tts: bool = False,
-		embed: Union[discord.Embed, None] = None,
-		embeds: Union[List[discord.Embed], None] = None,
-		nonce: Union[str, None] = None,
-		allowed_mentions: Union[Dict[str, Any], None] = None,
-		message_reference: Union[Dict[str, Any], None] = None,
-		stickers: Union[List[discord.Sticker], None] = None,
-		components: Union[List[Any], None] = None
+		embed: Optional[discord.Embed] = None,
+		embeds: Optional[List[discord.Embed]] = None,
+		nonce: Optional[str] = None,
+		allowed_mentions: Optional[Dict[str, Any]] = None,
+		message_reference: Optional[Dict[str, Any]] = None,
+		stickers: Optional[List[discord.Sticker]] = None,
+		components: Optional[List[Any]] = None
 	) -> Dict[str, Any]:
 		data = {
 			"attachments": [],
@@ -162,7 +164,8 @@ class MockUser(discord.User):
 		nick: str = "testnick",
 		discriminator: str = "0000",
 		id: int = 123456789,
-		roles: List[discord.Role] = []
+		roles: List[discord.Role] = [],
+		guild: Optional[discord.Guild] = None
 	) -> None:
 		self.name = name
 		self.nick = nick
@@ -175,6 +178,7 @@ class MockUser(discord.User):
 		self.activity = None
 		self.system = False
 		self.messages = []
+		self.guild = guild
 		self._public_flags = 0
 		self._state = self.MockUserState(messageNum=len(self.messages))
 
@@ -188,7 +192,7 @@ class MockChannel(discord.TextChannel):
 
 	class MockChannelState():
 		def __init__(
-			self, user: Union[discord.User, None] = None, messageNum: int = 0
+			self, user: Optional[discord.User] = None, messageNum: int = 0
 		) -> None:
 			self.loop = asyncio.new_event_loop()
 			self.http = MockHTTPClient(self.loop, user)
@@ -222,7 +226,7 @@ class MockChannel(discord.TextChannel):
 	def __init__(
 		self,
 		name: str = "testchannelname",
-		guild: Union[discord.Guild, None] = None,
+		guild: Optional[discord.Guild] = None,
 		messages: List[discord.Message] = []
 	) -> None:
 		self.name = name
@@ -243,7 +247,7 @@ class MockChannel(discord.TextChannel):
 		target: Union[discord.Role, discord.User],
 		*,
 		overwrite: discord.PermissionOverwrite,
-		reason: Union[str, None] = None
+		reason: Optional[str] = None
 	) -> None:
 		pair = overwrite.pair()
 		self._overwrites.append(
@@ -266,7 +270,7 @@ class MockMessage(discord.Message):
 		self,
 		content: str = "testcontent",
 		author: discord.User = MockUser(),
-		guild: Union[discord.Guild, None] = None,
+		guild: Optional[discord.Guild] = None,
 		channel: discord.TextChannel = MockChannel()
 	) -> None:
 		self.author = author
@@ -356,7 +360,7 @@ class MockContext(commands.Context):
 	class MockContextState():
 		def __init__(
 			self,
-			user: Union[discord.User, None] = None,
+			user: Optional[discord.User] = None,
 			channel: discord.TextChannel = MockChannel()
 		) -> None:
 			self.loop = asyncio.new_event_loop()
@@ -381,7 +385,7 @@ class MockContext(commands.Context):
 		message: discord.Message = MockMessage(),
 		channel: discord.TextChannel = MockChannel(),
 		author: discord.User = MockUser(),
-		guild: Union[discord.Guild, None] = MockGuild()
+		guild: Optional[discord.Guild] = MockGuild()
 	) -> None:
 		self.bot = bot
 		self.prefix = bot.command_prefix
@@ -408,8 +412,8 @@ class MockBot(commands.Bot):
 		async def change_presence(
 			self,
 			*,
-			activity: Union[discord.Activity, None] = None,
-			status: Union[str, None] = None,
+			activity: Optional[discord.Activity] = None,
+			status: Optional[str] = None,
 			afk: bool = False
 		) -> None:
 			# TODO: change "afk" to "since" for new versions of discord.py
@@ -481,6 +485,22 @@ def test_mockContextChannels() -> None:
 def test_mockContextMembers() -> None:
 	ctx = MockContext(Bot.bot, author=MockUser(), guild=MockGuild(members=[]))
 	assert ctx.author in ctx.guild.members
+
+
+@pytest.fixture
+def test_logException(caplog: pytest.LogCaptureFixture) -> None:
+	ctx = MockContext(
+		Bot.bot,
+		author=MockUser(name="testuser", discriminator="0000"),
+		message=MockMessage(content="!axolotl"),
+		guild=MockGuild(name="guild")
+	)
+	ctx.invoked_with = "axolotl"
+	Bot.logException(Exception("404: Not Found: axolotl"), ctx)
+	assert caplog.records[0].msg == (
+		"404: Not Found: axolotl Command: axolotl; Author:"
+		" testuser#0000; Content: !axolotl; Guild: guild"
+	)
 
 
 def test_createMutedRole() -> None:
@@ -650,6 +670,33 @@ def test_on_member_remove() -> None:
 	"""
 
 
+def test_on_member_update() -> None:
+	guild = MockGuild(channels=[MockChannel(name="bb-log")])
+	old = MockUser(nick="a", roles=[], guild=guild)
+	new = MockUser(nick="b", roles=[], guild=guild)
+	emb = asyncio.run(Bot.on_member_update(old, new))
+	log = logs.logMemberNickChange(old, new)
+	assert emb.description == log.description
+	assert log.description == "Nickname of " + new.mention + " changed."
+	assert log.fields[0].value == old.nick
+	assert log.fields[1].value == new.nick
+
+	new = MockUser(nick="a", roles=[MockRole()], guild=guild)
+	emb = asyncio.run(Bot.on_member_update(old, new))
+	log = logs.logMemberRolesChange(old, new)
+	assert emb.description == log.description
+	assert log.description == (
+		f"Role {new.roles[0].mention} added to {new.mention}."
+	)
+
+	emb = asyncio.run(Bot.on_member_update(new, old))
+	log = logs.logMemberRolesChange(new, old)
+	assert emb.description == log.description
+	assert log.description == (
+		f"Role {new.roles[0].mention} removed from {old.mention}."
+	)
+
+
 def test_on_message_edit() -> None:
 	member = MockUser()
 	g = MockGuild(
@@ -681,6 +728,19 @@ def test_on_message_edit() -> None:
 		(i.embed.description == log.description for i in channel.history())
 	)
 	'''
+
+
+def test_cmdDice() -> None:
+	ch = MockChannel()
+	ctx = MockContext(Bot.bot, channel=ch, guild=MockGuild(channels=[ch]))
+	emb = asyncio.run(Bot.cmdDice(ctx))
+	assert emb.description == misc.diceMsg
+	"""
+	# TODO: append sent messages to channel.messages
+	assert any(
+		(i.embed.description == emb.description for i in ch.history())
+	)
+	"""
 
 
 # TODO: now that mock context has state, write tests for other Bot methods
@@ -729,26 +789,6 @@ def test_logClearReacts() -> None:
 	)
 	assert emb.fields[0].value.startswith(msg.content)
 	assert emb.fields[1].value == "1, 2, 3"
-
-
-def test_logMemberNickChange() -> None:
-	before = MockUser()
-	after = MockUser("testuser", "newnick")
-	emb = logs.logMemberNickChange(before, after)
-	assert emb.description == "Nickname of " + after.mention + " changed."
-	assert emb.fields[0].value == before.nick
-	assert emb.fields[1].value == after.nick
-
-
-def test_logMemberRolesChange() -> None:
-	before = MockUser()
-	after = MockUser(roles=(MockRole(),))
-	assert logs.logMemberRolesChange(before, after).description == (
-		f"Role {after.roles[0].mention} added to {after.mention}."
-	)
-	assert logs.logMemberRolesChange(after, before).description == (
-		f"Role {after.roles[0].mention} removed from {before.mention}."
-	)
 
 
 def test_logMute() -> None:
@@ -1099,7 +1139,7 @@ def test_claimProfile() -> None:
 		("https://steamcommunity.com/badurl", None)
 	]
 )
-def test_getBrawlID(url: str, result: Union[int, None]) -> None:
+def test_getBrawlID(url: str, result: Optional[int]) -> None:
 	assert brawl.getBrawlID(brawlKey, url) == result
 
 

@@ -1,8 +1,11 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.7.18"
+__version__ = "Full Release 1.8.0"
 
 import asyncio
+import logging
+from datetime import datetime
 from random import choice, randint
+from sys import stdout
 from time import time
 from typing import List
 
@@ -33,13 +36,10 @@ bot = commands.Bot(
 )
 
 
-def log(e: Exception, ctx: commands.Context):
-	print(
-		f"Exception: {e}\n",
-		f"Command: {ctx.invoked_with}\n",
-		f"Author: {ctx.author}\n",
-		f"Content: {logs.contCheck(ctx.message)}\n",
-		f"Guild: {ctx.guild}\n"
+def logException(e: Exception, ctx: commands.Context) -> None:
+	logging.error(
+		f"{e} Command: {ctx.invoked_with}; Author: {ctx.author};"
+		f" Content: {logs.contCheck(ctx.message)}; Guild: {ctx.guild}"
 	)
 
 
@@ -69,40 +69,43 @@ async def createMutedRole(guild: discord.Guild) -> discord.Role:
 
 @bot.event
 async def on_ready():
-	print("Beardless Bot online!")
+	logging.info(f"Beardless Bot {__version__} online!")
 
 	status = discord.Game(name="try !blackjack and !flip")
 	try:
 		await bot.change_presence(activity=status)
-		print("Status updated!")
+		logging.info("Status updated!")
 		with open("resources/images/prof.png", "rb") as f:
 			await bot.user.edit(avatar=f.read())
-		print("Avatar updated!")
+		logging.info("Avatar updated!")
 	except discord.HTTPException:
-		print("Failed to update avatar or status!")
+		logging.error("Failed to update avatar or status!")
 	except FileNotFoundError:
-		print("Avatar file not found! Check your directory structure.")
+		logging.error("Avatar file not found! Check your directory structure.")
 
-	# Initialize ping waiting time to 0 for each server:
+	# Initialize ping waiting time to 0 for each server, get server size:
 	global sparPings
-	mems = 0
-	for guild in bot.guilds:
-		sparPings[guild.id] = {r: 0 for r in brawl.regions}
-		mems += guild.member_count
-		await guild.chunk()
+	logging.info("Chunking and collecting analytics...")
+	try:
+		members = set(bot.guilds[0].members)
+	except IndexError:
+		logging.error("Bot is in no servers! Add it to a server.")
+	else:
+		await bot.guilds[0].chunk()
+		for guild in bot.guilds[1:]:
+			sparPings[guild.id] = {r: 0 for r in brawl.regions}
+			members = members.union(set(guild.members))
+			await guild.chunk()
 
-	print(
-		"Beardless Bot serves",
-		mems,
-		"members across",
-		len(bot.guilds),
-		"servers."
-	)
+		logging.info(
+			f"Done! Beardless Bot serves {len(members)} unique"
+			f" members across {len(bot.guilds)} servers."
+		)
 
 
 @bot.event
 async def on_guild_join(guild: discord.Guild):
-	print(f"Just joined {guild.name}!")
+	logging.info(f"Just joined {guild.name}!")
 
 	if guild.me.guild_permissions.administrator:
 		role = get(guild.roles, name="Beardless Bot")
@@ -110,25 +113,25 @@ async def on_guild_join(guild: discord.Guild):
 			try:
 				await channel.send(embed=misc.onJoin(guild, role))
 			except Exception as e:
-				print(e)
+				logging.error(e)
 			else:
-				print(f"Sent join message in {channel.name}.")
+				logging.info(f"Sent join message in {channel.name}.")
 				break
-		print("Beardless Bot is now in", len(bot.guilds), "servers.")
+		logging.info(f"Beardless Bot is now in {len(bot.guilds)} servers.")
 		global sparPings
 		sparPings[guild.id] = {r: 0 for r in brawl.regions}
 	else:
-		print(f"Not given admin perms in {guild.name}.")
+		logging.warning(f"Not given admin perms in {guild.name}.")
 		for channel in guild.channels:
 			try:
 				await channel.send(embed=misc.noPerms)
 			except Exception as e:
-				print(e)
+				logging.error(e)
 			else:
-				print(f"Sent no perms msg in {channel.name}.")
+				logging.info(f"Sent no perms msg in {channel.name}.")
 				break
 		await guild.leave()
-		print(f"Left {guild.name}.")
+		logging.info(f"Left {guild.name}.")
 
 
 # Event logging
@@ -159,8 +162,7 @@ async def on_bulk_message_delete(
 async def on_message_edit(before: discord.Message, after: discord.Message):
 	if before.guild and (before.content != after.content):
 		if misc.scamCheck(after.content):
-			role = get(after.guild.roles, name="Muted")
-			if not role:
+			if not (role := get(after.guild.roles, name="Muted")):
 				role = await createMutedRole(after.guild)
 			await after.author.add_roles(role)
 			for channel in after.guild.channels:
@@ -235,7 +237,7 @@ async def on_member_remove(member: discord.Member) -> discord.Embed:
 
 @bot.event
 async def on_member_update(before: discord.Member, after: discord.Member):
-	for channel in after.guild.channels:
+	for channel in before.guild.channels:
 		if channel.name == "bb-log":
 			emb = None
 			if before.nick != after.nick:
@@ -382,7 +384,9 @@ async def cmdLeaderboard(ctx, *target):
 
 @bot.command(name="dice")
 async def cmdDice(ctx, *args):
-	await ctx.send(embed=misc.bbEmbed("Beardless Bot Dice", misc.diceMsg))
+	emb = misc.bbEmbed("Beardless Bot Dice", misc.diceMsg)
+	await ctx.send(embed=emb)
+	return emb
 
 
 @bot.command(name="reset")
@@ -452,7 +456,7 @@ async def cmdDefine(ctx, *words):
 			"The API I use to get definitions is experiencing server outages"
 			" and performance issues. Please be patient."
 		)
-		log(e, ctx)
+		logException(e, ctx)
 
 
 @bot.command(name="ping")
@@ -477,13 +481,12 @@ async def cmdAnimal(ctx, breed=None, *args):
 		try:
 			moose = misc.animal("moose", "moose")
 		except Exception as e:
-			log(e, ctx)
+			logException(e, ctx)
 			emb = misc.bbEmbed(
 				"Something's gone wrong with the Moose API!",
 				"Please inform my creator and he'll see what's going on."
 			)
 		else:
-			print(moose)
 			emb = misc.bbEmbed("Random Moose").set_image(url=moose)
 		await ctx.send(embed=emb)
 		return
@@ -491,7 +494,7 @@ async def cmdAnimal(ctx, breed=None, *args):
 		try:
 			dogUrl = misc.animal("dog", breed)
 		except Exception as e:
-			print(species, breed, e)
+			logging.error(f"{species} {breed} {e}")
 			emb = misc.bbEmbed(
 				"Something's gone wrong with the Dog API!",
 				"Please inform my creator and he'll see what's going on."
@@ -506,12 +509,12 @@ async def cmdAnimal(ctx, breed=None, *args):
 			).set_image(url=dogUrl)
 		await ctx.send(embed=emb)
 		return
+	titlemod = " Animal" if species == "zoo" else ""
+	emb = misc.bbEmbed("Random " + species.title() + titlemod)
 	try:
-		emb = misc.bbEmbed(
-			"Random " + species.title()
-		).set_image(url=misc.animal(species))
+		emb.set_image(url=misc.animal(species))
 	except Exception as e:
-		log(e, ctx)
+		logException(e, ctx)
 		emb = misc.bbEmbed(
 			"Something's gone wrong!",
 			"Please inform my creator and he'll see what's going on."
@@ -542,7 +545,7 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 	try:
 		target = await converter.convert(ctx, target)
 	except commands.MemberNotFound as e:
-		log(e, ctx)
+		logException(e, ctx)
 		await ctx.send(
 			embed=misc.bbEmbed(
 				"Beardless Bot Mute",
@@ -555,8 +558,7 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 		if target.id == 654133911558946837:  # If user tries to mute BB:
 			await ctx.send("I am too powerful to be muted. Stop trying.")
 			return
-	role = get(ctx.guild.roles, name="Muted")
-	if not role:
+	if not (role := get(ctx.guild.roles, name="Muted")):
 		role = await createMutedRole(ctx.guild)
 	mTime = mString = None
 	if duration:
@@ -575,7 +577,7 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 	try:
 		await target.add_roles(role)
 	except Exception as e:
-		log(e, ctx)
+		logException(e, ctx)
 		await ctx.send(misc.hierarchyMsg)
 	else:
 		report = "Muted " + target.mention
@@ -603,10 +605,10 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 				break
 		if mTime:
 			# Autounmute
-			print("Muted", target, "for", mTime, "in", ctx.guild.name)
+			logging.info(f"Muted {target} for {mTime} in {ctx.guild.name}")
 			await asyncio.sleep(mTime)
 			await target.remove_roles(role)
-			print("Autounmuted", target.name)
+			logging.info("Autounmuted" + target.name)
 			for channel in ctx.guild.channels:
 				if channel.name == "bb-log":
 					await channel.send(
@@ -621,16 +623,17 @@ async def cmdUnmute(ctx, target=None, *args):
 		return
 	report = misc.naughty.format(ctx.author.mention)
 	if ctx.author.guild_permissions.manage_messages:
+		# TODO: add a check for Muted role existing
 		if target:
 			converter = commands.MemberConverter()
 			try:
 				target = await converter.convert(ctx, target)
 				await target.remove_roles(get(ctx.guild.roles, name="Muted"))
 			except commands.MemberNotFound as e:
-				log(e, ctx)
+				logException(e, ctx)
 				report = "Invalid target! Target must be a mention or user ID."
 			except Exception as e:
-				log(e, ctx)
+				logException(e, ctx)
 				report = misc.hierarchyMsg
 			else:
 				report = f"Unmuted {target.mention}."
@@ -649,8 +652,7 @@ async def cmdUnmute(ctx, target=None, *args):
 async def cmdPurge(ctx, num=None, *args):
 	if ctx.guild and ctx.author.guild_permissions.manage_messages:
 		try:
-			mNum = int(num)
-			if mNum < 0:
+			if (mNum := int(num)) < 0:
 				raise ValueError
 		except (TypeError, ValueError):
 			emb = misc.bbEmbed(
@@ -679,8 +681,7 @@ async def cmdBuy(ctx, color="none", *args):
 		"red": 0xF5123D
 	}
 	if color in colors.keys():
-		role = get(ctx.guild.roles, name="special " + color)
-		if not role:
+		if not (role := get(ctx.guild.roles, name="special " + color)):
 			report = "That color role does not exist in this server, {}."
 		elif role in ctx.author.roles:
 			report = "You already have this special color, {}."
@@ -730,16 +731,14 @@ async def cmdSpar(ctx, region=None, *args):
 	report = brawl.badRegion.format(author)
 	tooRecent = role = None
 	global sparPings
-	region = region.lower()
-	if region in ("usw", "use"):
+	if (region := region.lower()) in ("usw", "use"):
 		region = region[:2] + "-" + region[2]
 	for guild, pings in sparPings.items():
 		if guild == ctx.guild.id:
 			d = sparPings[ctx.guild.id]
 			for key, value in d.items():
 				if key == region:
-					role = get(ctx.guild.roles, name=key.upper())
-					if not role:
+					if not (role := get(ctx.guild.roles, name=key.upper())):
 						role = await ctx.guild.create_role(
 							name=key.upper(), mentionable=False
 						)
@@ -782,7 +781,7 @@ async def cmdBrawlclaim(ctx, profUrl="None", *args):
 		try:
 			brawl.claimProfile(ctx.author.id, brawlID)
 		except Exception as e:
-			log(e, ctx)
+			logException(e, ctx)
 			report = brawl.reqLimit
 		else:
 			report = "Profile claimed."
@@ -798,6 +797,8 @@ async def cmdBrawlclaim(ctx, profUrl="None", *args):
 async def cmdBrawlrank(ctx, *target):
 	if not (brawlKey and ctx.guild):
 		return
+	# TODO: write valid target method; no need for this copy paste
+	# have it return target, report
 	target = " ".join(target) if target else ctx.author
 	if not isinstance(target, discord.User):
 		report = "Invalid target!"
@@ -807,7 +808,7 @@ async def cmdBrawlrank(ctx, *target):
 			await ctx.send(embed=brawl.getRank(target, brawlKey))
 			return
 		except Exception as e:
-			log(e, ctx)
+			logException(e, ctx)
 			report = brawl.reqLimit
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Rank", report)
@@ -827,7 +828,7 @@ async def cmdBrawlstats(ctx, *target):
 			await ctx.send(embed=brawl.getStats(target, brawlKey))
 			return
 		except Exception as e:
-			log(e, ctx)
+			logException(e, ctx)
 			report = brawl.reqLimit
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Stats", report)
@@ -847,7 +848,7 @@ async def cmdBrawlclan(ctx, *target):
 			await ctx.send(embed=brawl.getClan(target, brawlKey))
 			return
 		except Exception as e:
-			log(e, ctx)
+			logException(e, ctx)
 			report = brawl.reqLimit
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Clan", report)
@@ -865,7 +866,7 @@ async def cmdBrawllegend(ctx, legend=None, *args):
 		try:
 			legend = brawl.legendInfo(brawlKey, legend.lower())
 		except Exception as e:
-			log(e, ctx)
+			logException(e, ctx)
 			report = brawl.reqLimit
 		else:
 			if legend:
@@ -923,7 +924,7 @@ async def on_command_error(ctx, e):
 				"Error: Either put everything in quotes or nothing."
 			)
 		)
-	log(e, ctx)
+	logException(e, ctx)
 
 
 @bot.listen("on_message")
@@ -931,9 +932,7 @@ async def handleMessages(message):
 	if message.author.bot or not message.guild:
 		return
 
-	text = message.content.lower()
-
-	if misc.scamCheck(text):
+	if misc.scamCheck(text := message.content.lower()):
 		author = message.author
 		role = get(message.guild.roles, name="Muted")
 		if not role:
@@ -961,9 +960,9 @@ async def handleMessages(message):
 		if secretFound:
 			return
 		secretFound = True
-		print(
-			f"Secret word, {secretWord}, found by",
-			f"{message.author.mention} in {message.guild.name}."
+		logging.info(
+			f"Secret word, {secretWord}, found by"
+			f" {message.author.mention} in {message.guild.name}."
 		)
 		result, bonus = bucks.writeMoney(message.author, 100000, True, True)
 		if result == -1:
@@ -982,29 +981,44 @@ async def handleMessages(message):
 
 if __name__ == "__main__":
 
+	logging.basicConfig(
+		format="%(asctime)s: %(levelname)s: %(message)s",
+		datefmt="%m/%d %H:%M:%S",
+		level=logging.INFO,
+		force=True,
+		handlers=[
+			logging.FileHandler(
+				datetime.now().strftime("resources/logs/%Y-%m-%d-%H-%M-%S.log")
+			),
+			logging.StreamHandler(stdout)
+		]
+	)
+
 	env = dotenv_values(".env")
 
 	try:
 		brawlKey = env["BRAWLKEY"]
 	except KeyError:
 		brawlKey = None
-		print(
-			"No Brawlhalla API key. Brawlhalla-specific",
-			"commands will not be active."
+		logging.warning(
+			"No Brawlhalla API key. Brawlhalla-specific"
+			" commands will not be active."
 		)
 
 	try:
 		secretWord = env["SECRETWORD"]
 	except KeyError:
 		secretWord = None
-		print("Secret word has not been defined. Continuing as normal.")
+		logging.warning(
+			"Secret word has not been defined. Continuing as normal."
+		)
 
 	try:
 		bot.run(env["DISCORDTOKEN"])
 	except KeyError:
-		print(
-			"Fatal error! DISCORDTOKEN environment variable has not",
-			"been defined. See: README.MD's installation section."
+		logging.error(
+			"Fatal error! DISCORDTOKEN environment variable has not"
+			" been defined. See: README.MD's installation section."
 		)
 	except discord.DiscordException as e:
-		print(e)
+		logging.error(e)
