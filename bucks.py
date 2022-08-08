@@ -4,7 +4,7 @@ import csv
 from collections import OrderedDict
 from operator import itemgetter
 from random import choice, randint
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import discord
 
@@ -237,7 +237,7 @@ def writeMoney(
 	amount: Union[str, int],
 	writing: bool,
 	adding: bool
-) -> Tuple[int, Union[str, int, None]]:
+) -> Tuple[int, Optional[Union[str, int]]]:
 	"""
 	Helper method for checking or modifying a user's BeardlessBucks balance.
 

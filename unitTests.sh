@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 #run `bash unitTests.sh` to run bb's unit tests,
 #output results to stdout and testResults.md
 
