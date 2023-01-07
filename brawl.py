@@ -67,7 +67,8 @@ weapons = (
 	"Gauntlets",
 	"Katars",
 	"Blasters",
-	"Axe"
+	"Axe",
+	"Battle Boots"
 )
 
 regions = (
@@ -165,25 +166,16 @@ def legendInfo(brawlKey: str, legendName: str) -> Optional[discord.Embed]:
 		if legendName in legend["legend_name_key"]:
 			r = apiCall("legend/", str(legend["legend_id"]) + "/", brawlKey)
 
-			# Problematic extra space in 2nd quote for these legends:
-			if legendName in ("reno", "teros", "hattori"):
-				spaceCheck = -2
-			else:
-				spaceCheck = -1
-
-			quoteOne = "{} *{}*".format(
-				r["bio_quote"], (r["bio_quote_about_attrib"])[1:-1]
-			).replace("\\n", " ")
-
-			quoteTwo = "{} *{}*".format(
-				r["bio_quote_from"], (r["bio_quote_from_attrib"])[1:spaceCheck]
-			).replace("\\n", " ")
+			def cleanQuote(quote: str, attrib: str) -> str:
+				return "{}  *{}*".format(
+					quote, attrib.replace("\"", "")
+				).replace("\\n", " ").replace("* ", "*").replace(" *", "*")
 
 			bio = "\n\n".join((
 				r["bio_text"].replace("\n", "\n\n"),
 				"**Quotes**",
-				quoteOne,
-				quoteTwo
+				cleanQuote(r["bio_quote"], r["bio_quote_about_attrib"]),
+				cleanQuote(r["bio_quote_from"], r["bio_quote_from_attrib"])
 			))
 			# TODO: Use to get legend images:
 			# legendLinkName = r["bio_name"].replace(" ", "_")
@@ -214,9 +206,13 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 			"Beardless Bot Brawlhalla Rank", unclaimed.format(target.mention)
 		)
 	if len(r := apiCall("player/", str(brawlID) + "/ranked", brawlKey)) < 4:
-		return bbEmbed(
-			"Beardless Bot Brawlhalla Rank",
-			"You haven't played ranked yet this season."
+		return (
+			bbEmbed(
+				"Beardless Bot Brawlhalla Rank",
+				"You haven't played ranked yet this season."
+			)
+			.set_footer(text=f"Brawl ID {brawlID}")
+			.set_author(name=target, icon_url=target.avatar_url)
 		)
 	emb = (
 		bbEmbed(f"{r['name']}, {r['region']}")

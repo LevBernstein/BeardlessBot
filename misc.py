@@ -30,9 +30,7 @@ animalList = (
 	"panda",
 	"lizard",
 	"frog",
-	"axolotl",
 	"bear",
-	"zoo",
 	"bird",
 	"koala",
 	"raccoon",
@@ -214,10 +212,6 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 		if r.status_code == 200:
 			return r.json()["url"]
 
-	elif animalType == "zoo":
-		r = requests.get("https://zoo-animal-api.herokuapp.com/animals/rand")
-		return r.json()["image_link"]
-
 	elif animalType == "bear":
 		return f"https://placebear.com/{randint(200, 400)}/{randint(200,400)}"
 
@@ -232,11 +226,6 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 			"https://raw.githubusercontent.com/"
 			f"a9-i/frog/main/ImgSetOpt/{frog}"
 		)
-
-	if animalType == "axolotl":
-		r = requests.get("https://axoltlapi.herokuapp.com/").json()["url"]
-		if not r.startswith("404"):
-			return r
 
 	raise Exception(str(r) + ": " + animalType)
 

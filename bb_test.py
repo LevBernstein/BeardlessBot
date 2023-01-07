@@ -5,6 +5,7 @@ from dotenv import dotenv_values
 from json import load
 from os import environ
 from random import choice
+from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import quote_plus
 
@@ -467,6 +468,8 @@ if not brawlKey:
 	except KeyError:
 		print("No Brawlhalla API key. Brawlhalla-specific tests will fail.\n")
 
+loop = asyncio.get_event_loop()
+
 
 @pytest.mark.parametrize("letter", ["W", "E", "F"])
 def test_pep8Compliance(letter: str) -> None:
@@ -505,14 +508,14 @@ def test_logException(caplog: pytest.LogCaptureFixture) -> None:
 
 def test_createMutedRole() -> None:
 	g = MockGuild(roles=[])
-	role = asyncio.run(Bot.createMutedRole(g))
+	role = loop.run_until_complete(Bot.createMutedRole(g))
 	assert role.name == "Muted"
 	assert len(g.roles) == 1 and g.roles[0] == role
 
 
 def test_on_ready() -> None:
 	Bot.bot = MockBot(Bot.bot)
-	asyncio.run(Bot.on_ready())
+	loop.run_until_complete(Bot.on_ready())
 	assert Bot.bot.activity.name == "try !blackjack and !flip"
 	assert Bot.bot.status == "online"
 	with open("resources/images/prof.png", "rb") as f:
@@ -531,7 +534,7 @@ def test_contCheck(content: str, description: str) -> None:
 def test_on_message_delete() -> None:
 	m = MockMessage(channel=MockChannel(name="bb-log"))
 	m.guild = MockGuild(channels=[m.channel])
-	emb = asyncio.run(Bot.on_message_delete(m))
+	emb = loop.run_until_complete(Bot.on_message_delete(m))
 	log = logs.logDeleteMsg(m)
 	assert emb.description == log.description
 	assert log.description == (
@@ -550,7 +553,7 @@ def test_on_bulk_message_delete() -> None:
 	m = MockMessage(channel=MockChannel(name="bb-log"))
 	m.guild = MockGuild(channels=[m.channel])
 	messages = [m, m, m]
-	emb = asyncio.run(Bot.on_bulk_message_delete(messages))
+	emb = loop.run_until_complete(Bot.on_bulk_message_delete(messages))
 	log = logs.logPurge(messages[0], messages)
 	assert emb.description == log.description
 	assert log.description == f"Purged 2 messages in {m.channel.mention}."
@@ -561,7 +564,7 @@ def test_on_bulk_message_delete() -> None:
 	)
 	"""
 	messages = [m] * 105
-	emb = asyncio.run(Bot.on_bulk_message_delete(messages))
+	emb = loop.run_until_complete(Bot.on_bulk_message_delete(messages))
 	log = logs.logPurge(messages[0], messages)
 	assert emb.description == log.description
 	assert log.description == f"Purged 99+ messages in {m.channel.mention}."
@@ -570,7 +573,7 @@ def test_on_bulk_message_delete() -> None:
 def test_on_guild_channel_delete() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	channel = MockChannel(guild=g)
-	emb = asyncio.run(Bot.on_guild_channel_delete(channel))
+	emb = loop.run_until_complete(Bot.on_guild_channel_delete(channel))
 	log = logs.logDeleteChannel(channel)
 	assert emb.description == log.description
 	assert log.description == f"Channel \"{channel.name}\" deleted."
@@ -585,7 +588,7 @@ def test_on_guild_channel_delete() -> None:
 def test_on_guild_channel_create() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	channel = MockChannel(guild=g)
-	emb = asyncio.run(Bot.on_guild_channel_create(channel))
+	emb = loop.run_until_complete(Bot.on_guild_channel_create(channel))
 	log = logs.logCreateChannel(channel)
 	assert emb.description == log.description
 	assert log.description == f"Channel \"{channel.name}\" created."
@@ -600,7 +603,7 @@ def test_on_guild_channel_create() -> None:
 def test_on_member_ban() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	member = MockUser()
-	emb = asyncio.run(Bot.on_member_ban(g, member))
+	emb = loop.run_until_complete(Bot.on_member_ban(g, member))
 	log = logs.logBan(member)
 	assert emb.description == log.description
 	assert log.description == f"Member {member.mention} banned\n{member.name}"
@@ -615,7 +618,7 @@ def test_on_member_ban() -> None:
 def test_on_member_unban() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	member = MockUser()
-	emb = asyncio.run(Bot.on_member_unban(g, member))
+	emb = loop.run_until_complete(Bot.on_member_unban(g, member))
 	log = logs.logUnban(member)
 	assert emb.description == log.description
 	assert (
@@ -633,7 +636,7 @@ def test_on_member_unban() -> None:
 def test_on_member_join() -> None:
 	member = MockUser()
 	member.guild = MockGuild(channels=[MockChannel(name="bb-log")])
-	emb = asyncio.run(Bot.on_member_join(member))
+	emb = loop.run_until_complete(Bot.on_member_join(member))
 	log = logs.logMemberJoin(member)
 	assert emb.description == log.description
 	assert log.description == (
@@ -652,12 +655,12 @@ def test_on_member_join() -> None:
 def test_on_member_remove() -> None:
 	member = MockUser()
 	member.guild = MockGuild(channels=[MockChannel(name="bb-log")])
-	emb = asyncio.run(Bot.on_member_remove(member))
+	emb = loop.run_until_complete(Bot.on_member_remove(member))
 	log = logs.logMemberRemove(member)
 	assert emb.description == log.description
 	assert log.description == f"Member {member.mention} left\nID: {member.id}"
 	member.roles = [MockRole(), MockRole()]
-	emb = asyncio.run(Bot.on_member_remove(member))
+	emb = loop.run_until_complete(Bot.on_member_remove(member))
 	log = logs.logMemberRemove(member)
 	assert emb.description == log.description
 	assert log.fields[0].value == member.roles[1].mention
@@ -674,7 +677,7 @@ def test_on_member_update() -> None:
 	guild = MockGuild(channels=[MockChannel(name="bb-log")])
 	old = MockUser(nick="a", roles=[], guild=guild)
 	new = MockUser(nick="b", roles=[], guild=guild)
-	emb = asyncio.run(Bot.on_member_update(old, new))
+	emb = loop.run_until_complete(Bot.on_member_update(old, new))
 	log = logs.logMemberNickChange(old, new)
 	assert emb.description == log.description
 	assert log.description == "Nickname of " + new.mention + " changed."
@@ -682,14 +685,14 @@ def test_on_member_update() -> None:
 	assert log.fields[1].value == new.nick
 
 	new = MockUser(nick="a", roles=[MockRole()], guild=guild)
-	emb = asyncio.run(Bot.on_member_update(old, new))
+	emb = loop.run_until_complete(Bot.on_member_update(old, new))
 	log = logs.logMemberRolesChange(old, new)
 	assert emb.description == log.description
 	assert log.description == (
 		f"Role {new.roles[0].mention} added to {new.mention}."
 	)
 
-	emb = asyncio.run(Bot.on_member_update(new, old))
+	emb = loop.run_until_complete(Bot.on_member_update(new, old))
 	log = logs.logMemberRolesChange(new, old)
 	assert emb.description == log.description
 	assert log.description == (
@@ -702,10 +705,10 @@ def test_on_message_edit() -> None:
 	g = MockGuild(
 		channels=[MockChannel(name="bb-log"), MockChannel(name="infractions")]
 	)
-	asyncio.run(Bot.createMutedRole(g))
+	loop.run_until_complete(Bot.createMutedRole(g))
 	before = MockMessage(content="old", author=member, guild=g)
 	after = MockMessage(content="new", author=member, guild=g)
-	emb = asyncio.run(Bot.on_message_edit(before, after))
+	emb = loop.run_until_complete(Bot.on_message_edit(before, after))
 	log = logs.logEditMsg(before, after)
 	assert emb.description == log.description
 	assert emb.description == (
@@ -720,7 +723,7 @@ def test_on_message_edit() -> None:
 	# testing for scamCheck == True
 	'''
 	after.content = "http://dizcort.com free nitro!"
-	emb = asyncio.run(Bot.on_message_edit(before, after))
+	emb = loop.run_until_complete(Bot.on_message_edit(before, after))
 	assert g.channels[0].messages[0].content.startswith("Deleted possible")
 	# TODO: edit after to have content of len > 1024 via message.edit
 	channel = member.guild.channels[0]
@@ -733,7 +736,7 @@ def test_on_message_edit() -> None:
 def test_cmdDice() -> None:
 	ch = MockChannel()
 	ctx = MockContext(Bot.bot, channel=ch, guild=MockGuild(channels=[ch]))
-	emb = asyncio.run(Bot.cmdDice(ctx))
+	emb = loop.run_until_complete(Bot.cmdDice(ctx))
 	assert emb.description == misc.diceMsg
 	"""
 	# TODO: append sent messages to channel.messages
@@ -1140,55 +1143,18 @@ def test_claimProfile() -> None:
 	]
 )
 def test_getBrawlID(url: str, result: Optional[int]) -> None:
+	sleep(2)
 	assert brawl.getBrawlID(brawlKey, url) == result
 
 
-def test_getLegends() -> None:
-	oldLegends = brawl.fetchLegends()
-	brawl.getLegends(brawlKey)
-	assert brawl.fetchLegends() == oldLegends
-
-
-def test_legendInfo() -> None:
-	assert brawl.legendInfo(brawlKey, "hugin").title == "Munin, The Raven"
-	assert brawl.legendInfo(brawlKey, "teros").title == "Teros, The Minotaur"
-	assert not brawl.legendInfo(brawlKey, "invalidname")
-
-
-def test_getRank() -> None:
-	user = MockUser(id=0)
-	assert brawl.getRank(user, brawlKey).description == (
-		brawl.unclaimed.format(user.mention)
-	)
-	user.id = 743238109898211389
-	assert brawl.getRank(user, brawlKey).footer.text == "Brawl ID 12502880"
-	user.id = 196354892208537600
-	assert brawl.getRank(user, brawlKey).description == (
-		"You haven't played ranked yet this season."
-	)
-	brawl.claimProfile(196354892208537600, 12502880)
-	user.id = 196354892208537600
-	assert brawl.getRank(user, brawlKey).color.value == 0x0051B4
-	brawl.claimProfile(196354892208537600, 7032472)
-
-
-def test_getStats() -> None:
-	user = MockUser(id=0)
-	assert brawl.getStats(user, brawlKey).description == (
-		brawl.unclaimed.format(user.mention)
-	)
-	user.id = 196354892208537600
-	emb = brawl.getStats(user, brawlKey)
-	assert emb.footer.text == "Brawl ID 7032472"
-	assert len(emb.fields) in (3, 4)
-
-
 def test_getClan() -> None:
+	sleep(5)
 	user = MockUser(id=0)
 	assert brawl.getClan(user, brawlKey).description == (
 		brawl.unclaimed.format(user.mention)
 	)
 	user.id = 196354892208537600
+	brawl.claimProfile(196354892208537600, 7032472)
 	assert brawl.getClan(user, brawlKey).title == "DinersDriveInsDives"
 	brawl.claimProfile(196354892208537600, 5895238)
 	assert brawl.getClan(user, brawlKey).description == (
@@ -1197,5 +1163,49 @@ def test_getClan() -> None:
 	brawl.claimProfile(196354892208537600, 7032472)
 
 
+def test_getRank() -> None:
+	sleep(5)
+	user = MockUser(id=0)
+	assert brawl.getRank(user, brawlKey).description == (
+		brawl.unclaimed.format(user.mention)
+	)
+	user.id = 196354892208537600
+	assert brawl.getRank(user, brawlKey).footer.text == "Brawl ID 7032472"
+	assert brawl.getRank(user, brawlKey).description == (
+		"You haven't played ranked yet this season."
+	)
+	brawl.claimProfile(196354892208537600, 12502880)
+	assert brawl.getRank(user, brawlKey).color.value == 0x3D2399
+	brawl.claimProfile(196354892208537600, 7032472)
+
+
+def test_getLegends() -> None:
+	sleep(5)
+	oldLegends = brawl.fetchLegends()
+	brawl.getLegends(brawlKey)
+	assert brawl.fetchLegends() == oldLegends
+
+
+def test_legendInfo() -> None:
+	sleep(5)
+	assert brawl.legendInfo(brawlKey, "hugin").title == "Munin, The Raven"
+	assert brawl.legendInfo(brawlKey, "teros").title == "Teros, The Minotaur"
+	assert not brawl.legendInfo(brawlKey, "invalidname")
+
+
+def test_getStats() -> None:
+	sleep(5)
+	user = MockUser(id=0)
+	assert brawl.getStats(user, brawlKey).description == (
+		brawl.unclaimed.format(user.mention)
+	)
+	user.id = 196354892208537600
+	brawl.claimProfile(196354892208537600, 7032472)
+	emb = brawl.getStats(user, brawlKey)
+	assert emb.footer.text == "Brawl ID 7032472"
+	assert len(emb.fields) in (3, 4)
+
+
 def test_brawlCommands() -> None:
+	sleep(5)
 	assert len(brawl.brawlCommands().fields) == 6
