@@ -473,7 +473,7 @@ loop = asyncio.get_event_loop()
 
 @pytest.mark.parametrize("letter", ["W", "E", "F"])
 def test_pep8Compliance(letter: str) -> None:
-	styleGuide = flake8.get_style_guide(ignore=["W191"])
+	styleGuide = flake8.get_style_guide(ignore=["W191", "W503"])
 	report = styleGuide.check_files(["./"])
 	assert len(report.get_statistics(letter)) == 0
 
@@ -768,17 +768,35 @@ def test_tweet() -> None:
 def test_dice_regular(side: int) -> None:
 	user = MockUser()
 	text = "d" + str(side)
-	assert misc.roll(text) in range(1, side + 1)
-	assert (misc.rollReport(text, user).description.startswith("You got"))
+	assert misc.roll(text)[0] in range(1, side + 1)
+	report = misc.rollReport(text, user)
+	assert report.description.startswith("You got")
+	assert text in report.title
 
 
 def test_dice_irregular() -> None:
 	user = MockUser()
-	assert misc.roll("d20-4") in range(-3, 17)
+	assert misc.roll("d20-4")[0] in range(-3, 17)
 	assert misc.rollReport("d20-4", user).description.startswith("You got")
-	assert not misc.roll("wrongroll")
-	assert not misc.roll("d9")
+	assert not misc.roll("wrongroll")[0]
+	assert not misc.roll("d9")[0]
 	assert misc.rollReport("d9", user).description.startswith("Invalid")
+	assert not misc.roll("d40")[0]
+	results = misc.roll("d100+asfjksdfhkdsfhksd")
+	assert results[0] in range(1, 101)
+	assert results[4] == 0
+
+
+@pytest.mark.parametrize("count", [-5, 1, 2, 3, 5, 100])
+def test_dice_multiple(count) -> None:
+	assert misc.roll(f"{count}d4")[0] in range(1, (abs(count) * 4) + 1)
+
+
+def test_dice_multiple_irregular() -> None:
+	assert misc.roll("10d20-4")[0] in range(6, 197)
+	assert misc.roll("ad100")[0] in range(1, 101)
+	assert misc.roll("0d8")[0] == 0
+	assert misc.roll("0d12+57")[0] == 57
 
 
 def test_logClearReacts() -> None:
@@ -1096,8 +1114,7 @@ def test_animal_with_imageSigs(animalName: str) -> None:
 def test_animal_dog_breed() -> None:
 	breeds = misc.animal("dog", "breeds")[12:-1].split(", ")
 	assert len(breeds) >= 94
-	r = requests.get(misc.animal("dog", choice(breeds)))
-	assert goodURL(r, imageTypes)
+	assert goodURL(requests.get(misc.animal("dog", choice(breeds))), imageTypes)
 	assert misc.animal("dog", "invalidbreed").startswith("Breed not")
 	assert misc.animal("dog", "invalidbreed1234").startswith("Breed not")
 	assert goodURL(requests.get(misc.animal("dog", "moose")), imageTypes)

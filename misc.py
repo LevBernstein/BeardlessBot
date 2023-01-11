@@ -3,7 +3,7 @@
 import re
 from datetime import datetime
 from random import choice, randint
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 from urllib.parse import quote_plus
 
 import discord
@@ -13,8 +13,9 @@ from discord.ext import commands
 
 
 diceMsg = (
-	"Enter !d[number][+/-][modifier] to roll a [number]-sided die and"
-	" add or subtract a modifier. For example: !d8+3, or !d100-17, or !d6."
+	"Enter !roll [count]d[number][+/-][modifier] to roll [count]"
+	" [number]-sided dice and add or subtract a modifier. For example:"
+	" !d8+3, or !4d100-17, or !d6."
 )
 
 prof = (
@@ -173,7 +174,7 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 				r = requests.get(
 					"https://dog.ceo/api/breed/" + breed + "/images/random"
 				)
-				if r.status_code == 200:
+				if r.status_code == 200 and "message" in r.json():
 					if not r.json()["message"].startswith("Breed not found"):
 						return r.json()["message"]
 				return "Breed not found! Do !dog breeds to see all breeds."
@@ -254,35 +255,45 @@ def define(word: str) -> discord.Embed:
 	return bbEmbed("Beardless Bot Definitions", "No results found.")
 
 
-def roll(text: str) -> Optional[int]:
-	# Takes a string of the format dn+b and rolls one
-	# n-sided die with a modifier of b. Modifier is optional.
+def roll(text: str) -> Union[Tuple[None], Tuple[int, int, int, int, int]]:
+	# Takes a string of the format mdn+b and rolls m
+	# n-sided dice with a modifier of b. m and b are optional.
 	try:
-		command = text.split("d", 1)[1]
-	except IndexError:
-		return None
-	modifier = -1 if "-" in command else 1
-	for side in "4", "6", "8", "100", "10", "12", "20":
-		if command.startswith(side):
-			if len(command) > len(side) and command[len(side)] in ("+", "-"):
-				b = modifier * int(command[1 + len(side):])
-				return randint(1, int(side)) + b
-			return randint(1, int(side)) if command == side else None
-	return None
+		diceNum, command = text.split("d", 1)
+	except (IndexError, ValueError):
+		return (None,)
+	diceNum = abs(int(diceNum)) if diceNum.replace("-", "").isnumeric() else 1
+	diceNum = diceNum if diceNum < 99999 else 99999
+	side = command.split("-")[0].split("+")[0]
+	if side in ("4", "6", "8", "100", "10", "12", "20"):
+		if (
+			command != side
+			and command[len(side)] in ("+", "-")
+			and (bonus := command[1 + len(side):]).isnumeric()
+		):
+			b = (-1 if "-" in command else 1) * int(bonus)
+		else:
+			b = 0
+		diceSum = sum((randint(1, int(side)) for i in range(diceNum)))
+		return diceSum + b, diceNum, side, "-" in command, b
+	return (None,)
 
 
 def rollReport(
-	text: str,
-	author: Union[discord.User, discord.Member]
+	text: str, author: Union[discord.User, discord.Member]
 ) -> discord.Embed:
-	if (result := roll(text.lower())) is not None:
-		report = f"You got {result}, {author.mention}."
+	result = roll(text.lower())
+	if result[0] is not None:
+		modifier = "" if result[3] else "+"
+		title = f"Rolling {result[1]}d{result[2]}{modifier}{result[4]}"
+		report = f"You got {result[0]}, {author.mention}."
 	else:
+		title = "Beardless Bot Dice"
 		report = (
-			"Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100,"
-			" as well as modifiers. No spaces allowed. Ex: !roll d4+3"
+			"Invalid roll. Enter d4, 6, 8, 10, 12, 20, or 100,"
+			" as well as modifiers. No spaces allowed. Ex: !roll 2d4+3"
 		)
-	return bbEmbed("Beardless Bot Dice", report)
+	return bbEmbed(title, report)
 
 
 def fact() -> str:
@@ -369,9 +380,9 @@ def bbCommands(ctx: commands.Context) -> discord.Embed:
 			" game, you can use !hit and !stay to play."
 		),
 		(
-			"!roll d[num][+/-][mod]",
-			"Rolls a [num]-sided die and adds or subtracts [mod]."
-			" Example: !roll d8, or !roll d100-17."
+			"!roll [count]d[num][+/-][mod]",
+			"Rolls [count] [num]-sided dice and adds or subtracts [mod]."
+			" Example: !roll d8, or !roll d100-17, or !roll 4d6+3."
 		),
 		("!brawl", "Displays Beardless Bot's Brawlhalla commands."),
 		("!add", "Gives you a link to add this bot to your server."),
