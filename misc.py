@@ -3,18 +3,19 @@
 import re
 from datetime import datetime
 from random import choice, randint
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 from urllib.parse import quote_plus
 
-import discord
+import nextcord
 import requests
 from bs4 import BeautifulSoup
-from discord.ext import commands
+from nextcord.ext import commands
 
 
 diceMsg = (
-	"Enter !d[number][+/-][modifier] to roll a [number]-sided die and"
-	" add or subtract a modifier. For example: !d8+3, or !d100-17, or !d6."
+	"Enter !roll [count]d[number][+/-][modifier] to roll [count]"
+	" [number]-sided dice and add or subtract a modifier. For example:"
+	" !d8+3, or !4d100-17, or !d6."
 )
 
 prof = (
@@ -30,9 +31,7 @@ animalList = (
 	"panda",
 	"lizard",
 	"frog",
-	"axolotl",
 	"bear",
-	"zoo",
 	"bird",
 	"koala",
 	"raccoon",
@@ -94,29 +93,29 @@ joinMsg = (
 )
 
 
-def truncTime(member: Union[discord.User, discord.Member]) -> str:
+def truncTime(member: Union[nextcord.User, nextcord.Member]) -> str:
 	return str(member.created_at)[:-7]
 
 
-# Wrapper for discord.Embed.init() that defaults to
+# Wrapper for nextcord.Embed.init() that defaults to
 # commonly-used values and is easier to call
 def bbEmbed(
 	name: str = "",
 	value: str = "",
 	col: int = 0xFFF994,
 	showTime: bool = False
-) -> discord.Embed:
-	return discord.Embed(
+) -> nextcord.Embed:
+	return nextcord.Embed(
 		title=name,
 		description=value,
 		color=col,
-		timestamp=datetime.utcnow() if showTime else discord.Embed.Empty
+		timestamp=datetime.now() if showTime else nextcord.Embed.Empty
 	)
 
 
 def memSearch(
-	message: discord.Message, target: str
-) -> Optional[discord.Member]:
+	message: nextcord.Message, target: str
+) -> Optional[nextcord.Member]:
 	"""
 	User lookup helper method. Finds user based on
 	username and/or discriminator (#1234).
@@ -214,10 +213,6 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 		if r.status_code == 200:
 			return r.json()["url"]
 
-	elif animalType == "zoo":
-		r = requests.get("https://zoo-animal-api.herokuapp.com/animals/rand")
-		return r.json()["image_link"]
-
 	elif animalType == "bear":
 		return f"https://placebear.com/{randint(200, 400)}/{randint(200,400)}"
 
@@ -233,15 +228,10 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 			f"a9-i/frog/main/ImgSetOpt/{frog}"
 		)
 
-	if animalType == "axolotl":
-		r = requests.get("https://axoltlapi.herokuapp.com/").json()["url"]
-		if not r.startswith("404"):
-			return r
-
 	raise Exception(str(r) + ": " + animalType)
 
 
-def define(word: str) -> discord.Embed:
+def define(word: str) -> nextcord.Embed:
 	r = requests.get(
 		"https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word
 	)
@@ -265,35 +255,45 @@ def define(word: str) -> discord.Embed:
 	return bbEmbed("Beardless Bot Definitions", "No results found.")
 
 
-def roll(text: str) -> Optional[int]:
-	# Takes a string of the format dn+b and rolls one
-	# n-sided die with a modifier of b. Modifier is optional.
+def roll(text: str) -> Union[Tuple[None], Tuple[int, int, int, bool, int]]:
+	# Takes a string of the format mdn+b and rolls m
+	# n-sided dice with a modifier of b. m and b are optional.
 	try:
-		command = text.split("d", 1)[1]
-	except IndexError:
-		return None
-	modifier = -1 if "-" in command else 1
-	for side in "4", "6", "8", "100", "10", "12", "20":
-		if command.startswith(side):
-			if len(command) > len(side) and command[len(side)] in ("+", "-"):
-				b = modifier * int(command[1 + len(side):])
-				return randint(1, int(side)) + b
-			return randint(1, int(side)) if command == side else None
-	return None
+		diceNum, command = text.split("d", 1)
+	except (IndexError, ValueError):
+		return (None,)
+	diceNum = abs(int(diceNum)) if diceNum.replace("-", "").isnumeric() else 1
+	diceNum = min(diceNum, 999)
+	side = command.split("-")[0].split("+")[0]
+	if side in ("4", "6", "8", "100", "10", "12", "20"):
+		if (
+			command != side
+			and command[len(side)] in ("+", "-")
+			and (bonus := command[1 + len(side):]).isnumeric()
+		):
+			b = (-1 if "-" in command else 1) * min(int(bonus), 999999)
+		else:
+			b = 0
+		diceSum = sum((randint(1, int(side)) for i in range(diceNum)))
+		return diceSum + b, diceNum, side, "-" in command, b
+	return (None,)
 
 
 def rollReport(
-	text: str,
-	author: Union[discord.User, discord.Member]
-) -> discord.Embed:
-	if (result := roll(text.lower())) is not None:
-		report = f"You got {result}, {author.mention}."
+	text: str, author: Union[nextcord.User, nextcord.Member]
+) -> nextcord.Embed:
+	result = roll(text.lower())
+	if result[0] is not None:
+		modifier = "" if result[3] else "+"
+		title = f"Rolling {result[1]}d{result[2]}{modifier}{result[4]}"
+		report = f"You got {result[0]}, {author.mention}."
 	else:
+		title = "Beardless Bot Dice"
 		report = (
-			"Invalid side number. Enter 4, 6, 8, 10, 12, 20, or 100,"
-			" as well as modifiers. No spaces allowed. Ex: !roll d4+3"
+			"Invalid roll. Enter d4, 6, 8, 10, 12, 20, or 100, as well as"
+			" number of dice and modifiers. No spaces allowed. Ex: !roll 2d4+3"
 		)
-	return bbEmbed("Beardless Bot Dice", report)
+	return bbEmbed(title, report)
 
 
 def fact() -> str:
@@ -301,8 +301,8 @@ def fact() -> str:
 		return choice(f.read().splitlines())
 
 
-def info(target: discord.Member, msg: discord.Message) -> discord.Embed:
-	if not isinstance(target, discord.User):
+def info(target: nextcord.Member, msg: nextcord.Message) -> nextcord.Embed:
+	if not isinstance(target, nextcord.User):
 		target = memSearch(msg, target)
 	if target:
 		# Discord occasionally reports people with an activity as
@@ -312,8 +312,8 @@ def info(target: discord.Member, msg: discord.Message) -> discord.Embed:
 				value=target.activity.name if target.activity else "",
 				col=target.color
 			)
-			.set_author(name=target, icon_url=target.avatar_url)
-			.set_thumbnail(url=target.avatar_url)
+			.set_author(name=target, icon_url=target.avatar.url)
+			.set_thumbnail(url=target.avatar.url)
 			.add_field(
 				name="Registered for Discord on",
 				value=truncTime(target) + " UTC"
@@ -338,19 +338,19 @@ def info(target: discord.Member, msg: discord.Message) -> discord.Embed:
 	return emb
 
 
-def av(target: discord.Member, msg: discord.Message) -> discord.Embed:
-	if not isinstance(target, discord.Member):
+def av(target: nextcord.Member, msg: nextcord.Message) -> nextcord.Embed:
+	if not isinstance(target, nextcord.Member):
 		target = memSearch(msg, target)
 	if target:
 		return (
 			bbEmbed(col=target.color)
-			.set_image(url=target.avatar_url)
-			.set_author(name=target, icon_url=target.avatar_url)
+			.set_image(url=target.avatar.url)
+			.set_author(name=target, icon_url=target.avatar.url)
 		)
 	return invalidTargetEmbed
 
 
-def bbCommands(ctx: commands.Context) -> discord.Embed:
+def bbCommands(ctx: commands.Context) -> nextcord.Embed:
 	emb = bbEmbed("Beardless Bot Commands")
 	if not ctx.guild:
 		commandNum = 15
@@ -420,7 +420,7 @@ def bbCommands(ctx: commands.Context) -> discord.Embed:
 	return emb
 
 
-def hints() -> discord.Embed:
+def hints() -> nextcord.Embed:
 	with open("resources/hints.txt", "r") as f:
 		hints = f.read().splitlines()
 	emb = bbEmbed("Hints for Beardless Bot's Secret Word")
@@ -457,13 +457,13 @@ def scamCheck(text: str) -> bool:
 	) and not bool(checkFive.match(msg))
 
 
-def onJoin(guild: discord.Guild, role: discord.Role) -> discord.Embed:
+def onJoin(guild: nextcord.Guild, role: nextcord.Role) -> nextcord.Embed:
 	return bbEmbed(
 		f"Hello, {guild.name}!", joinMsg.format(guild.name, role.mention)
 	).set_thumbnail(url=prof)
 
 
-def search(searchterm: str = "") -> discord.Embed:
+def search(searchterm: str = "") -> nextcord.Embed:
 	try:
 		emb = bbEmbed(
 			"Search Results",

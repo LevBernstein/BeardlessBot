@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.8.1"
+__version__ = "Full Release 2.0.0"
 
 import asyncio
 import logging
@@ -9,9 +9,9 @@ from sys import stdout
 from time import time
 from typing import List
 
-import discord
-from discord.ext import commands
-from discord.utils import get
+import nextcord
+from nextcord.ext import commands
+from nextcord.utils import get
 from dotenv import dotenv_values
 
 import brawl
@@ -30,10 +30,11 @@ bot = commands.Bot(
 	command_prefix="!",
 	case_insensitive=True,
 	help_command=None,
-	intents=discord.Intents.all(),
+	intents=nextcord.Intents.all(),
+	chunk_guilds_at_startup=False,
 	owner_id=196354892208537600
-	# Replace owner_id with your Discord id
 )
+# Replace owner_id with your Discord id
 
 
 def logException(e: Exception, ctx: commands.Context) -> None:
@@ -43,23 +44,25 @@ def logException(e: Exception, ctx: commands.Context) -> None:
 	)
 
 
-async def createMutedRole(guild: discord.Guild) -> discord.Role:
+async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
 	"""
 	Creates a "Muted" role that prevents users from sending messages.
 
 	Args:
-		guild (discord.Guild): The guild in which to create the role
+		guild (nextcord.Guild): The guild in which to create the role
 
 	Returns:
-		discord.Role: The Muted role.
+		nextcord.Role: The Muted role.
 	"""
-	overwrite = discord.PermissionOverwrite(send_messages=False)
+	overwrite = nextcord.PermissionOverwrite(send_messages=False)
 	role = await guild.create_role(
 		name="Muted",
-		colour=discord.Colour(0x818386),
+		colour=nextcord.Colour(0x818386),
 		mentionable=False,
-		permissions=discord.Permissions(
-			send_messages=False, read_messages=True
+		permissions=nextcord.Permissions(
+			send_messages=False,
+			read_messages=True,
+			send_messages_in_threads = False
 		)
 	)
 	for channel in guild.channels:
@@ -71,14 +74,14 @@ async def createMutedRole(guild: discord.Guild) -> discord.Role:
 async def on_ready():
 	logging.info(f"Beardless Bot {__version__} online!")
 
-	status = discord.Game(name="try !blackjack and !flip")
+	status = nextcord.Game(name="try !blackjack and !flip")
 	try:
 		await bot.change_presence(activity=status)
 		logging.info("Status updated!")
 		with open("resources/images/prof.png", "rb") as f:
 			await bot.user.edit(avatar=f.read())
 		logging.info("Avatar updated!")
-	except discord.HTTPException:
+	except nextcord.HTTPException:
 		logging.error("Failed to update avatar or status!")
 	except FileNotFoundError:
 		logging.error("Avatar file not found! Check your directory structure.")
@@ -104,7 +107,7 @@ async def on_ready():
 
 
 @bot.event
-async def on_guild_join(guild: discord.Guild):
+async def on_guild_join(guild: nextcord.Guild):
 	logging.info(f"Just joined {guild.name}!")
 
 	if guild.me.guild_permissions.administrator:
@@ -138,7 +141,7 @@ async def on_guild_join(guild: discord.Guild):
 
 
 @bot.event
-async def on_message_delete(msg: discord.Message) -> discord.Embed:
+async def on_message_delete(msg: nextcord.Message) -> nextcord.Embed:
 	if msg.guild and (msg.channel.name != "bb-log" or msg.content):
 		for channel in msg.guild.channels:
 			if channel.name == "bb-log":
@@ -149,8 +152,8 @@ async def on_message_delete(msg: discord.Message) -> discord.Embed:
 
 @bot.event
 async def on_bulk_message_delete(
-	msgList: List[discord.Message]
-) -> discord.Embed:
+	msgList: List[nextcord.Message]
+) -> nextcord.Embed:
 	for channel in msgList[0].guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logPurge(msgList[0], msgList)
@@ -159,7 +162,7 @@ async def on_bulk_message_delete(
 
 
 @bot.event
-async def on_message_edit(before: discord.Message, after: discord.Message):
+async def on_message_edit(before: nextcord.Message, after: nextcord.Message):
 	if before.guild and (before.content != after.content):
 		if misc.scamCheck(after.content):
 			if not (role := get(after.guild.roles, name="Muted")):
@@ -186,8 +189,8 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
 
 @bot.event
 async def on_reaction_clear(
-	msg: discord.Message, reactions: List[discord.Reaction]
-) -> discord.Embed:
+	msg: nextcord.Message, reactions: List[nextcord.Reaction]
+) -> nextcord.Embed:
 	for channel in msg.guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logClearReacts(msg, reactions)
@@ -197,8 +200,8 @@ async def on_reaction_clear(
 
 @bot.event
 async def on_guild_channel_delete(
-	ch: discord.abc.GuildChannel
-) -> discord.Embed:
+	ch: nextcord.abc.GuildChannel
+) -> nextcord.Embed:
 	for channel in ch.guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logDeleteChannel(ch)
@@ -208,8 +211,8 @@ async def on_guild_channel_delete(
 
 @bot.event
 async def on_guild_channel_create(
-	ch: discord.abc.GuildChannel
-) -> discord.Embed:
+	ch: nextcord.abc.GuildChannel
+) -> nextcord.Embed:
 	for channel in ch.guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logCreateChannel(ch)
@@ -218,7 +221,7 @@ async def on_guild_channel_create(
 
 
 @bot.event
-async def on_member_join(member: discord.Member) -> discord.Embed:
+async def on_member_join(member: nextcord.Member) -> nextcord.Embed:
 	for channel in member.guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logMemberJoin(member)
@@ -227,7 +230,7 @@ async def on_member_join(member: discord.Member) -> discord.Embed:
 
 
 @bot.event
-async def on_member_remove(member: discord.Member) -> discord.Embed:
+async def on_member_remove(member: nextcord.Member) -> nextcord.Embed:
 	for channel in member.guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logMemberRemove(member)
@@ -236,7 +239,9 @@ async def on_member_remove(member: discord.Member) -> discord.Embed:
 
 
 @bot.event
-async def on_member_update(before: discord.Member, after: discord.Member):
+async def on_member_update(
+	before: nextcord.Member, after: nextcord.Member
+) -> nextcord.Embed:
 	for channel in before.guild.channels:
 		if channel.name == "bb-log":
 			emb = None
@@ -250,7 +255,9 @@ async def on_member_update(before: discord.Member, after: discord.Member):
 
 
 @bot.event
-async def on_member_ban(guild: discord.Guild, member: discord.Member):
+async def on_member_ban(
+	guild: nextcord.Guild, member: nextcord.Member
+) -> nextcord.Embed:
 	for channel in guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logBan(member)
@@ -259,11 +266,51 @@ async def on_member_ban(guild: discord.Guild, member: discord.Member):
 
 
 @bot.event
-async def on_member_unban(guild: discord.Guild, member: discord.Member):
+async def on_member_unban(
+	guild: nextcord.Guild, member: nextcord.Member
+) -> nextcord.Embed:
 	for channel in guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logUnban(member)
 			await channel.send(embed=emb)
+			return emb
+
+
+@bot.event
+async def on_thread_join(thread: nextcord.Thread) -> nextcord.Embed:
+	if thread.me:
+		return
+	else:
+		await thread.join()
+	for channel in thread.guild.channels:
+		if channel.name == "bb-log":
+			emb = logs.logCreateThread(thread)
+			await channel.send(embed=emb)
+			return emb
+
+
+@bot.event
+async def on_thread_delete(thread: nextcord.Thread) -> nextcord.Embed:
+	for channel in thread.guild.channels:
+		if channel.name == "bb-log":
+			emb = logs.logDeleteThread(thread)
+			await channel.send(embed=emb)
+			return emb
+
+
+@bot.event
+async def on_thread_update(
+	before: nextcord.Thread, after: nextcord.Thread
+) -> nextcord.Embed:
+	for channel in after.guild.channels:
+		if channel.name == "bb-log":
+			emb = None
+			if before.archived and not after.archived:
+				emb = logs.logThreadUnarchived(after)
+			elif after.archived and not before.archived:
+				emb = logs.logThreadArchived(after)
+			if emb:
+				await channel.send(embed=emb)
 			return emb
 
 
@@ -425,7 +472,7 @@ async def cmdAdd(ctx, *args):
 
 @bot.command(name="rohan")
 async def cmdRohan(ctx, *args):
-	await ctx.send(file=discord.File("resources/images/cute.png"))
+	await ctx.send(file=nextcord.File("resources/images/cute.png"))
 
 
 @bot.command(name="random")
@@ -463,7 +510,7 @@ async def cmdDefine(ctx, *words):
 async def cmdPing(ctx, *args):
 	emb = misc.bbEmbed(
 		"Pinged", f"Beardless Bot's latency is {int(1000 * bot.latency)} ms."
-	).set_thumbnail(url=bot.user.avatar_url)
+	).set_thumbnail(url=bot.user.avatar.url)
 	await ctx.send(embed=emb)
 
 
@@ -583,7 +630,7 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 		report = "Muted " + target.mention
 		report += (" for " + duration + mString + ".") if mTime else "."
 		emb = misc.bbEmbed("Beardless Bot Mute", report).set_author(
-			name=ctx.author, icon_url=ctx.author.avatar_url
+			name=ctx.author, icon_url=ctx.author.avatar.url
 		)
 		if args:
 			emb.add_field(
@@ -687,7 +734,7 @@ async def cmdBuy(ctx, color="none", *args):
 			report = "You already have this special color, {}."
 		else:
 			if not role.color.value:
-				await role.edit(colour=discord.Colour(colors[color]))
+				await role.edit(colour=nextcord.Colour(colors[color]))
 			report = (
 				"Not enough BeardlessBucks. You need"
 				" 50000 to buy a special color, {}."
@@ -800,7 +847,7 @@ async def cmdBrawlrank(ctx, *target):
 	# TODO: write valid target method; no need for this copy paste
 	# have it return target, report
 	target = " ".join(target) if target else ctx.author
-	if not isinstance(target, discord.User):
+	if not isinstance(target, nextcord.User):
 		report = "Invalid target!"
 		target = misc.memSearch(ctx.message, target)
 	if target:
@@ -820,7 +867,7 @@ async def cmdBrawlstats(ctx, *target):
 	if not (brawlKey and ctx.guild):
 		return
 	target = " ".join(target) if target else ctx.author
-	if not isinstance(target, discord.User):
+	if not isinstance(target, nextcord.User):
 		report = "Invalid target!"
 		target = misc.memSearch(ctx.message, target)
 	if target:
@@ -840,7 +887,7 @@ async def cmdBrawlclan(ctx, *target):
 	if not (brawlKey and ctx.guild):
 		return
 	target = " ".join(target) if target else ctx.author
-	if not isinstance(target, discord.User):
+	if not isinstance(target, nextcord.User):
 		report = "Invalid target!"
 		target = misc.memSearch(ctx.message, target)
 	if target:
@@ -940,6 +987,7 @@ async def handleMessages(message):
 		await author.add_roles(role)
 		for channel in message.guild.channels:
 			if channel.name in ("infractions", "bb-log"):
+				print(message.guild.channels)
 				await channel.send(
 					misc.scamReport.format(
 						author.mention,
@@ -1020,5 +1068,5 @@ if __name__ == "__main__":
 			"Fatal error! DISCORDTOKEN environment variable has not"
 			" been defined. See: README.MD's installation section."
 		)
-	except discord.DiscordException as e:
+	except nextcord.DiscordException as e:
 		logging.error(e)

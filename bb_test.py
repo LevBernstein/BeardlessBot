@@ -8,10 +8,10 @@ from random import choice
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import quote_plus
 
-import discord
+import nextcord
 import pytest
 import requests
-from discord.ext import commands
+from nextcord.ext import commands
 from flake8.api import legacy as flake8
 
 import Bot
@@ -50,11 +50,11 @@ def goodURL(
 # Switch to a single MockState class for all Messageable objects
 
 
-class MockHTTPClient(discord.http.HTTPClient):
+class MockHTTPClient(nextcord.http.HTTPClient):
 	def __init__(
 		self,
 		loop: asyncio.AbstractEventLoop,
-		user: Optional[discord.User] = None
+		user: Optional[nextcord.User] = None
 	) -> None:
 		self.loop = loop
 		self.user_agent = user
@@ -88,18 +88,18 @@ class MockHTTPClient(discord.http.HTTPClient):
 		content: Optional[str] = None,
 		*,
 		tts: bool = False,
-		embed: Optional[discord.Embed] = None,
-		embeds: Optional[List[discord.Embed]] = None,
+		embed: Optional[nextcord.Embed] = None,
+		embeds: Optional[List[nextcord.Embed]] = None,
 		nonce: Optional[str] = None,
 		allowed_mentions: Optional[Dict[str, Any]] = None,
 		message_reference: Optional[Dict[str, Any]] = None,
-		stickers: Optional[List[discord.Sticker]] = None,
+		stickers: Optional[List[nextcord.Sticker]] = None,
 		components: Optional[List[Any]] = None
 	) -> Dict[str, Any]:
 		data = {
 			"attachments": [],
 			"edited_timestamp": None,
-			"type": discord.Message,
+			"type": nextcord.Message,
 			"pinned": False,
 			"mention_everyone": ("@everyone" in content) if content else False,
 			"tts": tts,
@@ -125,17 +125,17 @@ class MockHTTPClient(discord.http.HTTPClient):
 		return data
 
 
-# MockUser class is a superset of discord.User with some features of
-# discord.Member; still working on adding all features of discord.Member,
-# at which point I will switch the parent from discord.User to discord.Member
+# MockUser class is a superset of nextcord.User with some features of
+# nextcord.Member; still working on adding all features of nextcord.Member,
+# at which point I will switch the parent from nextcord.User to nextcord.Member
 # TODO: give default @everyone role
 # TODO: edit Messageable.send() to add messages to self.messages
-class MockUser(discord.User):
+class MockUser(nextcord.User):
 
 	class MockUserState():
 		def __init__(self, messageNum: int = 0) -> None:
 			self._guilds = {}
-			self.allowed_mentions = discord.AllowedMentions(everyone=True)
+			self.allowed_mentions = nextcord.AllowedMentions(everyone=True)
 			self.loop = asyncio.new_event_loop()
 			self.http = MockHTTPClient(self.loop)
 			self.user = None
@@ -143,19 +143,19 @@ class MockUser(discord.User):
 			self.channel = MockChannel()
 
 		def create_message(
-			self, *, channel: discord.abc.Messageable, data: Dict[str, Any]
-		) -> discord.Message:
+			self, *, channel: nextcord.abc.Messageable, data: Dict[str, Any]
+		) -> nextcord.Message:
 			data["id"] = self.last_message_id
 			self.last_message_id += 1
-			return discord.Message(state=self, channel=channel, data=data)
+			return nextcord.Message(state=self, channel=channel, data=data)
 
-		def store_user(self, data: Dict[str, Any]) -> discord.User:
+		def store_user(self, data: Dict[str, Any]) -> nextcord.User:
 			return MockUser()
 
 		def setClientUser(self) -> None:
 			self.http.user_agent = self.user
 
-		def _get_private_channel_by_user(self, id: int) -> discord.TextChannel:
+		def _get_private_channel_by_user(self, id: int) -> nextcord.TextChannel:
 			return self.channel
 
 	def __init__(
@@ -164,8 +164,8 @@ class MockUser(discord.User):
 		nick: str = "testnick",
 		discriminator: str = "0000",
 		id: int = 123456789,
-		roles: List[discord.Role] = [],
-		guild: Optional[discord.Guild] = None
+		roles: List[nextcord.Role] = [],
+		guild: Optional[nextcord.Guild] = None
 	) -> None:
 		self.name = name
 		self.nick = nick
@@ -188,26 +188,26 @@ class MockUser(discord.User):
 
 
 # TODO: edit Messageable.send() to add messages to self.messages
-class MockChannel(discord.TextChannel):
+class MockChannel(nextcord.TextChannel):
 
 	class MockChannelState():
 		def __init__(
-			self, user: Optional[discord.User] = None, messageNum: int = 0
+			self, user: Optional[nextcord.User] = None, messageNum: int = 0
 		) -> None:
 			self.loop = asyncio.new_event_loop()
 			self.http = MockHTTPClient(self.loop, user)
-			self.allowed_mentions = discord.AllowedMentions(everyone=True)
+			self.allowed_mentions = nextcord.AllowedMentions(everyone=True)
 			self.user = user
 			self.last_message_id = messageNum
 
 		def create_message(
-			self, *, channel: discord.abc.Messageable, data: Dict[str, Any]
-		) -> discord.Message:
+			self, *, channel: nextcord.abc.Messageable, data: Dict[str, Any]
+		) -> nextcord.Message:
 			data["id"] = self.last_message_id
 			self.last_message_id += 1
-			return discord.Message(state=self, channel=channel, data=data)
+			return nextcord.Message(state=self, channel=channel, data=data)
 
-		def store_user(self, data: Dict) -> discord.User:
+		def store_user(self, data: Dict) -> nextcord.User:
 			return self.user if self.user else MockUser()
 
 	class Mock_Overwrites():
@@ -215,8 +215,8 @@ class MockChannel(discord.TextChannel):
 			self,
 			id: int,
 			type: int,
-			allow: discord.Permissions,
-			deny: discord.Permissions
+			allow: nextcord.Permissions,
+			deny: nextcord.Permissions
 		) -> None:
 			self.id = id
 			self.type = type
@@ -226,8 +226,8 @@ class MockChannel(discord.TextChannel):
 	def __init__(
 		self,
 		name: str = "testchannelname",
-		guild: Optional[discord.Guild] = None,
-		messages: List[discord.Message] = []
+		guild: Optional[nextcord.Guild] = None,
+		messages: List[nextcord.Message] = []
 	) -> None:
 		self.name = name
 		self.id = 123456789
@@ -244,53 +244,53 @@ class MockChannel(discord.TextChannel):
 
 	async def set_permissions(
 		self,
-		target: Union[discord.Role, discord.User],
+		target: Union[nextcord.Role, nextcord.User],
 		*,
-		overwrite: discord.PermissionOverwrite,
+		overwrite: nextcord.PermissionOverwrite,
 		reason: Optional[str] = None
 	) -> None:
 		pair = overwrite.pair()
 		self._overwrites.append(
 			self.Mock_Overwrites(
 				target.id,
-				0 if isinstance(target, discord.Role) else 1,
+				0 if isinstance(target, nextcord.Role) else 1,
 				pair[0].value,
 				pair[1].value
 			)
 		)
 
-	def history(self) -> List[discord.Message]:
+	def history(self) -> List[nextcord.Message]:
 		# TODO: make self.send() add message to self.messages
 		return list(reversed(self.messages))
 
 
 # TODO: Write message.edit(), message.delete()
-class MockMessage(discord.Message):
+class MockMessage(nextcord.Message):
 	def __init__(
 		self,
 		content: str = "testcontent",
-		author: discord.User = MockUser(),
-		guild: Optional[discord.Guild] = None,
-		channel: discord.TextChannel = MockChannel()
+		author: nextcord.User = MockUser(),
+		guild: Optional[nextcord.Guild] = None,
+		channel: nextcord.TextChannel = MockChannel()
 	) -> None:
 		self.author = author
 		self.content = content
 		self.id = 123456789
 		self.channel = channel
-		self.type = discord.MessageType.default
-		self.flags = discord.MessageFlags()
+		self.type = nextcord.MessageType.default
+		self.flags = nextcord.MessageFlags()
 		self.guild = guild
 		self.mentions = []
 		self.mention_everyone = False
 
 
 # TODO: switch to MockRole(guild, **kwargs) factory method
-class MockRole(discord.Role):
+class MockRole(nextcord.Role):
 	def __init__(
 		self,
 		name: str = "Test Role",
 		id: int = 123456789,
-		permissions: Union[int, discord.Permissions] = 1879573680
+		permissions: Union[int, nextcord.Permissions] = 1879573680
 	) -> None:
 		self.name = name
 		self.id = id
@@ -301,11 +301,11 @@ class MockRole(discord.Role):
 		)
 
 
-class MockGuild(discord.Guild):
+class MockGuild(nextcord.Guild):
 
 	class MockGuildState():
 		def __init__(self) -> None:
-			self.member_cache_flags = discord.MemberCacheFlags.all()
+			self.member_cache_flags = nextcord.MemberCacheFlags.all()
 			self.self_id = 1
 			self.shard_count = 1
 			self.loop = asyncio.new_event_loop()
@@ -314,11 +314,11 @@ class MockGuild(discord.Guild):
 
 	def __init__(
 		self,
-		members: List[discord.User] = [MockUser(), MockUser()],
+		members: List[nextcord.User] = [MockUser(), MockUser()],
 		name: str = "Test Guild",
 		id: int = 0,
-		channels: List[discord.TextChannel] = [MockChannel()],
-		roles: List[discord.Role] = [MockRole()]
+		channels: List[nextcord.TextChannel] = [MockChannel()],
+		roles: List[nextcord.Role] = [MockRole()]
 	) -> None:
 		self.name = name
 		self.id = id
@@ -333,12 +333,12 @@ class MockGuild(discord.Guild):
 		self,
 		*,
 		name: str,
-		permissions: discord.Permissions,
+		permissions: nextcord.Permissions,
 		mentionable: bool = False,
 		hoist: bool = False,
-		colour: Union[discord.Colour, int] = 0,
+		colour: Union[nextcord.Colour, int] = 0,
 		**kwargs: Any
-	) -> discord.Role:
+	) -> nextcord.Role:
 
 		fields = {
 			"name": name,
@@ -349,7 +349,7 @@ class MockGuild(discord.Guild):
 		}
 
 		data = await self._state.http.create_role(len(self.roles), **fields)
-		role = discord.Role(guild=self, data=data, state=self._state)
+		role = nextcord.Role(guild=self, data=data, state=self._state)
 		self._roles[len(self.roles)] = role
 
 		return role
@@ -360,32 +360,32 @@ class MockContext(commands.Context):
 	class MockContextState():
 		def __init__(
 			self,
-			user: Optional[discord.User] = None,
-			channel: discord.TextChannel = MockChannel()
+			user: Optional[nextcord.User] = None,
+			channel: nextcord.TextChannel = MockChannel()
 		) -> None:
 			self.loop = asyncio.new_event_loop()
 			self.http = MockHTTPClient(self.loop, user)
-			self.allowed_mentions = discord.AllowedMentions(everyone=True)
+			self.allowed_mentions = nextcord.AllowedMentions(everyone=True)
 			self.user = user
 			self.channel = channel
 
 		def create_message(
-			self, *, channel: discord.abc.Messageable, data: Dict
-		) -> discord.Message:
+			self, *, channel: nextcord.abc.Messageable, data: Dict
+		) -> nextcord.Message:
 			data["id"] = self.channel._state.last_message_id
 			self.channel._state.last_message_id += 1
-			return discord.Message(state=self, channel=channel, data=data)
+			return nextcord.Message(state=self, channel=channel, data=data)
 
-		def store_user(self, data: Dict) -> discord.User:
+		def store_user(self, data: Dict) -> nextcord.User:
 			return self.user if self.user else MockUser()
 
 	def __init__(
 		self,
 		bot: commands.Bot,
-		message: discord.Message = MockMessage(),
-		channel: discord.TextChannel = MockChannel(),
-		author: discord.User = MockUser(),
-		guild: Optional[discord.Guild] = MockGuild()
+		message: nextcord.Message = MockMessage(),
+		channel: nextcord.TextChannel = MockChannel(),
+		author: nextcord.User = MockUser(),
+		guild: Optional[nextcord.Guild] = MockGuild()
 	) -> None:
 		self.bot = bot
 		self.prefix = bot.command_prefix
@@ -412,17 +412,16 @@ class MockBot(commands.Bot):
 		async def change_presence(
 			self,
 			*,
-			activity: Optional[discord.Activity] = None,
+			activity: Optional[nextcord.Activity] = None,
 			status: Optional[str] = None,
-			afk: bool = False
+			since: float = 0.0
 		) -> None:
-			# TODO: change "afk" to "since" for new versions of discord.py
 			data = {
 				"op": self.PRESENCE,
 				"d": {
 					"activities": [activity],
-					"afk": afk,
-					"status": status
+					"status": status,
+					"since": since
 				}
 			}
 			await self.send(data)
@@ -432,7 +431,7 @@ class MockBot(commands.Bot):
 			self.bot.activity = data["d"]["activities"][0]
 			return data
 
-	class MockClientUser(discord.ClientUser):
+	class MockClientUser(nextcord.ClientUser):
 		def __init__(self, bot: commands.Bot) -> None:
 			baseUser = MockUser()
 			self._state = baseUser._state
@@ -466,6 +465,8 @@ if not brawlKey:
 		brawlKey = env["BRAWLKEY"]
 	except KeyError:
 		print("No Brawlhalla API key. Brawlhalla-specific tests will fail.\n")
+
+loop = asyncio.get_event_loop()
 
 
 @pytest.mark.parametrize("letter", ["W", "E", "F"])
@@ -505,14 +506,14 @@ def test_logException(caplog: pytest.LogCaptureFixture) -> None:
 
 def test_createMutedRole() -> None:
 	g = MockGuild(roles=[])
-	role = asyncio.run(Bot.createMutedRole(g))
+	role = loop.run_until_complete(Bot.createMutedRole(g))
 	assert role.name == "Muted"
 	assert len(g.roles) == 1 and g.roles[0] == role
 
 
 def test_on_ready() -> None:
 	Bot.bot = MockBot(Bot.bot)
-	asyncio.run(Bot.on_ready())
+	loop.run_until_complete(Bot.on_ready())
 	assert Bot.bot.activity.name == "try !blackjack and !flip"
 	assert Bot.bot.status == "online"
 	with open("resources/images/prof.png", "rb") as f:
@@ -531,7 +532,7 @@ def test_contCheck(content: str, description: str) -> None:
 def test_on_message_delete() -> None:
 	m = MockMessage(channel=MockChannel(name="bb-log"))
 	m.guild = MockGuild(channels=[m.channel])
-	emb = asyncio.run(Bot.on_message_delete(m))
+	emb = loop.run_until_complete(Bot.on_message_delete(m))
 	log = logs.logDeleteMsg(m)
 	assert emb.description == log.description
 	assert log.description == (
@@ -550,7 +551,7 @@ def test_on_bulk_message_delete() -> None:
 	m = MockMessage(channel=MockChannel(name="bb-log"))
 	m.guild = MockGuild(channels=[m.channel])
 	messages = [m, m, m]
-	emb = asyncio.run(Bot.on_bulk_message_delete(messages))
+	emb = loop.run_until_complete(Bot.on_bulk_message_delete(messages))
 	log = logs.logPurge(messages[0], messages)
 	assert emb.description == log.description
 	assert log.description == f"Purged 2 messages in {m.channel.mention}."
@@ -561,7 +562,7 @@ def test_on_bulk_message_delete() -> None:
 	)
 	"""
 	messages = [m] * 105
-	emb = asyncio.run(Bot.on_bulk_message_delete(messages))
+	emb = loop.run_until_complete(Bot.on_bulk_message_delete(messages))
 	log = logs.logPurge(messages[0], messages)
 	assert emb.description == log.description
 	assert log.description == f"Purged 99+ messages in {m.channel.mention}."
@@ -570,7 +571,7 @@ def test_on_bulk_message_delete() -> None:
 def test_on_guild_channel_delete() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	channel = MockChannel(guild=g)
-	emb = asyncio.run(Bot.on_guild_channel_delete(channel))
+	emb = loop.run_until_complete(Bot.on_guild_channel_delete(channel))
 	log = logs.logDeleteChannel(channel)
 	assert emb.description == log.description
 	assert log.description == f"Channel \"{channel.name}\" deleted."
@@ -585,7 +586,7 @@ def test_on_guild_channel_delete() -> None:
 def test_on_guild_channel_create() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	channel = MockChannel(guild=g)
-	emb = asyncio.run(Bot.on_guild_channel_create(channel))
+	emb = loop.run_until_complete(Bot.on_guild_channel_create(channel))
 	log = logs.logCreateChannel(channel)
 	assert emb.description == log.description
 	assert log.description == f"Channel \"{channel.name}\" created."
@@ -600,7 +601,7 @@ def test_on_guild_channel_create() -> None:
 def test_on_member_ban() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	member = MockUser()
-	emb = asyncio.run(Bot.on_member_ban(g, member))
+	emb = loop.run_until_complete(Bot.on_member_ban(g, member))
 	log = logs.logBan(member)
 	assert emb.description == log.description
 	assert log.description == f"Member {member.mention} banned\n{member.name}"
@@ -615,7 +616,7 @@ def test_on_member_ban() -> None:
 def test_on_member_unban() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	member = MockUser()
-	emb = asyncio.run(Bot.on_member_unban(g, member))
+	emb = loop.run_until_complete(Bot.on_member_unban(g, member))
 	log = logs.logUnban(member)
 	assert emb.description == log.description
 	assert (
@@ -633,7 +634,7 @@ def test_on_member_unban() -> None:
 def test_on_member_join() -> None:
 	member = MockUser()
 	member.guild = MockGuild(channels=[MockChannel(name="bb-log")])
-	emb = asyncio.run(Bot.on_member_join(member))
+	emb = loop.run_until_complete(Bot.on_member_join(member))
 	log = logs.logMemberJoin(member)
 	assert emb.description == log.description
 	assert log.description == (
@@ -652,12 +653,12 @@ def test_on_member_join() -> None:
 def test_on_member_remove() -> None:
 	member = MockUser()
 	member.guild = MockGuild(channels=[MockChannel(name="bb-log")])
-	emb = asyncio.run(Bot.on_member_remove(member))
+	emb = loop.run_until_complete(Bot.on_member_remove(member))
 	log = logs.logMemberRemove(member)
 	assert emb.description == log.description
 	assert log.description == f"Member {member.mention} left\nID: {member.id}"
 	member.roles = [MockRole(), MockRole()]
-	emb = asyncio.run(Bot.on_member_remove(member))
+	emb = loop.run_until_complete(Bot.on_member_remove(member))
 	log = logs.logMemberRemove(member)
 	assert emb.description == log.description
 	assert log.fields[0].value == member.roles[1].mention
@@ -674,7 +675,7 @@ def test_on_member_update() -> None:
 	guild = MockGuild(channels=[MockChannel(name="bb-log")])
 	old = MockUser(nick="a", roles=[], guild=guild)
 	new = MockUser(nick="b", roles=[], guild=guild)
-	emb = asyncio.run(Bot.on_member_update(old, new))
+	emb = loop.run_until_complete(Bot.on_member_update(old, new))
 	log = logs.logMemberNickChange(old, new)
 	assert emb.description == log.description
 	assert log.description == "Nickname of " + new.mention + " changed."
@@ -682,14 +683,14 @@ def test_on_member_update() -> None:
 	assert log.fields[1].value == new.nick
 
 	new = MockUser(nick="a", roles=[MockRole()], guild=guild)
-	emb = asyncio.run(Bot.on_member_update(old, new))
+	emb = loop.run_until_complete(Bot.on_member_update(old, new))
 	log = logs.logMemberRolesChange(old, new)
 	assert emb.description == log.description
 	assert log.description == (
 		f"Role {new.roles[0].mention} added to {new.mention}."
 	)
 
-	emb = asyncio.run(Bot.on_member_update(new, old))
+	emb = loop.run_until_complete(Bot.on_member_update(new, old))
 	log = logs.logMemberRolesChange(new, old)
 	assert emb.description == log.description
 	assert log.description == (
@@ -702,10 +703,10 @@ def test_on_message_edit() -> None:
 	g = MockGuild(
 		channels=[MockChannel(name="bb-log"), MockChannel(name="infractions")]
 	)
-	asyncio.run(Bot.createMutedRole(g))
+	loop.run_until_complete(Bot.createMutedRole(g))
 	before = MockMessage(content="old", author=member, guild=g)
 	after = MockMessage(content="new", author=member, guild=g)
-	emb = asyncio.run(Bot.on_message_edit(before, after))
+	emb = loop.run_until_complete(Bot.on_message_edit(before, after))
 	log = logs.logEditMsg(before, after)
 	assert emb.description == log.description
 	assert emb.description == (
@@ -720,7 +721,7 @@ def test_on_message_edit() -> None:
 	# testing for scamCheck == True
 	'''
 	after.content = "http://dizcort.com free nitro!"
-	emb = asyncio.run(Bot.on_message_edit(before, after))
+	emb = loop.run_until_complete(Bot.on_message_edit(before, after))
 	assert g.channels[0].messages[0].content.startswith("Deleted possible")
 	# TODO: edit after to have content of len > 1024 via message.edit
 	channel = member.guild.channels[0]
@@ -733,7 +734,7 @@ def test_on_message_edit() -> None:
 def test_cmdDice() -> None:
 	ch = MockChannel()
 	ctx = MockContext(Bot.bot, channel=ch, guild=MockGuild(channels=[ch]))
-	emb = asyncio.run(Bot.cmdDice(ctx))
+	emb = loop.run_until_complete(Bot.cmdDice(ctx))
 	assert emb.description == misc.diceMsg
 	"""
 	# TODO: append sent messages to channel.messages
@@ -765,17 +766,35 @@ def test_tweet() -> None:
 def test_dice_regular(side: int) -> None:
 	user = MockUser()
 	text = "d" + str(side)
-	assert misc.roll(text) in range(1, side + 1)
-	assert (misc.rollReport(text, user).description.startswith("You got"))
+	assert misc.roll(text)[0] in range(1, side + 1)
+	report = misc.rollReport(text, user)
+	assert report.description.startswith("You got")
+	assert text in report.title
 
 
 def test_dice_irregular() -> None:
 	user = MockUser()
-	assert misc.roll("d20-4") in range(-3, 17)
+	assert misc.roll("d20-4")[0] in range(-3, 17)
 	assert misc.rollReport("d20-4", user).description.startswith("You got")
-	assert not misc.roll("wrongroll")
-	assert not misc.roll("d9")
+	assert not misc.roll("wrongroll")[0]
+	assert not misc.roll("d9")[0]
 	assert misc.rollReport("d9", user).description.startswith("Invalid")
+	assert not misc.roll("d40")[0]
+	results = misc.roll("d100+asfjksdfhkdsfhksd")
+	assert results[0] in range(1, 101)
+	assert results[4] == 0
+
+
+@pytest.mark.parametrize("count", [-5, 1, 2, 3, 5, 100])
+def test_dice_multiple(count) -> None:
+	assert misc.roll(f"{count}d4")[0] in range(1, (abs(count) * 4) + 1)
+
+
+def test_dice_multiple_irregular() -> None:
+	assert misc.roll("10d20-4")[0] in range(6, 197)
+	assert misc.roll("ad100")[0] in range(1, 101)
+	assert misc.roll("0d8")[0] == 0
+	assert misc.roll("0d12+57")[0] == 57
 
 
 def test_logClearReacts() -> None:
@@ -852,7 +871,7 @@ def test_register() -> None:
 		("Invalid user", "Invalid user!")
 	]
 )
-def test_balance(target: discord.User, result: str) -> None:
+def test_balance(target: nextcord.User, result: str) -> None:
 	msg = MockMessage("!bal", guild=MockGuild())
 	assert result in bucks.balance(target, msg).description
 
@@ -1010,7 +1029,7 @@ def test_av() -> None:
 	namedUser = MockUser("searchterm")
 	guild = MockGuild(members=[MockUser(), namedUser])
 	text = MockMessage("!av searchterm", guild=guild)
-	assert misc.av("searchterm", text).image.url == str(namedUser.avatar_url)
+	assert misc.av("searchterm", text).image.url == str(namedUser.avatar.url)
 	assert misc.av("error", text).title == "Invalid target!"
 
 
@@ -1018,9 +1037,9 @@ def test_commands() -> None:
 	ctx = MockContext(Bot.bot, guild=None)
 	assert len(misc.bbCommands(ctx).fields) == 15
 	ctx.guild = MockGuild()
-	ctx.author.guild_permissions = discord.Permissions(manage_messages=True)
+	ctx.author.guild_permissions = nextcord.Permissions(manage_messages=True)
 	assert len(misc.bbCommands(ctx).fields) == 20
-	ctx.author.guild_permissions = discord.Permissions(manage_messages=False)
+	ctx.author.guild_permissions = nextcord.Permissions(manage_messages=False)
 	assert len(misc.bbCommands(ctx).fields) == 17
 
 
