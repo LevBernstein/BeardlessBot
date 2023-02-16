@@ -255,7 +255,7 @@ def define(word: str) -> discord.Embed:
 	return bbEmbed("Beardless Bot Definitions", "No results found.")
 
 
-def roll(text: str) -> Union[Tuple[None], Tuple[int, int, int, int, int]]:
+def roll(text: str) -> Union[Tuple[None], Tuple[int, int, int, bool, int]]:
 	# Takes a string of the format mdn+b and rolls m
 	# n-sided dice with a modifier of b. m and b are optional.
 	try:
@@ -263,7 +263,7 @@ def roll(text: str) -> Union[Tuple[None], Tuple[int, int, int, int, int]]:
 	except (IndexError, ValueError):
 		return (None,)
 	diceNum = abs(int(diceNum)) if diceNum.replace("-", "").isnumeric() else 1
-	diceNum = diceNum if diceNum < 99999 else 99999
+	diceNum = min(diceNum, 999)
 	side = command.split("-")[0].split("+")[0]
 	if side in ("4", "6", "8", "100", "10", "12", "20"):
 		if (
@@ -271,7 +271,7 @@ def roll(text: str) -> Union[Tuple[None], Tuple[int, int, int, int, int]]:
 			and command[len(side)] in ("+", "-")
 			and (bonus := command[1 + len(side):]).isnumeric()
 		):
-			b = (-1 if "-" in command else 1) * int(bonus)
+			b = (-1 if "-" in command else 1) * min(int(bonus), 999999)
 		else:
 			b = 0
 		diceSum = sum((randint(1, int(side)) for i in range(diceNum)))
@@ -290,8 +290,8 @@ def rollReport(
 	else:
 		title = "Beardless Bot Dice"
 		report = (
-			"Invalid roll. Enter d4, 6, 8, 10, 12, 20, or 100,"
-			" as well as modifiers. No spaces allowed. Ex: !roll 2d4+3"
+			"Invalid roll. Enter d4, 6, 8, 10, 12, 20, or 100, as well as"
+			" number of dice and modifiers. No spaces allowed. Ex: !roll 2d4+3"
 		)
 	return bbEmbed(title, report)
 
@@ -540,7 +540,7 @@ sparDesc = (
 	"Do the command !spar [region] [other info]."
 	"\nFor instance, to find a diamond from US-E to play 2s with, I would do:"
 	"\n**!spar US-E looking for a diamond 2s partner**."
-	"\nValid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA."
+	"\nValid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA, MEA, SAF."
 	"\n!spar has a 2 hour cooldown."
 	"\nPlease use the roles channel to give yourself the correct roles."
 )
@@ -561,13 +561,10 @@ sparPins = (
 	)
 )
 
-redditEmb = (
-	bbEmbed(
-		"The Official Eggsoup Subreddit",
-		"https://www.reddit.com/r/eggsoup/"
-	)
-	.set_thumbnail(url=redditThumb)
-)
+redditEmb = bbEmbed(
+	"The Official Eggsoup Subreddit", "https://www.reddit.com/r/eggsoup/"
+).set_thumbnail(url=redditThumb)
+
 
 animals = bbEmbed("Animal Photo Commands:").add_field(
 	name="!dog",

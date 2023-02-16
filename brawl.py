@@ -22,7 +22,7 @@ badClaim = (
 
 badRegion = (
 	"Please specify a valid region, {}! Valid regions are US-E, US-W, EU,"
-	" AUS, SEA, BRZ, JPN. If you need help, try doing !pins."
+	" AUS, SEA, BRZ, JPN, MEA, SAF. If you need help, try doing !pins."
 )
 
 reqLimit = (
@@ -78,7 +78,9 @@ regions = (
 	"us-e",
 	"sea",
 	"aus",
-	"eu"
+	"eu",
+	"mea",
+	"saf"
 )
 
 
@@ -205,7 +207,13 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Rank", unclaimed.format(target.mention)
 		)
-	if len(r := apiCall("player/", str(brawlID) + "/ranked", brawlKey)) < 4:
+	if (
+		len(r := apiCall("player/", str(brawlID) + "/ranked", brawlKey)) < 4
+		or (
+			("games" in r and r["games"] == 0)
+			and ("2v2" in r and len(r["2v2"]) == 0)
+		)
+	):
 		return (
 			bbEmbed(
 				"Beardless Bot Brawlhalla Rank",
@@ -219,7 +227,7 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 		.set_footer(text=f"Brawl ID {brawlID}")
 		.set_author(name=target, icon_url=target.avatar_url)
 	)
-	if "games" in r:
+	if "games" in r and r["games"] != 0:
 		winRate = brawlWinRate(r)
 		embVal = (
 			f"**{r['tier']}** ({r['rating']}/{r['peak_rating']} Peak)\n"
@@ -243,7 +251,7 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 					url=thumbBase.format(*rankedThumbnails[key])
 				)
 				break
-	if "2v2" in r:
+	if "2v2" in r and len(r["2v2"]) != 0:
 		twosTeam = None
 		for team in r["2v2"]:
 			# Find highest-Elo 2s pairing:
