@@ -204,7 +204,7 @@ def logUnmute(
 
 
 def logCreateThread(thread: nextcord.Thread) -> nextcord.Embed:
-	emb =  bbEmbed(
+	emb = bbEmbed(
 		"",
 		f"Thread \"{thread.name}\" created in"
 		f" parent channel {thread.parent.mention}.",
@@ -226,7 +226,7 @@ def logThreadArchived(thread: nextcord.Thread) -> nextcord.Embed:
 	).set_author(name="Thread archived", icon_url=prof)
 
 
-def logThreadUnarchived(thread:nextcord.Thread) -> nextcord.Embed:
+def logThreadUnarchived(thread: nextcord.Thread) -> nextcord.Embed:
 	return bbEmbed(
 		"", f'Thread "{thread.name}" unarchived.', 0xFFFF00, True
 	).set_author(name="Thread unarchived", icon_url=prof)

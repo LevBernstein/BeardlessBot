@@ -62,7 +62,7 @@ async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
 		permissions=nextcord.Permissions(
 			send_messages=False,
 			read_messages=True,
-			send_messages_in_threads = False
+			send_messages_in_threads=False
 		)
 	)
 	for channel in guild.channels:
