@@ -5,6 +5,7 @@ from dotenv import dotenv_values
 from json import load
 from os import environ
 from random import choice
+from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import quote_plus
 
@@ -137,7 +138,7 @@ class MockUser(nextcord.User):
 		def __init__(self, messageNum: int = 0) -> None:
 			self._guilds = {}
 			self.allowed_mentions = nextcord.AllowedMentions(everyone=True)
-			self.loop = asyncio.new_event_loop()
+			self.loop = asyncio.get_event_loop()
 			self.http = MockHTTPClient(self.loop)
 			self.user = None
 			self.last_message_id = messageNum
@@ -196,7 +197,7 @@ class MockChannel(nextcord.TextChannel):
 		def __init__(
 			self, user: Optional[nextcord.User] = None, messageNum: int = 0
 		) -> None:
-			self.loop = asyncio.new_event_loop()
+			self.loop = asyncio.get_event_loop()
 			self.http = MockHTTPClient(self.loop, user)
 			self.allowed_mentions = nextcord.AllowedMentions(everyone=True)
 			self.user = user
@@ -310,7 +311,7 @@ class MockGuild(nextcord.Guild):
 			self.member_cache_flags = nextcord.MemberCacheFlags.all()
 			self.self_id = 1
 			self.shard_count = 1
-			self.loop = asyncio.new_event_loop()
+			self.loop = asyncio.get_event_loop()
 			self.http = MockHTTPClient(self.loop)
 			self.user = MockUser()
 			self._intents = nextcord.Intents.all()
@@ -337,6 +338,8 @@ class MockGuild(nextcord.Guild):
 		self._channels = {i: c for i, c in enumerate(channels)}
 		self._roles = {i: r for i, r in enumerate(roles)}
 		self.owner_id = 123456789
+		for role in self._roles.values():
+			self.assignGuild(role)
 
 	async def create_role(
 		self,
@@ -363,6 +366,10 @@ class MockGuild(nextcord.Guild):
 
 		return role
 
+	def assignGuild(self, role: nextcord.Role) -> None:
+		role.guild = self
+		return
+
 
 class MockContext(commands.Context):
 
@@ -372,11 +379,12 @@ class MockContext(commands.Context):
 			user: Optional[nextcord.User] = None,
 			channel: nextcord.TextChannel = MockChannel()
 		) -> None:
-			self.loop = asyncio.new_event_loop()
+			self.loop = asyncio.get_event_loop()
 			self.http = MockHTTPClient(self.loop, user)
 			self.allowed_mentions = nextcord.AllowedMentions(everyone=True)
 			self.user = user
 			self.channel = channel
+			self.message = MockMessage()
 
 		def create_message(
 			self, *, channel: nextcord.abc.Messageable, data: Dict
@@ -466,6 +474,7 @@ class MockBot(commands.Bot):
 		self.status = nextcord.Status(value="online")
 		self.ws = self.MockBotWebsocket(self)
 		self._connection._guilds = {1: MockGuild()}
+		self.all_commands = bot.all_commands
 
 
 brawlKey = environ.get("BRAWLKEY")
@@ -671,7 +680,7 @@ def test_on_member_remove() -> None:
 	log = logs.logMemberRemove(member)
 	assert emb.description == log.description
 	assert log.description == f"Member {member.mention} left\nID: {member.id}"
-	member.roles = [MockRole(), MockRole()]
+	member.roles = member.guild.roles[0], member.guild.roles[0]
 	emb = loop.run_until_complete(Bot.on_member_remove(member))
 	log = logs.logMemberRemove(member)
 	assert emb.description == log.description
@@ -696,7 +705,8 @@ def test_on_member_update() -> None:
 	assert log.fields[0].value == old.nick
 	assert log.fields[1].value == new.nick
 
-	new = MockUser(nick="a", roles=[MockRole()], guild=guild)
+	new = MockUser(nick="a", guild=guild)
+	new.roles = [new.guild.roles[0], new.guild.roles[0]]
 	emb = loop.run_until_complete(Bot.on_member_update(old, new))
 	log = logs.logMemberRolesChange(old, new)
 	assert emb.description == log.description
@@ -1029,8 +1039,9 @@ def test_activeGame() -> None:
 
 
 def test_info() -> None:
-	namedUser = MockUser("searchterm", roles=[MockRole(), MockRole()])
+	namedUser = MockUser("searchterm")
 	guild = MockGuild(members=[MockUser(), namedUser])
+	namedUser.roles = [guild.roles[0], guild.roles[0]]
 	text = MockMessage("!info searchterm", guild=guild)
 	namedUserInfo = misc.info("searchterm", text)
 	assert namedUserInfo.fields[0].value == misc.truncTime(namedUser) + " UTC"
@@ -1138,6 +1149,13 @@ def test_invalid_animal_raises_exception() -> None:
 		misc.animal("invalidAnimal")
 
 
+def test_thread_creation_does_not_invoke_commands() -> None:
+	ctx = MockContext(Bot.bot, author=MockUser(), guild=MockGuild())
+	ctx.message.type = nextcord.MessageType.thread_created
+	for command in list(Bot.bot.commands):
+		assert loop.run_until_complete(command(ctx)) == -1
+
+
 # Tests for commands that require a Brawlhalla API key:
 
 
@@ -1189,39 +1207,42 @@ def test_legendInfo() -> None:
 
 
 def test_getRank() -> None:
+	sleep(5)
 	user = MockUser(id=0)
 	assert brawl.getRank(user, brawlKey).description == (
 		brawl.unclaimed.format(user.mention)
 	)
-	user.id = 743238109898211389
-	assert brawl.getRank(user, brawlKey).footer.text == "Brawl ID 12502880"
 	user.id = 196354892208537600
+	assert brawl.getRank(user, brawlKey).footer.text == "Brawl ID 7032472"
 	assert brawl.getRank(user, brawlKey).description == (
 		"You haven't played ranked yet this season."
 	)
 	brawl.claimProfile(196354892208537600, 12502880)
-	user.id = 196354892208537600
-	assert brawl.getRank(user, brawlKey).color.value == 0x0051B4
+	assert brawl.getRank(user, brawlKey).color.value == 0x3D2399
 	brawl.claimProfile(196354892208537600, 7032472)
 
 
 def test_getStats() -> None:
+	sleep(5)
 	user = MockUser(id=0)
 	assert brawl.getStats(user, brawlKey).description == (
 		brawl.unclaimed.format(user.mention)
 	)
 	user.id = 196354892208537600
+	brawl.claimProfile(196354892208537600, 7032472)
 	emb = brawl.getStats(user, brawlKey)
 	assert emb.footer.text == "Brawl ID 7032472"
 	assert len(emb.fields) in (3, 4)
 
 
 def test_getClan() -> None:
+	sleep(5)
 	user = MockUser(id=0)
 	assert brawl.getClan(user, brawlKey).description == (
 		brawl.unclaimed.format(user.mention)
 	)
 	user.id = 196354892208537600
+	brawl.claimProfile(196354892208537600, 7032472)
 	assert brawl.getClan(user, brawlKey).title == "DinersDriveInsDives"
 	brawl.claimProfile(196354892208537600, 5895238)
 	assert brawl.getClan(user, brawlKey).description == (
