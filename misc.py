@@ -174,7 +174,7 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 				r = requests.get(
 					"https://dog.ceo/api/breed/" + breed + "/images/random"
 				)
-				if r.status_code == 200:
+				if r.status_code == 200 and "message" in r.json():
 					if not r.json()["message"].startswith("Breed not found"):
 						return r.json()["message"]
 				return "Breed not found! Do !dog breeds to see all breeds."
@@ -380,9 +380,9 @@ def bbCommands(ctx: commands.Context) -> nextcord.Embed:
 			" game, you can use !hit and !stay to play."
 		),
 		(
-			"!roll d[num][+/-][mod]",
-			"Rolls a [num]-sided die and adds or subtracts [mod]."
-			" Example: !roll d8, or !roll d100-17."
+			"!roll [count]d[num][+/-][mod]",
+			"Rolls [count] [num]-sided dice and adds or subtracts [mod]."
+			" Example: !roll d8, or !roll d100-17, or !roll 4d6+3."
 		),
 		("!brawl", "Displays Beardless Bot's Brawlhalla commands."),
 		("!add", "Gives you a link to add this bot to your server."),
@@ -540,7 +540,7 @@ sparDesc = (
 	"Do the command !spar [region] [other info]."
 	"\nFor instance, to find a diamond from US-E to play 2s with, I would do:"
 	"\n**!spar US-E looking for a diamond 2s partner**."
-	"\nValid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA."
+	"\nValid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA, MEA, SAF."
 	"\n!spar has a 2 hour cooldown."
 	"\nPlease use the roles channel to give yourself the correct roles."
 )
@@ -561,13 +561,10 @@ sparPins = (
 	)
 )
 
-redditEmb = (
-	bbEmbed(
-		"The Official Eggsoup Subreddit",
-		"https://www.reddit.com/r/eggsoup/"
-	)
-	.set_thumbnail(url=redditThumb)
-)
+redditEmb = bbEmbed(
+	"The Official Eggsoup Subreddit", "https://www.reddit.com/r/eggsoup/"
+).set_thumbnail(url=redditThumb)
+
 
 animals = bbEmbed("Animal Photo Commands:").add_field(
 	name="!dog",

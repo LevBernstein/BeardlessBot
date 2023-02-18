@@ -1137,8 +1137,7 @@ def test_animal_with_imageSigs(animalName: str) -> None:
 def test_animal_dog_breed() -> None:
 	breeds = misc.animal("dog", "breeds")[12:-1].split(", ")
 	assert len(breeds) >= 94
-	r = requests.get(misc.animal("dog", choice(breeds)))
-	assert goodURL(r, imageTypes)
+	assert goodURL(requests.get(misc.animal("dog", choice(breeds))), imageTypes)
 	assert misc.animal("dog", "invalidbreed").startswith("Breed not")
 	assert misc.animal("dog", "invalidbreed1234").startswith("Breed not")
 	assert goodURL(requests.get(misc.animal("dog", "moose")), imageTypes)
@@ -1191,19 +1190,8 @@ def test_claimProfile() -> None:
 	]
 )
 def test_getBrawlID(url: str, result: Optional[int]) -> None:
+	sleep(2)
 	assert brawl.getBrawlID(brawlKey, url) == result
-
-
-def test_getLegends() -> None:
-	oldLegends = brawl.fetchLegends()
-	brawl.getLegends(brawlKey)
-	assert brawl.fetchLegends() == oldLegends
-
-
-def test_legendInfo() -> None:
-	assert brawl.legendInfo(brawlKey, "hugin").title == "Munin, The Raven"
-	assert brawl.legendInfo(brawlKey, "teros").title == "Teros, The Minotaur"
-	assert not brawl.legendInfo(brawlKey, "invalidname")
 
 
 def test_getRank() -> None:
@@ -1220,6 +1208,20 @@ def test_getRank() -> None:
 	brawl.claimProfile(196354892208537600, 12502880)
 	assert brawl.getRank(user, brawlKey).color.value == 0x3D2399
 	brawl.claimProfile(196354892208537600, 7032472)
+
+
+def test_getLegends() -> None:
+	sleep(5)
+	oldLegends = brawl.fetchLegends()
+	brawl.getLegends(brawlKey)
+	assert brawl.fetchLegends() == oldLegends
+
+
+def test_legendInfo() -> None:
+	sleep(5)
+	assert brawl.legendInfo(brawlKey, "hugin").title == "Munin, The Raven"
+	assert brawl.legendInfo(brawlKey, "teros").title == "Teros, The Minotaur"
+	assert not brawl.legendInfo(brawlKey, "invalidname")
 
 
 def test_getStats() -> None:
@@ -1252,4 +1254,5 @@ def test_getClan() -> None:
 
 
 def test_brawlCommands() -> None:
+	sleep(5)
 	assert len(brawl.brawlCommands().fields) == 6
