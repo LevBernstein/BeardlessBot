@@ -5,7 +5,7 @@ from json import dump, load
 from random import choice
 from typing import Any, Dict, Optional, Tuple
 
-import discord
+import nextcord
 import requests
 from steam.steamid import from_url
 
@@ -88,7 +88,7 @@ def brawlWinRate(j: Dict[str, int]) -> float:
 	return round(j["wins"] / j["games"] * 100, 1)
 
 
-def pingMsg(target: discord.Member, h: int, m: int, s: int) -> str:
+def pingMsg(target: nextcord.Member, h: int, m: int, s: int) -> str:
 	def plural(t: int):
 		return "" if t == 1 else "s"
 
@@ -99,7 +99,7 @@ def pingMsg(target: discord.Member, h: int, m: int, s: int) -> str:
 	).format(target, h, plural(h), m, plural(m), s, plural(s))
 
 
-def randomBrawl(ranType: str, key: str = None) -> discord.Embed:
+def randomBrawl(ranType: str, key: str = None) -> nextcord.Embed:
 	if ranType in ("legend", "weapon"):
 		if ranType == "legend":
 			choices = tuple(
@@ -160,7 +160,7 @@ def getLegends(brawlKey: str):
 		dump(apiCall("legend/", "all/", brawlKey), f, indent=4)
 
 
-def legendInfo(brawlKey: str, legendName: str) -> Optional[discord.Embed]:
+def legendInfo(brawlKey: str, legendName: str) -> Optional[nextcord.Embed]:
 	# TODO: add legend images as thumbnail
 	if legendName == "hugin":
 		legendName = "munin"
@@ -200,7 +200,7 @@ def legendInfo(brawlKey: str, legendName: str) -> Optional[discord.Embed]:
 	return None
 
 
-def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
+def getRank(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 	# TODO: add rank images as thumbnail, clan below name;
 	# download local copies of rank images bc there's no easy format on wiki
 	if not (brawlID := fetchBrawlID(target.id)):
@@ -220,12 +220,12 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 				"You haven't played ranked yet this season."
 			)
 			.set_footer(text=f"Brawl ID {brawlID}")
-			.set_author(name=target, icon_url=target.avatar_url)
+			.set_author(name=target, icon_url=target.avatar.url)
 		)
 	emb = (
 		bbEmbed(f"{r['name']}, {r['region']}")
 		.set_footer(text=f"Brawl ID {brawlID}")
-		.set_author(name=target, icon_url=target.avatar_url)
+		.set_author(name=target, icon_url=target.avatar.url)
 	)
 	if "games" in r and r["games"] != 0:
 		winRate = brawlWinRate(r)
@@ -279,7 +279,7 @@ def getRank(target: discord.Member, brawlKey: str) -> discord.Embed:
 	return emb
 
 
-def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
+def getStats(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 
 	def getTopDPS(legend: Dict[str, Any]) -> Tuple[str, float]:
 		dps = round(int(legend["damagedealt"]) / legend["matchtime"], 1)
@@ -308,7 +308,7 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 		.set_footer(text=f"Brawl ID {brawlID}")
 		.add_field(name="Name", value=r["name"])
 		.add_field(name="Overall W/L", value=embVal)
-		.set_author(name=target, icon_url=target.avatar_url)
+		.set_author(name=target, icon_url=target.avatar.url)
 	)
 	if "legends" in r:
 		topUsed = topWinrate = topDPS = topTTK = None
@@ -345,7 +345,7 @@ def getStats(target: discord.Member, brawlKey: str) -> discord.Embed:
 	return emb
 
 
-def getClan(target: discord.Member, brawlKey: str) -> discord.Embed:
+def getClan(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 	if not (brawlID := fetchBrawlID(target.id)):
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Clan", unclaimed.format(target.mention)
@@ -378,7 +378,7 @@ def getClan(target: discord.Member, brawlKey: str) -> discord.Embed:
 	return emb
 
 
-def brawlCommands() -> discord.Embed:
+def brawlCommands() -> nextcord.Embed:
 	emb = bbEmbed("Beardless Bot Brawlhalla Commands")
 	comms = (
 		(

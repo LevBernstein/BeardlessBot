@@ -1,8 +1,8 @@
 bs4==0.0.1
 coverage==6.4.3
 coverage-badge==1.1.0
-discord.py==1.7.3
 flake8==4.0.1
+nextcord==2.1.0
 pytest==7.1.2
 python-dotenv==0.19.2
 requests==2.28.1

@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 
-import discord
+import nextcord
 
 from misc import bbEmbed, prof, truncTime
 
@@ -12,7 +12,7 @@ from misc import bbEmbed, prof, truncTime
 msgMaxLength = "**Message length exceeds 1024 characters.**"
 
 
-def contCheck(msg: discord.Message) -> str:
+def contCheck(msg: nextcord.Message) -> str:
 	if msg.content:
 		if len(msg.content) > 1024:
 			return msgMaxLength
@@ -20,21 +20,21 @@ def contCheck(msg: discord.Message) -> str:
 	return "**Embed**"
 
 
-def logDeleteMsg(msg: discord.Message) -> discord.Embed:
+def logDeleteMsg(msg: nextcord.Message) -> nextcord.Embed:
 	return bbEmbed(
 		"",
 		f"**Deleted message sent by {msg.author.mention} in "
 		f"**{msg.channel.mention}\n{contCheck(msg)}",
 		0xFF0000,
 		True
-	).set_author(name=msg.author, icon_url=msg.author.avatar_url)
+	).set_author(name=msg.author, icon_url=msg.author.avatar.url)
 
 
 def logPurge(
-	msg: discord.Message, msgList: List[discord.Message]
-) -> discord.Embed:
+	msg: nextcord.Message, msgList: List[nextcord.Message]
+) -> nextcord.Embed:
 
-	def purgeReport(msgList: List[discord.Message]) -> str:
+	def purgeReport(msgList: List[nextcord.Message]) -> str:
 		return "99+" if len(msgList) > 99 else str(len(msgList) - 1)
 
 	return bbEmbed(
@@ -46,8 +46,8 @@ def logPurge(
 
 
 def logEditMsg(
-	before: discord.Message, after: discord.Message
-) -> discord.Embed:
+	before: nextcord.Message, after: nextcord.Message
+) -> nextcord.Embed:
 	return (
 		bbEmbed(
 			"",
@@ -56,7 +56,7 @@ def logEditMsg(
 			0xFFFF00,
 			True
 		)
-		.set_author(name=before.author, icon_url=before.author.avatar_url)
+		.set_author(name=before.author, icon_url=before.author.avatar.url)
 		.add_field(name="Before:", value=contCheck(before), inline=False)
 		.add_field(
 			name="After:",
@@ -67,8 +67,8 @@ def logEditMsg(
 
 
 def logClearReacts(
-	msg: discord.Message, reactions: List[discord.Reaction]
-) -> discord.Embed:
+	msg: nextcord.Message, reactions: List[nextcord.Reaction]
+) -> nextcord.Embed:
 	return (
 		bbEmbed(
 			"",
@@ -77,7 +77,7 @@ def logClearReacts(
 			0xFF0000,
 			True
 		)
-		.set_author(name=msg.author, icon_url=msg.author.avatar_url)
+		.set_author(name=msg.author, icon_url=msg.author.avatar.url)
 		.add_field(
 			name="Message content:",
 			value=contCheck(msg) + f"\n[Jump to Message]({msg.jump_url})"
@@ -88,19 +88,19 @@ def logClearReacts(
 	)
 
 
-def logDeleteChannel(channel: discord.abc.GuildChannel) -> discord.Embed:
+def logDeleteChannel(channel: nextcord.abc.GuildChannel) -> nextcord.Embed:
 	return bbEmbed(
 		"", f'Channel "{channel.name}" deleted.', 0xFF0000, True
 	).set_author(name="Channel deleted", icon_url=prof)
 
 
-def logCreateChannel(channel: discord.abc.GuildChannel) -> discord.Embed:
+def logCreateChannel(channel: nextcord.abc.GuildChannel) -> nextcord.Embed:
 	return bbEmbed(
 		"", f'Channel "{channel.name}" created.', 0x00FF00, True
 	).set_author(name="Channel created", icon_url=prof)
 
 
-def logMemberJoin(member: discord.Member) -> discord.Embed:
+def logMemberJoin(member: nextcord.Member) -> nextcord.Embed:
 	return bbEmbed(
 		"",
 		f"Member {member.mention} joined\nAccount registered"
@@ -108,14 +108,14 @@ def logMemberJoin(member: discord.Member) -> discord.Embed:
 		0x0000FF,
 		True
 	).set_author(
-		name=f"{member} joined the server", icon_url=member.avatar_url
+		name=f"{member} joined the server", icon_url=member.avatar.url
 	)
 
 
-def logMemberRemove(member: discord.Member) -> discord.Embed:
+def logMemberRemove(member: nextcord.Member) -> nextcord.Embed:
 	emb = bbEmbed(
 		"", f"Member {member.mention} left\nID: {member.id}", 0xFF0000, True
-	).set_author(name=f"{member} left the server", icon_url=member.avatar_url)
+	).set_author(name=f"{member} left the server", icon_url=member.avatar.url)
 	if len(member.roles) > 1:
 		emb.add_field(
 			name="Roles:",
@@ -125,19 +125,19 @@ def logMemberRemove(member: discord.Member) -> discord.Embed:
 
 
 def logMemberNickChange(
-	before: discord.Member, after: discord.Member
-) -> discord.Embed:
+	before: nextcord.Member, after: nextcord.Member
+) -> nextcord.Embed:
 	return (
 		bbEmbed("", f"Nickname of {after.mention} changed.", 0xFFFF00, True)
-		.set_author(name=after, icon_url=after.avatar_url)
+		.set_author(name=after, icon_url=after.avatar.url)
 		.add_field(name="Before:", value=before.nick, inline=False)
 		.add_field(name="After:", value=after.nick, inline=False)
 	)
 
 
 def logMemberRolesChange(
-	before: discord.Member, after: discord.Member
-) -> discord.Embed:
+	before: nextcord.Member, after: nextcord.Member
+) -> nextcord.Embed:
 	if len(before.roles) > len(after.roles):
 		roles, others = before.roles, after.roles
 		verb, color = "removed from", 0xFF0000
@@ -150,10 +150,10 @@ def logMemberRolesChange(
 			break
 	return bbEmbed(
 		"", f"Role {newRole.mention} {verb} {after.mention}.", color, True
-	).set_author(name=after, icon_url=after.avatar_url)
+	).set_author(name=after, icon_url=after.avatar.url)
 
 
-def logBan(member: discord.Member) -> discord.Embed:
+def logBan(member: nextcord.Member) -> nextcord.Embed:
 	return (
 		bbEmbed(
 			"",
@@ -161,12 +161,12 @@ def logBan(member: discord.Member) -> discord.Embed:
 			0xFF0000,
 			True
 		)
-		.set_author(name="Member banned", icon_url=member.avatar_url)
-		.set_thumbnail(url=member.avatar_url)
+		.set_author(name="Member banned", icon_url=member.avatar.url)
+		.set_thumbnail(url=member.avatar.url)
 	)
 
 
-def logUnban(member: discord.Member) -> discord.Embed:
+def logUnban(member: nextcord.Member) -> nextcord.Embed:
 	return (
 		bbEmbed(
 			"",
@@ -174,30 +174,59 @@ def logUnban(member: discord.Member) -> discord.Embed:
 			0x00FF00,
 			True
 		)
-		.set_author(name="Member unbanned", icon_url=member.avatar_url)
-		.set_thumbnail(url=member.avatar_url)
+		.set_author(name="Member unbanned", icon_url=member.avatar.url)
+		.set_thumbnail(url=member.avatar.url)
 	)
 
 
 def logMute(
-	member: discord.Member,
-	message: discord.Message,
+	member: nextcord.Member,
+	message: nextcord.Message,
 	duration: Optional[str],
 	mString: Optional[str],
 	mTime: Optional[float]
-) -> discord.Embed:
+) -> nextcord.Embed:
 	mid = f" for {duration} {mString}" if mTime else ""
 	return bbEmbed(
 		"Beardless Bot Mute",
 		f"Muted {member.mention}{mid} in {message.channel.mention}.",
 		0xFF0000,
 		True
-	).set_author(name=message.author, icon_url=message.author.avatar_url)
+	).set_author(name=message.author, icon_url=message.author.avatar.url)
 
 
 def logUnmute(
-	member: discord.Member, author: discord.Member
-) -> discord.Embed:
+	member: nextcord.Member, author: nextcord.Member
+) -> nextcord.Embed:
 	return bbEmbed(
 		"Beardless Bot Mute", f"Unmuted {member.mention}.", 0x00FF00, True
-	).set_author(name=author, icon_url=author.avatar_url)
+	).set_author(name=author, icon_url=author.avatar.url)
+
+
+def logCreateThread(thread: nextcord.Thread) -> nextcord.Embed:
+	emb = bbEmbed(
+		"",
+		f"Thread \"{thread.name}\" created in"
+		f" parent channel {thread.parent.mention}.",
+		0x00FF00,
+		True
+	).set_author(name="Thread created", icon_url=prof)
+	return emb
+
+
+def logDeleteThread(thread: nextcord.Thread) -> nextcord.Embed:
+	return bbEmbed(
+		"", f'Thread "{thread.name}" deleted.', 0xFF0000, True
+	).set_author(name="Thread deleted", icon_url=prof)
+
+
+def logThreadArchived(thread: nextcord.Thread) -> nextcord.Embed:
+	return bbEmbed(
+		"", f'Thread "{thread.name}" archived.', 0xFFFF00, True
+	).set_author(name="Thread archived", icon_url=prof)
+
+
+def logThreadUnarchived(thread: nextcord.Thread) -> nextcord.Embed:
+	return bbEmbed(
+		"", f'Thread "{thread.name}" unarchived.', 0xFFFF00, True
+	).set_author(name="Thread unarchived", icon_url=prof)

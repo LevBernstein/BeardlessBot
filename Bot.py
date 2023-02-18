@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 1.8.4"
+__version__ = "Full Release 2.0.0"
 
 import asyncio
 import logging
@@ -7,11 +7,11 @@ from datetime import datetime
 from random import choice, randint
 from sys import stdout
 from time import time
-from typing import List
+from typing import List, Union
 
-import discord
-from discord.ext import commands
-from discord.utils import get
+import nextcord
+from nextcord.ext import commands
+from nextcord.utils import get
 from dotenv import dotenv_values
 
 import brawl
@@ -30,10 +30,11 @@ bot = commands.Bot(
 	command_prefix="!",
 	case_insensitive=True,
 	help_command=None,
-	intents=discord.Intents.all(),
+	intents=nextcord.Intents.all(),
+	chunk_guilds_at_startup=False,
 	owner_id=196354892208537600
-	# Replace owner_id with your Discord id
 )
+# Replace owner_id with your Discord id
 
 
 def logException(e: Exception, ctx: commands.Context) -> None:
@@ -43,23 +44,25 @@ def logException(e: Exception, ctx: commands.Context) -> None:
 	)
 
 
-async def createMutedRole(guild: discord.Guild) -> discord.Role:
+async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
 	"""
 	Creates a "Muted" role that prevents users from sending messages.
 
 	Args:
-		guild (discord.Guild): The guild in which to create the role
+		guild (nextcord.Guild): The guild in which to create the role
 
 	Returns:
-		discord.Role: The Muted role.
+		nextcord.Role: The Muted role.
 	"""
-	overwrite = discord.PermissionOverwrite(send_messages=False)
+	overwrite = nextcord.PermissionOverwrite(send_messages=False)
 	role = await guild.create_role(
 		name="Muted",
-		colour=discord.Colour(0x818386),
+		colour=nextcord.Colour(0x818386),
 		mentionable=False,
-		permissions=discord.Permissions(
-			send_messages=False, read_messages=True
+		permissions=nextcord.Permissions(
+			send_messages=False,
+			read_messages=True,
+			send_messages_in_threads=False
 		)
 	)
 	for channel in guild.channels:
@@ -67,18 +70,25 @@ async def createMutedRole(guild: discord.Guild) -> discord.Role:
 	return role
 
 
+def ctxCreatedThread(ctx) -> bool:
+	return ctx.message.type in (
+		nextcord.MessageType.thread_created,
+		nextcord.MessageType.channel_name_change
+	)
+
+
 @bot.event
 async def on_ready():
 	logging.info(f"Beardless Bot {__version__} online!")
 
-	status = discord.Game(name="try !blackjack and !flip")
+	status = nextcord.Game(name="try !blackjack and !flip")
 	try:
 		await bot.change_presence(activity=status)
 		logging.info("Status updated!")
 		with open("resources/images/prof.png", "rb") as f:
 			await bot.user.edit(avatar=f.read())
 		logging.info("Avatar updated!")
-	except discord.HTTPException:
+	except nextcord.HTTPException:
 		logging.error("Failed to update avatar or status!")
 	except FileNotFoundError:
 		logging.error("Avatar file not found! Check your directory structure.")
@@ -91,8 +101,7 @@ async def on_ready():
 	except IndexError:
 		logging.error("Bot is in no servers! Add it to a server.")
 	else:
-		await bot.guilds[0].chunk()
-		for guild in bot.guilds[1:]:
+		for guild in bot.guilds:
 			sparPings[guild.id] = {r: 0 for r in brawl.regions}
 			members = members.union(set(guild.members))
 			await guild.chunk()
@@ -104,7 +113,7 @@ async def on_ready():
 
 
 @bot.event
-async def on_guild_join(guild: discord.Guild):
+async def on_guild_join(guild: nextcord.Guild):
 	logging.info(f"Just joined {guild.name}!")
 
 	if guild.me.guild_permissions.administrator:
@@ -138,7 +147,7 @@ async def on_guild_join(guild: discord.Guild):
 
 
 @bot.event
-async def on_message_delete(msg: discord.Message) -> discord.Embed:
+async def on_message_delete(msg: nextcord.Message) -> nextcord.Embed:
 	if msg.guild and (msg.channel.name != "bb-log" or msg.content):
 		for channel in msg.guild.channels:
 			if channel.name == "bb-log":
@@ -149,8 +158,8 @@ async def on_message_delete(msg: discord.Message) -> discord.Embed:
 
 @bot.event
 async def on_bulk_message_delete(
-	msgList: List[discord.Message]
-) -> discord.Embed:
+	msgList: List[nextcord.Message]
+) -> nextcord.Embed:
 	for channel in msgList[0].guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logPurge(msgList[0], msgList)
@@ -159,7 +168,9 @@ async def on_bulk_message_delete(
 
 
 @bot.event
-async def on_message_edit(before: discord.Message, after: discord.Message):
+async def on_message_edit(
+	before: nextcord.Message, after: nextcord.Message
+) -> Union[int, nextcord.Embed]:
 	if before.guild and (before.content != after.content):
 		if misc.scamCheck(after.content):
 			if not (role := get(after.guild.roles, name="Muted")):
@@ -186,8 +197,8 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
 
 @bot.event
 async def on_reaction_clear(
-	msg: discord.Message, reactions: List[discord.Reaction]
-) -> discord.Embed:
+	msg: nextcord.Message, reactions: List[nextcord.Reaction]
+) -> nextcord.Embed:
 	for channel in msg.guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logClearReacts(msg, reactions)
@@ -197,8 +208,8 @@ async def on_reaction_clear(
 
 @bot.event
 async def on_guild_channel_delete(
-	ch: discord.abc.GuildChannel
-) -> discord.Embed:
+	ch: nextcord.abc.GuildChannel
+) -> nextcord.Embed:
 	for channel in ch.guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logDeleteChannel(ch)
@@ -208,8 +219,8 @@ async def on_guild_channel_delete(
 
 @bot.event
 async def on_guild_channel_create(
-	ch: discord.abc.GuildChannel
-) -> discord.Embed:
+	ch: nextcord.abc.GuildChannel
+) -> nextcord.Embed:
 	for channel in ch.guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logCreateChannel(ch)
@@ -218,7 +229,7 @@ async def on_guild_channel_create(
 
 
 @bot.event
-async def on_member_join(member: discord.Member) -> discord.Embed:
+async def on_member_join(member: nextcord.Member) -> nextcord.Embed:
 	for channel in member.guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logMemberJoin(member)
@@ -227,7 +238,7 @@ async def on_member_join(member: discord.Member) -> discord.Embed:
 
 
 @bot.event
-async def on_member_remove(member: discord.Member) -> discord.Embed:
+async def on_member_remove(member: nextcord.Member) -> nextcord.Embed:
 	for channel in member.guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logMemberRemove(member)
@@ -236,7 +247,9 @@ async def on_member_remove(member: discord.Member) -> discord.Embed:
 
 
 @bot.event
-async def on_member_update(before: discord.Member, after: discord.Member):
+async def on_member_update(
+	before: nextcord.Member, after: nextcord.Member
+) -> nextcord.Embed:
 	for channel in before.guild.channels:
 		if channel.name == "bb-log":
 			emb = None
@@ -250,7 +263,9 @@ async def on_member_update(before: discord.Member, after: discord.Member):
 
 
 @bot.event
-async def on_member_ban(guild: discord.Guild, member: discord.Member):
+async def on_member_ban(
+	guild: nextcord.Guild, member: nextcord.Member
+) -> nextcord.Embed:
 	for channel in guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logBan(member)
@@ -259,7 +274,9 @@ async def on_member_ban(guild: discord.Guild, member: discord.Member):
 
 
 @bot.event
-async def on_member_unban(guild: discord.Guild, member: discord.Member):
+async def on_member_unban(
+	guild: nextcord.Guild, member: nextcord.Member
+) -> nextcord.Embed:
 	for channel in guild.channels:
 		if channel.name == "bb-log":
 			emb = logs.logUnban(member)
@@ -267,20 +284,63 @@ async def on_member_unban(guild: discord.Guild, member: discord.Member):
 			return emb
 
 
+@bot.event
+async def on_thread_join(thread: nextcord.Thread) -> nextcord.Embed:
+	if thread.me:
+		return
+	else:
+		await thread.join()
+	for channel in thread.guild.channels:
+		if channel.name == "bb-log":
+			emb = logs.logCreateThread(thread)
+			await channel.send(embed=emb)
+			return emb
+
+
+@bot.event
+async def on_thread_delete(thread: nextcord.Thread) -> nextcord.Embed:
+	for channel in thread.guild.channels:
+		if channel.name == "bb-log":
+			emb = logs.logDeleteThread(thread)
+			await channel.send(embed=emb)
+			return emb
+
+
+@bot.event
+async def on_thread_update(
+	before: nextcord.Thread, after: nextcord.Thread
+) -> nextcord.Embed:
+	for channel in after.guild.channels:
+		if channel.name == "bb-log":
+			emb = None
+			if before.archived and not after.archived:
+				emb = logs.logThreadUnarchived(after)
+			elif after.archived and not before.archived:
+				emb = logs.logThreadArchived(after)
+			if emb:
+				await channel.send(embed=emb)
+			return emb
+
+
 # Commands:
 
 
 @bot.command(name="flip")
-async def cmdFlip(ctx, bet="10", *args):
+async def cmdFlip(ctx, bet="10", *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if bucks.activeGame(games, ctx.author):
 		report = bucks.finMsg.format(ctx.author.mention)
 	else:
 		report = bucks.flip(ctx.author, bet.lower())
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Coin Flip", report))
+	return 1
 
 
 @bot.command(name="blackjack", aliases=("bj",))
-async def cmdBlackjack(ctx, bet="10", *args):
+async def cmdBlackjack(ctx, bet="10", *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if bucks.activeGame(games, ctx.author):
 		report = bucks.finMsg.format(ctx.author.mention)
 	else:
@@ -288,10 +348,13 @@ async def cmdBlackjack(ctx, bet="10", *args):
 		if game:
 			games.append(game)
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Blackjack", report))
+	return 1
 
 
 @bot.command(name="deal", aliases=("hit",))
-async def cmdDeal(ctx, *args):
+async def cmdDeal(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if "," in ctx.author.name:
 		report = bucks.commaWarn.format(ctx.author.mention)
 	else:
@@ -305,10 +368,13 @@ async def cmdDeal(ctx, *args):
 					games.remove(game)
 				break
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Blackjack", report))
+	return 1
 
 
 @bot.command(name="stay", aliases=("stand",))
-async def cmdStay(ctx, *args):
+async def cmdStay(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if "," in ctx.author.name:
 		report = bucks.commaWarn.format(ctx.author.mention)
 	else:
@@ -326,18 +392,24 @@ async def cmdStay(ctx, *args):
 				games.remove(game)
 				break
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Blackjack", report))
+	return 1
 
 
 @bot.command(name="hint", aliases=("hints",))
-async def cmdHints(ctx, *args):
+async def cmdHints(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if secretWord:
 		await ctx.send(embed=misc.hints())
 	else:
 		await ctx.send("Secret word has not been defined.")
+	return 1
 
 
 @bot.command(name="av", aliases=("avatar",))
-async def cmdAv(ctx, *target):
+async def cmdAv(ctx, *target) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if ctx.message.mentions:
 		target = ctx.message.mentions[0]
 	elif target:
@@ -345,12 +417,15 @@ async def cmdAv(ctx, *target):
 	else:
 		target = ctx.author
 	await ctx.send(embed=misc.av(target, ctx.message))
+	return 1
 
 
 @bot.command(name="info")
-async def cmdInfo(ctx, *target):
+async def cmdInfo(ctx, *target) -> int:
 	if not ctx.guild:
-		return
+		return 0
+	if ctxCreatedThread(ctx):
+		return -1
 	if ctx.message.mentions:
 		target = ctx.message.mentions[0]
 	elif target:
@@ -358,10 +433,13 @@ async def cmdInfo(ctx, *target):
 	else:
 		target = ctx.author
 	await ctx.send(embed=misc.info(target, ctx.message))
+	return 1
 
 
 @bot.command(name="balance", aliases=("bal",))
-async def cmdBalance(ctx, *target):
+async def cmdBalance(ctx, *target) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if ctx.message.mentions:
 		target = ctx.message.mentions[0]
 	elif target:
@@ -369,10 +447,13 @@ async def cmdBalance(ctx, *target):
 	else:
 		target = ctx.author
 	await ctx.send(embed=bucks.balance(target, ctx.message))
+	return 1
 
 
 @bot.command(name="leaderboard", aliases=("leaderboards", "lb"))
-async def cmdLeaderboard(ctx, *target):
+async def cmdLeaderboard(ctx, *target) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if ctx.message.mentions:
 		target = ctx.message.mentions[0]
 	elif target:
@@ -380,75 +461,110 @@ async def cmdLeaderboard(ctx, *target):
 	else:
 		target = ctx.author
 	await ctx.send(embed=bucks.leaderboard(target, ctx.message))
+	return 1
 
 
 @bot.command(name="dice")
-async def cmdDice(ctx, *args):
+async def cmdDice(ctx, *args) -> Union[int, nextcord.Embed]:
+	if ctxCreatedThread(ctx):
+		return -1
 	emb = misc.bbEmbed("Beardless Bot Dice", misc.diceMsg)
 	await ctx.send(embed=emb)
 	return emb
 
 
 @bot.command(name="reset")
-async def cmdReset(ctx, *args):
+async def cmdReset(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	await ctx.send(embed=bucks.reset(ctx.author))
+	return 1
 
 
 @bot.command(name="register")
-async def cmdRegister(ctx, *args):
+async def cmdRegister(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	await ctx.send(embed=bucks.register(ctx.author))
+	return 1
 
 
 @bot.command(name="bucks")
-async def cmdBucks(ctx, *args):
+async def cmdBucks(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	await ctx.send(embed=misc.bbEmbed("BeardlessBucks", bucks.buckMsg))
+	return 1
 
 
 @bot.command(name="hello", aliases=("hi",))
-async def cmdHello(ctx, *args):
+async def cmdHello(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	await ctx.send(choice(misc.greetings))
+	return 1
 
 
 @bot.command(name="source")
-async def cmdSource(ctx, *args):
+async def cmdSource(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	source = (
 		"Most facts taken from [this website]."
 		"(https://www.thefactsite.com/1000-interesting-facts/)"
 	)
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Fun Facts", source))
+	return 1
 
 
 @bot.command(name="add", aliases=("join", "invite"))
-async def cmdAdd(ctx, *args):
+async def cmdAdd(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	await ctx.send(embed=misc.inviteMsg)
+	return 1
 
 
 @bot.command(name="rohan")
-async def cmdRohan(ctx, *args):
-	await ctx.send(file=discord.File("resources/images/cute.png"))
+async def cmdRohan(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
+	await ctx.send(file=nextcord.File("resources/images/cute.png"))
+	return 1
 
 
 @bot.command(name="random")
-async def cmdRandomBrawl(ctx, ranType="None", *args):
+async def cmdRandomBrawl(ctx, ranType="None", *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	await ctx.send(embed=brawl.randomBrawl(ranType.lower(), brawlKey))
+	return 1
 
 
 @bot.command(name="fact")
-async def cmdFact(ctx, *args):
+async def cmdFact(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	await ctx.send(
 		embed=misc.bbEmbed(
 			f"Beardless Bot Fun Fact #{randint(1, 111111111)}", misc.fact()
 		)
 	)
+	return 1
 
 
 @bot.command(name="animals", aliases=("animal", "pets"))
-async def cmdAnimals(ctx, *args):
+async def cmdAnimals(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	await ctx.send(embed=misc.animals)
+	return 1
 
 
 @bot.command(name="define")
-async def cmdDefine(ctx, *words):
+async def cmdDefine(ctx, *words) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	try:
 		await ctx.send(embed=misc.define(" ".join(words)))
 	except Exception as e:
@@ -457,23 +573,33 @@ async def cmdDefine(ctx, *words):
 			" and performance issues. Please be patient."
 		)
 		logException(e, ctx)
+		return 0
+	return 1
 
 
 @bot.command(name="ping")
-async def cmdPing(ctx, *args):
+async def cmdPing(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	emb = misc.bbEmbed(
 		"Pinged", f"Beardless Bot's latency is {int(1000 * bot.latency)} ms."
-	).set_thumbnail(url=bot.user.avatar_url)
+	).set_thumbnail(url=bot.user.avatar.url)
 	await ctx.send(embed=emb)
+	return 1
 
 
 @bot.command(name="roll")
-async def cmdRoll(ctx, dice="None", *args):
+async def cmdRoll(ctx, dice="None", *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	await ctx.send(embed=misc.rollReport(dice, ctx.author))
+	return 1
 
 
 @bot.command(name="dog", aliases=misc.animalList + ("moose",))
-async def cmdAnimal(ctx, breed=None, *args):
+async def cmdAnimal(ctx, breed=None, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	species = ctx.invoked_with.lower()
 	if breed:
 		breed = breed.lower()
@@ -489,7 +615,7 @@ async def cmdAnimal(ctx, breed=None, *args):
 		else:
 			emb = misc.bbEmbed("Random Moose").set_image(url=moose)
 		await ctx.send(embed=emb)
-		return
+		return 0
 	if species == "dog":
 		try:
 			dogUrl = misc.animal("dog", breed)
@@ -502,44 +628,53 @@ async def cmdAnimal(ctx, breed=None, *args):
 		else:
 			if any(dogUrl.startswith(s) for s in ("Breed", "Dog")):
 				await ctx.send(dogUrl)
-				return
+				return 1
 			dogBreed = "Hound" if "hound" in dogUrl else dogUrl.split("/")[-2]
 			emb = misc.bbEmbed(
 				"Random " + dogBreed.title()
 			).set_image(url=dogUrl)
 		await ctx.send(embed=emb)
-		return
+		return 1
 	titlemod = " Animal" if species == "zoo" else ""
 	emb = misc.bbEmbed("Random " + species.title() + titlemod)
 	try:
 		emb.set_image(url=misc.animal(species))
 	except Exception as e:
 		logException(e, ctx)
-		emb = misc.bbEmbed(
-			"Something's gone wrong!",
-			"Please inform my creator and he'll see what's going on."
+		await ctx.send(
+			embed=misc.bbEmbed(
+				"Something's gone wrong!",
+				"Please inform my creator and he'll see what's going on."
+			)
 		)
+		return 0
 	await ctx.send(embed=emb)
+	return 1
 
 
 @bot.command(name="help", aliases=("commands",))
-async def cmdHelp(ctx, *args):
+async def cmdHelp(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	await ctx.send(embed=misc.bbCommands(ctx))
+	return 1
 
 
 # Server-only commands (not usable in DMs):
 
 
 @bot.command(name="mute")
-async def cmdMute(ctx, target=None, duration=None, *args):
+async def cmdMute(ctx, target=None, duration=None, *args) -> int:
 	if not ctx.guild:
-		return
+		return 0
+	if ctxCreatedThread(ctx):
+		return -1
 	if not ctx.author.guild_permissions.manage_messages:
 		await ctx.send(misc.naughty.format(ctx.author.mention))
-		return
+		return 0
 	if not target:
 		await ctx.send(f"Please specify a target, {ctx.author.mention}.")
-		return
+		return 0
 	# TODO: switch to converter in arg
 	converter = commands.MemberConverter()
 	try:
@@ -550,14 +685,14 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 			embed=misc.bbEmbed(
 				"Beardless Bot Mute",
 				"Invalid target! Target must be a mention or user ID."
-				"\nSpecific error: " + e
+				f"\nSpecific error: {e}"
 			)
 		)
-		return
+		return 0
 	else:
 		if target.id == 654133911558946837:  # If user tries to mute BB:
 			await ctx.send("I am too powerful to be muted. Stop trying.")
-			return
+			return 0
 	if not (role := get(ctx.guild.roles, name="Muted")):
 		role = await createMutedRole(ctx.guild)
 	mTime = mString = None
@@ -579,11 +714,12 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 	except Exception as e:
 		logException(e, ctx)
 		await ctx.send(misc.hierarchyMsg)
+		return 0
 	else:
 		report = "Muted " + target.mention
 		report += (" for " + duration + mString + ".") if mTime else "."
 		emb = misc.bbEmbed("Beardless Bot Mute", report).set_author(
-			name=ctx.author, icon_url=ctx.author.avatar_url
+			name=ctx.author, icon_url=ctx.author.avatar.url
 		)
 		if args:
 			emb.add_field(
@@ -614,13 +750,15 @@ async def cmdMute(ctx, target=None, duration=None, *args):
 					await channel.send(
 						embed=logs.logUnmute(target, ctx.author)
 					)
-					return
+		return 1
 
 
 @bot.command(name="unmute")
-async def cmdUnmute(ctx, target=None, *args):
+async def cmdUnmute(ctx, target=None, *args) -> int:
 	if not ctx.guild:
-		return
+		return 0
+	if ctxCreatedThread(ctx):
+		return -1
 	report = misc.naughty.format(ctx.author.mention)
 	if ctx.author.guild_permissions.manage_messages:
 		# TODO: add a check for Muted role existing
@@ -632,6 +770,7 @@ async def cmdUnmute(ctx, target=None, *args):
 			except commands.MemberNotFound as e:
 				logException(e, ctx)
 				report = "Invalid target! Target must be a mention or user ID."
+				return 0
 			except Exception as e:
 				logException(e, ctx)
 				report = misc.hierarchyMsg
@@ -646,10 +785,13 @@ async def cmdUnmute(ctx, target=None, *args):
 		else:
 			report = f"Invalid target, {ctx.author.mention}."
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Unmute", report))
+	return 1
 
 
 @bot.command(name="purge")
-async def cmdPurge(ctx, num=None, *args):
+async def cmdPurge(ctx, num=None, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if ctx.guild and ctx.author.guild_permissions.manage_messages:
 		try:
 			if (mNum := int(num)) < 0:
@@ -659,19 +801,24 @@ async def cmdPurge(ctx, num=None, *args):
 				"Beardless Bot Purge", "Invalid message number!"
 			)
 			await ctx.send(embed=emb)
+			return 0
 		else:
 			await ctx.channel.purge(
 				limit=mNum + 1, check=lambda msg: not msg.pinned
 			)
+			return 1
 	elif ctx.guild:
 		desc = misc.naughty.format(ctx.author.mention)
 		await ctx.send(embed=misc.bbEmbed("Beardless Bot Purge", desc))
+	return 0
 
 
 @bot.command(name="buy")
-async def cmdBuy(ctx, color="none", *args):
+async def cmdBuy(ctx, color="none", *args) -> int:
 	if not ctx.guild:
-		return
+		return 0
+	if ctxCreatedThread(ctx):
+		return -1
 	report = "Invalid color. Choose blue, red, orange, or pink, {}."
 	color = color.lower()
 	colors = {
@@ -687,7 +834,7 @@ async def cmdBuy(ctx, color="none", *args):
 			report = "You already have this special color, {}."
 		else:
 			if not role.color.value:
-				await role.edit(colour=discord.Colour(colors[color]))
+				await role.edit(colour=nextcord.Colour(colors[color]))
 			report = (
 				"Not enough BeardlessBucks. You need"
 				" 50000 to buy a special color, {}."
@@ -709,25 +856,32 @@ async def cmdBuy(ctx, color="none", *args):
 			report.format(ctx.author.mention)
 		)
 	)
+	return 1
 
 
 @bot.command(name="pins")
-async def cmdPins(ctx, *args):
+async def cmdPins(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if ctx.guild and ctx.channel.name == "looking-for-spar":
 		await ctx.send(embed=misc.sparPins)
+		return 1
+	return 0
 
 
 @bot.command(name="spar")
-async def cmdSpar(ctx, region=None, *args):
+async def cmdSpar(ctx, region=None, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if not ctx.guild:
-		return
+		return 0
 	author = ctx.author.mention
 	if ctx.channel.name != "looking-for-spar":
 		await ctx.send(f"Please only use !spar in looking-for-spar, {author}.")
-		return
+		return 0
 	if not region:
 		await ctx.send(embed=misc.sparPins)
-		return
+		return 0
 	report = brawl.badRegion.format(author)
 	tooRecent = role = None
 	global sparPings
@@ -758,21 +912,28 @@ async def cmdSpar(ctx, region=None, *args):
 		await ctx.send(
 			f"Additional info: \"{' '.join(args)}\"".replace("@", "")
 		)
+	return 1
 
 
 # Commands requiring a Brawlhalla API key:
 
 
 @bot.command(name="brawl")
-async def cmdBrawl(ctx, *args):
+async def cmdBrawl(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if brawlKey:
 		await ctx.send(embed=brawl.brawlCommands())
+		return 1
+	return 0
 
 
 @bot.command(name="brawlclaim")
-async def cmdBrawlclaim(ctx, profUrl="None", *args):
+async def cmdBrawlclaim(ctx, profUrl="None", *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if not brawlKey:
-		return
+		return 0
 	if profUrl.isnumeric():
 		brawlID = int(profUrl)
 	else:
@@ -791,16 +952,19 @@ async def cmdBrawlclaim(ctx, profUrl="None", *args):
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Rank", report)
 	)
+	return 1
 
 
 @bot.command(name="brawlrank")
-async def cmdBrawlrank(ctx, *target):
+async def cmdBrawlrank(ctx, *target) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if not (brawlKey and ctx.guild):
-		return
+		return 0
 	# TODO: write valid target method; no need for this copy paste
 	# have it return target, report
 	target = " ".join(target) if target else ctx.author
-	if not isinstance(target, discord.User):
+	if not isinstance(target, nextcord.User):
 		report = "Invalid target!"
 		target = misc.memSearch(ctx.message, target)
 	if target:
@@ -813,52 +977,61 @@ async def cmdBrawlrank(ctx, *target):
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Rank", report)
 	)
+	return 1
 
 
 @bot.command(name="brawlstats")
-async def cmdBrawlstats(ctx, *target):
+async def cmdBrawlstats(ctx, *target) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if not (brawlKey and ctx.guild):
-		return
+		return 0
 	target = " ".join(target) if target else ctx.author
-	if not isinstance(target, discord.User):
+	if not isinstance(target, nextcord.User):
 		report = "Invalid target!"
 		target = misc.memSearch(ctx.message, target)
 	if target:
 		try:
 			await ctx.send(embed=brawl.getStats(target, brawlKey))
-			return
+			return 1
 		except Exception as e:
 			logException(e, ctx)
 			report = brawl.reqLimit
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Stats", report)
 	)
+	return 0
 
 
 @bot.command(name="brawlclan")
-async def cmdBrawlclan(ctx, *target):
+async def cmdBrawlclan(ctx, *target) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if not (brawlKey and ctx.guild):
-		return
+		return 0
 	target = " ".join(target) if target else ctx.author
-	if not isinstance(target, discord.User):
+	if not isinstance(target, nextcord.User):
 		report = "Invalid target!"
 		target = misc.memSearch(ctx.message, target)
 	if target:
 		try:
 			await ctx.send(embed=brawl.getClan(target, brawlKey))
-			return
+			return 1
 		except Exception as e:
 			logException(e, ctx)
 			report = brawl.reqLimit
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Clan", report)
 	)
+	return 0
 
 
 @bot.command(name="brawllegend")
-async def cmdBrawllegend(ctx, legend=None, *args):
+async def cmdBrawllegend(ctx, legend=None, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if not brawlKey:
-		return
+		return 0
 	report = (
 		"Invalid legend! Please do !brawllegend followed by a legend name."
 	)
@@ -871,32 +1044,43 @@ async def cmdBrawllegend(ctx, legend=None, *args):
 		else:
 			if legend:
 				await ctx.send(embed=legend)
-				return
+				return 1
 	await ctx.send(
 		embed=misc.bbEmbed("Beardless Bot Brawlhalla Legend Info", report)
 	)
+	return 0
 
 
 # Server-specific commands:
 
 
 @bot.command(name="tweet", aliases=("eggtweet",))
-async def cmdTweet(ctx, *args):
+async def cmdTweet(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if ctx.guild and ctx.guild.id == 442403231864324119:
 		emb = misc.bbEmbed(
 			"eggsoup(@eggsouptv)", misc.formattedTweet(misc.tweet()), 0x1DA1F2
 		).set_thumbnail(url=misc.tweetThumb)
 		await ctx.send(embed=emb)
+		return 1
+	return 0
 
 
 @bot.command(name="reddit")
-async def cmdReddit(ctx, *args):
+async def cmdReddit(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if ctx.guild and ctx.guild.id == 442403231864324119:
 		await ctx.send(embed=misc.redditEmb)
+		return 1
+	return 0
 
 
 @bot.command(name="guide")
-async def cmdGuide(ctx, *args):
+async def cmdGuide(ctx, *args) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	if ctx.guild and ctx.guild.id == 442403231864324119:
 		await ctx.send(
 			embed=misc.bbEmbed(
@@ -904,11 +1088,16 @@ async def cmdGuide(ctx, *args):
 				"https://www.youtube.com/watch?v=nH0TOoJIU80"
 			)
 		)
+		return 1
+	return 0
 
 
 @bot.command(name="search", aliases=("google", "lmgtfy"))
-async def cmdSearch(ctx, *words):
+async def cmdSearch(ctx, *words) -> int:
+	if ctxCreatedThread(ctx):
+		return -1
 	await ctx.send(embed=misc.search(" ".join(words)))
+	return 1
 
 
 @bot.listen()
@@ -940,6 +1129,7 @@ async def handleMessages(message):
 		await author.add_roles(role)
 		for channel in message.guild.channels:
 			if channel.name in ("infractions", "bb-log"):
+				print(message.guild.channels)
 				await channel.send(
 					misc.scamReport.format(
 						author.mention,
@@ -1020,5 +1210,5 @@ if __name__ == "__main__":
 			"Fatal error! DISCORDTOKEN environment variable has not"
 			" been defined. See: README.MD's installation section."
 		)
-	except discord.DiscordException as e:
+	except nextcord.DiscordException as e:
 		logging.error(e)

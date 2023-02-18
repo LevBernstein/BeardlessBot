@@ -6,7 +6,7 @@ from operator import itemgetter
 from random import choice, randint
 from typing import List, Optional, Tuple, Union
 
-import discord
+import nextcord
 
 from misc import bbEmbed, memSearch
 
@@ -44,7 +44,7 @@ class Instance:
 
 	Attributes:
 		cardVals (tuple): Blackjack values for each card
-		user (discord.User): The user who is playing this game
+		user (nextcord.User): The user who is playing this game
 		bet (int): The number of BeardlessBucks the user is betting
 		cards (list): The list of cards the user has been dealt
 		dealerUp (int): The card the dealer is showing face-up
@@ -70,13 +70,13 @@ class Instance:
 
 	def __init__(
 		self,
-		user: Union[discord.User, discord.Member],
+		user: Union[nextcord.User, nextcord.Member],
 		bet: int,
 		debug: bool = False
 	) -> None:
 		"""
 		Args:
-			user (discord.User): The user who is playing this game
+			user (nextcord.User): The user who is playing this game
 			bet (int): The number of BeardlessBucks the user is betting
 			debug (bool): Whether to fix the game while testing
 				(default is False)
@@ -233,7 +233,7 @@ class Instance:
 
 
 def writeMoney(
-	member: Union[discord.User, discord.Member],
+	member: Union[nextcord.User, nextcord.Member],
 	amount: Union[str, int],
 	writing: bool,
 	adding: bool
@@ -242,7 +242,7 @@ def writeMoney(
 	Helper method for checking or modifying a user's BeardlessBucks balance.
 
 	Args:
-		member (discord.User): The target user
+		member (nextcord.User): The target user
 		amount (str or int): The amount to change member's balance by
 		writing (bool): Whether to modify member's balance
 		adding (bool): Whether to add to or overwrite member's balance
@@ -296,15 +296,15 @@ def writeMoney(
 	)
 
 
-def register(target: Union[discord.User, discord.Member]) -> discord.Embed:
+def register(target: Union[nextcord.User, nextcord.Member]) -> nextcord.Embed:
 	"""
 	Register a new user for BeardlessBucks.
 
 	Args:
-		target (discord.User): The user to register
+		target (nextcord.User): The user to register
 
 	Returns:
-		discord.Embed: the report of the target's registration.
+		nextcord.Embed: the report of the target's registration.
 	"""
 	result, bonus = writeMoney(target, 300, False, False)
 	if result in (-1, 2):
@@ -318,25 +318,25 @@ def register(target: Union[discord.User, discord.Member]) -> discord.Embed:
 
 
 def balance(
-	target: Union[discord.User, discord.Member, str],
-	msg: discord.Message
-) -> discord.Embed:
+	target: Union[nextcord.User, nextcord.Member, str],
+	msg: nextcord.Message
+) -> nextcord.Embed:
 	"""
 	Checks a user's BeardlessBucks balance.
 
 	Args:
-		target (discord.User): The user whose balance is to be checked
-		msg (discord.Message): The message sent that called this command
+		target (nextcord.User): The user whose balance is to be checked
+		msg (nextcord.Message): The message sent that called this command
 
 	Returns:
-		discord.Embed: the report of the target's balance.
+		nextcord.Embed: the report of the target's balance.
 	"""
 	report = (
 		"Invalid user! Please @ a user when you do !balance"
 		" (or enter their username), or do !balance without a"
 		f" target to see your own balance, {msg.author.mention}."
 	)
-	if not isinstance(target, discord.User):
+	if not isinstance(target, nextcord.User):
 		target = memSearch(msg, target)
 	if target:
 		result, bonus = writeMoney(target, 300, False, False)
@@ -347,15 +347,15 @@ def balance(
 	return bbEmbed("BeardlessBucks Balance", report)
 
 
-def reset(target: Union[discord.User, discord.Member]) -> discord.Embed:
+def reset(target: Union[nextcord.User, nextcord.Member]) -> nextcord.Embed:
 	"""
 	Resets a user's Beardless balance to 200.
 
 	Args:
-		target (discord.User): The user to reset
+		target (nextcord.User): The user to reset
 
 	Returns:
-		discord.Embed: the report of the target's balance reset.
+		nextcord.Embed: the report of the target's balance reset.
 	"""
 	result, bonus = writeMoney(target, 200, True, False)
 	if result in (-1, 2):
@@ -369,9 +369,9 @@ def reset(target: Union[discord.User, discord.Member]) -> discord.Embed:
 
 
 def leaderboard(
-	target: Union[discord.User, discord.Member] = None,
-	msg: discord.Message = None
-) -> discord.Embed:
+	target: Union[nextcord.User, nextcord.Member] = None,
+	msg: nextcord.Message = None
+) -> nextcord.Embed:
 	"""
 	Finds the top min(len(money.csv), 10) users
 	by balance in money.csv.
@@ -379,17 +379,17 @@ def leaderboard(
 	= O(n) + O(nlogn) + 10 = O(nlogn).
 
 	Args:
-		target (discord.User): The user calling leaderboard()
+		target (nextcord.User): The user calling leaderboard()
 			(default is None)
 
 	Returns:
-		discord.Embed: a summary of the richest users by balance.
+		nextcord.Embed: a summary of the richest users by balance.
 			If target is somewhere on the leaderboard, also
 			reports target's position and balance.
 	"""
 	diction = {}
 	emb = bbEmbed("BeardlessBucks Leaderboard")
-	if target and msg and not isinstance(target, discord.User):
+	if target and msg and not isinstance(target, nextcord.User):
 		target = memSearch(msg, target)
 	if target:
 		writeMoney(target, 300, False, False)
@@ -418,7 +418,7 @@ def leaderboard(
 
 
 def flip(
-	author: Union[discord.User, discord.Member],
+	author: Union[nextcord.User, nextcord.Member],
 	bet: str,
 	debug: bool = False
 ) -> str:
@@ -426,7 +426,7 @@ def flip(
 	Gambles a certain number of BeardlessBucks on a coin toss.
 
 	Args:
-		author (discord.User): The user who is gambling
+		author (nextcord.User): The user who is gambling
 		bet (str): The amount author is wagering
 		debug (bool): Whether to fix the outcome of the flip.
 			Only used for testing in bb_test.py.
@@ -486,13 +486,13 @@ def flip(
 
 
 def blackjack(
-	author: Union[discord.User, discord.Member], bet: str
+	author: Union[nextcord.User, nextcord.Member], bet: str
 ) -> Tuple[str, Union[Instance, None]]:
 	"""
 	Gambles a certain number of BeardlessBucks on blackjack.
 
 	Args:
-		author (discord.User): The user who is gambling
+		author (nextcord.User): The user who is gambling
 		bet (str): The amount author is wagering
 
 	Returns:
@@ -535,6 +535,6 @@ def blackjack(
 	return report.format(author.mention), game
 
 
-def activeGame(games: List[Instance], author: discord.User) -> bool:
+def activeGame(games: List[Instance], author: nextcord.User) -> bool:
 	"""Checks if a user has an active game of Blackjack."""
 	return any(author == game.user for game in games)
