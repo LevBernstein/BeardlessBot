@@ -1054,7 +1054,8 @@ def test_av() -> None:
 	namedUser = MockUser("searchterm")
 	guild = MockGuild(members=[MockUser(), namedUser])
 	text = MockMessage("!av searchterm", guild=guild)
-	assert misc.av("searchterm", text).image.url == str(namedUser.avatar.url)
+	avatar = str(misc.fetchAvatar(namedUser))
+	assert misc.av("searchterm", text).image.url == avatar
 	assert misc.av("error", text).title == "Invalid target!"
 
 

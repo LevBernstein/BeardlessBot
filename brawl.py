@@ -9,7 +9,7 @@ import nextcord
 import requests
 from steam.steamid import from_url
 
-from misc import bbEmbed
+from misc import bbEmbed, fetchAvatar
 
 
 badClaim = (
@@ -220,12 +220,12 @@ def getRank(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 				"You haven't played ranked yet this season."
 			)
 			.set_footer(text=f"Brawl ID {brawlID}")
-			.set_author(name=target, icon_url=target.avatar.url)
+			.set_author(name=target, icon_url=fetchAvatar(target))
 		)
 	emb = (
 		bbEmbed(f"{r['name']}, {r['region']}")
 		.set_footer(text=f"Brawl ID {brawlID}")
-		.set_author(name=target, icon_url=target.avatar.url)
+		.set_author(name=target, icon_url=fetchAvatar(target))
 	)
 	if "games" in r and r["games"] != 0:
 		winRate = brawlWinRate(r)
@@ -308,7 +308,7 @@ def getStats(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 		.set_footer(text=f"Brawl ID {brawlID}")
 		.add_field(name="Name", value=r["name"])
 		.add_field(name="Overall W/L", value=embVal)
-		.set_author(name=target, icon_url=target.avatar.url)
+		.set_author(name=target, icon_url=fetchAvatar(target))
 	)
 	if "legends" in r:
 		topUsed = topWinrate = topDPS = topTTK = None

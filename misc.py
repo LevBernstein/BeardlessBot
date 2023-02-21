@@ -138,6 +138,14 @@ def memSearch(
 	return semiMatch if semiMatch else looseMatch
 
 
+def fetchAvatar(user: nextcord.User) -> str:
+	# TODO: write unit tests for this
+	try:
+		return user.avatar.url
+	except AttributeError:
+		return user.default_avatar.url
+
+
 def animal(animalType: str, breed: Optional[str] = None) -> str:
 	r = "Invalid Animal"
 
@@ -312,8 +320,8 @@ def info(target: nextcord.Member, msg: nextcord.Message) -> nextcord.Embed:
 				value=target.activity.name if target.activity else "",
 				col=target.color
 			)
-			.set_author(name=target, icon_url=target.avatar.url)
-			.set_thumbnail(url=target.avatar.url)
+			.set_author(name=target, icon_url=fetchAvatar(target))
+			.set_thumbnail(url=fetchAvatar(target))
 			.add_field(
 				name="Registered for Discord on",
 				value=truncTime(target) + " UTC"
@@ -344,8 +352,8 @@ def av(target: nextcord.Member, msg: nextcord.Message) -> nextcord.Embed:
 	if target:
 		return (
 			bbEmbed(col=target.color)
-			.set_image(url=target.avatar.url)
-			.set_author(name=target, icon_url=target.avatar.url)
+			.set_image(url=fetchAvatar(target))
+			.set_author(name=target, icon_url=fetchAvatar(target))
 		)
 	return invalidTargetEmbed
 

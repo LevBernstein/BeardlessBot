@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 2.0.0"
+__version__ = "Full Release 2.0.1"
 
 import asyncio
 import logging
@@ -583,7 +583,7 @@ async def cmdPing(ctx, *args) -> int:
 		return -1
 	emb = misc.bbEmbed(
 		"Pinged", f"Beardless Bot's latency is {int(1000 * bot.latency)} ms."
-	).set_thumbnail(url=bot.user.avatar.url)
+	).set_thumbnail(url=misc.fetchAvatar(bot.user))
 	await ctx.send(embed=emb)
 	return 1
 
@@ -719,7 +719,7 @@ async def cmdMute(ctx, target=None, duration=None, *args) -> int:
 		report = "Muted " + target.mention
 		report += (" for " + duration + mString + ".") if mTime else "."
 		emb = misc.bbEmbed("Beardless Bot Mute", report).set_author(
-			name=ctx.author, icon_url=ctx.author.avatar.url
+			name=ctx.author, icon_url=misc.fetchAvatar(ctx.author)
 		)
 		if args:
 			emb.add_field(
