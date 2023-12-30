@@ -27,6 +27,7 @@ animalList = (
 	"cat",
 	"duck",
 	"fox",
+	"seal",
 	"rabbit",
 	"panda",
 	"lizard",
@@ -190,20 +191,18 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 				return "Breed not found! Do !dog breeds to see all breeds."
 
 	elif animalType == "cat":
-		# Cat API has been throwing 503 errors every other call,
-		# likely due to rate limiting
-		for i in range(10):
-			# The loop is to try to make another request if one pulls a 503.
-			r = requests.get("https://aws.random.cat/meow")
-			if r.status_code == 200:
-				return r.json()["file"]
+		r = requests.get("https://api.thecatapi.com/v1/images/search")
+		if r.status_code == 200:
+			return r.json()["url"]
 
 	elif animalType in ("bunny", "rabbit"):
 		r = requests.get("https://api.bunnies.io/v2/loop/random/?media=gif")
 		if r.status_code == 200:
 			return r.json()["media"]["gif"]
 
+	# some-random-api currently down
 	elif animalType in ("panda", "koala", "bird", "raccoon", "kangaroo", "fox"):
+		raise Exception("Temporarily disabled")
 		if animalType == "fox":
 			r = requests.get("https://randomfox.ca/floof/")
 		else:
@@ -226,15 +225,15 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 
 	elif animalType == "frog":
 		r = requests.get("https://github.com/a9-i/frog/tree/main/ImgSetOpt")
-		soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
-		frog = choice(
-			tuple(f for f in soup.stripped_strings if f.endswith(".jpg"))
-		)
+		frog = choice(r.json()["payload"]["tree"]["items"])["path"]
 
 		return (
-			"https://raw.githubusercontent.com/"
-			f"a9-i/frog/main/ImgSetOpt/{frog}"
+			f"https://raw.githubusercontent.com/a9-i/frog/main/{frog}"
 		)
+
+	elif animalType == "seal":
+		sealID = str(randint(0, 83)).rjust(4, "0")
+		return f"https://focabot.github.io/random-seal/seals/{sealID}.jpg"
 
 	raise Exception(str(r) + ": " + animalType)
 
