@@ -704,11 +704,33 @@ async def cmdMute(ctx, target=None, duration=None, *args) -> int:
 			("minute", 60.0),
 			("second", 1.0)
 		)
-		for mPair in times:
-			if (mPair[0])[0] in duration:
-				duration = duration.split((mPair[0])[0], 1)[0]
+		
+		# prossesing duration here makes life easier
+		lastNumeric = -1 
+		for c in duration:
+			if not c.isnumeric():
+				break	
+			lastNumeric += 1
+		unit = duration.split(duration[lastNumeric])[1]
+		duration =  duration.split(duration[lastNumeric])[0] + duration[lastNumeric]
+
+		if lastNumeric == -1:
+				args = (duration + unit,) + args
+				duration = None
+				# treat duration as mute reason 
+		else:
+			unitIsValid = False
+			for mPair in times:
+				if (unit is not (mPair[0])[0] and unit != mPair[0] 
+					and unit != mPair[0] + "s"):
+					continue
+				unitIsValid = True
 				mTime = float(duration) * mPair[1]
 				mString = " " + mPair[0] + ("" if duration == "1" else "s")
+			if not unitIsValid:
+				args = (duration + unit,) + args
+				duration = None
+
 	try:
 		await target.add_roles(role)
 	except Exception as e:
