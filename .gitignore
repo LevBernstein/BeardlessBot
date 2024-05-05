@@ -5,3 +5,4 @@ testResults.md
 .coverage
 htmlcov/*
 resources/logs/*
+venv/
