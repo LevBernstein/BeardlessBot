@@ -1,6 +1,7 @@
 # Beardless Bot miscellaneous methods
 
 import re
+import json
 from datetime import datetime
 from random import choice, randint
 from typing import Optional, Tuple, Union
@@ -29,14 +30,9 @@ animalList = (
 	"fox",
 	"seal",
 	"rabbit",
-	"panda",
 	"lizard",
 	"frog",
 	"bear",
-	"bird",
-	"koala",
-	"raccoon",
-	"kangaroo"
 )
 
 hierarchyMsg = (
@@ -110,7 +106,7 @@ def bbEmbed(
 		title=name,
 		description=value,
 		color=col,
-		timestamp=datetime.now() if showTime else nextcord.Embed.Empty
+		timestamp=datetime.now() if showTime else None
 	)
 
 
@@ -193,22 +189,15 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 	elif animalType == "cat":
 		r = requests.get("https://api.thecatapi.com/v1/images/search")
 		if r.status_code == 200:
-			return r.json()["url"]
+			return r.json()[0]["url"]
 
 	elif animalType in ("bunny", "rabbit"):
 		r = requests.get("https://api.bunnies.io/v2/loop/random/?media=gif")
 		if r.status_code == 200:
 			return r.json()["media"]["gif"]
 
-	# some-random-api currently down
-	elif animalType in ("panda", "koala", "bird", "raccoon", "kangaroo", "fox"):
-		raise Exception("Temporarily disabled")
-		if animalType == "fox":
-			r = requests.get("https://randomfox.ca/floof/")
-		else:
-			r = requests.get(
-				"https://some-random-api.ml/animal/" + animalType
-			)
+	elif animalType == "fox":
+		r = requests.get("https://randomfox.ca/floof/")
 		if r.status_code == 200:
 			return r.json()["image"]
 
@@ -225,7 +214,12 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 
 	elif animalType == "frog":
 		r = requests.get("https://github.com/a9-i/frog/tree/main/ImgSetOpt")
-		frog = choice(r.json()["payload"]["tree"]["items"])["path"]
+		soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
+		frog = choice(
+			json.loads(
+				soup.findAll("script")[-1].text
+			)["payload"]["tree"]["items"]
+		)["path"]
 
 		return (
 			f"https://raw.githubusercontent.com/a9-i/frog/main/{frog}"
