@@ -1098,7 +1098,7 @@ def test_scamCheck() -> None:
 
 
 # TODO: switch to mock context, add test for error with quotation mark
-@pytest.mark.parametrize("searchterm", ["Русская лексика", "two words", ""])
+@pytest.mark.parametrize("searchterm", ["лексика", "two words", "", " ", "/"])
 def test_search_valid(searchterm: str) -> None:
 	url = "https://www.google.com/search?q=" + quote_plus(searchterm)
 	assert url == misc.search(searchterm).description
@@ -1174,7 +1174,6 @@ def test_claimProfile() -> None:
 	"url,result", [
 		("https://steamcommunity.com/id/beardless", 7032472),
 		("badurl", None),
-		("https://steamcommunity.com/badurl", None),
 		("https://steamcommunity.com/badurl", None)
 	]
 )

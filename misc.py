@@ -3,8 +3,9 @@
 import re
 import json
 from datetime import datetime
+from logging import error
 from random import choice, randint
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 from urllib.parse import quote_plus
 
 import nextcord
@@ -213,16 +214,9 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 		return f"https://placebear.com/{randint(200, 400)}/{randint(200,400)}"
 
 	elif animalType == "frog":
-		r = requests.get("https://github.com/a9-i/frog/tree/main/ImgSetOpt")
-		soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
-		frog = choice(
-			json.loads(
-				soup.findAll("script")[-1].text
-			)["payload"]["tree"]["items"]
-		)["path"]
-
+		frog = choice(frogList)
 		return (
-			f"https://raw.githubusercontent.com/a9-i/frog/main/{frog}"
+			f"https://raw.githubusercontent.com/a9-i/frog/main/ImgSetOpt/{frog}"
 		)
 
 	elif animalType == "seal":
@@ -230,6 +224,26 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 		return f"https://focabot.github.io/random-seal/seals/{sealID}.jpg"
 
 	raise Exception(str(r) + ": " + animalType)
+
+
+# Load the list of frog images only once. Might fail; retry up to 10 times.
+def getFrogList() -> List[str]:
+	for i in range(10):
+		r = requests.get("https://github.com/a9-i/frog/tree/main/ImgSetOpt")
+		soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
+		try:
+			return [
+				i["name"] for i in (
+					json.loads(
+						soup.findAll("script")[-1].text
+					)["payload"]["tree"]["items"]
+				)
+			]
+		except KeyError as e:
+			error("getFrogList attempt" + str(i) + " failed: " + str(e))
+
+
+frogList = getFrogList()
 
 
 def define(word: str) -> nextcord.Embed:
