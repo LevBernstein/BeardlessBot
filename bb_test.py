@@ -30,16 +30,6 @@ imageTypes = (
 	"image/webp"
 )
 
-# Zoo API headers report text for some reason
-
-imageSigs = (
-	"b'\\xff\\xd8\\xff\\xe0\\x00\\x10JFIF",
-	"b'\\x89\\x50\\x4e\\x47\\x0d\\x",
-	"b'\\xff\\xd8\\xff\\xe2\\x024ICC_PRO",
-	"b'\\x89PNG\\r\\n\\x1a\\n\\",
-	"b'\\xff\\xd8\\xff\\xe1\\tPh"
-)
-
 
 def goodURL(
 	request: requests.models.Response, fileTypes: Tuple[str]
@@ -96,7 +86,8 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 		allowed_mentions: Optional[Dict[str, Any]] = None,
 		message_reference: Optional[Dict[str, Any]] = None,
 		stickers: Optional[List[nextcord.Sticker]] = None,
-		components: Optional[List[Any]] = None
+		components: Optional[List[Any]] = None,
+		**kwargs
 	) -> Dict[str, Any]:
 		data = {
 			"attachments": [],
@@ -281,7 +272,6 @@ class MockMessage(nextcord.Message):
 		self.id = 123456789
 		self.channel = channel
 		self.type = nextcord.MessageType.default
-		self.flags = nextcord.MessageFlags()
 		self.guild = guild
 		self.mentions = []
 		self.mention_everyone = False
@@ -491,7 +481,15 @@ loop = asyncio.get_event_loop()
 @pytest.mark.parametrize("letter", ["W", "E", "F"])
 def test_pep8Compliance(letter: str) -> None:
 	styleGuide = flake8.get_style_guide(ignore=["W191", "W503"])
-	report = styleGuide.check_files(["./"])
+	files = [
+		"bb_test.py",
+		"Bot.py",
+		"brawl.py",
+		"bucks.py",
+		"logs.py",
+		"misc.py"
+	]
+	report = styleGuide.check_files(files)
 	assert len(report.get_statistics(letter)) == 0
 
 
@@ -1100,7 +1098,7 @@ def test_scamCheck() -> None:
 
 
 # TODO: switch to mock context, add test for error with quotation mark
-@pytest.mark.parametrize("searchterm", ["Русская лексика", "two words", ""])
+@pytest.mark.parametrize("searchterm", ["лексика", "two words", "", " ", "/"])
 def test_search_valid(searchterm: str) -> None:
 	url = "https://www.google.com/search?q=" + quote_plus(searchterm)
 	assert url == misc.search(searchterm).description
@@ -1120,19 +1118,9 @@ def test_onJoin() -> None:
 	assert emb.description == misc.joinMsg.format(guild.name, role.mention)
 
 
-@pytest.mark.parametrize("animalName", list(misc.animalList[:-4]) + ["dog"])
+@pytest.mark.parametrize("animalName", list(misc.animalList) + ["dog"])
 def test_animal_with_goodUrl(animalName: str) -> None:
 	assert goodURL(requests.get(misc.animal(animalName)), imageTypes)
-
-
-@pytest.mark.parametrize("animalName", misc.animalList[-4:])
-def test_animal_with_imageSigs(animalName: str) -> None:
-	# Koala, Bird, Raccoon, Kangaroo APIs lack a content-type field;
-	# check if URL points to an image instead
-	r = requests.get(misc.animal(animalName))
-	assert r.ok and any(
-		str(r.content).startswith(signature) for signature in imageSigs
-	)
 
 
 def test_animal_dog_breed() -> None:
@@ -1186,7 +1174,6 @@ def test_claimProfile() -> None:
 	"url,result", [
 		("https://steamcommunity.com/id/beardless", 7032472),
 		("badurl", None),
-		("https://steamcommunity.com/badurl", None),
 		("https://steamcommunity.com/badurl", None)
 	]
 )

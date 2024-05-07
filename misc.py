@@ -2,8 +2,9 @@
 
 import re
 from datetime import datetime
+from json import loads
 from random import choice, randint
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 from urllib.parse import quote_plus
 
 import nextcord
@@ -29,14 +30,9 @@ animalList = (
 	"fox",
 	"seal",
 	"rabbit",
-	"panda",
 	"lizard",
 	"frog",
 	"bear",
-	"bird",
-	"koala",
-	"raccoon",
-	"kangaroo"
 )
 
 hierarchyMsg = (
@@ -110,7 +106,7 @@ def bbEmbed(
 		title=name,
 		description=value,
 		color=col,
-		timestamp=datetime.now() if showTime else nextcord.Embed.Empty
+		timestamp=datetime.now() if showTime else None
 	)
 
 
@@ -193,22 +189,15 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 	elif animalType == "cat":
 		r = requests.get("https://api.thecatapi.com/v1/images/search")
 		if r.status_code == 200:
-			return r.json()["url"]
+			return r.json()[0]["url"]
 
 	elif animalType in ("bunny", "rabbit"):
 		r = requests.get("https://api.bunnies.io/v2/loop/random/?media=gif")
 		if r.status_code == 200:
 			return r.json()["media"]["gif"]
 
-	# some-random-api currently down
-	elif animalType in ("panda", "koala", "bird", "raccoon", "kangaroo", "fox"):
-		raise Exception("Temporarily disabled")
-		if animalType == "fox":
-			r = requests.get("https://randomfox.ca/floof/")
-		else:
-			r = requests.get(
-				"https://some-random-api.ml/animal/" + animalType
-			)
+	elif animalType == "fox":
+		r = requests.get("https://randomfox.ca/floof/")
 		if r.status_code == 200:
 			return r.json()["image"]
 
@@ -224,11 +213,9 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 		return f"https://placebear.com/{randint(200, 400)}/{randint(200,400)}"
 
 	elif animalType == "frog":
-		r = requests.get("https://github.com/a9-i/frog/tree/main/ImgSetOpt")
-		frog = choice(r.json()["payload"]["tree"]["items"])["path"]
-
+		frog = choice(frogList)["name"]
 		return (
-			f"https://raw.githubusercontent.com/a9-i/frog/main/{frog}"
+			f"https://raw.githubusercontent.com/a9-i/frog/main/ImgSetOpt/{frog}"
 		)
 
 	elif animalType == "seal":
@@ -236,6 +223,23 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 		return f"https://focabot.github.io/random-seal/seals/{sealID}.jpg"
 
 	raise Exception(str(r) + ": " + animalType)
+
+
+# Amortize the cost of pulling the frog images by making one initial call.
+# Two possible layouts, one when formatting fails.
+def getFrogList() -> List[str]:
+	r = requests.get("https://github.com/a9-i/frog/tree/main/ImgSetOpt")
+	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
+	try:
+		j = loads(soup.findAll("script")[-1].text)["payload"]
+	except KeyError:
+		j = loads(
+			soup.findAll("script")[-2].text.replace("\\", "\\\\")
+		)["payload"]
+	return j["tree"]["items"]
+
+
+frogList = getFrogList()
 
 
 def define(word: str) -> nextcord.Embed:

@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release 2.0.1 ![Coverage badge](./resources/images/coverage.svg)
+### Full Release 2.1.1 ![Coverage badge](./resources/images/coverage.svg)
 
 A Discord bot supporting gambling (coin flips and blackjack),
 a currency system, fun facts, and more.
@@ -14,13 +14,15 @@ then skip down to [Setup](#setup).
 If you want to run your own instance of Beardless Bot,
 follow the steps outlined directly below in [Installation](#installation).
 
+
 ## Installation
 
 1. Download the repository.
 
 2. Download [Python 3](https://python.org/downloads), and then run
-`pip3 install -r resources/requirements.txt`. Beardless Bot requires Python 3.8
-or newer. It has been tested on 3.8 and 3.9; anything above that is untested.
+`pip3 install -r resources/requirements.txt`. Beardless Bot requires Python 3.11
+or newer. If you are using python virtualenv, name your virtualenv "venv" and
+run `source venv/bin/activate` before running `pip3 install`.
 
 3. Create a file named ".env" in the same directory as Bot.py. Insert
 into it the line `DISCORDTOKEN=yourtoken`, where yourtoken is the Discord API
@@ -35,6 +37,7 @@ repository secret with the name BRAWLKEY. For more information, see
 [this guide](https://docs.github.com/en/actions/reference/encrypted-secrets).
 
 5. Run `python3 Bot.py` to start the bot.
+
 
 ## Setup
 
