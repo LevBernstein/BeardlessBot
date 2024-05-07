@@ -1,9 +1,8 @@
 # Beardless Bot miscellaneous methods
 
 import re
-import json
 from datetime import datetime
-from logging import error
+from json import loads
 from random import choice, randint
 from typing import List, Optional, Tuple, Union
 from urllib.parse import quote_plus
@@ -214,7 +213,7 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 		return f"https://placebear.com/{randint(200, 400)}/{randint(200,400)}"
 
 	elif animalType == "frog":
-		frog = choice(frogList)
+		frog = choice(frogList)["name"]
 		return (
 			f"https://raw.githubusercontent.com/a9-i/frog/main/ImgSetOpt/{frog}"
 		)
@@ -226,21 +225,18 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 	raise Exception(str(r) + ": " + animalType)
 
 
-# Load the list of frog images only once. Might fail; retry up to 10 times.
+# Amortize the cost of pulling the frog images by making one initial call.
+# Two possible layouts, one when formatting fails.
 def getFrogList() -> List[str]:
-	for i in range(10):
-		r = requests.get("https://github.com/a9-i/frog/tree/main/ImgSetOpt")
-		soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
-		try:
-			return [
-				i["name"] for i in (
-					json.loads(
-						soup.findAll("script")[-1].text
-					)["payload"]["tree"]["items"]
-				)
-			]
-		except KeyError as e:
-			error("getFrogList attempt" + str(i) + " failed: " + str(e))
+	r = requests.get("https://github.com/a9-i/frog/tree/main/ImgSetOpt")
+	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
+	try:
+		j = loads(soup.findAll("script")[-1].text)["payload"]
+	except KeyError:
+		j = loads(
+			soup.findAll("script")[-2].text.replace("\\", "\\\\")
+		)["payload"]
+	return j["tree"]["items"]
 
 
 frogList = getFrogList()
