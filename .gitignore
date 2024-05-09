@@ -6,3 +6,4 @@ testResults.md
 htmlcov/*
 resources/logs/*
 venv/
+*.kdev4*

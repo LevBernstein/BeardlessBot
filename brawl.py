@@ -118,18 +118,18 @@ def randomBrawl(ranType: str, key: str = None) -> nextcord.Embed:
 	)
 
 
-def claimProfile(discordID: int, brawlID: int):
+def claimProfile(discordId: int, brawlId: int):
 	with open("resources/claimedProfs.json", "r") as f:
 		profs = load(f)
-	profs[str(discordID)] = brawlID
+	profs[str(discordId)] = brawlId
 	with open("resources/claimedProfs.json", "w") as g:
 		dump(profs, g, indent=4)
 
 
-def fetchBrawlID(discordID: int) -> Optional[int]:
+def fetchBrawlId(discordId: int) -> Optional[int]:
 	with open("resources/claimedProfs.json") as f:
 		for key, value in load(f).items():
-			if key == str(discordID):
+			if key == str(discordId):
 				return value
 	return None
 
@@ -144,12 +144,11 @@ def apiCall(route: str, arg: str, key: str, amp: str = "?") -> Dict[str, Any]:
 	return requests.get(url).json()
 
 
-def getBrawlID(brawlKey: str, profileURL: str) -> Optional[int]:
+def getBrawlId(brawlKey: str, profileUrl: str) -> Optional[int]:
 	try:
-		if not (steamID := from_url(profileURL)):
+		if not (steamID := from_url(profileUrl)):
 			return None
-		r = apiCall("search?steamid=", steamID, brawlKey, "&")
-		return r["brawlhalla_id"]
+		return apiCall("search?steamid=", steamID, brawlKey, "&")["brawlhalla_id"]
 	except TypeError:
 		return None
 
@@ -203,7 +202,7 @@ def legendInfo(brawlKey: str, legendName: str) -> Optional[nextcord.Embed]:
 def getRank(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 	# TODO: add rank images as thumbnail, clan below name;
 	# download local copies of rank images bc there's no easy format on wiki
-	if not (brawlID := fetchBrawlID(target.id)):
+	if not (brawlID := fetchBrawlId(target.id)):
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Rank", unclaimed.format(target.mention)
 		)
@@ -289,7 +288,7 @@ def getStats(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 		ttk = round(legend["matchtime"] / legend["kos"], 1)
 		return (legend["legend_name_key"].title(), ttk)
 
-	if not (brawlID := fetchBrawlID(target.id)):
+	if not (brawlID := fetchBrawlId(target.id)):
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Stats", unclaimed.format(target.mention)
 		)
@@ -346,7 +345,7 @@ def getStats(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 
 
 def getClan(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
-	if not (brawlID := fetchBrawlID(target.id)):
+	if not (brawlID := fetchBrawlId(target.id)):
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Clan", unclaimed.format(target.mention)
 		)

@@ -4,7 +4,7 @@ import csv
 from collections import OrderedDict
 from operator import itemgetter
 from random import choice, randint
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import nextcord
 
@@ -61,7 +61,7 @@ class Instance:
 		checkBust():
 			Checks if the user has gone over 21
 		stay():
-			Determines the game result after ending the gmae
+			Determines the game result after ending the game
 		cardName(card):
 			Gives the human-friendly name of a given card
 	"""
@@ -112,8 +112,8 @@ class Instance:
 		self.cards.append(choice(Instance.cardVals))
 		self.cards.append(choice(Instance.cardVals))
 		message = (
-			f"Your starting hand consists of {self.cardName(self.cards[0])}"
-			f" and {self.cardName(self.cards[1])}."
+			f"Your starting hand consists of {Instance.cardName(self.cards[0])}"
+			f" and {Instance.cardName(self.cards[1])}."
 			f" Your total is {sum(self.cards)}. "
 		)
 		if self.perfect() or debugBlackjack:
@@ -151,7 +151,7 @@ class Instance:
 		dealt = choice(Instance.cardVals)
 		self.cards.append(dealt)
 		self.message = (
-			f"You were dealt {self.cardName(dealt)},"
+			f"You were dealt {Instance.cardName(dealt)},"
 			f" bringing your total to {sum(self.cards)}. "
 		)
 		if 11 in self.cards and self.checkBust():
@@ -369,7 +369,7 @@ def reset(target: Union[nextcord.User, nextcord.Member]) -> nextcord.Embed:
 
 
 def leaderboard(
-	target: Union[nextcord.User, nextcord.Member] = None,
+	target: Union[nextcord.User, nextcord.Member, str] = None,
 	msg: nextcord.Message = None
 ) -> nextcord.Embed:
 	"""
@@ -387,7 +387,7 @@ def leaderboard(
 			If target is somewhere on the leaderboard, also
 			reports target's position and balance.
 	"""
-	diction = {}
+	lbDict: Dict[str, int] = {}
 	emb = bbEmbed("BeardlessBucks Leaderboard")
 	if target and msg and not isinstance(target, nextcord.User):
 		target = memSearch(msg, target)
@@ -395,9 +395,9 @@ def leaderboard(
 		writeMoney(target, 300, False, False)
 	with open("resources/money.csv") as csvfile:
 		for row in csv.reader(csvfile, delimiter=","):
-			diction[row[2]] = int(row[1])
-	# Sort by value for each key in diction, which is BeardlessBucks balance
-	sortedDict = OrderedDict(sorted(diction.items(), key=itemgetter(1)))
+			lbDict[row[2]] = int(row[1])
+	# Sort by value for each key in lbDict, which is BeardlessBucks balance
+	sortedDict = OrderedDict(sorted(lbDict.items(), key=itemgetter(1)))
 	if target:
 		users = list(sortedDict.keys())
 		try:

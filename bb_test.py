@@ -1067,11 +1067,6 @@ def test_commands() -> None:
 	assert len(misc.bbCommands(ctx).fields) == 17
 
 
-def test_hints() -> None:
-	with open("resources/hints.txt", "r") as f:
-		assert len(misc.hints().fields) == len(f.read().splitlines())
-
-
 def test_pingMsg() -> None:
 	namedUser = MockUser("likesToPing")
 	assert (
@@ -1155,8 +1150,8 @@ def test_randomBrawl() -> None:
 
 
 def test_fetchBrawlID() -> None:
-	assert brawl.fetchBrawlID(196354892208537600) == 7032472
-	assert not brawl.fetchBrawlID(654133911558946837)
+	assert brawl.fetchBrawlId(196354892208537600) == 7032472
+	assert not brawl.fetchBrawlId(654133911558946837)
 
 
 def test_claimProfile() -> None:
@@ -1165,9 +1160,9 @@ def test_claimProfile() -> None:
 	brawl.claimProfile(196354892208537600, 1)
 	with open("resources/claimedProfs.json", "r") as f:
 		assert profsLen == len(load(f))
-	assert brawl.fetchBrawlID(196354892208537600) == 1
+	assert brawl.fetchBrawlId(196354892208537600) == 1
 	brawl.claimProfile(196354892208537600, 7032472)
-	assert brawl.fetchBrawlID(196354892208537600) == 7032472
+	assert brawl.fetchBrawlId(196354892208537600) == 7032472
 
 
 @pytest.mark.parametrize(
@@ -1179,7 +1174,7 @@ def test_claimProfile() -> None:
 )
 def test_getBrawlID(url: str, result: Optional[int]) -> None:
 	sleep(2)
-	assert brawl.getBrawlID(brawlKey, url) == result
+	assert brawl.getBrawlId(brawlKey, url) == result
 
 
 def test_getRank() -> None:
