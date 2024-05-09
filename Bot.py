@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 2.1.2"
+__version__ = "Full Release 2.1.3"
 
 import asyncio
 import logging
@@ -442,12 +442,14 @@ async def cmdBalance(ctx: commands.Context, *target) -> int:
 
 
 @bot.command(name="leaderboard", aliases=("leaderboards", "lb"))
-async def cmdLeaderboard(ctx: commands.Context, *target) -> int:
+async def cmdLeaderboard(
+	ctx: commands.Context, *target
+) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if ctx.message.mentions:
 		target = ctx.message.mentions[0]
-	elif target and isinstance(target, str):
+	elif target:
 		target = " ".join(target)
 	else:
 		target = ctx.author
