@@ -844,6 +844,7 @@ def test_fetchAvatar_custom() -> None:
 		f"https://cdn.discordapp.com/avatars/{userId}/"
 		f"{member._avatar}.png?size=1024"
 	)
+	assert misc.fetchAvatar(member) == member.avatar.url
 
 
 def test_fetchAvatar_default() -> None:
@@ -852,6 +853,7 @@ def test_fetchAvatar_default() -> None:
 	assert member.default_avatar.url == (
 		f"https://cdn.discordapp.com/embed/avatars/{member.id >> 22}.png"
 	)
+	assert misc.fetchAvatar(member) == member.default_avatar.url
 
 
 @pytest.mark.parametrize(
