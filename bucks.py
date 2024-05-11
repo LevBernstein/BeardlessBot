@@ -36,7 +36,7 @@ noGameMsg = (
 )
 
 
-class Instance:
+class BlackjackGame:
 	"""
 	Blackjack game instance. New instance created for each game.
 	Instances are server-agnostic; only one game allowed per player
@@ -44,7 +44,7 @@ class Instance:
 
 	Attributes:
 		cardVals (tuple): Blackjack values for each card
-		user (nextcord.User): The user who is playing this game
+		user (nextcord.User or Member): The user who is playing this game
 		bet (int): The number of BeardlessBucks the user is betting
 		cards (list): The list of cards the user has been dealt
 		dealerUp (int): The card the dealer is showing face-up
@@ -75,10 +75,14 @@ class Instance:
 		debug: bool = False
 	) -> None:
 		"""
+		Creates a new BlackjackGame instance. In order to simulate the dealer
+		standing on a soft 17, the dealer's sum will be incremented by a random card
+		value until reaching 17.
+
 		Args:
-			user (nextcord.User): The user who is playing this game
+			user (nextcord.User or Member): The user who is playing this game
 			bet (int): The number of BeardlessBucks the user is betting
-			debug (bool): Whether to fix the game while testing
+			debug (bool): Whether to fix the game for testing
 				(default is False)
 		"""
 		self.user = user
@@ -109,11 +113,11 @@ class Instance:
 		Returns:
 			str: the message to show the user
 		"""
-		self.cards.append(choice(Instance.cardVals))
-		self.cards.append(choice(Instance.cardVals))
+		self.cards.append(choice(BlackjackGame.cardVals))
+		self.cards.append(choice(BlackjackGame.cardVals))
 		message = (
-			f"Your starting hand consists of {Instance.cardName(self.cards[0])}"
-			f" and {Instance.cardName(self.cards[1])}."
+			f"Your starting hand consists of {BlackjackGame.cardName(self.cards[0])}"
+			f" and {BlackjackGame.cardName(self.cards[1])}."
 			f" Your total is {sum(self.cards)}. "
 		)
 		if self.perfect() or debugBlackjack:
@@ -148,10 +152,10 @@ class Instance:
 		Returns:
 			str: the message to show the user
 		"""
-		dealt = choice(Instance.cardVals)
+		dealt = choice(BlackjackGame.cardVals)
 		self.cards.append(dealt)
 		self.message = (
-			f"You were dealt {Instance.cardName(dealt)},"
+			f"You were dealt {BlackjackGame.cardName(dealt)},"
 			f" bringing your total to {sum(self.cards)}. "
 		)
 		if 11 in self.cards and self.checkBust():
@@ -242,7 +246,7 @@ def writeMoney(
 	Helper method for checking or modifying a user's BeardlessBucks balance.
 
 	Args:
-		member (nextcord.User): The target user
+		member (nextcord.User or Member): The target user
 		amount (str or int): The amount to change member's balance by
 		writing (bool): Whether to modify member's balance
 		adding (bool): Whether to add to or overwrite member's balance
@@ -301,7 +305,7 @@ def register(target: Union[nextcord.User, nextcord.Member]) -> nextcord.Embed:
 	Register a new user for BeardlessBucks.
 
 	Args:
-		target (nextcord.User): The user to register
+		target (nextcord.User or Member): The user to register
 
 	Returns:
 		nextcord.Embed: the report of the target's registration.
@@ -325,7 +329,7 @@ def balance(
 	Checks a user's BeardlessBucks balance.
 
 	Args:
-		target (nextcord.User): The user whose balance is to be checked
+		target (nextcord.User or Member): The user whose balance is to be checked
 		msg (nextcord.Message): The message sent that called this command
 
 	Returns:
@@ -352,7 +356,7 @@ def reset(target: Union[nextcord.User, nextcord.Member]) -> nextcord.Embed:
 	Resets a user's Beardless balance to 200.
 
 	Args:
-		target (nextcord.User): The user to reset
+		target (nextcord.User or Member): The user to reset
 
 	Returns:
 		nextcord.Embed: the report of the target's balance reset.
@@ -379,7 +383,7 @@ def leaderboard(
 	= O(n) + O(nlogn) + 10 = O(nlogn).
 
 	Args:
-		target (nextcord.User): The user calling leaderboard()
+		target (nextcord.User or Member): The user calling leaderboard()
 			(default is None)
 
 	Returns:
@@ -426,7 +430,7 @@ def flip(
 	Gambles a certain number of BeardlessBucks on a coin toss.
 
 	Args:
-		author (nextcord.User): The user who is gambling
+		author (nextcord.User or Member): The user who is gambling
 		bet (str): The amount author is wagering
 		debug (bool): Whether to fix the outcome of the flip.
 			Only used for testing in bb_test.py.
@@ -487,12 +491,12 @@ def flip(
 
 def blackjack(
 	author: Union[nextcord.User, nextcord.Member], bet: str
-) -> Tuple[str, Union[Instance, None]]:
+) -> Tuple[str, Union[BlackjackGame, None]]:
 	"""
 	Gambles a certain number of BeardlessBucks on blackjack.
 
 	Args:
-		author (nextcord.User): The user who is gambling
+		author (nextcord.User or Member): The user who is gambling
 		bet (str): The amount author is wagering
 
 	Returns:
@@ -527,7 +531,7 @@ def blackjack(
 		else:
 			if bet == "all":
 				bet = bank
-			game = Instance(author, bet)
+			game = BlackjackGame(author, bet)
 			report = game.message
 			if game.perfect():
 				writeMoney(author, bet, True, True)
@@ -535,6 +539,6 @@ def blackjack(
 	return report.format(author.mention), game
 
 
-def activeGame(games: List[Instance], author: nextcord.User) -> bool:
+def activeGame(games: List[BlackjackGame], author: nextcord.User) -> bool:
 	"""Checks if a user has an active game of Blackjack."""
 	return any(author == game.user for game in games)

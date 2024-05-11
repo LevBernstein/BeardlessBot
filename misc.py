@@ -133,7 +133,6 @@ def memSearch(
 
 
 def fetchAvatar(user: nextcord.User) -> str:
-	# TODO: write unit tests for this
 	try:
 		return user.avatar.url
 	except AttributeError:

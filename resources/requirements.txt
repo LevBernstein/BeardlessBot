@@ -1,7 +1,7 @@
 bs4==0.0.1
 coverage==6.4.3
-coverage-badge==1.1.0
 flake8==4.0.1
+genbadge[all]==1.1.1
 nextcord==2.6.0
 pytest==7.1.2
 python-dotenv==0.19.2

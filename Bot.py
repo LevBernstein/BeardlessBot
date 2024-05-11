@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 2.1.3"
+__version__ = "Full Release 2.1.4"
 
 import asyncio
 import logging
@@ -24,7 +24,7 @@ import misc
 sparPings: Dict[int, Dict[str, int]] = {}
 
 # This array stores the active instances of blackjack.
-games: List[bucks.Instance] = []
+games: List[bucks.BlackjackGame] = []
 
 # Replace owner_id with your Discord id
 ownerId = 196354892208537600
@@ -73,6 +73,18 @@ async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
 
 
 def ctxCreatedThread(ctx: commands.Context) -> bool:
+	"""
+	Threads created with the name set to a command (e.g., a thread named !flip)
+	will trigger that command as the first action in that thread. This is not
+	intended behavior; as such, if the context event is a thread being created
+	or a thread name being changed, this method will catch that.
+
+	Args:
+		ctx (commands.Context): The context in which the command is being invoked
+
+	Returns:
+		bool: Whether the event is valid to trigger a command.
+	"""
 	return ctx.message.type in (
 		nextcord.MessageType.thread_created,
 		nextcord.MessageType.channel_name_change

@@ -6,7 +6,7 @@ from json import load
 from os import environ
 from random import choice
 from time import sleep
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import quote_plus
 
 import nextcord
@@ -31,9 +31,7 @@ imageTypes = (
 )
 
 
-def goodURL(
-	request: requests.models.Response, fileTypes: Tuple[str]
-) -> bool:
+def goodURL(request: requests.models.Response) -> bool:
 	return request.ok and request.headers["content-type"] in imageTypes
 
 
@@ -57,21 +55,9 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 	async def create_role(
 		self, roleId: int, reason: Optional[str] = None, **fields: Any
 	) -> Dict[str, Any]:
-		# TODO: switch to: for key, value in fields.items(): data[key] = value
-		data = {
-			"id": roleId,
-			"name": fields["name"] if "name" in fields else "TestRole"
-		}
-
-		if "hoist" in fields:
-			data["hoist"] = fields["hoist"]
-		if "mentionable" in fields:
-			data["mentionable"] = fields["mentionable"]
-		if "colour" in fields:
-			data["colour"] = fields["colour"]
-		if "permissions" in fields:
-			data["permissions"] = fields["permissions"]
-
+		data = {key: value for key, value in fields.items()}
+		data["id"] = roleId
+		data["name"] = fields["name"] if "name" in fields else "TestRole"
 		return data
 
 	async def send_message(
@@ -158,7 +144,8 @@ class MockUser(nextcord.User):
 		discriminator: str = "0000",
 		id: int = 123456789,
 		roles: List[nextcord.Role] = [],
-		guild: Optional[nextcord.Guild] = None
+		guild: Optional[nextcord.Guild] = None,
+		customAvatar: bool = True
 	) -> None:
 		self.name = name
 		self.nick = nick
@@ -173,10 +160,10 @@ class MockUser(nextcord.User):
 		self.guild = guild
 		self._public_flags = 0
 		self._state = self.MockUserState(messageNum=len(self.messages))
-		self._avatar = "7b6ea511d6e0ef6d1cdb2f7b53946c03"
-		self.setStateUser()
+		self._avatar = "7b6ea511d6e0ef6d1cdb2f7b53946c03" if customAvatar else None
+		self.setUserState()
 
-	def setStateUser(self) -> None:
+	def setUserState(self) -> None:
 		self._state.user = self
 		self._state.setClientUser()
 
@@ -850,6 +837,23 @@ def test_logUnmute() -> None:
 	)
 
 
+def test_fetchAvatar_custom() -> None:
+	userId = 12121212
+	member = MockUser(id=userId)
+	assert member.avatar.url == (
+		f"https://cdn.discordapp.com/avatars/{userId}/"
+		f"{member._avatar}.png?size=1024"
+	)
+
+
+def test_fetchAvatar_default() -> None:
+	member = MockUser(id=5000000, customAvatar=False)
+	assert member.avatar is None
+	assert member.default_avatar.url == (
+		f"https://cdn.discordapp.com/embed/avatars/{member.id >> 22}.png"
+	)
+
+
 @pytest.mark.parametrize(
 	"username,content", [
 		("searchterm", "searchterm#9999"),
@@ -958,12 +962,12 @@ def test_blackjack() -> None:
 	assert bucks.blackjack(bb, "invalidbet")[0].startswith("Invalid bet.")
 	bucks.reset(bb)
 	report, game = bucks.blackjack(bb, "all")
-	assert isinstance(game, bucks.Instance) or "You hit 21!" in report
+	assert isinstance(game, bucks.BlackjackGame) or "You hit 21!" in report
 	bucks.reset(bb)
 	report, game = bucks.blackjack(bb, 0)
-	assert isinstance(game, bucks.Instance) or "You hit 21!" in report
+	assert isinstance(game, bucks.BlackjackGame) or "You hit 21!" in report
 	bucks.reset(bb)
-	game = bucks.Instance(bb, "all", True)
+	game = bucks.BlackjackGame(bb, "all", True)
 	assert "You hit 21!" in game.message
 	bucks.reset(bb)
 	report, game = bucks.blackjack(bb, "10000000000000")
@@ -973,13 +977,13 @@ def test_blackjack() -> None:
 
 
 def test_blackjack_perfect() -> None:
-	game = bucks.Instance(MockUser(), 10)
+	game = bucks.BlackjackGame(MockUser(), 10)
 	game.cards = 10, 11
 	assert game.perfect()
 
 
 def test_blackjack_deal() -> None:
-	game = bucks.Instance(MockUser(), 10)
+	game = bucks.BlackjackGame(MockUser(), 10)
 	game.cards = [2, 3]
 	game.deal()
 	assert len(game.cards) == 3
@@ -992,7 +996,7 @@ def test_blackjack_deal() -> None:
 
 
 def test_blackjack_cardName() -> None:
-	game = bucks.Instance(MockUser(), 10)
+	game = bucks.BlackjackGame(MockUser(), 10)
 	assert game.cardName(10) in ("a 10", "a Jack", "a Queen", "a King")
 	assert game.cardName(11) == "an Ace"
 	assert game.cardName(8) == "an 8"
@@ -1000,13 +1004,13 @@ def test_blackjack_cardName() -> None:
 
 
 def test_blackjack_checkBust() -> None:
-	game = bucks.Instance(MockUser(), 10)
+	game = bucks.BlackjackGame(MockUser(), 10)
 	game.cards = 10, 10, 10
 	assert game.checkBust()
 
 
 def test_blackjack_stay() -> None:
-	game = bucks.Instance(MockUser(), 0)
+	game = bucks.BlackjackGame(MockUser(), 0)
 	game.cards = [10, 10, 1]
 	game.dealerSum = 25
 	assert game.stay() == 1
@@ -1019,7 +1023,7 @@ def test_blackjack_stay() -> None:
 
 
 def test_blackjack_startingHand() -> None:
-	game = bucks.Instance(MockUser(), 10)
+	game = bucks.BlackjackGame(MockUser(), 10)
 	game.cards = []
 	game.message = game.startingHand()
 	assert len(game.cards) == 2
@@ -1030,9 +1034,9 @@ def test_blackjack_startingHand() -> None:
 
 def test_activeGame() -> None:
 	author = MockUser(name="target", id=0)
-	games = [bucks.Instance(MockUser(name="not", id=1), 10)] * 9
+	games = [bucks.BlackjackGame(MockUser(name="not", id=1), 10)] * 9
 	assert not bucks.activeGame(games, author)
-	games.append(bucks.Instance(author, 10))
+	games.append(bucks.BlackjackGame(author, 10))
 	assert bucks.activeGame(games, author)
 
 
@@ -1115,16 +1119,16 @@ def test_onJoin() -> None:
 
 @pytest.mark.parametrize("animalName", list(misc.animalList) + ["dog"])
 def test_animal_with_goodUrl(animalName: str) -> None:
-	assert goodURL(requests.get(misc.animal(animalName)), imageTypes)
+	assert goodURL(requests.get(misc.animal(animalName)))
 
 
 def test_animal_dog_breed() -> None:
 	breeds = misc.animal("dog", "breeds")[12:-1].split(", ")
 	assert len(breeds) >= 94
-	assert goodURL(requests.get(misc.animal("dog", choice(breeds))), imageTypes)
+	assert goodURL(requests.get(misc.animal("dog", choice(breeds))))
 	assert misc.animal("dog", "invalidbreed").startswith("Breed not")
 	assert misc.animal("dog", "invalidbreed1234").startswith("Breed not")
-	assert goodURL(requests.get(misc.animal("dog", "moose")), imageTypes)
+	assert goodURL(requests.get(misc.animal("dog", "moose")))
 
 
 def test_invalid_animal_raises_exception() -> None:
