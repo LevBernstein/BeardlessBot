@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 2.1.6"
+__version__ = "Full Release 2.1.7"
 
 import asyncio
 import logging

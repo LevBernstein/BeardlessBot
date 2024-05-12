@@ -3,6 +3,7 @@
 import asyncio
 from dotenv import dotenv_values
 from json import load
+import logging
 from os import environ
 from random import choice
 from time import sleep
@@ -51,6 +52,8 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 		self.proxy = None
 		self.proxy_auth = None
 		self._locks = {}
+		self._global_over = asyncio.Event()
+		self._global_over.set()
 
 	async def create_role(
 		self, roleId: int, reason: Optional[str] = None, **fields: Any
@@ -108,7 +111,6 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 # nextcord.Member; still working on adding all features of nextcord.Member,
 # at which point I will switch the parent from nextcord.User to nextcord.Member
 # TODO: give default @everyone role
-# TODO: edit Messageable.send() to add messages to self.messages
 class MockUser(nextcord.User):
 
 	class MockUserState():
@@ -126,7 +128,9 @@ class MockUser(nextcord.User):
 		) -> nextcord.Message:
 			data["id"] = self.last_message_id
 			self.last_message_id += 1
-			return nextcord.Message(state=self, channel=channel, data=data)
+			message = nextcord.Message(state=self, channel=channel, data=data)
+			self.channel._messages.append(message)
+			return message
 
 		def store_user(self, data: Dict[str, Any]) -> nextcord.User:
 			return MockUser()
@@ -172,8 +176,10 @@ class MockUser(nextcord.User):
 		self._state.user = self
 		self._state.setClientUser()
 
+	def history(self) -> List[nextcord.Message]:
+		return self._state.channel.history()
 
-# TODO: edit Messageable.send() to add messages to self.messages
+
 class MockChannel(nextcord.TextChannel):
 
 	class MockChannelState():
@@ -185,13 +191,16 @@ class MockChannel(nextcord.TextChannel):
 			self.allowed_mentions = nextcord.AllowedMentions(everyone=True)
 			self.user = user
 			self.last_message_id = messageNum
+			self._messages = []
 
 		def create_message(
 			self, *, channel: nextcord.abc.Messageable, data: Dict[str, Any]
 		) -> nextcord.Message:
 			data["id"] = self.last_message_id
 			self.last_message_id += 1
-			return nextcord.Message(state=self, channel=channel, data=data)
+			message = nextcord.Message(state=self, channel=channel, data=data)
+			self._messages.append(message)
+			return message
 
 		def store_user(self, data: Dict) -> nextcord.User:
 			return self.user if self.user else MockUser()
@@ -213,10 +222,11 @@ class MockChannel(nextcord.TextChannel):
 		self,
 		name: str = "testchannelname",
 		guild: Optional[nextcord.Guild] = None,
-		messages: List[nextcord.Message] = []
+		messages: List[nextcord.Message] = [],
+		id: int = 123456789
 	) -> None:
 		self.name = name
-		self.id = 123456789
+		self.id = id
 		self.position = 0
 		self.slowmode_delay = 0
 		self.nsfw = False
@@ -246,18 +256,18 @@ class MockChannel(nextcord.TextChannel):
 		)
 
 	def history(self) -> List[nextcord.Message]:
-		# TODO: make self.send() add message to self.messages
-		return list(reversed(self.messages))
+		return list(reversed(self._state._messages))
 
 
 # TODO: Write message.edit(), message.delete()
 class MockMessage(nextcord.Message):
 	def __init__(
 		self,
-		content: str = "testcontent",
+		content: Optional[str] = "testcontent",
 		author: nextcord.User = MockUser(),
 		guild: Optional[nextcord.Guild] = None,
-		channel: nextcord.TextChannel = MockChannel()
+		channel: nextcord.TextChannel = MockChannel(),
+		embed: Optional[nextcord.Embed] = None
 	) -> None:
 		self.author = author
 		self.content = content
@@ -366,6 +376,33 @@ class MockGuild(nextcord.Guild):
 				self._client_status = {}
 		return MockGuildMember(userId)
 
+	def get_channel(self, channelId: int) -> Optional[nextcord.TextChannel]:
+		return self._channels.get(channelId)
+
+
+class MockThread(nextcord.Thread):
+	def __init__(
+		self,
+		name: str = "testThread",
+		owner: nextcord.User = MockUser(),
+		channelId: int = 0
+	):
+		channel = MockChannel(id=channelId)
+		self.guild = MockGuild(channels=[channel])
+		self._state = channel._state
+		self.state = self._state
+		self.id = 0
+		self.name = name
+		self.parent_id = channel.id
+		self.owner_id = owner.id
+		self.locked = False
+		self.archived = False
+		self.message_count = 0
+		self._type = 0
+		self.auto_archive_duration = 10080
+		self.archive_timestamp = None
+		self.member_count = len(self.guild.members)
+
 
 class MockContext(commands.Context):
 
@@ -387,7 +424,9 @@ class MockContext(commands.Context):
 		) -> nextcord.Message:
 			data["id"] = self.channel._state.last_message_id
 			self.channel._state.last_message_id += 1
-			return nextcord.Message(state=self, channel=channel, data=data)
+			message = nextcord.Message(state=self, channel=channel, data=data)
+			self.channel._state._messages.append(message)
+			return message
 
 		def store_user(self, data: Dict) -> nextcord.User:
 			return self.user if self.user else MockUser()
@@ -413,6 +452,9 @@ class MockContext(commands.Context):
 		self._state = self.MockContextState(channel=self.channel)
 		self.invoked_with = None
 
+	def history(self) -> List[nextcord.Message]:
+		return self._state.channel.history()
+
 
 class MockBot(commands.Bot):
 
@@ -422,6 +464,7 @@ class MockBot(commands.Bot):
 
 		def __init__(self, bot: commands.Bot) -> None:
 			self.bot = bot
+			self.latency = 0.025
 
 		async def change_presence(
 			self,
@@ -512,7 +555,6 @@ def test_mockContextMembers() -> None:
 	assert ctx.author in ctx.guild.members
 
 
-@pytest.fixture
 def test_logException(caplog: pytest.LogCaptureFixture) -> None:
 	ctx = MockContext(
 		Bot.bot,
@@ -522,7 +564,7 @@ def test_logException(caplog: pytest.LogCaptureFixture) -> None:
 	ctx.invoked_with = "mute"
 	loop.run_until_complete(Bot.cmdMute(ctx, "foo"))
 	assert caplog.records[0].msg == (
-		"ERROR:root:Member \"dfsfd\" not found. Command: mute; Author:"
+		"Member \"foo\" not found. Command: mute; Author:"
 		" testname#0000; Content: !mute foo; Guild: Test Guild"
 	)
 
@@ -534,15 +576,29 @@ def test_createMutedRole() -> None:
 	assert len(g.roles) == 1 and g.roles[0] == role
 
 
-def test_on_ready() -> None:
+def test_on_ready(caplog: pytest.LogCaptureFixture) -> None:
 	Bot.bot = MockBot(Bot.bot)
 	assert Bot.bot.user._avatar.url == (
 		f"https://cdn.discordapp.com/avatars/{Bot.bot.user.id}/"
 		f"{Bot.bot.user._avatar.key}.png?size=1024"
 	)
+	caplog.set_level(logging.INFO)
 	loop.run_until_complete(Bot.on_ready())
 	assert Bot.bot.activity.name == "try !blackjack and !flip"
 	assert Bot.bot.status == nextcord.Status(value="online")
+	assert caplog.records[4].msg == (
+		"Done! Beardless Bot serves 1 unique members across 1 servers."
+	)
+	caplog.set_level(logging.WARN)
+
+
+def test_on_ready_no_guilds(caplog: pytest.LogCaptureFixture) -> None:
+	Bot.bot = MockBot(Bot.bot)
+	Bot.bot._connection._guilds = {}
+	loop.run_until_complete(Bot.on_ready())
+	assert caplog.records[0].msg == (
+		"Bot is in no servers! Add it to a server."
+	)
 
 
 @pytest.mark.parametrize(
@@ -564,12 +620,10 @@ def test_on_message_delete() -> None:
 		f"**Deleted message sent by {m.author.mention}"
 		f" in **{m.channel.mention}\n{m.content}"
 	)
-	"""
-	# TODO: append sent messages to channel.messages
+	history = m.channel.history()
 	assert any(
-		(i.embed.description == log.description for i in m.channel.history())
+		(i.embeds[0].description == log.description for i in history)
 	)
-	"""
 
 
 def test_on_bulk_message_delete() -> None:
@@ -580,12 +634,10 @@ def test_on_bulk_message_delete() -> None:
 	log = logs.logPurge(messages[0], messages)
 	assert emb.description == log.description
 	assert log.description == f"Purged 2 messages in {m.channel.mention}."
-	"""
-	# TODO: append sent messages to channel.messages
+	history = m.channel.history()
 	assert any(
-		(i.embed.description == log.description for i in m.channel.history())
+		(i.embeds[0].description == log.description for i in history)
 	)
-	"""
 	messages = [m] * 105
 	emb = loop.run_until_complete(Bot.on_bulk_message_delete(messages))
 	log = logs.logPurge(messages[0], messages)
@@ -600,12 +652,10 @@ def test_on_guild_channel_delete() -> None:
 	log = logs.logDeleteChannel(channel)
 	assert emb.description == log.description
 	assert log.description == f"Channel \"{channel.name}\" deleted."
-	"""
-	# TODO: append sent messages to channel.messages
+	history = g.channels[0].history()
 	assert any(
-		(i.embed.description == log.description for i in channel.history())
+		(i.embeds[0].description == log.description for i in history)
 	)
-	"""
 
 
 def test_on_guild_channel_create() -> None:
@@ -615,12 +665,10 @@ def test_on_guild_channel_create() -> None:
 	log = logs.logCreateChannel(channel)
 	assert emb.description == log.description
 	assert log.description == f"Channel \"{channel.name}\" created."
-	"""
-	# TODO: append sent messages to channel.messages
+	history = g.channels[0].history()
 	assert any(
-		(i.embed.description == log.description for i in channel.history())
+		(i.embeds[0].description == log.description for i in history)
 	)
-	"""
 
 
 def test_on_member_ban() -> None:
@@ -630,12 +678,10 @@ def test_on_member_ban() -> None:
 	log = logs.logBan(member)
 	assert emb.description == log.description
 	assert log.description == f"Member {member.mention} banned\n{member.name}"
-	"""
-	# TODO: append sent messages to channel.messages
+	history = g.channels[0].history()
 	assert any(
-		(i.embed.description == log.description for i in channel.history())
+		(i.embeds[0].description == log.description for i in history)
 	)
-	"""
 
 
 def test_on_member_unban() -> None:
@@ -647,13 +693,10 @@ def test_on_member_unban() -> None:
 	assert (
 		log.description == f"Member {member.mention} unbanned\n{member.name}"
 	)
-	"""
-	# TODO: append sent messages to channel.messages
-	channel = member.guild.channels[0]
+	history = g.channels[0].history()
 	assert any(
-		(i.embed.description == log.description for i in channel.history())
+		(i.embeds[0].description == log.description for i in history)
 	)
-	"""
 
 
 def test_on_member_join() -> None:
@@ -666,13 +709,10 @@ def test_on_member_join() -> None:
 		f"Member {member.mention} joined\nAccount registered"
 		f" on {misc.truncTime(member)}\nID: {member.id}"
 	)
-	"""
-	# TODO: append sent messages to channel.messages
-	channel = member.guild.channels[0]
+	history = member.guild.channels[0].history()
 	assert any(
-		(i.embed.description == log.description for i in channel.history())
+		(i.embeds[0].description == log.description for i in history)
 	)
-	"""
 
 
 def test_on_member_remove() -> None:
@@ -687,13 +727,10 @@ def test_on_member_remove() -> None:
 	log = logs.logMemberRemove(member)
 	assert emb.description == log.description
 	assert log.fields[0].value == member.roles[1].mention
-	"""
-	# TODO: append sent messages to channel.messages
-	channel = member.guild.channels[0]
+	history = member.guild.channels[0].history()
 	assert any(
-		(i.embed.description == log.description for i in channel.history())
+		(i.embeds[0].description == log.description for i in history)
 	)
-	"""
 
 
 def test_on_member_update() -> None:
@@ -706,6 +743,10 @@ def test_on_member_update() -> None:
 	assert log.description == "Nickname of " + new.mention + " changed."
 	assert log.fields[0].value == old.nick
 	assert log.fields[1].value == new.nick
+	history = guild.channels[0].history()
+	assert any(
+		(i.embeds[0].description == log.description for i in history)
+	)
 
 	new = MockUser(nick="a", guild=guild)
 	new.roles = [new.guild.roles[0], new.guild.roles[0]]
@@ -757,20 +798,42 @@ def test_on_message_edit() -> None:
 	'''
 
 
+def test_logCreateThread() -> None:
+	thread = MockThread()
+	assert logs.logCreateThread(thread).description == (
+		"Thread \"testThread\" created in parent channel <#0>."
+	)
+
+
+def test_logDeleteThread() -> None:
+	thread = MockThread()
+	assert logs.logDeleteThread(thread).description == (
+		"Thread \"testThread\" deleted."
+	)
+
+
+def test_logThreadArchived() -> None:
+	thread = MockThread()
+	assert logs.logThreadArchived(thread).description == (
+		"Thread \"testThread\" archived."
+	)
+
+
+def test_logThreadUnarchived() -> None:
+	thread = MockThread()
+	assert logs.logThreadUnarchived(thread).description == (
+		"Thread \"testThread\" unarchived."
+	)
+
+
 def test_cmdDice() -> None:
 	ch = MockChannel()
 	ctx = MockContext(Bot.bot, channel=ch, guild=MockGuild(channels=[ch]))
 	emb = loop.run_until_complete(Bot.cmdDice(ctx))
 	assert emb.description == misc.diceMsg
-	"""
-	# TODO: append sent messages to channel.messages
 	assert any(
-		(i.embed.description == emb.description for i in ch.history())
+		(i.embeds[0].description == emb.description for i in ch.history())
 	)
-	"""
-
-
-# TODO: now that mock context has state, write tests for other Bot methods
 
 
 def test_fact() -> None:
@@ -1115,7 +1178,7 @@ def test_scamCheck() -> None:
 	)
 
 
-# TODO: switch to mock context, add test for error with quotation mark
+# TODO: switch to mock context, add test for error with quotation marks
 @pytest.mark.parametrize("searchterm", ["лексика", "two words", "", " ", "/"])
 def test_search_valid(searchterm: str) -> None:
 	url = "https://www.google.com/search?q=" + quote_plus(searchterm)

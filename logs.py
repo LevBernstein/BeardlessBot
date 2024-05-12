@@ -216,17 +216,17 @@ def logCreateThread(thread: nextcord.Thread) -> nextcord.Embed:
 
 def logDeleteThread(thread: nextcord.Thread) -> nextcord.Embed:
 	return bbEmbed(
-		"", f'Thread "{thread.name}" deleted.', 0xFF0000, True
+		"", f"Thread \"{thread.name}\" deleted.", 0xFF0000, True
 	).set_author(name="Thread deleted", icon_url=prof)
 
 
 def logThreadArchived(thread: nextcord.Thread) -> nextcord.Embed:
 	return bbEmbed(
-		"", f'Thread "{thread.name}" archived.', 0xFFFF00, True
+		"", f"Thread \"{thread.name}\" archived.", 0xFFFF00, True
 	).set_author(name="Thread archived", icon_url=prof)
 
 
 def logThreadUnarchived(thread: nextcord.Thread) -> nextcord.Embed:
 	return bbEmbed(
-		"", f'Thread "{thread.name}" unarchived.', 0xFFFF00, True
+		"", f"Thread \"{thread.name}\" unarchived.", 0xFFFF00, True
 	).set_author(name="Thread unarchived", icon_url=prof)
