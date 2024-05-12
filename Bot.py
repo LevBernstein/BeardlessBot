@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 2.1.5"
+__version__ = "Full Release 2.1.6"
 
 import asyncio
 import logging
@@ -26,7 +26,7 @@ sparPings: Dict[int, Dict[str, int]] = {}
 # This array stores the active instances of blackjack.
 games: List[bucks.BlackjackGame] = []
 
-# Replace owner_id with your Discord id
+# Replace ownerId with your Discord user id
 ownerId = 196354892208537600
 
 bot = commands.Bot(
@@ -187,6 +187,7 @@ async def on_message_edit(
 ) -> Union[int, nextcord.Embed]:
 	if before.guild and (before.content != after.content):
 		if misc.scamCheck(after.content):
+			logging.info("Possible nitro scam detected in " + str(after.guild))
 			if not (role := get(after.guild.roles, name="Muted")):
 				role = await createMutedRole(after.guild)
 			await after.author.add_roles(role)
@@ -1139,7 +1140,8 @@ async def handleMessages(message: str):
 	if message.author.bot or not message.guild:
 		return
 
-	if misc.scamCheck(text := message.content.lower()):
+	if misc.scamCheck(message.content.lower()):
+		logging.info("Possible nitro scam detected in " + str(message.guild))
 		author = message.author
 		role = get(message.guild.roles, name="Muted")
 		if not role:
@@ -1147,7 +1149,6 @@ async def handleMessages(message: str):
 		await author.add_roles(role)
 		for channel in message.guild.channels:
 			if channel.name in ("infractions", "bb-log"):
-				print(message.guild.channels)
 				await channel.send(
 					misc.scamReport.format(
 						author.mention,
@@ -1158,10 +1159,6 @@ async def handleMessages(message: str):
 		await message.channel.send(misc.scamDelete)
 		await author.send(misc.scamDM.format(message.guild))
 		await message.delete()
-
-	elif message.guild.name == "Day Care":
-		if "twitter.com/year_progress" in text:
-			await message.delete()
 
 
 if __name__ == "__main__":

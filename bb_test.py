@@ -145,9 +145,11 @@ class MockUser(nextcord.User):
 		id: int = 123456789,
 		roles: List[nextcord.Role] = [],
 		guild: Optional[nextcord.Guild] = None,
-		customAvatar: bool = True
+		customAvatar: bool = True,
+		adminPowers: bool = False
 	) -> None:
 		self.name = name
+		self.global_name = name
 		self.nick = nick
 		self.id = id
 		self.discriminator = discriminator
@@ -162,6 +164,9 @@ class MockUser(nextcord.User):
 		self._state = self.MockUserState(messageNum=len(self.messages))
 		self._avatar = "7b6ea511d6e0ef6d1cdb2f7b53946c03" if customAvatar else None
 		self.setUserState()
+		self.guild_permissions = (
+			nextcord.Permissions.all() if adminPowers else nextcord.Permissions.none()
+		)
 
 	def setUserState(self) -> None:
 		self._state.user = self
@@ -262,6 +267,7 @@ class MockMessage(nextcord.Message):
 		self.guild = guild
 		self.mentions = []
 		self.mention_everyone = False
+		self.flags = nextcord.MessageFlags._from_value(0)
 
 
 # TODO: switch to MockRole(guild, **kwargs) factory method
@@ -298,6 +304,9 @@ class MockGuild(nextcord.Guild):
 
 		async def chunk_guild(self, *args, **kwargs: Any) -> None:
 			pass
+
+		async def query_members(self, *args, **kwargs: Any) -> List[nextcord.Member]:
+			return [self.user]
 
 	def __init__(
 		self,
@@ -347,6 +356,16 @@ class MockGuild(nextcord.Guild):
 		role.guild = self
 		return
 
+	def get_member(self, userId: int) -> Optional[nextcord.Member]:
+		class MockGuildMember(nextcord.Member):
+			def __init__(self, id: int) -> None:
+				self.data = {"user": "foo", "roles": "0"}
+				self.guild = MockGuild()
+				self.state = MockUser.MockUserState()
+				self._user = MockUser(id=id)
+				self._client_status = {}
+		return MockGuildMember(userId)
+
 
 class MockContext(commands.Context):
 
@@ -392,6 +411,7 @@ class MockContext(commands.Context):
 		if guild and author not in guild.members:
 			self.guild._members[len(self.guild.members)] = author
 		self._state = self.MockContextState(channel=self.channel)
+		self.invoked_with = None
 
 
 class MockBot(commands.Bot):
@@ -492,22 +512,19 @@ def test_mockContextMembers() -> None:
 	assert ctx.author in ctx.guild.members
 
 
-'''
 @pytest.fixture
 def test_logException(caplog: pytest.LogCaptureFixture) -> None:
 	ctx = MockContext(
 		Bot.bot,
-		author=MockUser(name="testuser", discriminator="0000"),
-		message=MockMessage(content="!axolotl"),
-		guild=MockGuild(name="guild")
+		message=MockMessage(content="!mute foo"),
+		author=MockUser(adminPowers=True)
 	)
-	ctx.invoked_with = "axolotl"
-	Bot.logException(Exception("404: Not Found: axolotl"), ctx)
+	ctx.invoked_with = "mute"
+	loop.run_until_complete(Bot.cmdMute(ctx, "foo"))
 	assert caplog.records[0].msg == (
-		"404: Not Found: axolotl Command: axolotl; Author:"
-		" testuser#0000; Content: !axolotl; Guild: guild"
+		"ERROR:root:Member \"dfsfd\" not found. Command: mute; Author:"
+		" testname#0000; Content: !mute foo; Guild: Test Guild"
 	)
-'''
 
 
 def test_createMutedRole() -> None:
@@ -521,7 +538,7 @@ def test_on_ready() -> None:
 	Bot.bot = MockBot(Bot.bot)
 	assert Bot.bot.user._avatar.url == (
 		f"https://cdn.discordapp.com/avatars/{Bot.bot.user.id}/"
-		"7b6ea511d6e0ef6d1cdb2f7b53946c03.png?size=1024"
+		f"{Bot.bot.user._avatar.key}.png?size=1024"
 	)
 	loop.run_until_complete(Bot.on_ready())
 	assert Bot.bot.activity.name == "try !blackjack and !flip"
@@ -1136,6 +1153,39 @@ def test_animal_dog_breed() -> None:
 def test_invalid_animal_raises_exception() -> None:
 	with pytest.raises(Exception):
 		misc.animal("invalidAnimal")
+
+
+def test_cmdMute() -> None:
+	ctx = MockContext(
+		Bot.bot,
+		message=MockMessage(content="!mute foo"),
+		author=MockUser(adminPowers=True)
+	)
+	# if the MemberConverter fails
+	assert loop.run_until_complete(Bot.cmdMute(ctx, "foo")) == 0
+
+	# if trying to mute the bot
+	assert loop.run_until_complete(
+		Bot.cmdMute(
+			ctx, MockUser(id=654133911558946837, guild=MockGuild()).mention
+		)
+	) == 0
+
+	# if no target
+	assert loop.run_until_complete(Bot.cmdMute(ctx, None)) == 0
+
+	# if no perms
+	ctx.author = MockUser(adminPowers=False)
+	assert loop.run_until_complete(Bot.cmdMute(ctx, None)) == 0
+
+	# if invocation is thread creation/edit
+	ctx.message.type = nextcord.MessageType.thread_created
+	assert loop.run_until_complete(Bot.cmdMute(ctx, "foo")) == -1
+
+	# if not in guild
+	ctx.guild = None
+	assert loop.run_until_complete(Bot.cmdMute(ctx, "foo")) == 0
+	# TODO: remaining branches
 
 
 def test_thread_creation_does_not_invoke_commands() -> None:
