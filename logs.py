@@ -7,7 +7,7 @@ import nextcord
 from misc import bbEmbed, fetchAvatar, prof, truncTime
 
 
-# TODO: Implement logging for threads, once BB migrates to nextcord
+# TODO: Implement log thread locked/unlocked
 
 msgMaxLength = "**Message length exceeds 1024 characters.**"
 

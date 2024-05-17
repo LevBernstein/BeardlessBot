@@ -165,7 +165,7 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 				r = requests.get("https://dog.ceo/api/breeds/image/random")
 				if r.status_code == 200:
 					return r.json()["message"]
-			elif breed.startswith("breeds"):
+			elif breed.startswith("breed"):
 				r = requests.get("https://dog.ceo/api/breeds/list/all")
 				if r.status_code == 200:
 					return "Dog breeds: {}.".format(
@@ -218,7 +218,7 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 		sealID = str(randint(0, 83)).rjust(4, "0")
 		return f"https://focabot.github.io/random-seal/seals/{sealID}.jpg"
 
-	raise Exception(str(r) + ": " + animalType)
+	raise ValueError(str(r) + ": " + animalType)
 
 
 # Amortize the cost of pulling the frog images by making one initial call.

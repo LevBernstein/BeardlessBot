@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 2.1.7"
+__version__ = "Full Release 2.1.8"
 
 import asyncio
 import logging
@@ -328,6 +328,7 @@ async def on_thread_update(
 	for channel in after.guild.channels:
 		if channel.name == "bb-log":
 			emb = None
+			# TODO: log Thread.locked/unlocked
 			if before.archived and not after.archived:
 				emb = logs.logThreadUnarchived(after)
 			elif after.archived and not before.archived:

@@ -111,6 +111,7 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 # nextcord.Member; still working on adding all features of nextcord.Member,
 # at which point I will switch the parent from nextcord.User to nextcord.Member
 # TODO: give default @everyone role
+# TODO: move MockState out, apply to all classes, make generic
 class MockUser(nextcord.User):
 
 	class MockUserState():
@@ -129,7 +130,7 @@ class MockUser(nextcord.User):
 			data["id"] = self.last_message_id
 			self.last_message_id += 1
 			message = nextcord.Message(state=self, channel=channel, data=data)
-			self.channel._messages.append(message)
+			self.channel._state._messages.append(message)
 			return message
 
 		def store_user(self, data: Dict[str, Any]) -> nextcord.User:
@@ -150,7 +151,8 @@ class MockUser(nextcord.User):
 		roles: List[nextcord.Role] = [],
 		guild: Optional[nextcord.Guild] = None,
 		customAvatar: bool = True,
-		adminPowers: bool = False
+		adminPowers: bool = False,
+		messages: List[nextcord.Message] = []
 	) -> None:
 		self.name = name
 		self.global_name = name
@@ -162,7 +164,7 @@ class MockUser(nextcord.User):
 		self.joined_at = self.created_at
 		self.activity = None
 		self.system = False
-		self.messages = []
+		self.messages = messages
 		self.guild = guild
 		self._public_flags = 0
 		self._state = self.MockUserState(messageNum=len(self.messages))
@@ -178,6 +180,9 @@ class MockUser(nextcord.User):
 
 	def history(self) -> List[nextcord.Message]:
 		return self._state.channel.history()
+
+	async def add_roles(self, role: nextcord.Role) -> None:
+		self.roles.append(role)
 
 
 class MockChannel(nextcord.TextChannel):
@@ -261,6 +266,12 @@ class MockChannel(nextcord.TextChannel):
 
 # TODO: Write message.edit(), message.delete()
 class MockMessage(nextcord.Message):
+
+	class MockMessageState():
+		def __init__(self, user: nextcord.User) -> None:
+			self.loop = asyncio.get_event_loop()
+			self.http = MockHTTPClient(self.loop, user=user)
+
 	def __init__(
 		self,
 		content: Optional[str] = "testcontent",
@@ -278,9 +289,15 @@ class MockMessage(nextcord.Message):
 		self.mentions = []
 		self.mention_everyone = False
 		self.flags = nextcord.MessageFlags._from_value(0)
+		self._state = self.MockMessageState(author)
+		self.channel._state._messages.append(self)
+
+	async def delete(self):
+		self.channel._state._messages.remove(self)
 
 
-# TODO: switch to MockRole(guild, **kwargs) factory method
+# TODO: switch to guild.MockRole(*kwargs) factory method:
+# return role, add to _roles
 class MockRole(nextcord.Role):
 	def __init__(
 		self,
@@ -292,6 +309,7 @@ class MockRole(nextcord.Role):
 		self.id = id
 		self.hoist = False
 		self.mentionable = True
+		self.position = 1
 		self._permissions = (
 			permissions if isinstance(permissions, int) else permissions.value
 		)
@@ -525,8 +543,6 @@ if not brawlKey:
 	except KeyError:
 		print("No Brawlhalla API key. Brawlhalla-specific tests will fail.\n")
 
-loop = asyncio.get_event_loop()
-
 
 @pytest.mark.parametrize("letter", ["W", "E", "F"])
 def test_pep8Compliance(letter: str) -> None:
@@ -555,35 +571,38 @@ def test_mockContextMembers() -> None:
 	assert ctx.author in ctx.guild.members
 
 
-def test_logException(caplog: pytest.LogCaptureFixture) -> None:
+@pytest.mark.asyncio
+async def test_logException(caplog: pytest.LogCaptureFixture) -> None:
 	ctx = MockContext(
 		Bot.bot,
 		message=MockMessage(content="!mute foo"),
 		author=MockUser(adminPowers=True)
 	)
 	ctx.invoked_with = "mute"
-	loop.run_until_complete(Bot.cmdMute(ctx, "foo"))
+	await Bot.cmdMute(ctx, "foo")
 	assert caplog.records[0].msg == (
 		"Member \"foo\" not found. Command: mute; Author:"
 		" testname#0000; Content: !mute foo; Guild: Test Guild"
 	)
 
 
-def test_createMutedRole() -> None:
+@pytest.mark.asyncio
+async def test_createMutedRole() -> None:
 	g = MockGuild(roles=[])
-	role = loop.run_until_complete(Bot.createMutedRole(g))
+	role = await Bot.createMutedRole(g)
 	assert role.name == "Muted"
 	assert len(g.roles) == 1 and g.roles[0] == role
 
 
-def test_on_ready(caplog: pytest.LogCaptureFixture) -> None:
+@pytest.mark.asyncio
+async def test_on_ready(caplog: pytest.LogCaptureFixture) -> None:
 	Bot.bot = MockBot(Bot.bot)
 	assert Bot.bot.user._avatar.url == (
 		f"https://cdn.discordapp.com/avatars/{Bot.bot.user.id}/"
 		f"{Bot.bot.user._avatar.key}.png?size=1024"
 	)
 	caplog.set_level(logging.INFO)
-	loop.run_until_complete(Bot.on_ready())
+	await Bot.on_ready()
 	assert Bot.bot.activity.name == "try !blackjack and !flip"
 	assert Bot.bot.status == nextcord.Status(value="online")
 	assert caplog.records[4].msg == (
@@ -592,10 +611,11 @@ def test_on_ready(caplog: pytest.LogCaptureFixture) -> None:
 	caplog.set_level(logging.WARN)
 
 
-def test_on_ready_no_guilds(caplog: pytest.LogCaptureFixture) -> None:
+@pytest.mark.asyncio
+async def test_on_ready_no_guilds(caplog: pytest.LogCaptureFixture) -> None:
 	Bot.bot = MockBot(Bot.bot)
 	Bot.bot._connection._guilds = {}
-	loop.run_until_complete(Bot.on_ready())
+	await Bot.on_ready()
 	assert caplog.records[0].msg == (
 		"Bot is in no servers! Add it to a server."
 	)
@@ -610,10 +630,11 @@ def test_contCheck(content: str, description: str) -> None:
 	assert logs.contCheck(m) == description
 
 
-def test_on_message_delete() -> None:
+@pytest.mark.asyncio
+async def test_on_message_delete() -> None:
 	m = MockMessage(channel=MockChannel(name="bb-log"))
 	m.guild = MockGuild(channels=[m.channel])
-	emb = loop.run_until_complete(Bot.on_message_delete(m))
+	emb = await Bot.on_message_delete(m)
 	log = logs.logDeleteMsg(m)
 	assert emb.description == log.description
 	assert log.description == (
@@ -626,11 +647,12 @@ def test_on_message_delete() -> None:
 	)
 
 
-def test_on_bulk_message_delete() -> None:
+@pytest.mark.asyncio
+async def test_on_bulk_message_delete() -> None:
 	m = MockMessage(channel=MockChannel(name="bb-log"))
 	m.guild = MockGuild(channels=[m.channel])
 	messages = [m, m, m]
-	emb = loop.run_until_complete(Bot.on_bulk_message_delete(messages))
+	emb = await Bot.on_bulk_message_delete(messages)
 	log = logs.logPurge(messages[0], messages)
 	assert emb.description == log.description
 	assert log.description == f"Purged 2 messages in {m.channel.mention}."
@@ -639,16 +661,17 @@ def test_on_bulk_message_delete() -> None:
 		(i.embeds[0].description == log.description for i in history)
 	)
 	messages = [m] * 105
-	emb = loop.run_until_complete(Bot.on_bulk_message_delete(messages))
+	emb = await Bot.on_bulk_message_delete(messages)
 	log = logs.logPurge(messages[0], messages)
 	assert emb.description == log.description
 	assert log.description == f"Purged 99+ messages in {m.channel.mention}."
 
 
-def test_on_guild_channel_delete() -> None:
+@pytest.mark.asyncio
+async def test_on_guild_channel_delete() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	channel = MockChannel(guild=g)
-	emb = loop.run_until_complete(Bot.on_guild_channel_delete(channel))
+	emb = await Bot.on_guild_channel_delete(channel)
 	log = logs.logDeleteChannel(channel)
 	assert emb.description == log.description
 	assert log.description == f"Channel \"{channel.name}\" deleted."
@@ -658,10 +681,11 @@ def test_on_guild_channel_delete() -> None:
 	)
 
 
-def test_on_guild_channel_create() -> None:
+@pytest.mark.asyncio
+async def test_on_guild_channel_create() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	channel = MockChannel(guild=g)
-	emb = loop.run_until_complete(Bot.on_guild_channel_create(channel))
+	emb = await Bot.on_guild_channel_create(channel)
 	log = logs.logCreateChannel(channel)
 	assert emb.description == log.description
 	assert log.description == f"Channel \"{channel.name}\" created."
@@ -671,10 +695,11 @@ def test_on_guild_channel_create() -> None:
 	)
 
 
-def test_on_member_ban() -> None:
+@pytest.mark.asyncio
+async def test_on_member_ban() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	member = MockUser()
-	emb = loop.run_until_complete(Bot.on_member_ban(g, member))
+	emb = await Bot.on_member_ban(g, member)
 	log = logs.logBan(member)
 	assert emb.description == log.description
 	assert log.description == f"Member {member.mention} banned\n{member.name}"
@@ -684,10 +709,11 @@ def test_on_member_ban() -> None:
 	)
 
 
-def test_on_member_unban() -> None:
+@pytest.mark.asyncio
+async def test_on_member_unban() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	member = MockUser()
-	emb = loop.run_until_complete(Bot.on_member_unban(g, member))
+	emb = await Bot.on_member_unban(g, member)
 	log = logs.logUnban(member)
 	assert emb.description == log.description
 	assert (
@@ -699,10 +725,11 @@ def test_on_member_unban() -> None:
 	)
 
 
-def test_on_member_join() -> None:
+@pytest.mark.asyncio
+async def test_on_member_join() -> None:
 	member = MockUser()
 	member.guild = MockGuild(channels=[MockChannel(name="bb-log")])
-	emb = loop.run_until_complete(Bot.on_member_join(member))
+	emb = await Bot.on_member_join(member)
 	log = logs.logMemberJoin(member)
 	assert emb.description == log.description
 	assert log.description == (
@@ -715,15 +742,16 @@ def test_on_member_join() -> None:
 	)
 
 
-def test_on_member_remove() -> None:
+@pytest.mark.asyncio
+async def test_on_member_remove() -> None:
 	member = MockUser()
 	member.guild = MockGuild(channels=[MockChannel(name="bb-log")])
-	emb = loop.run_until_complete(Bot.on_member_remove(member))
+	emb = await Bot.on_member_remove(member)
 	log = logs.logMemberRemove(member)
 	assert emb.description == log.description
 	assert log.description == f"Member {member.mention} left\nID: {member.id}"
 	member.roles = member.guild.roles[0], member.guild.roles[0]
-	emb = loop.run_until_complete(Bot.on_member_remove(member))
+	emb = await Bot.on_member_remove(member)
 	log = logs.logMemberRemove(member)
 	assert emb.description == log.description
 	assert log.fields[0].value == member.roles[1].mention
@@ -733,11 +761,12 @@ def test_on_member_remove() -> None:
 	)
 
 
-def test_on_member_update() -> None:
+@pytest.mark.asyncio
+async def test_on_member_update() -> None:
 	guild = MockGuild(channels=[MockChannel(name="bb-log")])
 	old = MockUser(nick="a", roles=[], guild=guild)
 	new = MockUser(nick="b", roles=[], guild=guild)
-	emb = loop.run_until_complete(Bot.on_member_update(old, new))
+	emb = await Bot.on_member_update(old, new)
 	log = logs.logMemberNickChange(old, new)
 	assert emb.description == log.description
 	assert log.description == "Nickname of " + new.mention + " changed."
@@ -750,14 +779,14 @@ def test_on_member_update() -> None:
 
 	new = MockUser(nick="a", guild=guild)
 	new.roles = [new.guild.roles[0], new.guild.roles[0]]
-	emb = loop.run_until_complete(Bot.on_member_update(old, new))
+	emb = await Bot.on_member_update(old, new)
 	log = logs.logMemberRolesChange(old, new)
 	assert emb.description == log.description
 	assert log.description == (
 		f"Role {new.roles[0].mention} added to {new.mention}."
 	)
 
-	emb = loop.run_until_complete(Bot.on_member_update(new, old))
+	emb = await Bot.on_member_update(new, old)
 	log = logs.logMemberRolesChange(new, old)
 	assert emb.description == log.description
 	assert log.description == (
@@ -765,15 +794,16 @@ def test_on_member_update() -> None:
 	)
 
 
-def test_on_message_edit() -> None:
+@pytest.mark.asyncio
+async def test_on_message_edit() -> None:
 	member = MockUser()
 	g = MockGuild(
 		channels=[MockChannel(name="bb-log"), MockChannel(name="infractions")]
 	)
-	loop.run_until_complete(Bot.createMutedRole(g))
+	await Bot.createMutedRole(g)
 	before = MockMessage(content="old", author=member, guild=g)
 	after = MockMessage(content="new", author=member, guild=g)
-	emb = loop.run_until_complete(Bot.on_message_edit(before, after))
+	emb = await Bot.on_message_edit(before, after)
 	log = logs.logEditMsg(before, after)
 	assert emb.description == log.description
 	assert emb.description == (
@@ -784,18 +814,19 @@ def test_on_message_edit() -> None:
 	assert emb.fields[1].value == (
 		f"{after.content}\n[Jump to Message]({after.jump_url})"
 	)
-	# TODO: append sent msgs to channel.messages, user.messages, allowing
 	# testing for scamCheck == True
-	'''
 	after.content = "http://dizcort.com free nitro!"
-	emb = loop.run_until_complete(Bot.on_message_edit(before, after))
-	assert g.channels[0].messages[0].content.startswith("Deleted possible")
-	# TODO: edit after to have content of len > 1024 via message.edit
-	channel = member.guild.channels[0]
+	emb = await Bot.on_message_edit(before, after)
 	assert any(
-		(i.embed.description == log.description for i in channel.history())
+		i.content.startswith("Deleted possible") for i in g.channels[0].history()
 	)
-	'''
+	# TODO: edit after to have content of len > 1024 via message.edit
+	assert any(
+		(i.embeds[0].description == log.description for i in g.channels[0].history())
+	)
+	assert not any(
+		i.content.startswith("http://dizcort.com") for i in g.channels[0].history()
+	)
 
 
 def test_logCreateThread() -> None:
@@ -826,10 +857,11 @@ def test_logThreadUnarchived() -> None:
 	)
 
 
-def test_cmdDice() -> None:
+@pytest.mark.asyncio
+async def test_cmdDice() -> None:
 	ch = MockChannel()
 	ctx = MockContext(Bot.bot, channel=ch, guild=MockGuild(channels=[ch]))
-	emb = loop.run_until_complete(Bot.cmdDice(ctx))
+	emb = await Bot.cmdDice(ctx)
 	assert emb.description == misc.diceMsg
 	assert any(
 		(i.embeds[0].description == emb.description for i in ch.history())
@@ -1078,11 +1110,12 @@ def test_blackjack_deal() -> None:
 
 
 def test_blackjack_cardName() -> None:
-	game = bucks.BlackjackGame(MockUser(), 10)
-	assert game.cardName(10) in ("a 10", "a Jack", "a Queen", "a King")
-	assert game.cardName(11) == "an Ace"
-	assert game.cardName(8) == "an 8"
-	assert game.cardName(5) == "a 5"
+	assert bucks.BlackjackGame.cardName(10) in (
+		"a 10", "a Jack", "a Queen", "a King"
+	)
+	assert bucks.BlackjackGame.cardName(11) == "an Ace"
+	assert bucks.BlackjackGame.cardName(8) == "an 8"
+	assert bucks.BlackjackGame.cardName(5) == "a 5"
 
 
 def test_blackjack_checkBust() -> None:
@@ -1206,7 +1239,7 @@ def test_animal_with_goodUrl(animalName: str) -> None:
 
 def test_animal_dog_breed() -> None:
 	breeds = misc.animal("dog", "breeds")[12:-1].split(", ")
-	assert len(breeds) >= 94
+	assert len(breeds) == 98
 	assert goodURL(requests.get(misc.animal("dog", choice(breeds))))
 	assert misc.animal("dog", "invalidbreed").startswith("Breed not")
 	assert misc.animal("dog", "invalidbreed1234").startswith("Breed not")
@@ -1214,48 +1247,48 @@ def test_animal_dog_breed() -> None:
 
 
 def test_invalid_animal_raises_exception() -> None:
-	with pytest.raises(Exception):
+	with pytest.raises(ValueError):
 		misc.animal("invalidAnimal")
 
 
-def test_cmdMute() -> None:
+@pytest.mark.asyncio
+async def test_cmdMute() -> None:
 	ctx = MockContext(
 		Bot.bot,
 		message=MockMessage(content="!mute foo"),
 		author=MockUser(adminPowers=True)
 	)
 	# if the MemberConverter fails
-	assert loop.run_until_complete(Bot.cmdMute(ctx, "foo")) == 0
+	assert await Bot.cmdMute(ctx, "foo") == 0
 
 	# if trying to mute the bot
-	assert loop.run_until_complete(
-		Bot.cmdMute(
-			ctx, MockUser(id=654133911558946837, guild=MockGuild()).mention
-		)
+	assert await Bot.cmdMute(
+		ctx, MockUser(id=654133911558946837, guild=MockGuild()).mention
 	) == 0
 
 	# if no target
-	assert loop.run_until_complete(Bot.cmdMute(ctx, None)) == 0
+	assert await Bot.cmdMute(ctx, None) == 0
 
 	# if no perms
 	ctx.author = MockUser(adminPowers=False)
-	assert loop.run_until_complete(Bot.cmdMute(ctx, None)) == 0
+	assert await Bot.cmdMute(ctx, None) == 0
 
 	# if invocation is thread creation/edit
 	ctx.message.type = nextcord.MessageType.thread_created
-	assert loop.run_until_complete(Bot.cmdMute(ctx, "foo")) == -1
+	assert await Bot.cmdMute(ctx, "foo") == -1
 
 	# if not in guild
 	ctx.guild = None
-	assert loop.run_until_complete(Bot.cmdMute(ctx, "foo")) == 0
+	assert await Bot.cmdMute(ctx, "foo") == 0
 	# TODO: remaining branches
 
 
-def test_thread_creation_does_not_invoke_commands() -> None:
+@pytest.mark.asyncio
+async def test_thread_creation_does_not_invoke_commands() -> None:
 	ctx = MockContext(Bot.bot, author=MockUser(), guild=MockGuild())
 	ctx.message.type = nextcord.MessageType.thread_created
 	for command in list(Bot.bot.commands):
-		assert loop.run_until_complete(command(ctx)) == -1
+		assert await command(ctx) == -1
 
 
 # Tests for commands that require a Brawlhalla API key:
