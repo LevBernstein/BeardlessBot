@@ -716,31 +716,35 @@ async def cmdMute(
 			("minute", 60.0),
 			("second", 1.0)
 		)
-		
+
 		# prossesing duration here makes life easier
-		lastNumeric = -1 
+		lastNumeric = 0
 		for c in duration:
 			if not c.isnumeric():
-				break	
+				break
 			lastNumeric += 1
-		unit = duration.split(duration[lastNumeric])[1]
-		duration =  duration.split(duration[lastNumeric])[0] + duration[lastNumeric]
 
-		if lastNumeric == -1:
-				args = (duration + unit,) + args
-				duration = None
-				# treat duration as mute reason 
+		if lastNumeric == 0:
+			# treat duration as mute reason
+			args = (duration,) + args
+			duration = None
 		else:
+			unit = duration[lastNumeric:]
 			unitIsValid = False
 			for mPair in times:
-				if (unit is not (mPair[0])[0] and unit != mPair[0] 
-					and unit != mPair[0] + "s"):
-					continue
-				unitIsValid = True
-				mTime = float(duration) * mPair[1]
-				mString = " " + mPair[0] + ("" if duration == "1" else "s")
+				if (
+					unit == mPair[0][0] or  # first character
+					unit == mPair[0] or 	# whole word
+					unit == mPair[0] + "s"  # plural
+				):
+					unitIsValid = True
+					duration = duration[:lastNumeric]  # the numeric part
+					mTime = float(duration) * mPair[1]
+					mString = " " + mPair[0] + ("" if duration == "1" else "s")
+					break
 			if not unitIsValid:
-				args = (duration + unit,) + args
+				# treat duration as mute reason
+				args = (duration,) + args
 				duration = None
 
 	try:
