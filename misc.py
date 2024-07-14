@@ -206,7 +206,7 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 			return r.json()["url"]
 
 	elif animalType == "bear":
-		return f"https://placebear.com/{randint(200, 400)}/{randint(200,400)}"
+		return f"https://placebear.com/{randint(200, 400)}/{randint(200, 400)}"
 
 	elif animalType == "frog":
 		frog = choice(frogList)["name"]

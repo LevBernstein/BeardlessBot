@@ -340,7 +340,10 @@ def balance(
 		" (or enter their username), or do !balance without a"
 		f" target to see your own balance, {msg.author.mention}."
 	)
-	if not isinstance(target, nextcord.User):
+	if not (
+		isinstance(target, nextcord.User)
+		or isinstance(target, nextcord.Member)
+	):
 		target = memSearch(msg, target)
 	if target:
 		result, bonus = writeMoney(target, 300, False, False)
@@ -393,7 +396,10 @@ def leaderboard(
 	"""
 	lbDict: Dict[str, int] = {}
 	emb = bbEmbed("BeardlessBucks Leaderboard")
-	if target and msg and not isinstance(target, nextcord.User):
+	if (target and msg and not (
+		isinstance(target, nextcord.User)
+		or isinstance(target, nextcord.Member)
+	)):
 		target = memSearch(msg, target)
 	if target:
 		writeMoney(target, 300, False, False)

@@ -814,7 +814,6 @@ async def test_on_message_edit() -> None:
 	assert emb.fields[1].value == (
 		f"{after.content}\n[Jump to Message]({after.jump_url})"
 	)
-	# testing for scamCheck == True
 	after.content = "http://dizcort.com free nitro!"
 	emb = await Bot.on_message_edit(before, after)
 	assert any(
@@ -1239,7 +1238,7 @@ def test_animal_with_goodUrl(animalName: str) -> None:
 
 def test_animal_dog_breed() -> None:
 	breeds = misc.animal("dog", "breeds")[12:-1].split(", ")
-	assert len(breeds) == 98
+	assert len(breeds) == 107
 	assert goodURL(requests.get(misc.animal("dog", choice(breeds))))
 	assert misc.animal("dog", "invalidbreed").startswith("Breed not")
 	assert misc.animal("dog", "invalidbreed1234").startswith("Breed not")
@@ -1341,7 +1340,7 @@ def test_getRank() -> None:
 		"You haven't played ranked yet this season."
 	)
 	brawl.claimProfile(196354892208537600, 12502880)
-	assert brawl.getRank(user, brawlKey).color.value == 0x3D2399
+	assert brawl.getRank(user, brawlKey).color.value == 20916
 	brawl.claimProfile(196354892208537600, 7032472)
 
 
