@@ -65,7 +65,6 @@ tweetThumb = (
 	"97696436393836546/NgpD6O57_400x400.jpg"
 )
 
-
 scamDM = (
 	"This is an automated message. You have sent a message that has"
 	" been identified as containing a scam nitro link in **{}**. Your"
@@ -89,9 +88,7 @@ joinMsg = (
 	"order to allow me to moderate all users."
 )
 
-
-def truncTime(member: Union[nextcord.User, nextcord.Member]) -> str:
-	return str(member.created_at)[:-7]
+# TODO: write find #bb-log method, takes Guild as arg, returns channel
 
 
 # Wrapper for nextcord.Embed.init() that defaults to
@@ -136,7 +133,6 @@ def memSearch(
 
 
 def fetchAvatar(user: nextcord.User) -> str:
-	# TODO: write unit tests for this
 	try:
 		return user.avatar.url
 	except AttributeError:
@@ -169,7 +165,7 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 				r = requests.get("https://dog.ceo/api/breeds/image/random")
 				if r.status_code == 200:
 					return r.json()["message"]
-			elif breed.startswith("breeds"):
+			elif breed.startswith("breed"):
 				r = requests.get("https://dog.ceo/api/breeds/list/all")
 				if r.status_code == 200:
 					return "Dog breeds: {}.".format(
@@ -210,7 +206,7 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 			return r.json()["url"]
 
 	elif animalType == "bear":
-		return f"https://placebear.com/{randint(200, 400)}/{randint(200,400)}"
+		return f"https://placebear.com/{randint(200, 400)}/{randint(200, 400)}"
 
 	elif animalType == "frog":
 		frog = choice(frogList)["name"]
@@ -222,7 +218,7 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 		sealID = str(randint(0, 83)).rjust(4, "0")
 		return f"https://focabot.github.io/random-seal/seals/{sealID}.jpg"
 
-	raise Exception(str(r) + ": " + animalType)
+	raise ValueError(str(r) + ": " + animalType)
 
 
 # Amortize the cost of pulling the frog images by making one initial call.
@@ -312,8 +308,14 @@ def fact() -> str:
 		return choice(f.read().splitlines())
 
 
+def truncTime(member: Union[nextcord.User, nextcord.Member]) -> str:
+	return str(member.created_at)[:-7]
+
+
 def info(target: nextcord.Member, msg: nextcord.Message) -> nextcord.Embed:
-	if not isinstance(target, nextcord.User):
+	if not (
+		isinstance(target, nextcord.User) or isinstance(target, nextcord.Member)
+	):
 		target = memSearch(msg, target)
 	if target:
 		# Discord occasionally reports people with an activity as
@@ -431,20 +433,20 @@ def bbCommands(ctx: commands.Context) -> nextcord.Embed:
 	return emb
 
 
-def hints() -> nextcord.Embed:
-	with open("resources/hints.txt", "r") as f:
-		hints = f.read().splitlines()
-	emb = bbEmbed("Hints for Beardless Bot's Secret Word")
-	for i in range(len(hints)):
-		emb.add_field(name=i + 1, value=hints[i])
-	return emb
-
-
 def scamCheck(text: str) -> bool:
+	"""
+	Checks message content for common scam phrases.
+
+	Args:
+		text (str): The phrase to check
+
+	Returns:
+		bool: Whether the phrase is suspicious.
+	"""
 	msg = text.lower()
-	checkOne = re.compile(r"^.*https?://d\w\wc\wr(d|t)\.\w{2,4}.*")
-	checkTwo = re.compile(r"^.*(nitro|gift|@everyone).*")
-	checkThree = re.compile(r"^.*https?://d\w\wc\wr\wn\wtr\w\.\w{2,5}.*")
+	checkOne = re.compile(r"^.*https?://d\w\wc\wr(d|t)\.\w{2,4}.*").match(msg)
+	checkTwo = re.compile(r"^.*https?://d\w\wc\wr\wn\wtr\w\.\w{2,5}.*").match(msg)
+	checkThree = re.compile(r"^.*(nitro|gift|@everyone).*").match(msg)
 	checkFour = all((
 		"http" in msg,
 		"@everyone" in msg or "stym" in msg,
@@ -457,15 +459,11 @@ def scamCheck(text: str) -> bool:
 			"discocl" in msg
 		))
 	))
-	checkFive = re.compile(r"^.*https://discord.gift/.*")
+	checkFive = re.compile(r"^.*https://discord.gift/.*").match(msg)
 
 	return (
-		(
-			(
-				bool(checkOne.match(msg)) or bool(checkThree.match(msg))
-			) and bool(checkTwo.match(msg))
-		) or checkFour
-	) and not bool(checkFive.match(msg))
+		((bool(checkOne) or bool(checkTwo)) and bool(checkThree)) or checkFour
+	) and not bool(checkFive)
 
 
 def onJoin(guild: nextcord.Guild, role: nextcord.Role) -> nextcord.Embed:

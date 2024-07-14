@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 2.1.1"
+__version__ = "Full Release 2.2.0"
 
 import asyncio
 import logging
@@ -7,7 +7,7 @@ from datetime import datetime
 from random import choice, randint
 from sys import stdout
 from time import time
-from typing import List, Union
+from typing import Dict, List, Optional, Union
 
 import nextcord
 from nextcord.ext import commands
@@ -21,10 +21,13 @@ import misc
 
 
 # This dictionary is for keeping track of pings in the lfs channels.
-sparPings = {}
+sparPings: Dict[int, Dict[str, int]] = {}
 
 # This array stores the active instances of blackjack.
-games = []
+games: List[bucks.BlackjackGame] = []
+
+# Replace ownerId with your Discord user id
+ownerId = 196354892208537600
 
 bot = commands.Bot(
 	command_prefix="!",
@@ -32,9 +35,8 @@ bot = commands.Bot(
 	help_command=None,
 	intents=nextcord.Intents.all(),
 	chunk_guilds_at_startup=False,
-	owner_id=196354892208537600
+	owner_id=ownerId
 )
-# Replace owner_id with your Discord id
 
 
 def logException(e: Exception, ctx: commands.Context) -> None:
@@ -70,7 +72,19 @@ async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
 	return role
 
 
-def ctxCreatedThread(ctx) -> bool:
+def ctxCreatedThread(ctx: commands.Context) -> bool:
+	"""
+	Threads created with the name set to a command (e.g., a thread named !flip)
+	will trigger that command as the first action in that thread. This is not
+	intended behavior; as such, if the context event is a thread being created
+	or a thread name being changed, this method will catch that.
+
+	Args:
+		ctx (commands.Context): The context in which the command is being invoked
+
+	Returns:
+		bool: Whether the event is valid to trigger a command.
+	"""
 	return ctx.message.type in (
 		nextcord.MessageType.thread_created,
 		nextcord.MessageType.channel_name_change
@@ -173,6 +187,7 @@ async def on_message_edit(
 ) -> Union[int, nextcord.Embed]:
 	if before.guild and (before.content != after.content):
 		if misc.scamCheck(after.content):
+			logging.info("Possible nitro scam detected in " + str(after.guild))
 			if not (role := get(after.guild.roles, name="Muted")):
 				role = await createMutedRole(after.guild)
 			await after.author.add_roles(role)
@@ -313,6 +328,7 @@ async def on_thread_update(
 	for channel in after.guild.channels:
 		if channel.name == "bb-log":
 			emb = None
+			# TODO: log Thread.locked/unlocked
 			if before.archived and not after.archived:
 				emb = logs.logThreadUnarchived(after)
 			elif after.archived and not before.archived:
@@ -326,7 +342,7 @@ async def on_thread_update(
 
 
 @bot.command(name="flip")
-async def cmdFlip(ctx, bet="10", *args) -> int:
+async def cmdFlip(ctx: commands.Context, bet="10", *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if bucks.activeGame(games, ctx.author):
@@ -338,7 +354,7 @@ async def cmdFlip(ctx, bet="10", *args) -> int:
 
 
 @bot.command(name="blackjack", aliases=("bj",))
-async def cmdBlackjack(ctx, bet="10", *args) -> int:
+async def cmdBlackjack(ctx: commands.Context, bet="10", *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if bucks.activeGame(games, ctx.author):
@@ -352,7 +368,7 @@ async def cmdBlackjack(ctx, bet="10", *args) -> int:
 
 
 @bot.command(name="deal", aliases=("hit",))
-async def cmdDeal(ctx, *args) -> int:
+async def cmdDeal(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if "," in ctx.author.name:
@@ -372,7 +388,7 @@ async def cmdDeal(ctx, *args) -> int:
 
 
 @bot.command(name="stay", aliases=("stand",))
-async def cmdStay(ctx, *args) -> int:
+async def cmdStay(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if "," in ctx.author.name:
@@ -395,19 +411,8 @@ async def cmdStay(ctx, *args) -> int:
 	return 1
 
 
-@bot.command(name="hint", aliases=("hints",))
-async def cmdHints(ctx, *args) -> int:
-	if ctxCreatedThread(ctx):
-		return -1
-	if secretWord:
-		await ctx.send(embed=misc.hints())
-	else:
-		await ctx.send("Secret word has not been defined.")
-	return 1
-
-
 @bot.command(name="av", aliases=("avatar",))
-async def cmdAv(ctx, *target) -> int:
+async def cmdAv(ctx: commands.Context, *target) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if ctx.message.mentions:
@@ -421,7 +426,7 @@ async def cmdAv(ctx, *target) -> int:
 
 
 @bot.command(name="info")
-async def cmdInfo(ctx, *target) -> int:
+async def cmdInfo(ctx: commands.Context, *target) -> int:
 	if not ctx.guild:
 		return 0
 	if ctxCreatedThread(ctx):
@@ -437,7 +442,7 @@ async def cmdInfo(ctx, *target) -> int:
 
 
 @bot.command(name="balance", aliases=("bal",))
-async def cmdBalance(ctx, *target) -> int:
+async def cmdBalance(ctx: commands.Context, *target) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if ctx.message.mentions:
@@ -451,7 +456,9 @@ async def cmdBalance(ctx, *target) -> int:
 
 
 @bot.command(name="leaderboard", aliases=("leaderboards", "lb"))
-async def cmdLeaderboard(ctx, *target) -> int:
+async def cmdLeaderboard(
+	ctx: commands.Context, *target
+) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if ctx.message.mentions:
@@ -465,7 +472,7 @@ async def cmdLeaderboard(ctx, *target) -> int:
 
 
 @bot.command(name="dice")
-async def cmdDice(ctx, *args) -> Union[int, nextcord.Embed]:
+async def cmdDice(ctx: commands.Context, *args) -> Union[int, nextcord.Embed]:
 	if ctxCreatedThread(ctx):
 		return -1
 	emb = misc.bbEmbed("Beardless Bot Dice", misc.diceMsg)
@@ -474,7 +481,7 @@ async def cmdDice(ctx, *args) -> Union[int, nextcord.Embed]:
 
 
 @bot.command(name="reset")
-async def cmdReset(ctx, *args) -> int:
+async def cmdReset(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	await ctx.send(embed=bucks.reset(ctx.author))
@@ -482,7 +489,7 @@ async def cmdReset(ctx, *args) -> int:
 
 
 @bot.command(name="register")
-async def cmdRegister(ctx, *args) -> int:
+async def cmdRegister(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	await ctx.send(embed=bucks.register(ctx.author))
@@ -490,7 +497,7 @@ async def cmdRegister(ctx, *args) -> int:
 
 
 @bot.command(name="bucks")
-async def cmdBucks(ctx, *args) -> int:
+async def cmdBucks(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	await ctx.send(embed=misc.bbEmbed("BeardlessBucks", bucks.buckMsg))
@@ -498,7 +505,7 @@ async def cmdBucks(ctx, *args) -> int:
 
 
 @bot.command(name="hello", aliases=("hi",))
-async def cmdHello(ctx, *args) -> int:
+async def cmdHello(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	await ctx.send(choice(misc.greetings))
@@ -506,7 +513,7 @@ async def cmdHello(ctx, *args) -> int:
 
 
 @bot.command(name="source")
-async def cmdSource(ctx, *args) -> int:
+async def cmdSource(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	source = (
@@ -518,7 +525,7 @@ async def cmdSource(ctx, *args) -> int:
 
 
 @bot.command(name="add", aliases=("join", "invite"))
-async def cmdAdd(ctx, *args) -> int:
+async def cmdAdd(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	await ctx.send(embed=misc.inviteMsg)
@@ -526,7 +533,7 @@ async def cmdAdd(ctx, *args) -> int:
 
 
 @bot.command(name="rohan")
-async def cmdRohan(ctx, *args) -> int:
+async def cmdRohan(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	await ctx.send(file=nextcord.File("resources/images/cute.png"))
@@ -534,7 +541,7 @@ async def cmdRohan(ctx, *args) -> int:
 
 
 @bot.command(name="random")
-async def cmdRandomBrawl(ctx, ranType="None", *args) -> int:
+async def cmdRandomBrawl(ctx: commands.Context, ranType="None", *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	await ctx.send(embed=brawl.randomBrawl(ranType.lower(), brawlKey))
@@ -542,7 +549,7 @@ async def cmdRandomBrawl(ctx, ranType="None", *args) -> int:
 
 
 @bot.command(name="fact")
-async def cmdFact(ctx, *args) -> int:
+async def cmdFact(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	await ctx.send(
@@ -554,7 +561,7 @@ async def cmdFact(ctx, *args) -> int:
 
 
 @bot.command(name="animals", aliases=("animal", "pets"))
-async def cmdAnimals(ctx, *args) -> int:
+async def cmdAnimals(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	await ctx.send(embed=misc.animals)
@@ -562,7 +569,7 @@ async def cmdAnimals(ctx, *args) -> int:
 
 
 @bot.command(name="define")
-async def cmdDefine(ctx, *words) -> int:
+async def cmdDefine(ctx: commands.Context, *words) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	try:
@@ -578,7 +585,7 @@ async def cmdDefine(ctx, *words) -> int:
 
 
 @bot.command(name="ping")
-async def cmdPing(ctx, *args) -> int:
+async def cmdPing(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	emb = misc.bbEmbed(
@@ -589,7 +596,7 @@ async def cmdPing(ctx, *args) -> int:
 
 
 @bot.command(name="roll")
-async def cmdRoll(ctx, dice="None", *args) -> int:
+async def cmdRoll(ctx: commands.Context, dice: str = "None", *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	await ctx.send(embed=misc.rollReport(dice, ctx.author))
@@ -597,7 +604,7 @@ async def cmdRoll(ctx, dice="None", *args) -> int:
 
 
 @bot.command(name="dog", aliases=misc.animalList + ("moose",))
-async def cmdAnimal(ctx, breed=None, *args) -> int:
+async def cmdAnimal(ctx: commands.Context, breed: str = None, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	species = ctx.invoked_with.lower()
@@ -653,7 +660,7 @@ async def cmdAnimal(ctx, breed=None, *args) -> int:
 
 
 @bot.command(name="help", aliases=("commands",))
-async def cmdHelp(ctx, *args) -> int:
+async def cmdHelp(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	await ctx.send(embed=misc.bbCommands(ctx))
@@ -664,7 +671,12 @@ async def cmdHelp(ctx, *args) -> int:
 
 
 @bot.command(name="mute")
-async def cmdMute(ctx, target=None, duration=None, *args) -> int:
+async def cmdMute(
+	ctx: commands.Context,
+	target: Optional[str] = None,
+	duration: Optional[str] = None,
+	*args
+) -> int:
 	if not ctx.guild:
 		return 0
 	if ctxCreatedThread(ctx):
@@ -776,7 +788,9 @@ async def cmdMute(ctx, target=None, duration=None, *args) -> int:
 
 
 @bot.command(name="unmute")
-async def cmdUnmute(ctx, target=None, *args) -> int:
+async def cmdUnmute(
+	ctx: commands.Context, target: Optional[str] = None, *args
+) -> int:
 	if not ctx.guild:
 		return 0
 	if ctxCreatedThread(ctx):
@@ -811,7 +825,9 @@ async def cmdUnmute(ctx, target=None, *args) -> int:
 
 
 @bot.command(name="purge")
-async def cmdPurge(ctx, num=None, *args) -> int:
+async def cmdPurge(
+	ctx: commands.Context, num: Optional[str] = None, *args
+) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if ctx.guild and ctx.author.guild_permissions.manage_messages:
@@ -836,7 +852,7 @@ async def cmdPurge(ctx, num=None, *args) -> int:
 
 
 @bot.command(name="buy")
-async def cmdBuy(ctx, color="none", *args) -> int:
+async def cmdBuy(ctx: commands.Context, color: str = "none", *args) -> int:
 	if not ctx.guild:
 		return 0
 	if ctxCreatedThread(ctx):
@@ -882,7 +898,7 @@ async def cmdBuy(ctx, color="none", *args) -> int:
 
 
 @bot.command(name="pins")
-async def cmdPins(ctx, *args) -> int:
+async def cmdPins(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if ctx.guild and ctx.channel.name == "looking-for-spar":
@@ -892,7 +908,7 @@ async def cmdPins(ctx, *args) -> int:
 
 
 @bot.command(name="spar")
-async def cmdSpar(ctx, region=None, *args) -> int:
+async def cmdSpar(ctx: commands.Context, region: str = None, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if not ctx.guild:
@@ -941,7 +957,7 @@ async def cmdSpar(ctx, region=None, *args) -> int:
 
 
 @bot.command(name="brawl")
-async def cmdBrawl(ctx, *args) -> int:
+async def cmdBrawl(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if brawlKey:
@@ -951,7 +967,9 @@ async def cmdBrawl(ctx, *args) -> int:
 
 
 @bot.command(name="brawlclaim")
-async def cmdBrawlclaim(ctx, profUrl="None", *args) -> int:
+async def cmdBrawlclaim(
+	ctx: commands.Context, profUrl: str = "None", *args
+) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if not brawlKey:
@@ -959,7 +977,7 @@ async def cmdBrawlclaim(ctx, profUrl="None", *args) -> int:
 	if profUrl.isnumeric():
 		brawlID = int(profUrl)
 	else:
-		brawlID = brawl.getBrawlID(brawlKey, profUrl)
+		brawlID = brawl.getBrawlId(brawlKey, profUrl)
 	if brawlID:
 		try:
 			brawl.claimProfile(ctx.author.id, brawlID)
@@ -978,7 +996,7 @@ async def cmdBrawlclaim(ctx, profUrl="None", *args) -> int:
 
 
 @bot.command(name="brawlrank")
-async def cmdBrawlrank(ctx, *target) -> int:
+async def cmdBrawlrank(ctx: commands.Context, *target) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if not (brawlKey and ctx.guild):
@@ -1003,7 +1021,7 @@ async def cmdBrawlrank(ctx, *target) -> int:
 
 
 @bot.command(name="brawlstats")
-async def cmdBrawlstats(ctx, *target) -> int:
+async def cmdBrawlstats(ctx: commands.Context, *target) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if not (brawlKey and ctx.guild):
@@ -1026,7 +1044,7 @@ async def cmdBrawlstats(ctx, *target) -> int:
 
 
 @bot.command(name="brawlclan")
-async def cmdBrawlclan(ctx, *target) -> int:
+async def cmdBrawlclan(ctx: commands.Context, *target) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if not (brawlKey and ctx.guild):
@@ -1049,7 +1067,9 @@ async def cmdBrawlclan(ctx, *target) -> int:
 
 
 @bot.command(name="brawllegend")
-async def cmdBrawllegend(ctx, legend=None, *args) -> int:
+async def cmdBrawllegend(
+	ctx: commands.Context, legend: str = None, *args
+) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if not brawlKey:
@@ -1077,7 +1097,7 @@ async def cmdBrawllegend(ctx, legend=None, *args) -> int:
 
 
 @bot.command(name="tweet", aliases=("eggtweet",))
-async def cmdTweet(ctx, *args) -> int:
+async def cmdTweet(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if ctx.guild and ctx.guild.id == 442403231864324119:
@@ -1090,7 +1110,7 @@ async def cmdTweet(ctx, *args) -> int:
 
 
 @bot.command(name="reddit")
-async def cmdReddit(ctx, *args) -> int:
+async def cmdReddit(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if ctx.guild and ctx.guild.id == 442403231864324119:
@@ -1100,7 +1120,7 @@ async def cmdReddit(ctx, *args) -> int:
 
 
 @bot.command(name="guide")
-async def cmdGuide(ctx, *args) -> int:
+async def cmdGuide(ctx: commands.Context, *args) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	if ctx.guild and ctx.guild.id == 442403231864324119:
@@ -1115,7 +1135,7 @@ async def cmdGuide(ctx, *args) -> int:
 
 
 @bot.command(name="search", aliases=("google", "lmgtfy"))
-async def cmdSearch(ctx, *words) -> int:
+async def cmdSearch(ctx: commands.Context, *words) -> int:
 	if ctxCreatedThread(ctx):
 		return -1
 	await ctx.send(embed=misc.search(" ".join(words)))
@@ -1123,7 +1143,7 @@ async def cmdSearch(ctx, *words) -> int:
 
 
 @bot.listen()
-async def on_command_error(ctx, e):
+async def on_command_error(ctx: commands.Context, e: Exception):
 	if isinstance(e, commands.CommandNotFound):
 		return
 	if isinstance(
@@ -1139,11 +1159,12 @@ async def on_command_error(ctx, e):
 
 
 @bot.listen("on_message")
-async def handleMessages(message):
+async def handleMessages(message: str):
 	if message.author.bot or not message.guild:
 		return
 
-	if misc.scamCheck(text := message.content.lower()):
+	if misc.scamCheck(message.content.lower()):
+		logging.info("Possible nitro scam detected in " + str(message.guild))
 		author = message.author
 		role = get(message.guild.roles, name="Muted")
 		if not role:
@@ -1151,7 +1172,6 @@ async def handleMessages(message):
 		await author.add_roles(role)
 		for channel in message.guild.channels:
 			if channel.name in ("infractions", "bb-log"):
-				print(message.guild.channels)
 				await channel.send(
 					misc.scamReport.format(
 						author.mention,
@@ -1163,36 +1183,8 @@ async def handleMessages(message):
 		await author.send(misc.scamDM.format(message.guild))
 		await message.delete()
 
-	elif message.guild.name == "Day Care":
-		if "twitter.com/year_progress" in text:
-			await message.delete()
-
-	elif secretWord and secretWord in text:
-		global secretFound
-		if secretFound:
-			return
-		secretFound = True
-		logging.info(
-			f"Secret word, {secretWord}, found by"
-			f" {message.author.mention} in {message.guild.name}."
-		)
-		result, bonus = bucks.writeMoney(message.author, 100000, True, True)
-		if result == -1:
-			report = "Ping Captain No-Beard for your prize"
-		elif result == 2:
-			bucks.writeMoney(message.author, 100000, True, True)
-		else:
-			report = "100000 BeardlessBucks have been added to your account"
-		await message.channel.send(
-			embed=misc.bbEmbed(
-				f"Well done! You found the secret word, {secretWord}!",
-				f"{report}, {message.author.mention}!"
-			)
-		)
-
 
 if __name__ == "__main__":
-
 	logging.basicConfig(
 		format="%(asctime)s: %(levelname)s: %(message)s",
 		datefmt="%m/%d %H:%M:%S",
@@ -1215,14 +1207,6 @@ if __name__ == "__main__":
 		logging.warning(
 			"No Brawlhalla API key. Brawlhalla-specific"
 			" commands will not be active."
-		)
-
-	try:
-		secretWord = env["SECRETWORD"]
-	except KeyError:
-		secretWord = None
-		logging.warning(
-			"Secret word has not been defined. Continuing as normal."
 		)
 
 	try:

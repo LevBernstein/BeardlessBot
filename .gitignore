@@ -3,6 +3,8 @@
 __pycache__
 testResults.md
 .coverage
+coverage.xml
 htmlcov/*
 resources/logs/*
 venv/
+*.kdev4*
