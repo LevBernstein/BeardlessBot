@@ -733,9 +733,9 @@ async def cmdMute(
 			unitIsValid = False
 			for mPair in times:
 				if (
-					unit == mPair[0][0] or  # first character
-					unit == mPair[0] or 	# whole word
-					unit == mPair[0] + "s"  # plural
+					unit == mPair[0][0]			# first character
+					or unit == mPair[0]			# whole word
+					or unit == mPair[0] + "s"   # plural
 				):
 					unitIsValid = True
 					duration = duration[:lastNumeric]  # the numeric part
