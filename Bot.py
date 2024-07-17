@@ -1,5 +1,5 @@
 """ Beardless Bot """
-__version__ = "Full Release 2.2.0"
+__version__ = "Full Release 2.2.1"
 
 import asyncio
 import logging
@@ -782,7 +782,7 @@ async def cmdMute(
 			logging.info(f"Muted {target} for {mTime} in {ctx.guild.name}")
 			await asyncio.sleep(mTime)
 			await target.remove_roles(role)
-			logging.info("Autounmuted" + target.name)
+			logging.info("Autounmuted " + target.name)
 			for channel in ctx.guild.channels:
 				if channel.name == "bb-log":
 					await channel.send(
