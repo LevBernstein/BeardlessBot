@@ -1312,8 +1312,9 @@ async def test_cmdMute() -> None:
 async def test_thread_creation_does_not_invoke_commands() -> None:
 	ctx = MockContext(Bot.bot, author=MockUser(), guild=MockGuild())
 	ctx.message.type = nextcord.MessageType.thread_created
-	for command in [c for c in Bot.bot.commands if c.name != "help"]:
-		assert await command(ctx) == -1
+	for command in Bot.bot.commands:
+		if command.name != "help":
+			assert await command(ctx) == -1
 
 
 # Tests for commands that require a Brawlhalla API key:
