@@ -1,12 +1,13 @@
 # Beardless Bot Brawlhalla methods
 
 from datetime import datetime
-from json import dump, load
+from json import dump, load, loads
 from random import choice
 from typing import Any, Dict, Optional, Tuple
 
 import nextcord
 import requests
+from bs4 import BeautifulSoup
 from steam.steamid import from_url
 
 from misc import bbEmbed, fetchAvatar
@@ -26,7 +27,8 @@ badRegion = (
 )
 
 reqLimit = (
-	"I've reached the request limit for the Brawlhalla API."
+	"I've reached the request limit for the Brawlhalla API"
+	" or run into an unforseen error."
 	" Please wait 15 minutes and try again later."
 )
 
@@ -37,14 +39,14 @@ thumbBase = (
 	"{}/Banner_Rank_{}.png/revision/latest/scale-to-width-down/{}"
 )
 
-rankedThumbnails = {
-	"Diamond": ("4/46", "Diamond", "84?cb=20161110140154"),
-	"Platinum": ("6/6e", "Platinum", "102?cb=20161110140140"),
-	"Gold": ("6/69", "Gold", "109?cb=20161110140126"),
-	"Silver": ("5/5c", "Silver", "119?cb=20161110140055"),
-	"Bronze": ("a/a6", "Bronze", "112?cb=20161110140114"),
-	"Tin": ("e/e1", "Tin", "112?cb=20161110140036")
-}
+rankedThumbnails = [
+	("4/46", "Diamond", "84?cb=20161110140154"),
+	("6/6e", "Platinum", "102?cb=20161110140140"),
+	("6/69", "Gold", "109?cb=20161110140126"),
+	("5/5c", "Silver", "119?cb=20161110140055"),
+	("a/a6", "Bronze", "112?cb=20161110140114"),
+	("e/e1", "Tin", "112?cb=20161110140036")
+]
 
 rankColors = {
 	"Diamond": 0x3D2399,
@@ -54,22 +56,6 @@ rankColors = {
 	"Bronze": 0x674B25,
 	"Tin": 0x355536
 }
-
-weapons = (
-	"Sword",
-	"Spear",
-	"Orb",
-	"Cannon",
-	"Hammer",
-	"Scythe",
-	"Greatsword",
-	"Bow",
-	"Gauntlets",
-	"Katars",
-	"Blasters",
-	"Axe",
-	"Battle Boots"
-)
 
 regions = (
 	"jpn",
@@ -82,6 +68,18 @@ regions = (
 	"mea",
 	"saf"
 )
+
+
+def getBrawlData() -> Dict[str, Any]:
+	# TODO: unit test
+	soup = BeautifulSoup(
+		requests.get("https://brawlhalla.com/legends").content.decode("utf-8"),
+		"html.parser"
+	)
+	return loads(loads(soup.findAll("script")[3].contents[0])["body"])["data"]
+
+
+data = getBrawlData()
 
 
 def brawlWinRate(j: Dict[str, int]) -> float:
@@ -102,17 +100,18 @@ def pingMsg(target: nextcord.Member, h: int, m: int, s: int) -> str:
 def randomBrawl(ranType: str, key: str = None) -> nextcord.Embed:
 	if ranType in ("legend", "weapon"):
 		if ranType == "legend":
-			choices = tuple(
+			legends = tuple(
 				legend["legend_name_key"].title() for legend in fetchLegends()
 			)
 			if key:
-				return legendInfo(key, choice(choices).lower())
-		else:
-			choices = weapons
+				return legendInfo(key, choice(legends).lower())
+			return bbEmbed(
+				"Random Legend", f"Your legend is {choice(legends)}."
+			)
+		weapon = choice([i["name"] for i in data["weapons"]["nodes"]])
 		return bbEmbed(
-			"Random " + ranType.title(),
-			f"Your {ranType} is {choice(choices)}."
-		)
+			"Random Weapon", f"Your weapon is {weapon}."
+		).set_thumbnail(getWeaponPicture(weapon))
 	return bbEmbed(
 		"Brawlhalla Randomizer", "Please do !random legend or !random weapon."
 	)
@@ -139,7 +138,9 @@ def fetchLegends() -> list:
 		return load(f)
 
 
-def apiCall(route: str, arg: str, key: str, amp: str = "?") -> Dict[str, Any]:
+def brawlApiCall(
+	route: str, arg: str, key: str, amp: str = "?"
+) -> Dict[str, Any]:
 	url = f"https://api.brawlhalla.com/{route}{arg}{amp}api_key={key}"
 	return requests.get(url).json()
 
@@ -148,7 +149,9 @@ def getBrawlId(brawlKey: str, profileUrl: str) -> Optional[int]:
 	try:
 		if not (steamID := from_url(profileUrl)):
 			return None
-		return apiCall("search?steamid=", steamID, brawlKey, "&")["brawlhalla_id"]
+		return brawlApiCall(
+			"search?steamid=", steamID, brawlKey, "&"
+		)["brawlhalla_id"]
 	except TypeError:
 		return None
 
@@ -156,16 +159,29 @@ def getBrawlId(brawlKey: str, profileUrl: str) -> Optional[int]:
 def getLegends(brawlKey: str):
 	# run whenever a new legend is released
 	with open("resources/legends.json", "w") as f:
-		dump(apiCall("legend/", "all/", brawlKey), f, indent=4)
+		dump(brawlApiCall("legend/", "all/", brawlKey), f, indent=4)
+
+
+def getLegendPicture(legendName: str) -> str:
+	# TODO: unit test
+	if legendName == "redraptor":
+		legendName = "red-raptor"
+	legend = [i for i in data["legends"]["nodes"] if i["slug"] == legendName]
+	return legend[0]["legendFields"]["icon"]["sourceUrl"]
+
+
+def getWeaponPicture(weaponName: str) -> str:
+	# TODO: unit test
+	weapon = [i for i in data["weapons"]["nodes"] if i["name"] == weaponName]
+	return weapon[0]["weaponFields"]["icon"]["sourceUrl"]
 
 
 def legendInfo(brawlKey: str, legendName: str) -> Optional[nextcord.Embed]:
-	# TODO: add legend images as thumbnail
 	if legendName == "hugin":
 		legendName = "munin"
 	for legend in fetchLegends():
 		if legendName in legend["legend_name_key"]:
-			r = apiCall("legend/", str(legend["legend_id"]) + "/", brawlKey)
+			r = brawlApiCall("legend/", str(legend["legend_id"]) + "/", brawlKey)
 
 			def cleanQuote(quote: str, attrib: str) -> str:
 				return "{}  *{}*".format(
@@ -178,9 +194,7 @@ def legendInfo(brawlKey: str, legendName: str) -> Optional[nextcord.Embed]:
 				cleanQuote(r["bio_quote"], r["bio_quote_about_attrib"]),
 				cleanQuote(r["bio_quote_from"], r["bio_quote_from_attrib"])
 			))
-			# TODO: Use to get legend images:
-			# legendLinkName = r["bio_name"].replace(" ", "_")
-			return (
+			emb = (
 				bbEmbed(r["bio_name"] + ", " + r["bio_aka"], bio)
 				.add_field(
 					name="Weapons",
@@ -196,18 +210,19 @@ def legendInfo(brawlKey: str, legendName: str) -> Optional[nextcord.Embed]:
 					)
 				)
 			)
+			return emb.set_thumbnail(
+				url=getLegendPicture(r["legend_name_key"].replace(" ", "-"))
+			)
 	return None
 
 
 def getRank(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
-	# TODO: add rank images as thumbnail, clan below name;
-	# download local copies of rank images bc there's no easy format on wiki
-	if not (brawlID := fetchBrawlId(target.id)):
+	if not (brawlId := fetchBrawlId(target.id)):
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Rank", unclaimed.format(target.mention)
 		)
 	if (
-		len(r := apiCall("player/", str(brawlID) + "/ranked", brawlKey)) < 4
+		len(r := brawlApiCall("player/", str(brawlId) + "/ranked", brawlKey)) < 4
 		or (
 			("games" in r and r["games"] == 0)
 			and ("2v2" in r and len(r["2v2"]) == 0)
@@ -218,12 +233,12 @@ def getRank(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 				"Beardless Bot Brawlhalla Rank",
 				"You haven't played ranked yet this season."
 			)
-			.set_footer(text=f"Brawl ID {brawlID}")
+			.set_footer(text=f"Brawl ID {brawlId}")
 			.set_author(name=target, icon_url=fetchAvatar(target))
 		)
 	emb = (
 		bbEmbed(f"{r['name']}, {r['region']}")
-		.set_footer(text=f"Brawl ID {brawlID}")
+		.set_footer(text=f"Brawl ID {brawlId}")
 		.set_author(name=target, icon_url=fetchAvatar(target))
 	)
 	if "games" in r and r["games"] != 0:
@@ -243,12 +258,10 @@ def getRank(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 					f" {topLegend[1]} Elo"
 				)
 		emb.add_field(name="Ranked 1s", value=embVal)
-		for key, value in rankColors.items():
-			if key in r["tier"]:
-				emb.color = value
-				emb.set_thumbnail(
-					url=thumbBase.format(*rankedThumbnails[key])
-				)
+		for thumb in rankedThumbnails:
+			if thumb[1] in r["tier"]:
+				emb.color = rankColors[thumb[1]]
+				emb.set_thumbnail(thumbBase.format(*thumb))
 				break
 	if "2v2" in r and len(r["2v2"]) != 0:
 		twosTeam = None
@@ -268,31 +281,29 @@ def getRank(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 				)
 			)
 			if emb.color.value == 0xFFF994 or twosTeam["rating"] > r["rating"]:
-				for key, value in rankColors.items():
-					if key in twosTeam["tier"]:
-						emb.color = value
-						emb.set_thumbnail(
-							url=thumbBase.format(*rankedThumbnails[key])
-						)
+				for thumb in rankedThumbnails:
+					if thumb[1] in twosTeam["tier"]:
+						emb.color = rankColors[thumb[1]]
+						emb.set_thumbnail(thumbBase.format(*thumb))
 						break
 	return emb
 
 
 def getStats(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 
-	def getTopDPS(legend: Dict[str, Any]) -> Tuple[str, float]:
+	def getTopDps(legend: Dict[str, Any]) -> Tuple[str, float]:
 		dps = round(int(legend["damagedealt"]) / legend["matchtime"], 1)
 		return (legend["legend_name_key"].title(), dps)
 
-	def getTopTTK(legend: Dict[str, Any]) -> Tuple[str, float]:
+	def getTopTtk(legend: Dict[str, Any]) -> Tuple[str, float]:
 		ttk = round(legend["matchtime"] / legend["kos"], 1)
 		return (legend["legend_name_key"].title(), ttk)
 
-	if not (brawlID := fetchBrawlId(target.id)):
+	if not (brawlId := fetchBrawlId(target.id)):
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Stats", unclaimed.format(target.mention)
 		)
-	if len(r := apiCall("player/", str(brawlID) + "/stats", brawlKey)) < 4:
+	if len(r := brawlApiCall("player/", str(brawlId) + "/stats", brawlKey)) < 4:
 		noStats = (
 			"This profile doesn't have stats associated with it."
 			" Please make sure you've claimed the correct profile."
@@ -304,13 +315,13 @@ def getStats(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 	)
 	emb = (
 		bbEmbed("Brawlhalla Stats for " + r["name"])
-		.set_footer(text=f"Brawl ID {brawlID}")
+		.set_footer(text=f"Brawl ID {brawlId}")
 		.add_field(name="Name", value=r["name"])
 		.add_field(name="Overall W/L", value=embVal)
 		.set_author(name=target, icon_url=fetchAvatar(target))
 	)
 	if "legends" in r:
-		topUsed = topWinrate = topDPS = topTTK = None
+		topUsed = topWinrate = topDps = topTtk = None
 		for legend in r["legends"]:
 			if not topUsed or topUsed[1] < legend["xp"]:
 				topUsed = (legend["legend_name_key"].title(), legend["xp"])
@@ -321,21 +332,21 @@ def getStats(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 					legend["legend_name_key"].title(), brawlWinRate(legend)
 				)
 			if legend["matchtime"] and (
-				topDPS is None or topDPS[1] < getTopDPS(legend)[1]
+				topDps is None or topDps[1] < getTopDps(legend)[1]
 			):
-				topDPS = getTopDPS(legend)
+				topDps = getTopDps(legend)
 			if legend["kos"] and (
-				topTTK is None or topTTK[1] > getTopTTK(legend)[1]
+				topTtk is None or topTtk[1] > getTopTtk(legend)[1]
 			):
-				topTTK = getTopTTK(legend)
-		if all((topUsed, topWinrate, topDPS, topTTK)):
+				topTtk = getTopTtk(legend)
+		if all((topUsed, topWinrate, topDps, topTtk)):
 			emb.add_field(
 				name="Legend Stats (20 game min)",
 				value=(
 					f"**Most Played:** {topUsed[0]}\n**Highest Winrate:"
 					f"** {topWinrate[0]}, {topWinrate[1]}%\n**Highest Avg"
-					f" DPS:** {topDPS[0]}, {topDPS[1]}\n**Shortest Avg TTK:"
-					f"** {topTTK[0]}, {topTTK[1]}s"
+					f" DPS:** {topDps[0]}, {topDps[1]}\n**Shortest Avg TTK:"
+					f"** {topTtk[0]}, {topTtk[1]}s"
 				)
 			)
 	if "clan" in r:
@@ -345,19 +356,19 @@ def getStats(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
 
 
 def getClan(target: nextcord.Member, brawlKey: str) -> nextcord.Embed:
-	if not (brawlID := fetchBrawlId(target.id)):
+	if not (brawlId := fetchBrawlId(target.id)):
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Clan", unclaimed.format(target.mention)
 		)
 	# Takes two API calls: one to get clan ID from player stats,
 	# one to get clan from clan ID. As a result, this command is very slow.
 	# TODO: Try to find a way around this.
-	r = apiCall("player/", str(brawlID) + "/stats", brawlKey)
+	r = brawlApiCall("player/", str(brawlId) + "/stats", brawlKey)
 	if "clan" not in r:
 		return bbEmbed(
 			"Beardless Bot Brawlhalla Clan", "You are not in a clan!"
 		)
-	r = apiCall("clan/", str(r["clan"]["clan_id"]) + "/", brawlKey)
+	r = brawlApiCall("clan/", str(r["clan"]["clan_id"]) + "/", brawlKey)
 	emb = bbEmbed(
 		r["clan_name"],
 		"**Clan Created:** {}\n**Experience:** {}\n**Members:** {}"

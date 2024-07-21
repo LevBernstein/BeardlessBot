@@ -608,6 +608,23 @@ async def test_on_ready(caplog: pytest.LogCaptureFixture) -> None:
 	assert caplog.records[4].msg == (
 		"Done! Beardless Bot serves 1 unique members across 1 servers."
 	)
+
+	Bot.bot._connection._guilds[2] = MockGuild(
+		name="Foo", id=1, members=Bot.bot._connection._guilds[1].members
+	)
+	await Bot.on_ready()
+	assert caplog.records[9].msg == (
+		"Done! Beardless Bot serves 1 unique members across 2 servers."
+	)
+
+	Bot.bot._connection._guilds[3] = MockGuild(
+		name="Foo", id=1, members=[MockUser(id=12, name="Foobar")]
+	)
+	await Bot.on_ready()
+	assert caplog.records[14].msg == (
+		"Done! Beardless Bot serves 2 unique members across 3 servers."
+	)
+
 	caplog.set_level(logging.WARN)
 
 
@@ -1175,14 +1192,27 @@ def test_av() -> None:
 	assert misc.av("error", text).title == "Invalid target!"
 
 
-def test_commands() -> None:
-	ctx = MockContext(Bot.bot, guild=None)
-	assert len(misc.bbCommands(ctx).fields) == 15
-	ctx.guild = MockGuild()
-	ctx.author.guild_permissions = nextcord.Permissions(manage_messages=True)
-	assert len(misc.bbCommands(ctx).fields) == 20
-	ctx.author.guild_permissions = nextcord.Permissions(manage_messages=False)
-	assert len(misc.bbCommands(ctx).fields) == 17
+@pytest.mark.asyncio
+async def test_commands() -> None:
+	helpCommand = misc.bbHelpCommand()
+	helpCommand.context = MockContext(Bot.bot, guild=None)
+	await helpCommand.send_bot_help(None)
+	helpCommand.context.guild = MockGuild()
+	helpCommand.context.author.guild_permissions = nextcord.Permissions(
+		manage_messages=True
+	)
+	await helpCommand.send_bot_help(None)
+	helpCommand.context.author.guild_permissions = nextcord.Permissions(
+		manage_messages=False
+	)
+	await helpCommand.send_bot_help(None)
+
+	h = helpCommand.context.channel.history()
+	assert len(h[2].embeds[0].fields) == 15
+	assert len(h[1].embeds[0].fields) == 20
+	assert len(h[0].embeds[0].fields) == 17
+	helpCommand.context.message.type = nextcord.MessageType.thread_created
+	assert await helpCommand.send_bot_help(None) == -1
 
 
 def test_pingMsg() -> None:
@@ -1272,10 +1302,6 @@ async def test_cmdMute() -> None:
 	ctx.author = MockUser(adminPowers=False)
 	assert await Bot.cmdMute(ctx, None) == 0
 
-	# if invocation is thread creation/edit
-	ctx.message.type = nextcord.MessageType.thread_created
-	assert await Bot.cmdMute(ctx, "foo") == -1
-
 	# if not in guild
 	ctx.guild = None
 	assert await Bot.cmdMute(ctx, "foo") == 0
@@ -1286,7 +1312,7 @@ async def test_cmdMute() -> None:
 async def test_thread_creation_does_not_invoke_commands() -> None:
 	ctx = MockContext(Bot.bot, author=MockUser(), guild=MockGuild())
 	ctx.message.type = nextcord.MessageType.thread_created
-	for command in list(Bot.bot.commands):
+	for command in [c for c in Bot.bot.commands if c.name != "help"]:
 		assert await command(ctx) == -1
 
 
@@ -1294,9 +1320,20 @@ async def test_thread_creation_does_not_invoke_commands() -> None:
 
 
 def test_randomBrawl() -> None:
-	assert brawl.randomBrawl("weapon").title == "Random Weapon"
-	assert brawl.randomBrawl("legend").title == "Random Legend"
-	assert len(brawl.randomBrawl("legend", brawlKey).fields) == 2
+	weapon = brawl.randomBrawl("weapon")
+	assert weapon.title == "Random Weapon"
+	assert (
+		weapon.description.split(" ")[-1][:-2].lower()
+		in weapon.thumbnail.url.lower().replace("guantlet", "gauntlet")
+	)
+	legend = brawl.randomBrawl("legend")
+	assert legend.title == "Random Legend"
+	assert legend.description.startswith("Your legend is ")
+	legend = brawl.randomBrawl("legend", brawlKey)
+	assert len(legend.fields) == 2
+	assert legend.title == brawl.legendInfo(
+		brawlKey, legend.title.split(" ")[0].lower().replace(",", "")
+	).title
 	assert brawl.randomBrawl("invalidrandom").title == "Brawlhalla Randomizer"
 
 
@@ -1339,8 +1376,8 @@ def test_getRank() -> None:
 	assert brawl.getRank(user, brawlKey).description == (
 		"You haven't played ranked yet this season."
 	)
-	brawl.claimProfile(196354892208537600, 12502880)
-	assert brawl.getRank(user, brawlKey).color.value == 20916
+	brawl.claimProfile(196354892208537600, 37)
+	assert brawl.getRank(user, brawlKey).color.value == 16306282
 	brawl.claimProfile(196354892208537600, 7032472)
 
 
@@ -1353,8 +1390,21 @@ def test_getLegends() -> None:
 
 def test_legendInfo() -> None:
 	sleep(5)
-	assert brawl.legendInfo(brawlKey, "hugin").title == "Munin, The Raven"
-	assert brawl.legendInfo(brawlKey, "teros").title == "Teros, The Minotaur"
+	legend = brawl.legendInfo(brawlKey, "hugin")
+	assert legend.title == "Munin, The Raven"
+	assert legend.thumbnail.url == (
+		"https://cms.brawlhalla.com/c/uploads/2021/12/a_Roster_Pose_BirdBardM.png"
+	)
+	legend = brawl.legendInfo(brawlKey, "teros")
+	assert legend.title == "Teros, The Minotaur"
+	assert legend.thumbnail.url == (
+		"https://cms.brawlhalla.com/c/uploads/2021/07/teros.png"
+	)
+	legend = brawl.legendInfo(brawlKey, "redraptor")
+	assert legend.title == "Red Raptor, The Last Sentai"
+	assert legend.thumbnail.url == (
+		"https://cms.brawlhalla.com/c/uploads/2023/06/a_Roster_Pose_SentaiM.png"
+	)
 	assert not brawl.legendInfo(brawlKey, "invalidname")
 
 
@@ -1369,6 +1419,10 @@ def test_getStats() -> None:
 	emb = brawl.getStats(user, brawlKey)
 	assert emb.footer.text == "Brawl ID 7032472"
 	assert len(emb.fields) in (3, 4)
+	brawl.claimProfile(196354892208537600, 1247373426)
+	emb = brawl.getStats(user, brawlKey)
+	assert emb.description.startswith("This profile doesn't have stats")
+	brawl.claimProfile(196354892208537600, 7032472)
 
 
 def test_getClan() -> None:

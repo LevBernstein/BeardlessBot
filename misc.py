@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 from json import loads
 from random import choice, randint
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import quote_plus
 
 import nextcord
@@ -363,74 +363,103 @@ def av(target: nextcord.Member, msg: nextcord.Message) -> nextcord.Embed:
 	return invalidTargetEmbed
 
 
-def bbCommands(ctx: commands.Context) -> nextcord.Embed:
-	emb = bbEmbed("Beardless Bot Commands")
-	if not ctx.guild:
-		commandNum = 15
-	elif ctx.author.guild_permissions.manage_messages:
-		commandNum = 20
-	else:
-		commandNum = 17
-	commandList = (
-		("!register", "Registers you with the currency system."),
-		(
-			"!balance [user/username]",
-			"Display a user's balance. Write just !av"
-			" if you want to see your own balance."
-		),
-		("!bucks", "Shows you an explanation for how BeardlessBucks work."),
-		("!reset", "Resets you to 200 BeardlessBucks."),
-		("!fact", "Gives you a random fun fact."),
-		("!source", "Shows you the source of most facts used in !fact."),
-		(
-			"!flip [bet]",
-			"Bets a certain amount on flipping a coin. Heads"
-			" you win, tails you lose. Defaults to 10."
-		),
-		(
-			"!blackjack [bet]",
-			"Starts up a game of blackjack. Once you're in a"
-			" game, you can use !hit and !stay to play."
-		),
-		(
-			"!roll [count]d[num][+/-][mod]",
-			"Rolls [count] [num]-sided dice and adds or subtracts [mod]."
-			" Example: !roll d8, or !roll d100-17, or !roll 4d6+3."
-		),
-		("!brawl", "Displays Beardless Bot's Brawlhalla commands."),
-		("!add", "Gives you a link to add this bot to your server."),
-		(
-			"!av [user/username]",
-			"Display a user's avatar. Write just !av"
-			" if you want to see your own avatar."
-		),
-		(
-			"![animal name]",
-			"Gets a random animal picture. See the"
-			" list of animals with !animals."
-		),
-		("!define [word]", "Shows you the definition(s) of a word."),
-		("!ping", "Checks Beardless Bot's latency."),
-		(
-			"!buy red/blue/pink/orange",
-			"Removes 50k BeardlessBucks and grants you a special color role."
-		),
-		(
-			"!info [user/username]",
-			"Displays general information about a user."
-			" Write just !info to see your own info."
-		),
-		("!purge [number]", "Mass-deletes messages."),
-		(
-			"!mute [target] [duration]",
-			"Mutes someone for an amount of time."
-			" Accepts either seconds, minutes, or hours."
-		),
-		("!unmute [target]", "Unmutes the target.")
+def ctxCreatedThread(ctx: commands.Context) -> bool:
+	"""
+	Threads created with the name set to a command (e.g., a thread named !flip)
+	will trigger that command as the first action in that thread. This is not
+	intended behavior; as such, if the context event is a thread being created
+	or a thread name being changed, this method will catch that.
+
+	Args:
+		ctx (commands.Context): The context in which the command is being invoked
+
+	Returns:
+		bool: Whether the event is valid to trigger a command.
+	"""
+	return ctx.message.type in (
+		nextcord.MessageType.thread_created,
+		nextcord.MessageType.channel_name_change
 	)
-	for commandPair in commandList[:commandNum]:
-		emb.add_field(name=commandPair[0], value=commandPair[1])
-	return emb
+
+
+class bbHelpCommand(commands.HelpCommand):
+	async def send_bot_help(
+		self, mapping: Dict[commands.Cog, List[commands.Command]]
+	) -> int:
+		if ctxCreatedThread(self.context):
+			return -1
+		if not self.context.guild:
+			commandNum = 15
+		elif self.context.author.guild_permissions.manage_messages:
+			commandNum = 20
+		else:
+			commandNum = 17
+		commandList = (
+			("!register", "Registers you with the currency system."),
+			(
+				"!balance [user/username]",
+				"Display a user's balance. Write just !av"
+				" if you want to see your own balance."
+			),
+			("!bucks", "Shows you an explanation for how BeardlessBucks work."),
+			("!reset", "Resets you to 200 BeardlessBucks."),
+			("!fact", "Gives you a random fun fact."),
+			("!source", "Shows you the source of most facts used in !fact."),
+			(
+				"!flip [bet]",
+				"Bets a certain amount on flipping a coin. Heads"
+				" you win, tails you lose. Defaults to 10."
+			),
+			(
+				"!blackjack [bet]",
+				"Starts up a game of blackjack. Once you're in a"
+				" game, you can use !hit and !stay to play."
+			),
+			(
+				"!roll [count]d[num][+/-][mod]",
+				"Rolls [count] [num]-sided dice and adds or subtracts [mod]."
+				" Example: !roll d8, or !roll d100-17, or !roll 4d6+3."
+			),
+			("!brawl", "Displays Beardless Bot's Brawlhalla commands."),
+			("!add", "Gives you a link to add this bot to your server."),
+			(
+				"!av [user/username]",
+				"Display a user's avatar. Write just !av"
+				" if you want to see your own avatar."
+			),
+			(
+				"![animal name]",
+				"Gets a random animal picture. See the"
+				" list of animals with !animals."
+			),
+			("!define [word]", "Shows you the definition(s) of a word."),
+			("!ping", "Checks Beardless Bot's latency."),
+			(
+				"!buy red/blue/pink/orange",
+				"Removes 50k BeardlessBucks and grants you a special color role."
+			),
+			(
+				"!info [user/username]",
+				"Displays general information about a user."
+				" Write just !info to see your own info."
+			),
+			("!purge [number]", "Mass-deletes messages."),
+			(
+				"!mute [target] [duration]",
+				"Mutes someone for an amount of time."
+				" Accepts either seconds, minutes, or hours."
+			),
+			("!unmute [target]", "Unmutes the target.")
+		)
+		emb = bbEmbed("Beardless Bot Commands")
+		for commandPair in commandList[:commandNum]:
+			emb.add_field(name=commandPair[0], value=commandPair[1])
+		await self.get_destination().send(embed=emb)
+		return 1
+
+	async def send_error_message(self, error: str) -> None:
+		# TODO: configure proper send_command_help, send_error_message
+		pass
 
 
 def scamCheck(text: str) -> bool:
