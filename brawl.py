@@ -1,4 +1,4 @@
-# Beardless Bot Brawlhalla methods
+""" Beardless Bot Brawlhalla methods """
 
 from datetime import datetime
 from json import dump, load, loads

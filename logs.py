@@ -1,4 +1,4 @@
-# Beadless Bot event logging methods
+""" Beadless Bot event logging methods """
 
 from typing import List, Optional
 

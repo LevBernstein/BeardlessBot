@@ -1,4 +1,4 @@
-# Beardless Bot miscellaneous methods
+""" Beardless Bot miscellaneous methods """
 
 import re
 from datetime import datetime
@@ -130,6 +130,13 @@ def memSearch(
 		if not (semiMatch or looseMatch) and term in member.name.lower():
 			looseMatch = member
 	return semiMatch if semiMatch else looseMatch
+
+
+def getLogChannel(guild: nextcord.Guild) -> Optional[nextcord.TextChannel]:
+	channels = [c for c in guild.channels if c.name == "bb-log"]
+	if channels:
+		return channels[0]
+	return None
 
 
 def fetchAvatar(user: nextcord.User) -> str:

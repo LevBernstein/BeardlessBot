@@ -1,4 +1,4 @@
-# Beardless Bot methods that modify resources/money.csv
+""" Beardless Bot methods that modify resources/money.csv """
 
 import csv
 from collections import OrderedDict
@@ -545,6 +545,9 @@ def blackjack(
 	return report.format(author.mention), game
 
 
-def activeGame(games: List[BlackjackGame], author: nextcord.User) -> bool:
+def activeGame(
+	games: List[BlackjackGame], author: nextcord.User
+) -> Optional[BlackjackGame]:
 	"""Checks if a user has an active game of Blackjack."""
-	return any(author == game.user for game in games)
+	game = [g for g in games if g.user == author]
+	return game[0] if game else None

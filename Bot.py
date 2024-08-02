@@ -8,7 +8,7 @@ from datetime import datetime
 from random import choice, randint
 from sys import stdout
 from time import time
-from typing import Dict, List, Optional, Union
+from typing import Dict, Final, List, Optional, Union
 
 import nextcord
 from nextcord.ext import commands
@@ -28,7 +28,7 @@ sparPings: Dict[int, Dict[str, int]] = {}
 games: List[bucks.BlackjackGame] = []
 
 # Replace ownerId with your Discord user id
-ownerId = 196354892208537600
+ownerId: Final[int] = 196354892208537600
 
 bot = commands.Bot(
 	command_prefix="!",
@@ -145,22 +145,20 @@ async def on_guild_join(guild: nextcord.Guild):
 @bot.event
 async def on_message_delete(msg: nextcord.Message) -> nextcord.Embed:
 	if msg.guild and (msg.channel.name != "bb-log" or msg.content):
-		for channel in msg.guild.channels:
-			if channel.name == "bb-log":
-				emb = logs.logDeleteMsg(msg)
-				await channel.send(embed=emb)
-				return emb
+		if channel := misc.getLogChannel(msg.guild):
+			emb = logs.logDeleteMsg(msg)
+			await channel.send(embed=emb)
+			return emb
 
 
 @bot.event
 async def on_bulk_message_delete(
 	msgList: List[nextcord.Message]
 ) -> nextcord.Embed:
-	for channel in msgList[0].guild.channels:
-		if channel.name == "bb-log":
-			emb = logs.logPurge(msgList[0], msgList)
-			await channel.send(embed=emb)
-			return emb
+	if channel := misc.getLogChannel(msgList[0].guild):
+		emb = logs.logPurge(msgList[0], msgList)
+		await channel.send(embed=emb)
+		return emb
 
 
 @bot.event
@@ -185,139 +183,127 @@ async def on_message_edit(
 			await after.channel.send(misc.scamDelete)
 			await after.author.send(misc.scamDM.format(after.guild))
 			await after.delete()
-		for channel in before.guild.channels:
-			if channel.name == "bb-log":
-				emb = logs.logEditMsg(before, after)
-				await channel.send(embed=emb)
-				return emb
+		if channel := misc.getLogChannel(before.guild):
+			emb = logs.logEditMsg(before, after)
+			await channel.send(embed=emb)
+			return emb
 
 
 @bot.event
 async def on_reaction_clear(
 	msg: nextcord.Message, reactions: List[nextcord.Reaction]
 ) -> nextcord.Embed:
-	for channel in msg.guild.channels:
-		if channel.name == "bb-log":
-			emb = logs.logClearReacts(msg, reactions)
-			await channel.send(embed=emb)
-			return emb
+	if channel := misc.getLogChannel(msg.guild):
+		emb = logs.logClearReacts(msg, reactions)
+		await channel.send(embed=emb)
+		return emb
 
 
 @bot.event
 async def on_guild_channel_delete(
 	ch: nextcord.abc.GuildChannel
 ) -> nextcord.Embed:
-	for channel in ch.guild.channels:
-		if channel.name == "bb-log":
-			emb = logs.logDeleteChannel(ch)
-			await channel.send(embed=emb)
-			return emb
+	if channel := misc.getLogChannel(ch.guild):
+		emb = logs.logDeleteChannel(ch)
+		await channel.send(embed=emb)
+		return emb
 
 
 @bot.event
 async def on_guild_channel_create(
 	ch: nextcord.abc.GuildChannel
 ) -> nextcord.Embed:
-	for channel in ch.guild.channels:
-		if channel.name == "bb-log":
-			emb = logs.logCreateChannel(ch)
-			await channel.send(embed=emb)
-			return emb
+	if channel := misc.getLogChannel(ch.guild):
+		emb = logs.logCreateChannel(ch)
+		await channel.send(embed=emb)
+		return emb
 
 
 @bot.event
 async def on_member_join(member: nextcord.Member) -> nextcord.Embed:
-	for channel in member.guild.channels:
-		if channel.name == "bb-log":
-			emb = logs.logMemberJoin(member)
-			await channel.send(embed=emb)
-			return emb
+	if channel := misc.getLogChannel(member.guild):
+		emb = logs.logMemberJoin(member)
+		await channel.send(embed=emb)
+		return emb
 
 
 @bot.event
 async def on_member_remove(member: nextcord.Member) -> nextcord.Embed:
-	for channel in member.guild.channels:
-		if channel.name == "bb-log":
-			emb = logs.logMemberRemove(member)
-			await channel.send(embed=emb)
-			return emb
+	if channel := misc.getLogChannel(member.guild):
+		emb = logs.logMemberRemove(member)
+		await channel.send(embed=emb)
+		return emb
 
 
 @bot.event
 async def on_member_update(
 	before: nextcord.Member, after: nextcord.Member
 ) -> nextcord.Embed:
-	for channel in before.guild.channels:
-		if channel.name == "bb-log":
-			emb = None
-			if before.nick != after.nick:
-				emb = logs.logMemberNickChange(before, after)
-			elif before.roles != after.roles:
-				emb = logs.logMemberRolesChange(before, after)
-			if emb:
-				await channel.send(embed=emb)
-			return emb
+	if channel := misc.getLogChannel(before.guild):
+		emb = None
+		if before.nick != after.nick:
+			emb = logs.logMemberNickChange(before, after)
+		elif before.roles != after.roles:
+			emb = logs.logMemberRolesChange(before, after)
+		if emb:
+			await channel.send(embed=emb)
+		return emb
 
 
 @bot.event
 async def on_member_ban(
 	guild: nextcord.Guild, member: nextcord.Member
 ) -> nextcord.Embed:
-	for channel in guild.channels:
-		if channel.name == "bb-log":
-			emb = logs.logBan(member)
-			await channel.send(embed=emb)
-			return emb
+	if channel := misc.getLogChannel(guild):
+		emb = logs.logBan(member)
+		await channel.send(embed=emb)
+		return emb
 
 
 @bot.event
 async def on_member_unban(
 	guild: nextcord.Guild, member: nextcord.Member
 ) -> nextcord.Embed:
-	for channel in guild.channels:
-		if channel.name == "bb-log":
-			emb = logs.logUnban(member)
-			await channel.send(embed=emb)
-			return emb
+	if channel := misc.getLogChannel(guild):
+		emb = logs.logUnban(member)
+		await channel.send(embed=emb)
+		return emb
 
 
 @bot.event
 async def on_thread_join(thread: nextcord.Thread) -> nextcord.Embed:
 	if thread.me:
-		return
+		return None
 	else:
 		await thread.join()
-	for channel in thread.guild.channels:
-		if channel.name == "bb-log":
-			emb = logs.logCreateThread(thread)
-			await channel.send(embed=emb)
-			return emb
+	if channel := misc.getLogChannel(thread.guild):
+		emb = logs.logCreateThread(thread)
+		await channel.send(embed=emb)
+		return emb
 
 
 @bot.event
 async def on_thread_delete(thread: nextcord.Thread) -> nextcord.Embed:
-	for channel in thread.guild.channels:
-		if channel.name == "bb-log":
-			emb = logs.logDeleteThread(thread)
-			await channel.send(embed=emb)
-			return emb
+	if channel := misc.getLogChannel(thread.guild):
+		emb = logs.logDeleteThread(thread)
+		await channel.send(embed=emb)
+		return emb
 
 
 @bot.event
 async def on_thread_update(
 	before: nextcord.Thread, after: nextcord.Thread
 ) -> nextcord.Embed:
-	for channel in after.guild.channels:
-		if channel.name == "bb-log":
-			emb = None
-			# TODO: log Thread.locked/unlocked
-			if before.archived and not after.archived:
-				emb = logs.logThreadUnarchived(after)
-			elif after.archived and not before.archived:
-				emb = logs.logThreadArchived(after)
-			if emb:
-				await channel.send(embed=emb)
-			return emb
+	if channel := misc.getLogChannel(after.guild):
+		emb = None
+		# TODO: log Thread.locked/unlocked
+		if before.archived and not after.archived:
+			emb = logs.logThreadUnarchived(after)
+		elif after.archived and not before.archived:
+			emb = logs.logThreadArchived(after)
+		if emb:
+			await channel.send(embed=emb)
+		return emb
 
 
 # Commands:
@@ -357,14 +343,12 @@ async def cmdDeal(ctx: commands.Context, *args) -> int:
 		report = bucks.commaWarn.format(ctx.author.mention)
 	else:
 		report = bucks.noGameMsg.format(ctx.author.mention)
-		for game in games:
-			if game.user == ctx.author:
-				report = game.deal()
-				if game.checkBust() or game.perfect():
-					game.checkBust()
-					bucks.writeMoney(ctx.author, game.bet, True, True)
-					games.remove(game)
-				break
+		if game := bucks.activeGame(games, ctx.author):
+			report = game.deal()
+			if game.checkBust() or game.perfect():
+				game.checkBust()
+				bucks.writeMoney(ctx.author, game.bet, True, True)
+				games.remove(game)
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Blackjack", report))
 	return 1
 
@@ -377,18 +361,16 @@ async def cmdStay(ctx: commands.Context, *args) -> int:
 		report = bucks.commaWarn.format(ctx.author.mention)
 	else:
 		report = bucks.noGameMsg.format(ctx.author.mention)
-		for game in games:
-			if game.user == ctx.author:
-				result = game.stay()
-				report = game.message
-				if result and game.bet:
-					written, bonus = bucks.writeMoney(
-						ctx.author, game.bet, True, True
-					)
-					if written == -1:
-						report = bonus
-				games.remove(game)
-				break
+		if game := bucks.activeGame(games, ctx.author):
+			result = game.stay()
+			report = game.message
+			if result and game.bet:
+				written, bonus = bucks.writeMoney(
+					ctx.author, game.bet, True, True
+				)
+				if written == -1:
+					report = bonus
+			games.remove(game)
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Blackjack", report))
 	return 1
 
@@ -738,30 +720,26 @@ async def cmdMute(
 				name="Mute Reason:", value=" ".join(args), inline=False
 			)
 		await ctx.send(embed=emb)
-		# Iterate through channels, make Muted unable to send msgs
-		for channel in ctx.guild.channels:
-			if channel.name == "bb-log":
-				await channel.send(
-					embed=logs.logMute(
-						target,
-						ctx.message,
-						duration,
-						mString,
-						mTime
-					)
+		if channel := misc.getLogChannel(ctx.guild):
+			await channel.send(
+				embed=logs.logMute(
+					target,
+					ctx.message,
+					duration,
+					mString,
+					mTime
 				)
-				break
+			)
 		if mTime:
 			# Autounmute
 			logging.info(f"Muted {target} for {mTime} in {ctx.guild.name}")
 			await asyncio.sleep(mTime)
 			await target.remove_roles(role)
 			logging.info("Autounmuted " + target.name)
-			for channel in ctx.guild.channels:
-				if channel.name == "bb-log":
-					await channel.send(
-						embed=logs.logUnmute(target, ctx.author)
-					)
+			if channel := misc.getLogChannel(ctx.guild):
+				await channel.send(
+					embed=logs.logUnmute(target, ctx.author)
+				)
 		return 1
 
 
@@ -790,12 +768,10 @@ async def cmdUnmute(
 				report = misc.hierarchyMsg
 			else:
 				report = f"Unmuted {target.mention}."
-				for channel in ctx.guild.channels:
-					if channel.name == "bb-log":
-						await channel.send(
-							embed=logs.logUnmute(target, ctx.author)
-						)
-						break
+				if channel := misc.getLogChannel(ctx.guild):
+					await channel.send(
+						embed=logs.logUnmute(target, ctx.author)
+					)
 		else:
 			report = f"Invalid target, {ctx.author.mention}."
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Unmute", report))
@@ -1137,9 +1113,9 @@ async def on_command_error(ctx: commands.Context, e: Exception):
 
 
 @bot.listen("on_message")
-async def handleMessages(message: str):
+async def handleMessages(message: str) -> int:
 	if message.author.bot or not message.guild:
-		return
+		return -1
 
 	if misc.scamCheck(message.content.lower()):
 		logging.info("Possible nitro scam detected in " + str(message.guild))
@@ -1160,6 +1136,9 @@ async def handleMessages(message: str):
 		await message.channel.send(misc.scamDelete)
 		await author.send(misc.scamDM.format(message.guild))
 		await message.delete()
+		return -1
+
+	return 1
 
 
 if __name__ == "__main__":
