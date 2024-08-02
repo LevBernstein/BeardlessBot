@@ -1,7 +1,6 @@
 # Beardless Bot
 
 ### Full Release 2.3.1
-
 ![Coverage badge](./resources/images/coverage.svg)
 ![Unit tests badge](./resources/images/tests.svg)
 ![Docstring coverage badge](./resources/images/docstr-coverage.svg)
