@@ -1,11 +1,11 @@
 """ Beardless Bot unit tests """
 
 import asyncio
+import logging
 from copy import copy
 from datetime import datetime
 from dotenv import dotenv_values
 from json import load
-import logging
 from os import environ
 from random import choice
 from time import sleep
@@ -43,7 +43,7 @@ def goodURL(request: requests.models.Response) -> bool:
 
 # TODO: add _state attribute to all mock objects, inherit from State
 # Switch to a single MockState class for all Messageable objects
-
+# Implements nextcord.state.ConnectionState
 
 class MockHTTPClient(nextcord.http.HTTPClient):
 	def __init__(
@@ -476,6 +476,7 @@ class MockThread(nextcord.Thread):
 class MockContext(commands.Context):
 
 	class MockContextState():
+		# TODO: make context inherit state from message, as in actual Context._state
 		def __init__(
 			self,
 			user: Optional[nextcord.User] = None,
@@ -612,7 +613,9 @@ if not brawlKey:
 	try:
 		brawlKey = env["BRAWLKEY"]
 	except KeyError:
-		print("No Brawlhalla API key. Brawlhalla-specific tests will fail.\n")
+		logging.warning(
+			"No Brawlhalla API key. Brawlhalla-specific tests will not be run.\n"
+		)
 
 
 @pytest.mark.parametrize("letter", ["W", "E", "F"])
@@ -1497,129 +1500,120 @@ async def test_thread_creation_does_not_invoke_commands() -> None:
 
 # Tests for commands that require a Brawlhalla API key:
 
+if brawlKey:
+	def test_randomBrawl() -> None:
+		weapon = brawl.randomBrawl("weapon")
+		assert weapon.title == "Random Weapon"
+		assert (
+			weapon.description.split(" ")[-1][:-2].lower()
+			in weapon.thumbnail.url.lower().replace("guantlet", "gauntlet")
+		)
+		legend = brawl.randomBrawl("legend")
+		assert legend.title == "Random Legend"
+		assert legend.description.startswith("Your legend is ")
+		legend = brawl.randomBrawl("legend", brawlKey)
+		assert len(legend.fields) == 2
+		assert legend.title == brawl.legendInfo(
+			brawlKey, legend.title.split(" ")[0].lower().replace(",", "")
+		).title
+		assert brawl.randomBrawl("invalidrandom").title == "Brawlhalla Randomizer"
 
-def test_randomBrawl() -> None:
-	weapon = brawl.randomBrawl("weapon")
-	assert weapon.title == "Random Weapon"
-	assert (
-		weapon.description.split(" ")[-1][:-2].lower()
-		in weapon.thumbnail.url.lower().replace("guantlet", "gauntlet")
+	def test_fetchBrawlID() -> None:
+		assert brawl.fetchBrawlId(196354892208537600) == 7032472
+		assert not brawl.fetchBrawlId(bbId)
+
+	def test_claimProfile() -> None:
+		with open("resources/claimedProfs.json", "r") as f:
+			profsLen = len(load(f))
+		brawl.claimProfile(196354892208537600, 1)
+		with open("resources/claimedProfs.json", "r") as f:
+			assert profsLen == len(load(f))
+		assert brawl.fetchBrawlId(196354892208537600) == 1
+		brawl.claimProfile(196354892208537600, 7032472)
+		assert brawl.fetchBrawlId(196354892208537600) == 7032472
+
+	@pytest.mark.parametrize(
+		"url,result", [
+			("https://steamcommunity.com/id/beardless", 7032472),
+			("badurl", None),
+			("https://steamcommunity.com/badurl", None)
+		]
 	)
-	legend = brawl.randomBrawl("legend")
-	assert legend.title == "Random Legend"
-	assert legend.description.startswith("Your legend is ")
-	legend = brawl.randomBrawl("legend", brawlKey)
-	assert len(legend.fields) == 2
-	assert legend.title == brawl.legendInfo(
-		brawlKey, legend.title.split(" ")[0].lower().replace(",", "")
-	).title
-	assert brawl.randomBrawl("invalidrandom").title == "Brawlhalla Randomizer"
+	def test_getBrawlID(url: str, result: Optional[int]) -> None:
+		sleep(2)
+		assert brawl.getBrawlId(brawlKey, url) == result
 
+	def test_getRank() -> None:
+		sleep(5)
+		user = MockUser(id=0)
+		assert brawl.getRank(user, brawlKey).description == (
+			brawl.unclaimed.format(user.mention)
+		)
+		user.id = 196354892208537600
+		assert brawl.getRank(user, brawlKey).footer.text == "Brawl ID 7032472"
+		assert brawl.getRank(user, brawlKey).description == (
+			"You haven't played ranked yet this season."
+		)
+		brawl.claimProfile(196354892208537600, 37)
+		assert brawl.getRank(user, brawlKey).color.value == 16306282
+		brawl.claimProfile(196354892208537600, 7032472)
 
-def test_fetchBrawlID() -> None:
-	assert brawl.fetchBrawlId(196354892208537600) == 7032472
-	assert not brawl.fetchBrawlId(bbId)
+	def test_getLegends() -> None:
+		sleep(5)
+		oldLegends = brawl.fetchLegends()
+		brawl.getLegends(brawlKey)
+		assert brawl.fetchLegends() == oldLegends
 
+	def test_legendInfo() -> None:
+		sleep(5)
+		legend = brawl.legendInfo(brawlKey, "hugin")
+		assert legend.title == "Munin, The Raven"
+		assert legend.thumbnail.url == (
+			"https://cms.brawlhalla.com/c/uploads/2021/12/a_Roster_Pose_BirdBardM.png"
+		)
+		legend = brawl.legendInfo(brawlKey, "teros")
+		assert legend.title == "Teros, The Minotaur"
+		assert legend.thumbnail.url == (
+			"https://cms.brawlhalla.com/c/uploads/2021/07/teros.png"
+		)
+		legend = brawl.legendInfo(brawlKey, "redraptor")
+		assert legend.title == "Red Raptor, The Last Sentai"
+		assert legend.thumbnail.url == (
+			"https://cms.brawlhalla.com/c/uploads/2023/06/a_Roster_Pose_SentaiM.png"
+		)
+		assert not brawl.legendInfo(brawlKey, "invalidname")
 
-def test_claimProfile() -> None:
-	with open("resources/claimedProfs.json", "r") as f:
-		profsLen = len(load(f))
-	brawl.claimProfile(196354892208537600, 1)
-	with open("resources/claimedProfs.json", "r") as f:
-		assert profsLen == len(load(f))
-	assert brawl.fetchBrawlId(196354892208537600) == 1
-	brawl.claimProfile(196354892208537600, 7032472)
-	assert brawl.fetchBrawlId(196354892208537600) == 7032472
+	def test_getStats() -> None:
+		sleep(5)
+		user = MockUser(id=0)
+		assert brawl.getStats(user, brawlKey).description == (
+			brawl.unclaimed.format(user.mention)
+		)
+		user.id = 196354892208537600
+		brawl.claimProfile(196354892208537600, 7032472)
+		emb = brawl.getStats(user, brawlKey)
+		assert emb.footer.text == "Brawl ID 7032472"
+		assert len(emb.fields) in (3, 4)
+		brawl.claimProfile(196354892208537600, 1247373426)
+		emb = brawl.getStats(user, brawlKey)
+		assert emb.description.startswith("This profile doesn't have stats")
+		brawl.claimProfile(196354892208537600, 7032472)
 
+	def test_getClan() -> None:
+		sleep(5)
+		user = MockUser(id=0)
+		assert brawl.getClan(user, brawlKey).description == (
+			brawl.unclaimed.format(user.mention)
+		)
+		user.id = 196354892208537600
+		brawl.claimProfile(196354892208537600, 7032472)
+		assert brawl.getClan(user, brawlKey).title == "DinersDriveInsDives"
+		brawl.claimProfile(196354892208537600, 5895238)
+		assert brawl.getClan(user, brawlKey).description == (
+			"You are not in a clan!"
+		)
+		brawl.claimProfile(196354892208537600, 7032472)
 
-@pytest.mark.parametrize(
-	"url,result", [
-		("https://steamcommunity.com/id/beardless", 7032472),
-		("badurl", None),
-		("https://steamcommunity.com/badurl", None)
-	]
-)
-def test_getBrawlID(url: str, result: Optional[int]) -> None:
-	sleep(2)
-	assert brawl.getBrawlId(brawlKey, url) == result
-
-
-def test_getRank() -> None:
-	sleep(5)
-	user = MockUser(id=0)
-	assert brawl.getRank(user, brawlKey).description == (
-		brawl.unclaimed.format(user.mention)
-	)
-	user.id = 196354892208537600
-	assert brawl.getRank(user, brawlKey).footer.text == "Brawl ID 7032472"
-	assert brawl.getRank(user, brawlKey).description == (
-		"You haven't played ranked yet this season."
-	)
-	brawl.claimProfile(196354892208537600, 37)
-	assert brawl.getRank(user, brawlKey).color.value == 16306282
-	brawl.claimProfile(196354892208537600, 7032472)
-
-
-def test_getLegends() -> None:
-	sleep(5)
-	oldLegends = brawl.fetchLegends()
-	brawl.getLegends(brawlKey)
-	assert brawl.fetchLegends() == oldLegends
-
-
-def test_legendInfo() -> None:
-	sleep(5)
-	legend = brawl.legendInfo(brawlKey, "hugin")
-	assert legend.title == "Munin, The Raven"
-	assert legend.thumbnail.url == (
-		"https://cms.brawlhalla.com/c/uploads/2021/12/a_Roster_Pose_BirdBardM.png"
-	)
-	legend = brawl.legendInfo(brawlKey, "teros")
-	assert legend.title == "Teros, The Minotaur"
-	assert legend.thumbnail.url == (
-		"https://cms.brawlhalla.com/c/uploads/2021/07/teros.png"
-	)
-	legend = brawl.legendInfo(brawlKey, "redraptor")
-	assert legend.title == "Red Raptor, The Last Sentai"
-	assert legend.thumbnail.url == (
-		"https://cms.brawlhalla.com/c/uploads/2023/06/a_Roster_Pose_SentaiM.png"
-	)
-	assert not brawl.legendInfo(brawlKey, "invalidname")
-
-
-def test_getStats() -> None:
-	sleep(5)
-	user = MockUser(id=0)
-	assert brawl.getStats(user, brawlKey).description == (
-		brawl.unclaimed.format(user.mention)
-	)
-	user.id = 196354892208537600
-	brawl.claimProfile(196354892208537600, 7032472)
-	emb = brawl.getStats(user, brawlKey)
-	assert emb.footer.text == "Brawl ID 7032472"
-	assert len(emb.fields) in (3, 4)
-	brawl.claimProfile(196354892208537600, 1247373426)
-	emb = brawl.getStats(user, brawlKey)
-	assert emb.description.startswith("This profile doesn't have stats")
-	brawl.claimProfile(196354892208537600, 7032472)
-
-
-def test_getClan() -> None:
-	sleep(5)
-	user = MockUser(id=0)
-	assert brawl.getClan(user, brawlKey).description == (
-		brawl.unclaimed.format(user.mention)
-	)
-	user.id = 196354892208537600
-	brawl.claimProfile(196354892208537600, 7032472)
-	assert brawl.getClan(user, brawlKey).title == "DinersDriveInsDives"
-	brawl.claimProfile(196354892208537600, 5895238)
-	assert brawl.getClan(user, brawlKey).description == (
-		"You are not in a clan!"
-	)
-	brawl.claimProfile(196354892208537600, 7032472)
-
-
-def test_brawlCommands() -> None:
-	sleep(5)
-	assert len(brawl.brawlCommands().fields) == 6
+	def test_brawlCommands() -> None:
+		sleep(5)
+		assert len(brawl.brawlCommands().fields) == 6
