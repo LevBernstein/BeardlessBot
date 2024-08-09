@@ -20,9 +20,10 @@ follow the steps outlined directly below in [Installation](#installation).
 1. Download the repository.
 
 2. Download [Python 3](https://python.org/downloads), and then run
-`pip3 install -r resources/requirements.txt`. Beardless Bot requires Python 3.11
-or newer. If you are using python virtualenv, name your virtualenv "venv" and
-run `source venv/bin/activate` before running `pip3 install`.
+`pip3 install -r resources/requirements.txt`. Beardless Bot requires Python
+3.10 or newer, and has been tested on 3.10.4, 3.11.9, and 3.12.3.If you are
+using python virtualenv, name your virtualenv "venv" and run
+`source venv/bin/activate` before running `pip3 install`.
 
 3. Create a file named ".env" in the same directory as Bot.py. Insert
 into it the line `DISCORDTOKEN=yourtoken`, where yourtoken is the Discord API

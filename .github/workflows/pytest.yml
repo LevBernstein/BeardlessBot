@@ -2,8 +2,6 @@
 
 name: Beardless Bot Unit Tests
 
-
-
 defaults:
   run:
     shell: bash
@@ -16,23 +14,26 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ "3.10.4", "3.11.9", "3.12.3" ]
+    name: Beardless Bot Python ${{ matrix.python-version }} unit tests
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.12.3
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.12.3
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r resources/requirements.txt
-    - name: Test with pytest
-      env:
-        BRAWLKEY: ${{ secrets.BRAWLKEY }}
-      run: |
-        coverage run -m pytest -Wignore
-    - name: View code coverage
-      run: |
-        coverage report -m
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }} 
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r resources/requirements.txt
+      - name: Test with pytest
+        env:
+          BRAWLKEY: ${{ secrets.BRAWLKEY }}
+        run: |
+          coverage run -m pytest -Wignore
+      - name: View code coverage
+        run: |
+          coverage report -m
