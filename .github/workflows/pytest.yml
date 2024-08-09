@@ -17,9 +17,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ "3.10.4", "3.11.9", "3.12.3" ]
+        python-version: [ "3.12.3", "3.11.9", "3.10.4" ]
     name: Beardless Bot Python ${{ matrix.python-version }} unit tests
     steps:
+      - name: Enable Brawl tests on latest Python only
+        if: ${{ matrix.python-version == '3.12.3' }}
+        run: |
+          echo "BRAWLKEY=${{ secrets.BRAWLKEY }}" >> $GITHUB_ENV
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
@@ -30,8 +34,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r resources/requirements.txt
       - name: Test with pytest
-        env:
-          BRAWLKEY: ${{ secrets.BRAWLKEY }}
         run: |
           coverage run -m pytest -Wignore
       - name: View code coverage
