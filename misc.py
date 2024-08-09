@@ -88,8 +88,6 @@ joinMsg = (
 	"order to allow me to moderate all users."
 )
 
-# TODO: write find #bb-log method, takes Guild as arg, returns channel
-
 
 # Wrapper for nextcord.Embed.init() that defaults to
 # commonly-used values and is easier to call

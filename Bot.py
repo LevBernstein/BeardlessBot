@@ -41,6 +41,13 @@ bot = commands.Bot(
 
 
 def logException(e: Exception, ctx: commands.Context) -> None:
+	"""
+	Wrapper for logging.error to help with debugging.
+
+	Args:
+		e (Exception): The exception to log
+		ctx (commands.Context): The command invocation context
+	"""
 	logging.error(
 		f"{e} Command: {ctx.invoked_with}; Author: {ctx.author};"
 		f" Content: {logs.contCheck(ctx.message)}; Guild: {ctx.guild}"
@@ -74,7 +81,19 @@ async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
 
 
 @bot.event
-async def on_ready():
+async def on_ready() -> None:
+	"""
+	Startup method. Fires whenever the Bot connects to the Gateway.
+
+	on_ready handles setting the Bot's status and avatar; if the Bot is
+	launched many times within a short period, you may be rate limited,
+	triggering an HTTPException.
+
+	The method also initializes sparPings to enable a 2-hour cooldown for the
+	spar command, and chunks all guilds (caches them) to speed up operations.
+	This also allows you to get a good idea of how many unique users are in
+	all guilds in which Beardless Bot operates.
+	"""
 	logging.info(f"Beardless Bot {__version__} online!")
 
 	status = nextcord.Game(name="try !blackjack and !flip")
@@ -109,7 +128,7 @@ async def on_ready():
 
 
 @bot.event
-async def on_guild_join(guild: nextcord.Guild):
+async def on_guild_join(guild: nextcord.Guild) -> None:
 	logging.info(f"Just joined {guild.name}!")
 
 	if guild.me.guild_permissions.administrator:
@@ -851,13 +870,24 @@ async def cmdBuy(ctx: commands.Context, color: str = "none", *args) -> int:
 	return 1
 
 
-@bot.command(name="pins")
+@bot.command(name="pins", aliases=("sparpins", "howtospar"))
 async def cmdPins(ctx: commands.Context, *args) -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
-	if ctx.guild and ctx.channel.name == "looking-for-spar":
-		await ctx.send(embed=misc.sparPins)
-		return 1
+	if ctx.guild:
+		if ctx.channel.name == "looking-for-spar":
+			await ctx.send(embed=misc.sparPins)
+			return 1
+		else:
+			await ctx.send(
+				embed=misc.bbEmbed(
+					"Try using !spar in the looking-for-spar channel."
+				).add_field(
+					name="To spar someone from your region:",
+					value=misc.sparDesc,
+					inline=False
+				)
+			)
 	return 0
 
 
@@ -1097,7 +1127,9 @@ async def cmdSearch(ctx: commands.Context, *words) -> int:
 
 
 @bot.listen()
-async def on_command_error(ctx: commands.Context, e: Exception):
+async def on_command_error(
+	ctx: commands.Context, e: commands.errors.CommandError
+) -> None:
 	if isinstance(e, commands.CommandNotFound):
 		return
 	if isinstance(
