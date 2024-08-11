@@ -1,5 +1,6 @@
 """ Beardless Bot miscellaneous methods """
 
+import logging
 import re
 from datetime import datetime
 from json import loads
@@ -88,13 +89,15 @@ joinMsg = (
 	"order to allow me to moderate all users."
 )
 
+msgMaxLength = "**Message length exceeds 1024 characters.**"
 
-# Wrapper for nextcord.Embed.init() that defaults to
+
+# Wrapper for nextcord.Embed() that defaults to
 # commonly-used values and is easier to call
 def bbEmbed(
 	name: str = "",
 	value: str = "",
-	col: int = 0xFFF994,
+	col: Union[int, nextcord.Color] = 0xFFF994,
 	showTime: bool = False
 ) -> nextcord.Embed:
 	return nextcord.Embed(
@@ -105,17 +108,65 @@ def bbEmbed(
 	)
 
 
+def contCheck(msg: nextcord.Message) -> str:
+	if msg.content:
+		if len(msg.content) > 1024:
+			return msgMaxLength
+		return msg.content
+	return "**Embed**"
+
+
+def logException(e: Exception, ctx: commands.Context) -> None:
+	"""
+	Wrapper for logging.error to help with debugging.
+
+	Args:
+		e (Exception): The exception to log
+		ctx (commands.Context): The command invocation context
+	"""
+	logging.error(
+		f"{e} Command: {ctx.invoked_with}; Author: {ctx.author};"
+		f" Content: {contCheck(ctx.message)}; Guild: {ctx.guild}"
+	)
+
+
+async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
+	"""
+	Creates a "Muted" role that prevents users from sending messages.
+
+	Args:
+		guild (nextcord.Guild): The guild in which to create the role
+
+	Returns:
+		nextcord.Role: The Muted role.
+	"""
+	overwrite = nextcord.PermissionOverwrite(send_messages=False)
+	role = await guild.create_role(
+		name="Muted",
+		colour=nextcord.Colour(0x818386),
+		mentionable=False,
+		permissions=nextcord.Permissions(
+			send_messages=False,
+			read_messages=True,
+			send_messages_in_threads=False
+		)
+	)
+	for channel in guild.channels:
+		await channel.set_permissions(role, overwrite=overwrite)
+	return role
+
+
 def memSearch(
 	message: nextcord.Message, target: str
 ) -> Optional[nextcord.Member]:
 	"""
-	User lookup helper method. Finds user based on
-	username and/or discriminator (#1234).
-	Runs in linear time; worst case, does not find a
+	User lookup helper method. Finds user based on username and/or
+	discriminator (#1234). Runs in linear time; worst case, does not find a
 	loosely-matching target, takes O(n) operations
 	"""
 	term = str(target).lower()
 	semiMatch = looseMatch = None
+	assert message.guild
 	for member in message.guild.members:
 		if term == str(member).lower() or term == str(member.id):
 			return member
@@ -131,21 +182,32 @@ def memSearch(
 
 
 def getLogChannel(guild: nextcord.Guild) -> Optional[nextcord.TextChannel]:
-	channels = [c for c in guild.channels if c.name == "bb-log"]
-	if channels:
+	"""
+	#bb-log channel lookup helper method.
+
+	Args:
+		guild (nextcord.Guild): The guild to search
+
+	Returns:
+		Optional[nextcord.TextChannel]: The bb-log channel if it exists;
+			else, None.
+	"""
+	channels = [c for c in guild.text_channels if c.name == "bb-log"]
+	if channels and isinstance(channels[0], nextcord.TextChannel):
 		return channels[0]
 	return None
 
 
-def fetchAvatar(user: nextcord.User) -> str:
-	try:
+def fetchAvatar(
+	user: Union[nextcord.Member, nextcord.User, nextcord.ClientUser]
+) -> str:
+	if user.avatar:
 		return user.avatar.url
-	except AttributeError:
-		return user.default_avatar.url
+	return user.default_avatar.url
 
 
 def animal(animalType: str, breed: Optional[str] = None) -> str:
-	r = "Invalid Animal"
+	r: Union[requests.Response, str] = "Invalid Animal"
 
 	if "moose" in (animalType, breed):
 		r = requests.get("https://github.com/LevBernstein/moosePictures/")
@@ -228,7 +290,7 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 
 # Amortize the cost of pulling the frog images by making one initial call.
 # Two possible layouts, one when formatting fails.
-def getFrogList() -> List[str]:
+def getFrogList() -> List[Dict[str, str]]:
 	r = requests.get("https://github.com/a9-i/frog/tree/main/ImgSetOpt")
 	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 	try:
@@ -267,9 +329,10 @@ def define(word: str) -> nextcord.Embed:
 	return bbEmbed("Beardless Bot Definitions", "No results found.")
 
 
-def roll(text: str) -> Union[Tuple[None], Tuple[int, int, int, bool, int]]:
+def roll(text: str) -> Union[Tuple[None], Tuple[int, int, str, bool, int]]:
 	# Takes a string of the format mdn+b and rolls m
 	# n-sided dice with a modifier of b. m and b are optional.
+	diceNum: Union[str, int]
 	try:
 		diceNum, command = text.split("d", 1)
 	except (IndexError, ValueError):
@@ -314,7 +377,7 @@ def fact() -> str:
 
 
 def truncTime(member: Union[nextcord.User, nextcord.Member]) -> str:
-	return str(member.created_at)[:-7]
+	return str(member.created_at)[:-10]
 
 
 def info(target: nextcord.Member, msg: nextcord.Message) -> nextcord.Embed:
@@ -327,7 +390,7 @@ def info(target: nextcord.Member, msg: nextcord.Message) -> nextcord.Embed:
 		# not having one; if so, go invisible and back online
 		emb = (
 			bbEmbed(
-				value=target.activity.name if target.activity else "",
+				value=target.activity.name if target.activity else "",  # type: ignore
 				col=target.color
 			)
 			.set_author(name=target, icon_url=fetchAvatar(target))
@@ -338,7 +401,7 @@ def info(target: nextcord.Member, msg: nextcord.Message) -> nextcord.Embed:
 			)
 			.add_field(
 				name="Joined this server on",
-				value=str(target.joined_at)[:-7] + " UTC"
+				value=str(target.joined_at)[:-10] + " UTC"
 			)
 		)
 		if len(target.roles) > 1:
@@ -356,10 +419,14 @@ def info(target: nextcord.Member, msg: nextcord.Message) -> nextcord.Embed:
 	return emb
 
 
-def av(target: nextcord.Member, msg: nextcord.Message) -> nextcord.Embed:
-	if not isinstance(target, nextcord.Member):
-		target = memSearch(msg, target)
-	if target:
+def av(
+	target: Union[nextcord.User, nextcord.Member, str], msg: nextcord.Message
+) -> nextcord.Embed:
+	if not msg.guild:
+		target = msg.author
+	elif isinstance(target, str):
+		target = memSearch(msg, target)  # type: ignore
+	if target and not isinstance(target, str):
 		return (
 			bbEmbed(col=target.color)
 			.set_image(url=fetchAvatar(target))
@@ -395,7 +462,7 @@ class bbHelpCommand(commands.HelpCommand):
 			return -1
 		if not self.context.guild:
 			commandNum = 15
-		elif self.context.author.guild_permissions.manage_messages:
+		elif self.context.author.guild_permissions.manage_messages:  # type: ignore
 			commandNum = 20
 		else:
 			commandNum = 17
@@ -464,7 +531,7 @@ class bbHelpCommand(commands.HelpCommand):
 
 	async def send_error_message(self, error: str) -> None:
 		# TODO: configure proper send_command_help, send_error_message
-		pass
+		return None
 
 
 def scamCheck(text: str) -> bool:
@@ -521,7 +588,7 @@ def search(searchterm: str = "") -> nextcord.Embed:
 def tweet() -> str:
 	with open("resources/eggtweets_clean.txt", "r") as f:
 		words = f.read().split()
-	chains = {}
+	chains: Dict[str, List[str]] = {}
 	keySize = randint(1, 2)
 	for i in range(len(words) - keySize):
 		if (key := " ".join(words[i:i + keySize])) not in chains:

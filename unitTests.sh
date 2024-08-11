@@ -7,8 +7,8 @@ docstr-coverage ./ -e ".*/venv" -v 0 --badge resources/images/docstr-coverage.sv
 echo "# Beardless Bot Unit Test Results" > testResults.md;
 python3 -m coverage run --include=$(echo $PWD)/* --omit=*/lib/* \
 	-m pytest -W ignore::DeprecationWarning --ignore=*/lib/* --tb=line \
-	--junitxml=junit.xml |& tee -a testResults.md;
-python3 -m coverage report -m |& tee -a testResults.md;
+	--junitxml=junit.xml;
+python3 -m coverage report -m --precision=2 |& tee -a testResults.md;
 python3 -m coverage xml 1> /dev/null;
 rm resources/images/coverage.svg 2> /dev/null;
 genbadge coverage -i coverage.xml -o resources/images/coverage.svg >> /dev/null;

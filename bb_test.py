@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """ Beardless Bot unit tests """
 
 import asyncio
@@ -17,6 +18,7 @@ import pytest
 import requests
 from nextcord.ext import commands
 from flake8.api import legacy as flake8
+from mypy import api
 
 import Bot
 import brawl
@@ -600,11 +602,11 @@ class MockEmoji(nextcord.emoji.Emoji):
 		self._state = stateMessage._state
 		self._from_data(data)
 
-
-def getMockReactionPayload(
-	emojiName: str = "MockEmojiName", emojiId: int = 0, me: bool = False
-) -> Dict[str, Any]:
-	return {"me": me, "emoji": {"id": emojiId, "name": emojiName}}
+	@staticmethod
+	def getMockReactionPayload(
+		emojiName: str = "MockEmojiName", emojiId: int = 0, me: bool = False
+	) -> Dict[str, Any]:
+		return {"me": me, "emoji": {"id": emojiId, "name": emojiName}}
 
 
 brawlKey = environ.get("BRAWLKEY")
@@ -631,6 +633,13 @@ def test_pep8Compliance(letter: str) -> None:
 	]
 	report = styleGuide.check_files(files)
 	assert len(report.get_statistics(letter)) == 0
+
+
+def test_fullTypeChecking() -> None:
+	results = api.run([".", "--pretty"])
+	assert results[0].startswith("Success: no issues found")
+	assert results[1] == ""
+	assert results[2] == 0
 
 
 def test_mockContextChannels() -> None:
@@ -663,7 +672,7 @@ async def test_logException(caplog: pytest.LogCaptureFixture) -> None:
 @pytest.mark.asyncio
 async def test_createMutedRole() -> None:
 	g = MockGuild(roles=[])
-	role = await Bot.createMutedRole(g)
+	role = await misc.createMutedRole(g)
 	assert role.name == "Muted"
 	assert len(g.roles) == 1 and g.roles[0] == role
 
@@ -738,11 +747,11 @@ async def test_on_guild_join(caplog: pytest.LogCaptureFixture) -> None:
 
 @pytest.mark.parametrize(
 	"content,description",
-	[("e", "e"), ("", "**Embed**"), ("e" * 1025, logs.msgMaxLength)]
+	[("e", "e"), ("", "**Embed**"), ("e" * 1025, misc.msgMaxLength)]
 )
 def test_contCheck(content: str, description: str) -> None:
 	m = MockMessage(content)
-	assert logs.contCheck(m) == description
+	assert misc.contCheck(m) == description
 
 
 @pytest.mark.asyncio
@@ -758,6 +767,7 @@ async def test_on_message_delete() -> None:
 	)
 	history = m.channel.history()
 	assert history[0].embeds[0].description == log.description
+	assert not await Bot.on_message_delete(MockMessage())
 
 
 @pytest.mark.asyncio
@@ -776,6 +786,9 @@ async def test_on_bulk_message_delete() -> None:
 	log = logs.logPurge(messages[0], messages)
 	assert emb.description == log.description
 	assert log.description == f"Purged 99+ messages in {m.channel.mention}."
+	assert not await Bot.on_bulk_message_delete(
+		[MockMessage(guild=MockGuild())]
+	)
 
 
 @pytest.mark.asyncio
@@ -784,10 +797,10 @@ async def test_on_reaction_clear() -> None:
 	guild = MockGuild(channels=[channel])
 	channel.guild = guild
 	reaction = nextcord.Reaction(
-		message=MockMessage(), data=getMockReactionPayload("foo")
+		message=MockMessage(), data=MockEmoji.getMockReactionPayload("foo")
 	)
 	otherReaction = nextcord.Reaction(
-		message=MockMessage(), data=getMockReactionPayload("bar")
+		message=MockMessage(), data=MockEmoji.getMockReactionPayload("bar")
 	)
 	msg = MockMessage(guild=guild)
 	emb = await Bot.on_reaction_clear(msg, [reaction, otherReaction])
@@ -800,6 +813,9 @@ async def test_on_reaction_clear() -> None:
 	assert emb.fields[0].value.startswith(msg.content)
 	assert emb.fields[1].value == "<:foo:0>, <:bar:0>"
 	assert channel.history()[0].embeds[0].description == emb.description
+	assert not await Bot.on_reaction_clear(
+		MockMessage(guild=MockGuild()), [reaction, otherReaction]
+	)
 
 
 @pytest.mark.asyncio
@@ -812,6 +828,7 @@ async def test_on_guild_channel_delete() -> None:
 	assert log.description == f"Channel \"{channel.name}\" deleted."
 	history = g.channels[0].history()
 	assert history[0].embeds[0].description == log.description
+	assert not await Bot.on_guild_channel_delete(MockChannel(guild=MockGuild()))
 
 
 @pytest.mark.asyncio
@@ -824,6 +841,7 @@ async def test_on_guild_channel_create() -> None:
 	assert log.description == f"Channel \"{channel.name}\" created."
 	history = g.channels[0].history()
 	assert history[0].embeds[0].description == log.description
+	assert not await Bot.on_guild_channel_create(MockChannel(guild=MockGuild()))
 
 
 @pytest.mark.asyncio
@@ -836,6 +854,7 @@ async def test_on_member_ban() -> None:
 	assert log.description == f"Member {member.mention} banned\n{member.name}"
 	history = g.channels[0].history()
 	assert history[0].embeds[0].description == log.description
+	assert not await Bot.on_member_ban(MockGuild(), MockUser(guild=MockGuild()))
 
 
 @pytest.mark.asyncio
@@ -850,6 +869,7 @@ async def test_on_member_unban() -> None:
 	)
 	history = g.channels[0].history()
 	assert history[0].embeds[0].description == log.description
+	assert not await Bot.on_member_unban(MockGuild(), MockUser(guild=MockGuild()))
 
 
 @pytest.mark.asyncio
@@ -865,6 +885,7 @@ async def test_on_member_join() -> None:
 	)
 	history = member.guild.channels[0].history()
 	assert history[0].embeds[0].description == log.description
+	assert not await Bot.on_member_join(MockUser(guild=MockGuild()))
 
 
 @pytest.mark.asyncio
@@ -882,6 +903,7 @@ async def test_on_member_remove() -> None:
 	assert log.fields[0].value == member.roles[1].mention
 	history = member.guild.channels[0].history()
 	assert history[0].embeds[0].description == log.description
+	assert not await Bot.on_member_remove(MockUser(guild=MockGuild()))
 
 
 @pytest.mark.asyncio
@@ -913,6 +935,9 @@ async def test_on_member_update() -> None:
 	assert log.description == (
 		f"Role {new.roles[0].mention} removed from {old.mention}."
 	)
+
+	m = MockUser(guild=MockGuild())
+	assert not await Bot.on_member_update(m, m)
 
 
 @pytest.mark.asyncio
@@ -946,6 +971,7 @@ async def test_on_message_edit() -> None:
 	assert not any(
 		i.content.startswith("http://dizcort.com") for i in g.channels[0].history()
 	)
+	assert not await Bot.on_message_edit(MockMessage(), MockMessage())
 
 
 @pytest.mark.asyncio
@@ -965,6 +991,11 @@ async def test_on_thread_join() -> None:
 	)
 	assert channel.history()[0].embeds[0].description == emb.description
 
+	channel.name = "bar"
+	assert not await Bot.on_thread_join(
+		MockThread(parent=channel, me=None, name="Foo")
+	)
+
 
 @pytest.mark.asyncio
 async def test_on_thread_delete() -> None:
@@ -977,6 +1008,11 @@ async def test_on_thread_delete() -> None:
 		"Thread \"Foo\" deleted."
 	)
 	assert channel.history()[0].embeds[0].description == emb.description
+
+	channel.name = "bar"
+	assert not await Bot.on_thread_delete(
+		MockThread(parent=channel, me=MockUser(), name="Foo")
+	)
 
 
 @pytest.mark.asyncio
@@ -998,6 +1034,10 @@ async def test_on_thread_update() -> None:
 	assert emb.description == "Thread \"Foo\" archived."
 	assert channel.history()[0].embeds[0].description == emb.description
 
+	channel.name = "bar"
+	ch = MockThread(parent=channel, name="Foo")
+	assert not await Bot.on_thread_update(ch, ch)
+
 
 @pytest.mark.asyncio
 async def test_cmdDice() -> None:
@@ -1008,10 +1048,15 @@ async def test_cmdDice() -> None:
 	assert ch.history()[0].embeds[0].description == emb.description
 
 
-def test_fact() -> None:
+@pytest.mark.asyncio
+async def test_fact() -> None:
 	with open("resources/facts.txt", "r") as f:
 		lines = f.read().splitlines()
 	assert misc.fact() in lines
+	ch = MockChannel()
+	ctx = MockContext(Bot.bot, channel=ch, guild=MockGuild(channels=[ch]))
+	assert await Bot.cmdFact(ctx) == 1
+	assert ch.history()[0].embeds[0].description in lines
 
 
 def test_tweet() -> None:
@@ -1340,10 +1385,14 @@ def test_av() -> None:
 	avatar = str(misc.fetchAvatar(namedUser))
 	assert misc.av("searchterm", text).image.url == avatar
 	assert misc.av("error", text).title == "Invalid target!"
+	assert misc.av(namedUser, text).image.url == avatar
+	text.guild = None
+	text.author = namedUser
+	assert misc.av("searchterm", text).image.url == avatar
 
 
 @pytest.mark.asyncio
-async def test_commands() -> None:
+async def test_bbHelpCommand() -> None:
 	helpCommand = misc.bbHelpCommand()
 	helpCommand.context = MockContext(Bot.bot, guild=None)
 	await helpCommand.send_bot_help(None)
@@ -1363,6 +1412,9 @@ async def test_commands() -> None:
 	assert len(h[0].embeds[0].fields) == 17
 	helpCommand.context.message.type = nextcord.MessageType.thread_created
 	assert await helpCommand.send_bot_help(None) == -1
+
+	# For the time being, just pass on all invalid help calls
+	assert not await helpCommand.send_error_message("Foo")
 
 
 def test_pingMsg() -> None:
@@ -1433,6 +1485,8 @@ async def test_handleMessages() -> None:
 	u.bot = False
 	m.guild = None
 	assert await Bot.handleMessages(m) == -1
+
+	assert await Bot.handleMessages(MockMessage(guild=MockGuild())) == 1
 
 	u = MockUser(name="bar", roles=[])
 	g = MockGuild(members=[u], channels=[MockChannel(name="infractions")])

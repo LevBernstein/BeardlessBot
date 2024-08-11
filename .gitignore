@@ -8,3 +8,4 @@ htmlcov/*
 resources/logs/*
 venv/
 *.kdev4*
+junit.xml

@@ -4,23 +4,14 @@ from typing import List, Optional
 
 import nextcord
 
-from misc import bbEmbed, fetchAvatar, prof, truncTime
+from misc import bbEmbed, contCheck, fetchAvatar, prof, truncTime
 
 
 # TODO: Implement log thread locked/unlocked
 
-msgMaxLength = "**Message length exceeds 1024 characters.**"
-
-
-def contCheck(msg: nextcord.Message) -> str:
-	if msg.content:
-		if len(msg.content) > 1024:
-			return msgMaxLength
-		return msg.content
-	return "**Embed**"
-
 
 def logDeleteMsg(msg: nextcord.Message) -> nextcord.Embed:
+	assert isinstance(msg.channel, nextcord.abc.GuildChannel)
 	return bbEmbed(
 		"",
 		f"**Deleted message sent by {msg.author.mention} in "
@@ -37,9 +28,12 @@ def logPurge(
 	def purgeReport(msgList: List[nextcord.Message]) -> str:
 		return "99+" if len(msgList) > 99 else str(len(msgList) - 1)
 
+	assert isinstance(msg.channel, nextcord.abc.GuildChannel)
 	return bbEmbed(
 		"",
-		f"Purged {purgeReport(msgList)} messages in {msg.channel.mention}.",
+		"Purged {} messages in {}.".format(
+			purgeReport(msgList), msg.channel.mention
+		),
 		0xFF0000,
 		True
 	).set_author(name="Purge!", icon_url=prof)
@@ -48,6 +42,7 @@ def logPurge(
 def logEditMsg(
 	before: nextcord.Message, after: nextcord.Message
 ) -> nextcord.Embed:
+	assert isinstance(before.channel, nextcord.abc.GuildChannel)
 	return (
 		bbEmbed(
 			"",
@@ -69,6 +64,7 @@ def logEditMsg(
 def logClearReacts(
 	msg: nextcord.Message, reactions: List[nextcord.Reaction]
 ) -> nextcord.Embed:
+	assert isinstance(msg.channel, nextcord.abc.GuildChannel)
 	return (
 		bbEmbed(
 			"",
@@ -186,6 +182,7 @@ def logMute(
 	mString: Optional[str],
 	mTime: Optional[float]
 ) -> nextcord.Embed:
+	assert isinstance(message.channel, nextcord.abc.GuildChannel)
 	mid = f" for {duration} {mString}" if mTime else ""
 	return bbEmbed(
 		"Beardless Bot Mute",
@@ -204,6 +201,7 @@ def logUnmute(
 
 
 def logCreateThread(thread: nextcord.Thread) -> nextcord.Embed:
+	assert isinstance(thread.parent, nextcord.abc.GuildChannel)
 	emb = bbEmbed(
 		"",
 		f"Thread \"{thread.name}\" created in"
