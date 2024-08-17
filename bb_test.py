@@ -624,19 +624,19 @@ if not brawlKey:
 
 
 @pytest.mark.parametrize("letter", ["W", "E", "F", "I"])
-def test_pep8_compliance(letter: str) -> None:
+def test_pep8_compliance_with_flake8_for_code_quality(letter: str) -> None:
 	styleGuide = flake8.get_style_guide(ignore=["W191", "W503"])
 	assert styleGuide.check_files(bbFiles).get_statistics(letter) == []
 
 
-def test_full_type_checking() -> None:
+def test_full_type_checking_with_mypy_for_code_quality() -> None:
 	results = api.run(bbFiles + ["--pretty"])
 	assert results[0].startswith("Success: no issues found")
 	assert results[1] == ""
 	assert results[2] == 0
 
 
-def test_bandit_no_vulnerabilities() -> None:
+def test_no_security_vulnerabilities_with_bandit_for_code_quality() -> None:
 	mgr = bandit.manager.BanditManager(
 		bandit.config.BanditConfig(),
 		"file",
@@ -1257,16 +1257,49 @@ def test_leaderboard() -> None:
 	assert len(lb.fields) == len(fields) + 2
 
 
-def test_define() -> None:
-	word = misc.define("test")
-	assert word.title == "TEST" and word.description.startswith("Audio: ")
-	word = misc.define("n")
-	assert word.title == "N" and word.description == ""
-	assert misc.define("r").description == "No results found."
+@responses.activate
+def test_define_valid() -> None:
+	responses.get(
+		"https://api.dictionaryapi.dev/api/v2/entries/en_US/foo",
+		json=[
+			{
+				"word": "foo",
+				"phonetics": [{"audio": "spam"}],
+				"meanings": [{"definitions": [{"definition": "Foobar"}]}]
+			}
+		]
+	)
+	word = misc.define("foo")
+	assert word.title == "FOO" and word.description == "Audio: spam"
 
 
 @responses.activate
-def test_define_api_down() -> None:
+def test_define_no_audio_has_blank_description() -> None:
+	responses.get(
+		"https://api.dictionaryapi.dev/api/v2/entries/en_US/foo",
+		json=[
+			{
+				"word": "foo",
+				"phonetics": [],
+				"meanings": [{"definitions": [{"definition": "Foobar"}]}]
+			}
+		]
+	)
+	word = misc.define("foo")
+	assert word.title == "FOO" and word.description == ""
+
+
+@responses.activate
+def test_define_invalid_word_returns_no_results_found() -> None:
+	responses.get(
+		"https://api.dictionaryapi.dev/api/v2/entries/en_US/foo",
+		status=404
+	)
+	assert misc.define("foo").description == "No results found."
+
+
+@responses.activate
+def test_define_api_down_returns_error_message() -> None:
 	responses.get(
 		"https://api.dictionaryapi.dev/api/v2/entries/en_US/test",
 		status=400
@@ -1682,7 +1715,7 @@ async def test_thread_creation_does_not_invoke_commands() -> None:
 
 
 @responses.activate
-def test_getRank_monkeypatched_2s() -> None:
+def test_getRank_monkeypatched_for_2s_top_rating() -> None:
 	responses.get(
 		f"https://api.brawlhalla.com/player/1/ranked?api_key={brawlKey}",
 		json={
