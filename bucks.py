@@ -427,7 +427,7 @@ def leaderboard(
 		head, body = sortedDict.popitem()
 		lastEntry = (i != min(len(sortedDict), 10) - 1)
 		emb.add_field(
-			name=f"{i + 1}. {head.split("#")[0]}", value=body, inline=lastEntry
+			name=f"{i + 1}. {head.split('#')[0]}", value=body, inline=lastEntry
 		)
 	if target and pos:
 		assert not isinstance(target, str)
