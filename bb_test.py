@@ -1,31 +1,33 @@
 # mypy: ignore-errors
-""" Beardless Bot unit tests """
+"""Beardless Bot unit tests"""
 
 import asyncio
 import logging
 from copy import copy
 from datetime import datetime
-from dotenv import dotenv_values
 from json import load
-from os import environ
+from os import environ, listdir, remove
 from random import choice
 from time import sleep
-from typing import Any, Dict, Final, List, Optional, Union
+from typing import Any, Dict, Final, List, Literal, Optional, Union
 from urllib.parse import quote_plus
 
+import aiofiles
+import bandit
 import nextcord
 import pytest
 import requests
-from nextcord.ext import commands
+import responses
+from dotenv import dotenv_values
 from flake8.api import legacy as flake8
 from mypy import api
+from nextcord.ext import commands
 
 import Bot
 import brawl
 import bucks
 import logs
 import misc
-
 
 imageTypes = (
 	"image/png",
@@ -34,6 +36,8 @@ imageTypes = (
 	"image/gif",
 	"image/webp"
 )
+
+bbFiles = [f for f in listdir() if f.endswith(".py")]
 
 # TODO: refactor away from this magic number
 bbId: Final[int] = 654133911558946837
@@ -54,7 +58,7 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 		user: Optional[nextcord.User] = None
 	) -> None:
 		self.loop = loop
-		self.user_agent = user
+		self.user_agent = str(user)
 		self.token = None
 		self.proxy = None
 		self.proxy_auth = None
@@ -63,10 +67,10 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 		self._global_over.set()
 
 	async def create_role(
-		self, roleId: int, reason: Optional[str] = None, **fields: Any
+		self, guild_id: int, reason: Optional[str] = None, **fields: Any
 	) -> Dict[str, Any]:
 		data = {key: value for key, value in fields.items()}
-		data["id"] = roleId
+		data["id"] = guild_id
 		data["name"] = fields["name"] if "name" in fields else "TestRole"
 		return data
 
@@ -85,7 +89,7 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 		components: Optional[List[Any]] = None,
 		**kwargs
 	) -> Dict[str, Any]:
-		data = {
+		data: Dict[str, Any] = {
 			"attachments": [],
 			"edited_timestamp": None,
 			"type": nextcord.Message,
@@ -129,7 +133,7 @@ class MockUser(nextcord.User):
 
 	class MockUserState():
 		def __init__(self, messageNum: int = 0) -> None:
-			self._guilds = {}
+			self._guilds: Dict[int, nextcord.Guild] = {}
 			self.allowed_mentions = nextcord.AllowedMentions(everyone=True)
 			self.loop = asyncio.get_event_loop()
 			self.http = MockHTTPClient(self.loop)
@@ -150,7 +154,7 @@ class MockUser(nextcord.User):
 			return MockUser()
 
 		def setClientUser(self) -> None:
-			self.http.user_agent = self.user
+			self.http.user_agent = str(self.user)
 
 		def _get_private_channel_by_user(self, id: int) -> nextcord.TextChannel:
 			return self.channel
@@ -251,7 +255,7 @@ class MockChannel(nextcord.TextChannel):
 		self.topic = None
 		self.category_id = 0
 		self.guild = guild
-		self.messages = []
+		self.messages: List[nextcord.Message] = []
 		self._type = 0
 		self._state = self.MockChannelState(messageNum=len(messages))
 		self._overwrites = []
@@ -282,7 +286,7 @@ class MockChannel(nextcord.TextChannel):
 			guild.channels.append(self)
 
 
-# TODO: Write message.edit(), message.delete()
+# TODO: Write message.edit()
 class MockMessage(nextcord.Message):
 
 	class MockMessageState():
@@ -318,8 +322,14 @@ class MockMessage(nextcord.Message):
 		self._state = self.MockMessageState(author, guild)
 		self.channel._state._messages.append(self)
 
-	async def delete(self):
+	async def delete(self) -> None:
 		self.channel._state._messages.remove(self)
+
+	@staticmethod
+	def getMockReactionPayload(
+		emojiName: str = "MockEmojiName", emojiId: int = 0, me: bool = False
+	) -> Dict[str, Any]:
+		return {"me": me, "emoji": {"id": emojiId, "name": emojiName}}
 
 
 # TODO: switch to guild.MockRole(*kwargs) factory method:
@@ -354,7 +364,7 @@ class MockGuild(nextcord.Guild):
 			self.http = MockHTTPClient(self.loop, user=user)
 			self._intents = nextcord.Intents.all()
 
-		def is_guild_evicted(self, *args, **kwargs: Any) -> False:
+		def is_guild_evicted(self, *args, **kwargs: Any) -> Literal[False]:
 			return False
 
 		async def chunk_guild(self, *args, **kwargs: Any) -> None:
@@ -405,7 +415,7 @@ class MockGuild(nextcord.Guild):
 			"colour": colour if isinstance(colour, int) else colour.value
 		}
 
-		data = await self._state.http.create_role(len(self.roles), **fields)
+		data = await self._state.http.create_role(self.id, **fields)
 		role = nextcord.Role(guild=self, data=data, state=self._state)
 		self._roles[len(self.roles)] = role
 
@@ -413,7 +423,6 @@ class MockGuild(nextcord.Guild):
 
 	def assignGuild(self, role: nextcord.Role) -> None:
 		role.guild = self
-		return
 
 	def get_member(self, userId: int) -> Optional[nextcord.Member]:
 		class MockGuildMember(nextcord.Member):
@@ -463,14 +472,14 @@ class MockThread(nextcord.Thread):
 		self.me = me
 		self._members = copy(channel.guild._members)
 		if self.me and not any(
-			[user.id == Bot.bot.user.id for user in self.members]
+			user.id == Bot.bot.user.id for user in self.members
 		):
 			self._members[len(self.members)] = Bot.bot.user.baseUser
 		self.member_count = len(self.members)
 
 	async def join(self):
-		if not any([user.id == Bot.bot.user.id for user in self.members]):
-			if not any([user.id == Bot.bot.user.id for user in self.guild.members]):
+		if not any(user.id == Bot.bot.user.id for user in self.members):
+			if not any(user.id == Bot.bot.user.id for user in self.guild.members):
 				self.guild._members[len(self.guild.members)] = Bot.bot.user.baseUser
 			self._members[len(self.members)] = Bot.bot.user.baseUser
 
@@ -555,7 +564,7 @@ class MockBot(commands.Bot):
 			}
 			await self.send(data)
 
-		async def send(self, data: Dict[str, any], /) -> Dict[str, Any]:
+		async def send(self, data: Dict[str, Any], /) -> Dict[str, Any]:
 			self.bot.status = nextcord.Status(value="online")
 			self.bot.activity = data["d"]["activities"][0]
 			return data
@@ -602,12 +611,6 @@ class MockEmoji(nextcord.emoji.Emoji):
 		self._state = stateMessage._state
 		self._from_data(data)
 
-	@staticmethod
-	def getMockReactionPayload(
-		emojiName: str = "MockEmojiName", emojiId: int = 0, me: bool = False
-	) -> Dict[str, Any]:
-		return {"me": me, "emoji": {"id": emojiId, "name": emojiName}}
-
 
 brawlKey = environ.get("BRAWLKEY")
 if not brawlKey:
@@ -620,26 +623,35 @@ if not brawlKey:
 		)
 
 
-@pytest.mark.parametrize("letter", ["W", "E", "F"])
-def test_pep8Compliance(letter: str) -> None:
+@pytest.mark.parametrize("letter", ["W", "E", "F", "I"])
+def test_pep8_compliance(letter: str) -> None:
 	styleGuide = flake8.get_style_guide(ignore=["W191", "W503"])
-	files = [
-		"bb_test.py",
-		"Bot.py",
-		"brawl.py",
-		"bucks.py",
-		"logs.py",
-		"misc.py"
-	]
-	report = styleGuide.check_files(files)
-	assert len(report.get_statistics(letter)) == 0
+	assert styleGuide.check_files(bbFiles).get_statistics(letter) == []
 
 
-def test_fullTypeChecking() -> None:
-	results = api.run([".", "--pretty"])
+def test_full_type_checking() -> None:
+	results = api.run(bbFiles + ["--pretty"])
 	assert results[0].startswith("Success: no issues found")
 	assert results[1] == ""
 	assert results[2] == 0
+
+
+def test_bandit_no_vulnerabilities() -> None:
+	mgr = bandit.manager.BanditManager(
+		bandit.config.BanditConfig(),
+		"file",
+		profile={"exclude": ["B101", "B311"]}
+	)
+	mgr.discover_files(bbFiles)
+	mgr.run_tests()
+	try:
+		with open("bandit.txt", "w") as f:
+			mgr.output_results(3, "LOW", "LOW", f, "txt")
+		with open("bandit.txt") as f:
+			results = f.read()
+		assert results.splitlines()[3].endswith("No issues identified.")
+	finally:
+		remove("bandit.txt")
 
 
 def test_mockContextChannels() -> None:
@@ -776,6 +788,7 @@ async def test_on_bulk_message_delete() -> None:
 	m.guild = MockGuild(channels=[m.channel])
 	messages = [m, m, m]
 	emb = await Bot.on_bulk_message_delete(messages)
+	assert emb is not None
 	log = logs.logPurge(messages[0], messages)
 	assert emb.description == log.description
 	assert log.description == f"Purged 2 messages in {m.channel.mention}."
@@ -783,6 +796,7 @@ async def test_on_bulk_message_delete() -> None:
 	assert history[0].embeds[0].description == log.description
 	messages = [m] * 105
 	emb = await Bot.on_bulk_message_delete(messages)
+	assert emb is not None
 	log = logs.logPurge(messages[0], messages)
 	assert emb.description == log.description
 	assert log.description == f"Purged 99+ messages in {m.channel.mention}."
@@ -797,13 +811,14 @@ async def test_on_reaction_clear() -> None:
 	guild = MockGuild(channels=[channel])
 	channel.guild = guild
 	reaction = nextcord.Reaction(
-		message=MockMessage(), data=MockEmoji.getMockReactionPayload("foo")
+		message=MockMessage(), data=MockMessage.getMockReactionPayload("foo")
 	)
 	otherReaction = nextcord.Reaction(
-		message=MockMessage(), data=MockEmoji.getMockReactionPayload("bar")
+		message=MockMessage(), data=MockMessage.getMockReactionPayload("bar")
 	)
 	msg = MockMessage(guild=guild)
 	emb = await Bot.on_reaction_clear(msg, [reaction, otherReaction])
+	assert emb is not None
 	assert (
 		emb.description.startswith(
 			"Reactions cleared from message sent by"
@@ -823,6 +838,7 @@ async def test_on_guild_channel_delete() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	channel = MockChannel(guild=g)
 	emb = await Bot.on_guild_channel_delete(channel)
+	assert emb is not None
 	log = logs.logDeleteChannel(channel)
 	assert emb.description == log.description
 	assert log.description == f"Channel \"{channel.name}\" deleted."
@@ -836,6 +852,7 @@ async def test_on_guild_channel_create() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	channel = MockChannel(guild=g)
 	emb = await Bot.on_guild_channel_create(channel)
+	assert emb is not None
 	log = logs.logCreateChannel(channel)
 	assert emb.description == log.description
 	assert log.description == f"Channel \"{channel.name}\" created."
@@ -849,6 +866,7 @@ async def test_on_member_ban() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	member = MockUser()
 	emb = await Bot.on_member_ban(g, member)
+	assert emb is not None
 	log = logs.logBan(member)
 	assert emb.description == log.description
 	assert log.description == f"Member {member.mention} banned\n{member.name}"
@@ -862,6 +880,7 @@ async def test_on_member_unban() -> None:
 	g = MockGuild(channels=[MockChannel(name="bb-log")])
 	member = MockUser()
 	emb = await Bot.on_member_unban(g, member)
+	assert emb is not None
 	log = logs.logUnban(member)
 	assert emb.description == log.description
 	assert (
@@ -877,6 +896,7 @@ async def test_on_member_join() -> None:
 	member = MockUser()
 	member.guild = MockGuild(channels=[MockChannel(name="bb-log")])
 	emb = await Bot.on_member_join(member)
+	assert emb is not None
 	log = logs.logMemberJoin(member)
 	assert emb.description == log.description
 	assert log.description == (
@@ -893,11 +913,13 @@ async def test_on_member_remove() -> None:
 	member = MockUser()
 	member.guild = MockGuild(channels=[MockChannel(name="bb-log")])
 	emb = await Bot.on_member_remove(member)
+	assert emb is not None
 	log = logs.logMemberRemove(member)
 	assert emb.description == log.description
 	assert log.description == f"Member {member.mention} left\nID: {member.id}"
 	member.roles = member.guild.roles[0], member.guild.roles[0]
 	emb = await Bot.on_member_remove(member)
+	assert emb is not None
 	log = logs.logMemberRemove(member)
 	assert emb.description == log.description
 	assert log.fields[0].value == member.roles[1].mention
@@ -912,6 +934,7 @@ async def test_on_member_update() -> None:
 	old = MockUser(nick="a", roles=[], guild=guild)
 	new = MockUser(nick="b", roles=[], guild=guild)
 	emb = await Bot.on_member_update(old, new)
+	assert emb is not None
 	log = logs.logMemberNickChange(old, new)
 	assert emb.description == log.description
 	assert log.description == "Nickname of " + new.mention + " changed."
@@ -923,6 +946,7 @@ async def test_on_member_update() -> None:
 	new = MockUser(nick="a", guild=guild)
 	new.roles = [new.guild.roles[0], new.guild.roles[0]]
 	emb = await Bot.on_member_update(old, new)
+	assert emb is not None
 	log = logs.logMemberRolesChange(old, new)
 	assert emb.description == log.description
 	assert log.description == (
@@ -930,6 +954,7 @@ async def test_on_member_update() -> None:
 	)
 
 	emb = await Bot.on_member_update(new, old)
+	assert emb is not None
 	log = logs.logMemberRolesChange(new, old)
 	assert emb.description == log.description
 	assert log.description == (
@@ -951,6 +976,7 @@ async def test_on_message_edit() -> None:
 	before = MockMessage(content="old", author=member, guild=g)
 	after = MockMessage(content="new", author=member, guild=g)
 	emb = await Bot.on_message_edit(before, after)
+	assert emb is not None
 	log = logs.logEditMsg(before, after)
 	assert emb.description == log.description
 	assert emb.description == (
@@ -963,6 +989,7 @@ async def test_on_message_edit() -> None:
 	)
 	after.content = "http://dizcort.com free nitro!"
 	emb = await Bot.on_message_edit(before, after)
+	assert emb is not None
 	assert g.channels[0].history()[1].content.startswith("Deleted possible")
 	assert len(g.roles) == 1 and g.roles[0].name == "Muted"
 
@@ -986,6 +1013,7 @@ async def test_on_thread_join() -> None:
 	thread._members = {}
 	emb = await Bot.on_thread_join(thread)
 	assert len(thread.members) == 1
+	assert emb is not None
 	assert emb.description == (
 		"Thread \"Foo\" created in parent channel <#0>."
 	)
@@ -1004,6 +1032,7 @@ async def test_on_thread_delete() -> None:
 	channel.guild = guild
 	thread = MockThread(parent=channel, name="Foo")
 	emb = await Bot.on_thread_delete(thread)
+	assert emb is not None
 	assert emb.description == (
 		"Thread \"Foo\" deleted."
 	)
@@ -1027,10 +1056,12 @@ async def test_on_thread_update() -> None:
 	before.archived = True
 	before.archive_timestamp = datetime.now()
 	emb = await Bot.on_thread_update(before, after)
+	assert emb is not None
 	assert emb.description == "Thread \"Foo\" unarchived."
 	assert channel.history()[0].embeds[0].description == emb.description
 
 	emb = await Bot.on_thread_update(after, before)
+	assert emb is not None
 	assert emb.description == "Thread \"Foo\" archived."
 	assert channel.history()[0].embeds[0].description == emb.description
 
@@ -1050,8 +1081,8 @@ async def test_cmdDice() -> None:
 
 @pytest.mark.asyncio
 async def test_fact() -> None:
-	with open("resources/facts.txt", "r") as f:
-		lines = f.read().splitlines()
+	async with aiofiles.open("resources/facts.txt") as f:
+		lines = (await f.read()).splitlines()
 	assert misc.fact() in lines
 	ch = MockChannel()
 	ctx = MockContext(Bot.bot, channel=ch, guild=MockGuild(channels=[ch]))
@@ -1064,8 +1095,8 @@ def test_tweet() -> None:
 	assert ("\n" + eggTweet).startswith(misc.formattedTweet(eggTweet))
 	assert "." not in misc.formattedTweet("test tweet.")
 	assert "." not in misc.formattedTweet("test tweet")
-	eggTweet = eggTweet.split(" ")
-	assert len(eggTweet) >= 11 and len(eggTweet) <= 37
+	tweetLen = len(eggTweet.split(" "))
+	assert 11 <= tweetLen <= 37
 
 
 @pytest.mark.parametrize("side", [4, 6, 8, 10, 12, 20, 100])
@@ -1087,6 +1118,7 @@ def test_dice_irregular() -> None:
 	assert misc.rollReport("d9", user).description.startswith("Invalid")
 	assert not misc.roll("d40")[0]
 	results = misc.roll("d100+asfjksdfhkdsfhksd")
+	assert len(results) == 5
 	assert results[0] in range(1, 101)
 	assert results[4] == 0
 
@@ -1212,25 +1244,35 @@ def test_writeMoney() -> None:
 
 
 def test_leaderboard() -> None:
-	bb = MockUser("Beardless Bot", "Beardless Bot", 5757, bbId)
 	lb = bucks.leaderboard()
 	assert lb.title == "BeardlessBucks Leaderboard"
 	fields = lb.fields
 	if len(fields) >= 2:  # This check in case of an empty leaderboard
 		assert int(fields[0].value) > int(fields[1].value)
-	user = MockUser(name="bad,name", id=0)
-	lb = bucks.leaderboard(user, MockMessage(author=user))
+	lb = bucks.leaderboard(MockUser(name="bad,name", id=0), MockMessage())
 	assert len(lb.fields) == len(fields)
-	lb = bucks.leaderboard(bb, MockMessage(author=bb))
+	lb = bucks.leaderboard(
+		MockUser("Beardless Bot", "Beardless Bot", 5757, bbId), MockMessage()
+	)
 	assert len(lb.fields) == len(fields) + 2
 
 
 def test_define() -> None:
 	word = misc.define("test")
 	assert word.title == "TEST" and word.description.startswith("Audio: ")
-	word = misc.define("gtg")
-	assert word.title == "GTG" and word.description == ""
-	assert misc.define("invalidword").description == "No results found."
+	word = misc.define("n")
+	assert word.title == "N" and word.description == ""
+	assert misc.define("r").description == "No results found."
+
+
+@responses.activate
+def test_define_api_down() -> None:
+	responses.get(
+		"https://api.dictionaryapi.dev/api/v2/entries/en_US/test",
+		status=400
+	)
+	word = misc.define("test")
+	assert word.description.startswith("There was an error")
 
 
 def test_flip() -> None:
@@ -1303,8 +1345,45 @@ async def test_cmdBlackjack() -> None:
 
 def test_blackjack_perfect() -> None:
 	game = bucks.BlackjackGame(MockUser(), 10)
-	game.cards = 10, 11
+	game.cards = [10, 11]
 	assert game.perfect()
+
+
+@pytest.mark.asyncio
+async def test_cmdDeal() -> None:
+	Bot.games = []
+	bb = MockUser("Beardless,Bot", "Beardless Bot", 5757, bbId)
+	ctx = MockContext(Bot.bot, author=bb, message=MockMessage("!hit"))
+	assert await Bot.cmdDeal(ctx) == 1
+	emb = ctx.channel.history()[0].embeds[0]
+	assert emb.description == bucks.commaWarn.format(bb.mention)
+
+	bb.name = "Beardless Bot"
+	assert await Bot.cmdDeal(ctx) == 1
+	emb = ctx.channel.history()[0].embeds[0]
+	assert emb.description == bucks.noGameMsg.format(bb.mention)
+
+	game = bucks.BlackjackGame(bb, 0)
+	game.cards = [2, 2]
+	Bot.games = []
+	Bot.games.append(game)
+	assert await Bot.cmdDeal(ctx) == 1
+	emb = ctx.channel.history()[0].embeds[0]
+	assert len(game.cards) == 3
+	assert emb.description.startswith("You were dealt")
+
+	game.cards = [10, 10, 10]
+	assert await Bot.cmdDeal(ctx) == 1
+	emb = ctx.channel.history()[0].embeds[0]
+	assert f"You busted. Game over, {bb.mention}." in emb.description
+	assert len(Bot.games) == 0
+
+	# TODO: use monkeypatch to force a perfect
+	# game = bucks.BlackjackGame(bb, 0)
+	# game.cards = [10, 10]
+	# Bot.games.append(game)
+	# assert f"You hit 21! You win, {bb.mention}!" in emb.description
+	# assert len(Bot.games) == 0
 
 
 def test_blackjack_deal() -> None:
@@ -1331,8 +1410,10 @@ def test_blackjack_cardName() -> None:
 
 def test_blackjack_checkBust() -> None:
 	game = bucks.BlackjackGame(MockUser(), 10)
-	game.cards = 10, 10, 10
+	game.cards = [10, 10, 10]
 	assert game.checkBust()
+	game.cards = [3, 4]
+	assert not game.checkBust()
 
 
 def test_blackjack_stay() -> None:
@@ -1344,7 +1425,7 @@ def test_blackjack_stay() -> None:
 	assert game.stay() == 1
 	game.deal()
 	assert game.stay() == 1
-	game.cards = 10, 10
+	game.cards = [10, 10]
 	assert game.stay() == 0
 
 
@@ -1447,7 +1528,7 @@ def test_scamCheck() -> None:
 def test_search_valid(searchterm: str) -> None:
 	url = "https://www.google.com/search?q=" + quote_plus(searchterm)
 	assert url == misc.search(searchterm).description
-	r = requests.get(url)
+	r = requests.get(url, timeout=10)
 	assert r.ok
 
 
@@ -1457,21 +1538,69 @@ def test_search_invalid() -> None:
 
 @pytest.mark.parametrize("animalName", list(misc.animalList) + ["dog"])
 def test_animal_with_goodUrl(animalName: str) -> None:
-	assert goodURL(requests.get(misc.animal(animalName)))
+	assert goodURL(requests.get(misc.animal(animalName), timeout=10))
 
 
 def test_animal_dog_breed() -> None:
 	breeds = misc.animal("dog", "breeds")[12:-1].split(", ")
 	assert len(breeds) == 107
-	assert goodURL(requests.get(misc.animal("dog", choice(breeds))))
+	assert goodURL(
+		requests.get(misc.animal("dog", choice(breeds)), timeout=10)
+	)
 	assert misc.animal("dog", "invalidbreed").startswith("Breed not")
 	assert misc.animal("dog", "invalidbreed1234").startswith("Breed not")
-	assert goodURL(requests.get(misc.animal("dog", "moose")))
+	assert goodURL(requests.get(misc.animal("dog", "moose"), timeout=10))
 
 
-def test_invalid_animal_raises_exception() -> None:
+def test_invalid_animal_throws_exception() -> None:
 	with pytest.raises(ValueError):
 		misc.animal("invalidAnimal")
+
+
+@responses.activate
+def test_dog_api_down_throws_exception(
+	caplog: pytest.LogCaptureFixture
+) -> None:
+	responses.get(
+		"https://dog.ceo/api/breeds/image/random",
+		status=522
+	)
+
+	with pytest.raises(requests.exceptions.RequestException):
+		misc.animal("dog")
+
+	assert len(caplog.records) == 9
+	assert caplog.records[8].msg == "Dog API trying again, call 9"
+
+
+@responses.activate
+def test_getFrogList_standard_layout() -> None:
+	responses.get(
+		"https://github.com/a9-i/frog/tree/main/ImgSetOpt",
+		body=(
+			b"<!DOCTYPE html><html><script>{\"payload\":{\"tree\":{\"items\":"
+			b"[{\"name\":\"0\"}]}}}</script></html>"
+		)
+	)
+
+	frogs = misc.getFrogList()
+	assert len(frogs) == 1
+	assert frogs[0]["name"] == "0"
+
+
+@responses.activate
+def test_getFrogList_alt_layout() -> None:
+	responses.get(
+		"https://github.com/a9-i/frog/tree/main/ImgSetOpt",
+		body=(
+			b"<!DOCTYPE html><html><script>{\"payload\":{\"tree\":{\"items\":"
+			b"[{\"name\":\"0\\\"}]}}}</script><script>{}</script></html>"
+		)
+	)
+
+	frogs = misc.getFrogList()
+	assert len(frogs) == 1
+	assert frogs[0]["name"] == "0\\"
 
 
 @pytest.mark.asyncio
@@ -1552,6 +1681,38 @@ async def test_thread_creation_does_not_invoke_commands() -> None:
 			assert await command(ctx) == -1
 
 
+@responses.activate
+def test_getRank_monkeypatched_2s() -> None:
+	responses.get(
+		f"https://api.brawlhalla.com/player/1/ranked?api_key={brawlKey}",
+		json={
+			"name": "Foo",
+			"region": "us-east-1",
+			"rating": 0,
+			"2v2": [
+				{
+					"teamname": "Foo+Bar",
+					"tier": "Platinum 3",
+					"rating": 1812,
+					"peak_rating": 1812,
+					"wins": 1,
+					"games": 2
+				}
+			]
+		}
+	)
+
+	try:
+		brawl.claimProfile(196354892208537600, 1)
+		emb = brawl.getRank(MockUser(id=196354892208537600), brawlKey)
+		assert emb.fields[0].name == "Ranked 2s"
+		assert emb.fields[0].value.startswith("**Foo+Bar")
+		assert emb.fields[0].value.endswith("50.0% winrate")
+		assert emb.color.value == 20916
+	finally:
+		brawl.claimProfile(196354892208537600, 7032472)
+
+
 # Tests for commands that require a Brawlhalla API key:
 
 if brawlKey:
@@ -1577,14 +1738,16 @@ if brawlKey:
 		assert not brawl.fetchBrawlId(bbId)
 
 	def test_claimProfile() -> None:
-		with open("resources/claimedProfs.json", "r") as f:
+		with open("resources/claimedProfs.json") as f:
 			profsLen = len(load(f))
-		brawl.claimProfile(196354892208537600, 1)
-		with open("resources/claimedProfs.json", "r") as f:
-			assert profsLen == len(load(f))
-		assert brawl.fetchBrawlId(196354892208537600) == 1
-		brawl.claimProfile(196354892208537600, 7032472)
-		assert brawl.fetchBrawlId(196354892208537600) == 7032472
+		try:
+			brawl.claimProfile(196354892208537600, 1)
+			with open("resources/claimedProfs.json") as f:
+				assert profsLen == len(load(f))
+			assert brawl.fetchBrawlId(196354892208537600) == 1
+		finally:
+			brawl.claimProfile(196354892208537600, 7032472)
+			assert brawl.fetchBrawlId(196354892208537600) == 7032472
 
 	@pytest.mark.parametrize(
 		"url,result", [
@@ -1608,9 +1771,11 @@ if brawlKey:
 		assert brawl.getRank(user, brawlKey).description == (
 			"You haven't played ranked yet this season."
 		)
-		brawl.claimProfile(196354892208537600, 37)
-		assert brawl.getRank(user, brawlKey).color.value == 16306282
-		brawl.claimProfile(196354892208537600, 7032472)
+		try:
+			brawl.claimProfile(196354892208537600, 37)
+			assert brawl.getRank(user, brawlKey).color.value == 16306282
+		finally:
+			brawl.claimProfile(196354892208537600, 7032472)
 
 	def test_getLegends() -> None:
 		sleep(5)
@@ -1644,14 +1809,16 @@ if brawlKey:
 			brawl.unclaimed.format(user.mention)
 		)
 		user.id = 196354892208537600
-		brawl.claimProfile(196354892208537600, 7032472)
-		emb = brawl.getStats(user, brawlKey)
-		assert emb.footer.text == "Brawl ID 7032472"
-		assert len(emb.fields) in (3, 4)
-		brawl.claimProfile(196354892208537600, 1247373426)
-		emb = brawl.getStats(user, brawlKey)
-		assert emb.description.startswith("This profile doesn't have stats")
-		brawl.claimProfile(196354892208537600, 7032472)
+		try:
+			brawl.claimProfile(196354892208537600, 7032472)
+			emb = brawl.getStats(user, brawlKey)
+			assert emb.footer.text == "Brawl ID 7032472"
+			assert len(emb.fields) in (3, 4)
+			brawl.claimProfile(196354892208537600, 1247373426)
+			emb = brawl.getStats(user, brawlKey)
+			assert emb.description.startswith("This profile doesn't have stats")
+		finally:
+			brawl.claimProfile(196354892208537600, 7032472)
 
 	def test_getClan() -> None:
 		sleep(5)
@@ -1660,13 +1827,17 @@ if brawlKey:
 			brawl.unclaimed.format(user.mention)
 		)
 		user.id = 196354892208537600
-		brawl.claimProfile(196354892208537600, 7032472)
-		assert brawl.getClan(user, brawlKey).title == "DinersDriveInsDives"
-		brawl.claimProfile(196354892208537600, 5895238)
-		assert brawl.getClan(user, brawlKey).description == (
-			"You are not in a clan!"
-		)
-		brawl.claimProfile(196354892208537600, 7032472)
+		try:
+			brawl.claimProfile(196354892208537600, 7032472)
+			assert brawl.getClan(
+				user, brawlKey
+			).title == "DinersDriveInsDives"
+			brawl.claimProfile(196354892208537600, 5895238)
+			assert brawl.getClan(
+				user, brawlKey
+			).description == "You are not in a clan!"
+		finally:
+			brawl.claimProfile(196354892208537600, 7032472)
 
 	def test_brawlCommands() -> None:
 		sleep(5)

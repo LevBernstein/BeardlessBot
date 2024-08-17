@@ -1,4 +1,4 @@
-""" Beardless Bot methods that modify resources/money.csv """
+"""Beardless Bot methods that modify resources/money.csv"""
 
 import csv
 from collections import OrderedDict
@@ -9,7 +9,6 @@ from typing import Dict, List, Optional, Tuple, Union
 import nextcord
 
 from misc import bbEmbed, memSearch
-
 
 commaWarn = (
 	"Beardless Bot gambling is available to Discord"
@@ -64,6 +63,7 @@ class BlackjackGame:
 			Determines the game result after ending the game
 		cardName(card):
 			Gives the human-friendly name of a given card
+
 	"""
 
 	cardVals = (2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11)
@@ -75,7 +75,7 @@ class BlackjackGame:
 		debug: bool = False
 	) -> None:
 		"""
-		Creates a new BlackjackGame instance. In order to simulate the dealer
+		Create a new BlackjackGame instance. In order to simulate the dealer
 		standing on a soft 17, the dealer's sum will be incremented by a random card
 		value until reaching 17.
 
@@ -84,6 +84,7 @@ class BlackjackGame:
 			bet (int): The number of BeardlessBucks the user is betting
 			debug (bool): Whether to fix the game for testing
 				(default is False)
+
 		"""
 		self.user = user
 		self.bet = bet
@@ -95,14 +96,14 @@ class BlackjackGame:
 		self.message = self.startingHand(debug)
 
 	def perfect(self) -> bool:
-		"""Checks if the user has reached a Blackjack."""
+		"""Check if the user has reached a Blackjack."""
 		return sum(self.cards) == 21
 
 	def startingHand(
 		self, debugBlackjack: bool = False, debugDoubleAces: bool = False
 	) -> str:
 		"""
-		Deals the user a starting hand of 2 cards.
+		Deal the user a starting hand of 2 cards.
 
 		Args:
 			debugBlackjack (bool): Used to test hitting 21 (default is False)
@@ -111,6 +112,7 @@ class BlackjackGame:
 
 		Returns:
 			str: the message to show the user
+
 		"""
 		self.cards.append(choice(BlackjackGame.cardVals))
 		self.cards.append(choice(BlackjackGame.cardVals))
@@ -142,13 +144,14 @@ class BlackjackGame:
 
 	def deal(self, debug: bool = False) -> str:
 		"""
-		Deals the user a single card.
+		Deal the user a single card.
 
 		Args:
 			debug (bool): Used to test hitting 21 (default is False)
 
 		Returns:
 			str: the message to show the user
+
 		"""
 		dealt = choice(BlackjackGame.cardVals)
 		self.cards.append(dealt)
@@ -182,14 +185,14 @@ class BlackjackGame:
 		return self.message
 
 	def checkBust(self) -> bool:
-		"""Checks if a user has gone over 21. Returns bool."""
+		"""Check if a user has gone over 21. Returns bool."""
 		if sum(self.cards) > 21:
 			self.bet *= -1
 			return True
 		return False
 
 	def stay(self) -> int:
-		"""Ends the game. Returns int: 1 if user's bal changed, else 0."""
+		"""End the game. Returns int: 1 if user's bal changed, else 0."""
 		change = 1
 		self.message = "The dealer has a total of {}."
 		if sum(self.cards) > self.dealerSum and not self.checkBust():
@@ -224,7 +227,7 @@ class BlackjackGame:
 
 	@staticmethod
 	def cardName(card: int) -> str:
-		"""Returns the human-friendly name of a card based on int value."""
+		"""Return the human-friendly name of a card based on int value."""
 		if card == 10:
 			return "a " + choice(("10", "Jack", "Queen", "King"))
 		if card == 11:
@@ -239,9 +242,9 @@ def writeMoney(
 	amount: Union[str, int],
 	writing: bool,
 	adding: bool
-) -> Tuple[int, Optional[Union[str, int]]]:
+) -> Tuple[int, Union[str, int, None]]:
 	"""
-	Helper method for checking or modifying a user's BeardlessBucks balance.
+	Check or modify a user's BeardlessBucks balance.
 
 	Args:
 		member (nextcord.User or Member): The target user
@@ -257,7 +260,9 @@ def writeMoney(
 			1 means it has;
 			2 means this call has just registered them.
 		Optional[str or int]: an additional report, if necessary.
+
 	"""
+	# TODO: migrate to aiofiles?
 	if "," in member.name:
 		return -1, commaWarn.format(member.mention)
 	with open("resources/money.csv") as csvfile:
@@ -278,7 +283,7 @@ def writeMoney(
 					newLine = ",".join((row[0], row[1], str(member)))
 					newBank = int(row[1])
 					result = 0
-				with open("resources/money.csv", "r") as oldMoney:
+				with open("resources/money.csv") as oldMoney:
 					newMoney = (
 						"".join([i for i in oldMoney])
 						.replace(",".join(row), newLine)
@@ -307,6 +312,7 @@ def register(target: Union[nextcord.User, nextcord.Member]) -> nextcord.Embed:
 
 	Returns:
 		nextcord.Embed: the report of the target's registration.
+
 	"""
 	result, bonus = writeMoney(target, 300, False, False)
 	if result in (-1, 2):
@@ -325,7 +331,7 @@ def balance(
 	msg: nextcord.Message
 ) -> nextcord.Embed:
 	"""
-	Checks a user's BeardlessBucks balance.
+	Check a user's BeardlessBucks balance.
 
 	Args:
 		target (nextcord.User or Member or str): The user whose balance is
@@ -334,6 +340,7 @@ def balance(
 
 	Returns:
 		nextcord.Embed: the report of the target's balance.
+
 	"""
 	report = (
 		"Invalid user! Please @ a user when you do !balance"
@@ -353,13 +360,14 @@ def balance(
 
 def reset(target: Union[nextcord.User, nextcord.Member]) -> nextcord.Embed:
 	"""
-	Resets a user's Beardless balance to 200.
+	Reset a user's Beardless balance to 200.
 
 	Args:
 		target (nextcord.User or Member): The user to reset
 
 	Returns:
 		nextcord.Embed: the report of the target's balance reset.
+
 	"""
 	result, bonus = writeMoney(target, 200, True, False)
 	if result in (-1, 2):
@@ -378,7 +386,7 @@ def leaderboard(
 	msg: Optional[nextcord.Message] = None
 ) -> nextcord.Embed:
 	"""
-	Finds the top min(len(money.csv), 10) users by balance in money.csv.
+	Find the top min(len(money.csv), 10) users by balance in money.csv.
 	Runtime = |money.csv| + runtime of sorted(money.csv) + 10
 	= O(n) + O(nlog(n)) + 10 = O(nlog(n)).
 
@@ -393,18 +401,15 @@ def leaderboard(
 		nextcord.Embed: a summary of the richest users by balance.
 			If target is somewhere on the leaderboard, also
 			reports target's position and balance.
+
 	"""
 	lbDict: Dict[str, int] = {}
 	emb = bbEmbed("BeardlessBucks Leaderboard")
 	if (target and msg and not (
-		isinstance(target, nextcord.User)
-		or isinstance(target, nextcord.Member)
+		isinstance(target, (nextcord.User, nextcord.Member))
 	)):
 		target = memSearch(msg, target)
-	if target and (
-		isinstance(target, nextcord.Member)
-		or isinstance(target, nextcord.User)
-	):
+	if target and isinstance(target, (nextcord.User, nextcord.Member)):
 		writeMoney(target, 300, False, False)
 	with open("resources/money.csv") as csvfile:
 		for row in csv.reader(csvfile, delimiter=","):
@@ -422,7 +427,7 @@ def leaderboard(
 		head, body = sortedDict.popitem()
 		lastEntry = (i != min(len(sortedDict), 10) - 1)
 		emb.add_field(
-			name=f"{i + 1}. {head[:-5]}", value=body, inline=lastEntry
+			name=f"{i + 1}. {head.split("#")[0]}", value=body, inline=lastEntry
 		)
 	if target and pos:
 		assert not isinstance(target, str)
@@ -441,7 +446,7 @@ def flip(
 	debug: bool = False
 ) -> str:
 	"""
-	Gambles a certain number of BeardlessBucks on a coin toss.
+	Gamble a certain number of BeardlessBucks on a coin toss.
 
 	Args:
 		author (nextcord.User or Member): The user who is gambling
@@ -452,6 +457,7 @@ def flip(
 
 	Returns:
 		str: A report of the outcome and how author's balance changed.
+
 	"""
 	heads = randint(0, 1)
 	report = (
@@ -483,7 +489,7 @@ def flip(
 		else:
 			if isinstance(bet, int) and (debug or not heads):
 				bet *= -1
-			result, bonus = writeMoney(author, bet, True, True)
+			result = writeMoney(author, bet, True, True)[0]
 			if result == 2:
 				report = newUserMsg
 			elif heads or debug:
@@ -519,6 +525,7 @@ def blackjack(
 		Optional[BlackjackGame]: If there is still a game to play,
 			returns the object representing the game of blackjack
 			author is playing. Else, None.
+
 	"""
 	game = None
 	report = (
@@ -560,7 +567,7 @@ def activeGame(
 	games: List[BlackjackGame], author: Union[nextcord.User, nextcord.Member]
 ) -> Optional[BlackjackGame]:
 	"""
-	Checks if a user has an active game of Blackjack.
+	Check if a user has an active game of Blackjack.
 
 	Args:
 		games (List[BlackjackGame]): list of active Blackjack games
@@ -569,6 +576,7 @@ def activeGame(
 	Returns:
 		Optional[BlackjackGame]: The user's current Blackjack game,
 			if one exists. Else, None.
+
 	"""
 	game = [g for g in games if g.user == author]
 	return game[0] if game else None

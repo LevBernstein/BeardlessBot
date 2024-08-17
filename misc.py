@@ -1,4 +1,4 @@
-""" Beardless Bot miscellaneous methods """
+"""Beardless Bot miscellaneous methods"""
 
 import logging
 import re
@@ -12,7 +12,6 @@ import nextcord
 import requests
 from bs4 import BeautifulSoup
 from nextcord.ext import commands
-
 
 diceMsg = (
 	"Enter !roll [count]d[number][+/-][modifier] to roll [count]"
@@ -118,11 +117,12 @@ def contCheck(msg: nextcord.Message) -> str:
 
 def logException(e: Exception, ctx: commands.Context) -> None:
 	"""
-	Wrapper for logging.error to help with debugging.
+	Act as a wrapper for logging.error to help with debugging.
 
 	Args:
 		e (Exception): The exception to log
 		ctx (commands.Context): The command invocation context
+
 	"""
 	logging.error(
 		f"{e} Command: {ctx.invoked_with}; Author: {ctx.author};"
@@ -132,13 +132,14 @@ def logException(e: Exception, ctx: commands.Context) -> None:
 
 async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
 	"""
-	Creates a "Muted" role that prevents users from sending messages.
+	Create a "Muted" role that prevents users from sending messages.
 
 	Args:
 		guild (nextcord.Guild): The guild in which to create the role
 
 	Returns:
 		nextcord.Role: The Muted role.
+
 	"""
 	overwrite = nextcord.PermissionOverwrite(send_messages=False)
 	role = await guild.create_role(
@@ -163,6 +164,14 @@ def memSearch(
 	User lookup helper method. Finds user based on username and/or
 	discriminator (#1234). Runs in linear time; worst case, does not find a
 	loosely-matching target, takes O(n) operations
+
+	Args:
+		message (nextcord.Message): The message that invoked this command
+		target (str): The target of the search. Ideally a username
+
+	Returns:
+		Optional[nextcord.Member]: A matching user, if one can be found.
+
 	"""
 	term = str(target).lower()
 	semiMatch = looseMatch = None
@@ -191,6 +200,7 @@ def getLogChannel(guild: nextcord.Guild) -> Optional[nextcord.TextChannel]:
 	Returns:
 		Optional[nextcord.TextChannel]: The bb-log channel if it exists;
 			else, None.
+
 	"""
 	channels = [c for c in guild.text_channels if c.name == "bb-log"]
 	if channels and isinstance(channels[0], nextcord.TextChannel):
@@ -201,16 +211,30 @@ def getLogChannel(guild: nextcord.Guild) -> Optional[nextcord.TextChannel]:
 def fetchAvatar(
 	user: Union[nextcord.Member, nextcord.User, nextcord.ClientUser]
 ) -> str:
+	"""
+	Pull a given user's avatar url.
+
+	Args:
+		user (nextcord.Member or User or ClientUser): The user whose avatar
+			url should be returned
+
+	Returns:
+		str: The user's avatar url if they have one; else the user's default
+			avatar url.
+
+	"""
 	if user.avatar:
 		return user.avatar.url
 	return user.default_avatar.url
 
 
 def animal(animalType: str, breed: Optional[str] = None) -> str:
-	r: Union[requests.Response, str] = "Invalid Animal"
+	r: Optional[requests.Response] = None
 
 	if "moose" in (animalType, breed):
-		r = requests.get("https://github.com/LevBernstein/moosePictures/")
+		r = requests.get(
+			"https://github.com/LevBernstein/moosePictures/", timeout=10
+		)
 		if r.status_code == 200:
 			soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 			moose = choice(
@@ -226,49 +250,65 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 			)
 
 	elif animalType == "dog":
+		# Dog API has been throwing 522 errors
 		for i in range(10):
-			# Dog API has been throwing 522 errors
+			if i != 0:
+				logging.error(f"Dog API trying again, call {i}")
 			if not breed:
-				r = requests.get("https://dog.ceo/api/breeds/image/random")
+				r = requests.get(
+					"https://dog.ceo/api/breeds/image/random", timeout=10
+				)
 				if r.status_code == 200:
 					return r.json()["message"]
 			elif breed.startswith("breed"):
-				r = requests.get("https://dog.ceo/api/breeds/list/all")
+				r = requests.get(
+					"https://dog.ceo/api/breeds/list/all", timeout=10
+				)
 				if r.status_code == 200:
 					return "Dog breeds: {}.".format(
 						", ".join(dog for dog in r.json()["message"])
 					)
 			elif breed.isalpha():
 				r = requests.get(
-					"https://dog.ceo/api/breed/" + breed + "/images/random"
+					"https://dog.ceo/api/breed/" + breed + "/images/random",
+					timeout=10
 				)
-				if r.status_code == 200 and "message" in r.json():
-					if not r.json()["message"].startswith("Breed not found"):
-						return r.json()["message"]
+				if (
+					r.status_code == 200
+					and "message" in r.json()
+					and not r.json()["message"].startswith("Breed not found")
+				):
+					return r.json()["message"]
 				return "Breed not found! Do !dog breeds to see all breeds."
 			else:
 				return "Breed not found! Do !dog breeds to see all breeds."
 
 	elif animalType == "cat":
-		r = requests.get("https://api.thecatapi.com/v1/images/search")
+		r = requests.get(
+			"https://api.thecatapi.com/v1/images/search", timeout=10
+		)
 		if r.status_code == 200:
 			return r.json()[0]["url"]
 
 	elif animalType in ("bunny", "rabbit"):
-		r = requests.get("https://api.bunnies.io/v2/loop/random/?media=gif")
+		r = requests.get(
+			"https://api.bunnies.io/v2/loop/random/?media=gif", timeout=10
+		)
 		if r.status_code == 200:
 			return r.json()["media"]["gif"]
 
 	elif animalType == "fox":
-		r = requests.get("https://randomfox.ca/floof/")
+		r = requests.get("https://randomfox.ca/floof/", timeout=10)
 		if r.status_code == 200:
 			return r.json()["image"]
 
 	elif animalType in ("duck", "lizard"):
 		if animalType == "duck":
-			r = requests.get("https://random-d.uk/api/quack")
+			r = requests.get("https://random-d.uk/api/quack", timeout=10)
 		else:
-			r = requests.get("https://nekos.life/api/v2/img/lizard")
+			r = requests.get(
+				"https://nekos.life/api/v2/img/lizard", timeout=10
+			)
 		if r.status_code == 200:
 			return r.json()["url"]
 
@@ -285,13 +325,19 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 		sealID = str(randint(0, 83)).rjust(4, "0")
 		return f"https://focabot.github.io/random-seal/seals/{sealID}.jpg"
 
-	raise ValueError(str(r) + ": " + animalType)
+	if r is not None and r.status_code != 200:
+		raise requests.exceptions.RequestException(
+			f"Failed to call {animalType} Animal API"
+		)
+	raise ValueError("Invalid Animal: " + animalType)
 
 
 # Amortize the cost of pulling the frog images by making one initial call.
 # Two possible layouts, one when formatting fails.
 def getFrogList() -> List[Dict[str, str]]:
-	r = requests.get("https://github.com/a9-i/frog/tree/main/ImgSetOpt")
+	r = requests.get(
+		"https://github.com/a9-i/frog/tree/main/ImgSetOpt", timeout=10
+	)
 	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 	try:
 		j = loads(soup.findAll("script")[-1].text)["payload"]
@@ -307,7 +353,8 @@ frogList = getFrogList()
 
 def define(word: str) -> nextcord.Embed:
 	r = requests.get(
-		"https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word
+		"https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word,
+		timeout=10
 	)
 	if r.status_code == 200:
 		j = r.json()
@@ -326,7 +373,12 @@ def define(word: str) -> nextcord.Embed:
 						value=definition["definition"]
 					)
 		return emb
-	return bbEmbed("Beardless Bot Definitions", "No results found.")
+	if r.status_code == 404:
+		return bbEmbed("Beardless Bot Definitions", "No results found.")
+	return bbEmbed(
+		"Beardless Bot Definitions",
+		"There was an error with the dictionary API. Please ping my creator."
+	)
 
 
 def roll(text: str) -> Union[Tuple[None], Tuple[int, int, str, bool, int]]:
@@ -349,7 +401,7 @@ def roll(text: str) -> Union[Tuple[None], Tuple[int, int, str, bool, int]]:
 			b = (-1 if "-" in command else 1) * min(int(bonus), 999999)
 		else:
 			b = 0
-		diceSum = sum((randint(1, int(side)) for i in range(diceNum)))
+		diceSum = sum(randint(1, int(side)) for i in range(diceNum))
 		return diceSum + b, diceNum, side, "-" in command, b
 	return (None,)
 
@@ -372,7 +424,7 @@ def rollReport(
 
 
 def fact() -> str:
-	with open("resources/facts.txt", "r") as f:
+	with open("resources/facts.txt") as f:
 		return choice(f.read().splitlines())
 
 
@@ -380,12 +432,12 @@ def truncTime(member: Union[nextcord.User, nextcord.Member]) -> str:
 	return str(member.created_at)[:-10]
 
 
-def info(target: nextcord.Member, msg: nextcord.Message) -> nextcord.Embed:
-	if not (
-		isinstance(target, nextcord.User) or isinstance(target, nextcord.Member)
-	):
-		target = memSearch(msg, target)
-	if target:
+def info(
+	target: Union[nextcord.Member, str], msg: nextcord.Message
+) -> nextcord.Embed:
+	if isinstance(target, str):
+		target = memSearch(msg, target)  # type: ignore
+	if target and not isinstance(target, str):
 		# Discord occasionally reports people with an activity as
 		# not having one; if so, go invisible and back online
 		emb = (
@@ -447,6 +499,7 @@ def ctxCreatedThread(ctx: commands.Context) -> bool:
 
 	Returns:
 		bool: Whether the event is valid to trigger a command.
+
 	"""
 	return ctx.message.type in (
 		nextcord.MessageType.thread_created,
@@ -536,13 +589,14 @@ class bbHelpCommand(commands.HelpCommand):
 
 def scamCheck(text: str) -> bool:
 	"""
-	Checks message content for common scam phrases.
+	Check message content for common scam phrases.
 
 	Args:
 		text (str): The phrase to check
 
 	Returns:
 		bool: Whether the phrase is suspicious.
+
 	"""
 	msg = text.lower()
 	checkOne = re.compile(r"^.*https?://d\w\wc\wr(d|t)\.\w{2,4}.*").match(msg)
@@ -586,7 +640,7 @@ def search(searchterm: str = "") -> nextcord.Embed:
 
 # The following Markov chain code was originally provided by CSTUY SHIP.
 def tweet() -> str:
-	with open("resources/eggtweets_clean.txt", "r") as f:
+	with open("resources/eggtweets_clean.txt") as f:
 		words = f.read().split()
 	chains: Dict[str, List[str]] = {}
 	keySize = randint(1, 2)
@@ -595,7 +649,7 @@ def tweet() -> str:
 			chains[key] = []
 		chains[key].append(words[i + keySize])
 	key = s = choice(list(chains.keys()))
-	for i in range(randint(10, 35)):
+	for _i in range(randint(10, 35)):
 		word = choice(chains[key])
 		s += " " + word
 		key = (
@@ -615,6 +669,7 @@ def formattedTweet(eggTweet: str) -> str:
 
 
 # Stock embeds:
+# TODO: convert these to methods
 
 reasons = (
 	"Beardless Bot requires permissions in order to do just about anything."

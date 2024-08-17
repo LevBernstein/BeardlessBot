@@ -1,4 +1,4 @@
-""" Beadless Bot event logging methods """
+"""Beadless Bot event logging methods"""
 
 from typing import List, Optional
 
@@ -6,12 +6,13 @@ import nextcord
 
 from misc import bbEmbed, contCheck, fetchAvatar, prof, truncTime
 
-
 # TODO: Implement log thread locked/unlocked
 
 
 def logDeleteMsg(msg: nextcord.Message) -> nextcord.Embed:
-	assert isinstance(msg.channel, nextcord.abc.GuildChannel)
+	assert isinstance(
+		msg.channel, (nextcord.abc.GuildChannel, nextcord.Thread)
+	)
 	return bbEmbed(
 		"",
 		f"**Deleted message sent by {msg.author.mention} in "
@@ -28,12 +29,12 @@ def logPurge(
 	def purgeReport(msgList: List[nextcord.Message]) -> str:
 		return "99+" if len(msgList) > 99 else str(len(msgList) - 1)
 
-	assert isinstance(msg.channel, nextcord.abc.GuildChannel)
+	assert isinstance(
+		msg.channel, (nextcord.abc.GuildChannel, nextcord.Thread)
+	)
 	return bbEmbed(
 		"",
-		"Purged {} messages in {}.".format(
-			purgeReport(msgList), msg.channel.mention
-		),
+		f"Purged {purgeReport(msgList)} messages in {msg.channel.mention}.",
 		0xFF0000,
 		True
 	).set_author(name="Purge!", icon_url=prof)
@@ -42,7 +43,9 @@ def logPurge(
 def logEditMsg(
 	before: nextcord.Message, after: nextcord.Message
 ) -> nextcord.Embed:
-	assert isinstance(before.channel, nextcord.abc.GuildChannel)
+	assert isinstance(
+		before.channel, (nextcord.abc.GuildChannel, nextcord.Thread)
+	)
 	return (
 		bbEmbed(
 			"",
@@ -64,7 +67,9 @@ def logEditMsg(
 def logClearReacts(
 	msg: nextcord.Message, reactions: List[nextcord.Reaction]
 ) -> nextcord.Embed:
-	assert isinstance(msg.channel, nextcord.abc.GuildChannel)
+	assert isinstance(
+		msg.channel, (nextcord.abc.GuildChannel, nextcord.Thread)
+	)
 	return (
 		bbEmbed(
 			"",
@@ -182,7 +187,9 @@ def logMute(
 	mString: Optional[str],
 	mTime: Optional[float]
 ) -> nextcord.Embed:
-	assert isinstance(message.channel, nextcord.abc.GuildChannel)
+	assert isinstance(
+		message.channel, (nextcord.abc.GuildChannel, nextcord.Thread)
+	)
 	mid = f" for {duration} {mString}" if mTime else ""
 	return bbEmbed(
 		"Beardless Bot Mute",

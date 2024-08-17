@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release 2.3.3 ![Coverage badge](./resources/images/coverage.svg) ![Unit tests badge](./resources/images/tests.svg) ![Docstring coverage badge](./resources/images/docstr-coverage.svg) ![flake8 badge](./resources/images/flake8-badge.svg)
+### Full Release 2.3.4 ![Coverage badge](./resources/images/coverage.svg) ![Unit tests badge](./resources/images/tests.svg) ![Docstring coverage badge](./resources/images/docstr-coverage.svg) ![flake8 badge](./resources/images/flake8-badge.svg)
 
 A Discord bot supporting gambling (coin flips and blackjack),
 a currency system, fun facts, and more.
@@ -64,7 +64,7 @@ compliant (except for tabs), with a column limit of 80.
 To run Beardless Bot's suite of unit tests, do `bash unitTests.sh`. This will
 also generate a coverage badge.To run an individual test--for instance, the
 PEP8 compliance test--use the pytest command, like so:
-`pytest -v bb_test.py::test_pep8Compliance`.
+`pytest -v bb_test.py::test_pep8_compliance`.
 
 
 ## License

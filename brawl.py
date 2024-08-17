@@ -1,4 +1,4 @@
-""" Beardless Bot Brawlhalla methods """
+"""Beardless Bot Brawlhalla methods"""
 
 from datetime import datetime
 from json import dump, load, loads
@@ -11,7 +11,6 @@ from nextcord import Colour, Embed, Member
 from steam.steamid import from_url  # type: ignore
 
 from misc import bbEmbed, fetchAvatar
-
 
 badClaim = (
 	"Please do !brawlclaim followed by the URL of your steam profile."
@@ -73,7 +72,9 @@ regions = (
 def getBrawlData() -> Dict[str, Dict[str, List[Dict[str, Union[str, Dict]]]]]:
 	# TODO: unit test
 	soup = BeautifulSoup(
-		requests.get("https://brawlhalla.com/legends").content.decode("utf-8"),
+		requests.get(
+			"https://brawlhalla.com/legends", timeout=10
+		).content.decode("utf-8"),
 		"html.parser"
 	)
 	return loads(loads(soup.findAll("script")[3].contents[0])["body"])["data"]
@@ -91,17 +92,18 @@ def pingMsg(target: str, h: int, m: int, s: int) -> str:
 		return "" if t == 1 else "s"
 
 	return (
-		"This region has been pinged too recently! Regions"
-		" can only be pinged once every two hours, {}. You can"
-		" ping again in {} hour{}, {} minute{}, and {} second{}."
-	).format(target, h, plural(h), m, plural(m), s, plural(s))
+		"This region has been pinged too recently! Regions can only be pinged"
+		f" once every two hours, {target}. You can ping again in {h}"
+		f" hour{plural(h)}, {m} minute{plural(m)}, and {s} second{plural(s)}."
+	)
 
 
 def randomBrawl(ranType: str, key: Optional[str] = None) -> Embed:
 	if ranType in ("legend", "weapon"):
 		if ranType == "legend":
 			legends = tuple(
-				legend["legend_name_key"].title() for legend in fetchLegends()
+				legend["legend_name_key"].title()  # type: ignore
+				for legend in fetchLegends()
 			)
 			if key:
 				emb = legendInfo(key, choice(legends).lower())
@@ -121,7 +123,7 @@ def randomBrawl(ranType: str, key: Optional[str] = None) -> Embed:
 
 
 def claimProfile(discordId: int, brawlId: int):
-	with open("resources/claimedProfs.json", "r") as f:
+	with open("resources/claimedProfs.json") as f:
 		profs = load(f)
 	profs[str(discordId)] = brawlId
 	with open("resources/claimedProfs.json", "w") as g:
@@ -136,7 +138,7 @@ def fetchBrawlId(discordId: int) -> Optional[int]:
 	return None
 
 
-def fetchLegends() -> list:
+def fetchLegends() -> List[Dict[str, Union[str, int]]]:
 	with open("resources/legends.json") as f:
 		return load(f)
 
@@ -145,21 +147,21 @@ def brawlApiCall(
 	route: str, arg: str, key: str, amp: str = "?"
 ) -> Dict[str, Any]:
 	url = f"https://api.brawlhalla.com/{route}{arg}{amp}api_key={key}"
-	return requests.get(url).json()
+	return requests.get(url, timeout=10).json()
 
 
 def getBrawlId(brawlKey: str, profileUrl: str) -> Optional[int]:
-	try:
-		if not (steamID := from_url(profileUrl)):
-			return None
-		return brawlApiCall(
-			"search?steamid=", steamID, brawlKey, "&"
-		)["brawlhalla_id"]
-	except TypeError:
+	if (
+		not isinstance(profileUrl, str)
+		or not (steamID := from_url(profileUrl))
+	):
 		return None
+	return brawlApiCall(
+		"search?steamid=", steamID, brawlKey, "&"
+	)["brawlhalla_id"]
 
 
-def getLegends(brawlKey: str):
+def getLegends(brawlKey: str) -> None:
 	# run whenever a new legend is released
 	with open("resources/legends.json", "w") as f:
 		dump(brawlApiCall("legend/", "all/", brawlKey), f, indent=4)
@@ -183,6 +185,7 @@ def legendInfo(brawlKey: str, legendName: str) -> Optional[Embed]:
 	if legendName == "hugin":
 		legendName = "munin"
 	for legend in fetchLegends():
+		assert isinstance(legend["legend_name_key"], str)
 		if legendName in legend["legend_name_key"]:
 			r = brawlApiCall("legend/", str(legend["legend_id"]) + "/", brawlKey)
 
@@ -381,8 +384,7 @@ def getClan(target: Member, brawlKey: str) -> Embed:
 	r = brawlApiCall("clan/", str(r["clan"]["clan_id"]) + "/", brawlKey)
 	emb = bbEmbed(
 		r["clan_name"],
-		"**Clan Created:** {}\n**Experience:** {}\n**Members:** {}"
-		.format(
+		"**Clan Created:** {}\n**Experience:** {}\n**Members:** {}".format(
 			str(datetime.fromtimestamp(r["clan_create_date"]))[:-9],
 			r["clan_xp"],
 			len(r["clan"])
