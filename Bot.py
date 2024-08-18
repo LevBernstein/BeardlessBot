@@ -1134,10 +1134,8 @@ async def on_command_error(
 	ctx: commands.Context, e: commands.errors.CommandError
 ) -> int:
 	if isinstance(e, commands.CommandNotFound):
-		return -1
-	if isinstance(
-		e, (commands.UnexpectedQuoteError, commands.ExpectedClosingQuoteError)
-	):
+		return 0
+	if isinstance(e, commands.ArgumentParsingError):
 		await ctx.send(
 			embed=misc.bbEmbed(
 				"Careful with quotation marks!",

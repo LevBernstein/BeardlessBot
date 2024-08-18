@@ -71,8 +71,7 @@ class BlackjackGame:
 	def __init__(
 		self,
 		user: Union[nextcord.User, nextcord.Member],
-		bet: int,
-		debug: bool = False
+		bet: int
 	) -> None:
 		"""
 		Create a new BlackjackGame instance. In order to simulate the dealer
@@ -82,8 +81,6 @@ class BlackjackGame:
 		Args:
 			user (nextcord.User or Member): The user who is playing this game
 			bet (int): The number of BeardlessBucks the user is betting
-			debug (bool): Whether to fix the game for testing
-				(default is False)
 
 		"""
 		self.user = user
@@ -93,7 +90,7 @@ class BlackjackGame:
 		self.dealerSum = self.dealerUp
 		while self.dealerSum < 17:
 			self.dealerSum += randint(1, 10)
-		self.message = self.startingHand(debug)
+		self.message = self.startingHand()
 
 	def perfect(self) -> bool:
 		"""Check if the user has reached a Blackjack."""
@@ -442,8 +439,7 @@ def leaderboard(
 
 def flip(
 	author: Union[nextcord.User, nextcord.Member],
-	bet: Union[str, int],
-	debug: bool = False
+	bet: Union[str, int]
 ) -> str:
 	"""
 	Gamble a certain number of BeardlessBucks on a coin toss.
@@ -451,10 +447,6 @@ def flip(
 	Args:
 		author (nextcord.User or Member): The user who is gambling
 		bet (str): The amount author is wagering
-		debug (bool): Whether to fix the outcome of the flip.
-			Only used for testing in bb_test.py.
-			(default is False)
-
 	Returns:
 		str: A report of the outcome and how author's balance changed.
 
@@ -487,12 +479,10 @@ def flip(
 				"You do not have enough BeardlessBucks to bet that much, {}!"
 			)
 		else:
-			if isinstance(bet, int) and (debug or not heads):
+			if isinstance(bet, int) and not heads:
 				bet *= -1
 			result = writeMoney(author, bet, True, True)[0]
-			if result == 2:
-				report = newUserMsg
-			elif heads or debug:
+			if heads:
 				report = (
 					"Heads! You win! Your winnings have"
 					" been added to your balance, {}."

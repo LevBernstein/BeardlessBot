@@ -126,7 +126,8 @@ def logException(e: Exception, ctx: commands.Context) -> None:
 	"""
 	logging.error(
 		f"{e} Command: {ctx.invoked_with}; Author: {ctx.author};"
-		f" Content: {contCheck(ctx.message)}; Guild: {ctx.guild}"
+		f" Content: {contCheck(ctx.message)}; Guild: {ctx.guild};"
+		f" Type: {type(e)}"
 	)
 
 
@@ -628,14 +629,10 @@ def onJoin(guild: nextcord.Guild, role: nextcord.Role) -> nextcord.Embed:
 
 
 def search(searchterm: str = "") -> nextcord.Embed:
-	try:
-		emb = bbEmbed(
-			"Search Results",
-			"https://www.google.com/search?q=" + quote_plus(searchterm)
-		)
-	except TypeError:
-		emb = bbEmbed("Invalid Search!", "Please enter a valid search term.")
-	return emb.set_thumbnail(url=prof)
+	return bbEmbed(
+		"Search Results",
+		"https://www.google.com/search?q=" + quote_plus(searchterm)
+	).set_thumbnail(url=prof)
 
 
 # The following Markov chain code was originally provided by CSTUY SHIP.
