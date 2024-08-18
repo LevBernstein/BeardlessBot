@@ -1884,7 +1884,7 @@ async def test_thread_creation_does_not_invoke_commands() -> None:
 @responses.activate
 def test_getRank_monkeypatched_for_2s_top_rating() -> None:
 	responses.get(
-		"https://api.brawlhalla.com/player/1/ranked?api_key=" + brawlKey,
+		"https://api.brawlhalla.com/player/1/ranked?api_key=" + str(brawlKey),
 		json={
 			"name": "Foo",
 			"region": "us-east-1",
