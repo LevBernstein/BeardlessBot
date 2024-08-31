@@ -28,6 +28,7 @@ docstr-coverage ./ -e ".*env/*" -v 0 --badge \
 #there was an arg for significant figures.
 python3 -c '
 import re
-with open("resources/images/coverage.svg", "r") as f: svg = f.read()
+with open("resources/images/coverage.svg") as f:
+	svg = f.read()
 with open("resources/images/coverage.svg", "w") as g:
 	g.write(re.sub(r"((\.\d{2})%+)", ".00%", svg))'

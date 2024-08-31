@@ -5,9 +5,10 @@ import re
 from datetime import datetime
 from json import loads
 from random import choice, randint
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional, Union
 from urllib.parse import quote_plus
 
+import httpx
 import nextcord
 import requests
 from bs4 import BeautifulSoup
@@ -79,16 +80,18 @@ scamReport = (
 scamDelete = "**Deleted possible nitro scam link. Alerting mods.**"
 
 joinMsg = (
-	"Thanks for adding me to {}! There are a few things you can do to unlock "
-	"my full potential.\nIf you want event logging, make a channel named "
-	"#bb-log.\nIf you want a region-based sparring system, make a channel "
-	"named #looking-for-spar.\nIf you want special color roles, purchasable "
-	"with BeardlessBucks, create roles named special red/blue/orange/pink.\n"
-	"Don't forget to move my {} role up to the top of the role hierarchy in "
-	"order to allow me to moderate all users."
+	"Thanks for adding me to {}! There are a few things you can do to unlock"
+	" my full potential.\nIf you want event logging, make a channel named"
+	" #bb-log.\nIf you want a region-based sparring system, make a channel"
+	" named #looking-for-spar.\nIf you want special color roles, purchasable"
+	" with BeardlessBucks, create roles named special red/blue/orange/pink."
+	"\nDon't forget to move my {} role up to the top of the role hierarchy in"
+	" order to allow me to moderate all users."
 )
 
 msgMaxLength = "**Message length exceeds 1024 characters.**"
+
+botContext = commands.Context[commands.Bot]
 
 
 # Wrapper for nextcord.Embed() that defaults to
@@ -115,13 +118,13 @@ def contCheck(msg: nextcord.Message) -> str:
 	return "**Embed**"
 
 
-def logException(e: Exception, ctx: commands.Context) -> None:
+def logException(e: Exception, ctx: botContext) -> None:
 	"""
 	Act as a wrapper for logging.error to help with debugging.
 
 	Args:
 		e (Exception): The exception to log
-		ctx (commands.Context): The command invocation context
+		ctx (botContext): The command invocation context
 
 	"""
 	logging.error(
@@ -186,7 +189,7 @@ def memSearch(
 			semiMatch = member
 		if member.nick and term == member.nick.lower() and not semiMatch:
 			looseMatch = member
-		if not (semiMatch or looseMatch) and term in member.name.lower():
+		elif not (semiMatch or looseMatch) and term in member.name.lower():
 			looseMatch = member
 	return semiMatch if semiMatch else looseMatch
 
@@ -229,13 +232,14 @@ def fetchAvatar(
 	return user.default_avatar.url
 
 
-def animal(animalType: str, breed: Optional[str] = None) -> str:
-	r: Optional[requests.Response] = None
+async def animal(animalType: str, breed: Optional[str] = None) -> str:
+	r: Optional[httpx.Response] = None
 
 	if "moose" in (animalType, breed):
-		r = requests.get(
-			"https://github.com/LevBernstein/moosePictures/", timeout=10
-		)
+		async with httpx.AsyncClient() as client:
+			r = await client.get(
+				"https://github.com/LevBernstein/moosePictures/", timeout=10
+			)
 		if r.status_code == 200:
 			soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 			moose = choice(
@@ -256,70 +260,96 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 			if i != 0:
 				logging.error(f"Dog API trying again, call {i}")
 			if not breed:
-				r = requests.get(
-					"https://dog.ceo/api/breeds/image/random", timeout=10
-				)
+				async with httpx.AsyncClient() as client:
+					r = await client.get(
+						"https://dog.ceo/api/breeds/image/random", timeout=10
+					)
 				if r.status_code == 200:
-					return r.json()["message"]
+					message = r.json()["message"]
+					assert isinstance(message, str)
+					return message
 			elif breed.startswith("breed"):
-				r = requests.get(
-					"https://dog.ceo/api/breeds/list/all", timeout=10
-				)
+				async with httpx.AsyncClient() as client:
+					r = await client.get(
+						"https://dog.ceo/api/breeds/list/all", timeout=10
+					)
 				if r.status_code == 200:
 					return "Dog breeds: {}.".format(
 						", ".join(dog for dog in r.json()["message"])
 					)
 			elif breed.isalpha():
-				r = requests.get(
-					"https://dog.ceo/api/breed/" + breed + "/images/random",
-					timeout=10
+				async with httpx.AsyncClient() as client:
+					r = await client.get(
+						f"https://dog.ceo/api/breed/{breed}/images/random",
+						timeout=10
+					)
+				message = (
+					r.json()["message"] if "message" in r.json() else None
 				)
 				if (
 					r.status_code == 200
-					and "message" in r.json()
+					and isinstance(message, str)
 					and not r.json()["message"].startswith("Breed not found")
 				):
-					return r.json()["message"]
+					return message
 				return "Breed not found! Do !dog breeds to see all breeds."
 			else:
 				return "Breed not found! Do !dog breeds to see all breeds."
 
 	elif animalType == "cat":
-		r = requests.get(
-			"https://api.thecatapi.com/v1/images/search", timeout=10
-		)
-		if r.status_code == 200:
-			return r.json()[0]["url"]
-
-	elif animalType in ("bunny", "rabbit"):
-		r = requests.get(
-			"https://api.bunnies.io/v2/loop/random/?media=gif", timeout=10
-		)
-		if r.status_code == 200:
-			return r.json()["media"]["gif"]
-
-	elif animalType == "fox":
-		r = requests.get("https://randomfox.ca/floof/", timeout=10)
-		if r.status_code == 200:
-			return r.json()["image"]
-
-	elif animalType in ("duck", "lizard"):
-		if animalType == "duck":
-			r = requests.get("https://random-d.uk/api/quack", timeout=10)
-		else:
-			r = requests.get(
-				"https://nekos.life/api/v2/img/lizard", timeout=10
+		async with httpx.AsyncClient() as client:
+			r = await client.get(
+				"https://api.thecatapi.com/v1/images/search", timeout=10
 			)
 		if r.status_code == 200:
-			return r.json()["url"]
+			url = r.json()[0]["url"]
+			assert isinstance(url, str)
+			return url
+
+	elif animalType in ("bunny", "rabbit"):
+		async with httpx.AsyncClient() as client:
+			r = await client.get(
+				"https://api.bunnies.io/v2/loop/random/?media=gif", timeout=10
+			)
+		if r.status_code == 200:
+			gif = r.json()["media"]["gif"]
+			assert isinstance(gif, str)
+			return gif
+
+	elif animalType == "fox":
+		async with httpx.AsyncClient() as client:
+			r = await client.get("https://randomfox.ca/floof/", timeout=10)
+		if r.status_code == 200:
+			image = r.json()["image"]
+			assert isinstance(image, str)
+			return image
+
+	elif animalType in ("duck", "lizard"):
+		async with httpx.AsyncClient() as client:
+			r = await client.get(
+				(
+					"https://random-d.uk/api/quack"
+					if animalType == "duck"
+					else "https://nekos.life/api/v2/img/lizard"
+				),
+				timeout=10
+			)
+		if r.status_code == 200:
+			url = r.json()["url"]
+			assert isinstance(url, str)
+			return url
 
 	elif animalType == "bear":
-		return f"https://placebear.com/{randint(200, 400)}/{randint(200, 400)}"
+		return (
+			"https://placebear.com/"
+			f"{randint(200, 400)}/{randint(200, 400)}"
+		)
 
 	elif animalType == "frog":
 		frog = choice(frogList)["name"]
 		return (
-			f"https://raw.githubusercontent.com/a9-i/frog/main/ImgSetOpt/{frog}"
+			"https://raw.githubusercontent.com/"
+			f"a9-i/frog/main/ImgSetOpt/{frog}"
 		)
 
 	elif animalType == "seal":
@@ -327,15 +357,13 @@ def animal(animalType: str, breed: Optional[str] = None) -> str:
 		return f"https://focabot.github.io/random-seal/seals/{sealID}.jpg"
 
 	if r is not None and r.status_code != 200:
-		raise requests.exceptions.RequestException(
-			f"Failed to call {animalType} Animal API"
-		)
+		raise httpx.RequestError(f"Failed to call {animalType} Animal API")
 	raise ValueError("Invalid Animal: " + animalType)
 
 
 # Amortize the cost of pulling the frog images by making one initial call.
 # Two possible layouts, one when formatting fails.
-def getFrogList() -> List[Dict[str, str]]:
+def getFrogList() -> list[dict[str, str]]:
 	r = requests.get(
 		"https://github.com/a9-i/frog/tree/main/ImgSetOpt", timeout=10
 	)
@@ -346,17 +374,20 @@ def getFrogList() -> List[Dict[str, str]]:
 		j = loads(
 			soup.findAll("script")[-2].text.replace("\\", "\\\\")
 		)["payload"]
-	return j["tree"]["items"]
+	frogs = j["tree"]["items"]
+	assert isinstance(frogs, list)
+	return frogs
 
 
 frogList = getFrogList()
 
 
-def define(word: str) -> nextcord.Embed:
-	r = requests.get(
-		"https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word,
-		timeout=10
-	)
+async def define(word: str) -> nextcord.Embed:
+	async with httpx.AsyncClient() as client:
+		r = await client.get(
+			"https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word,
+			timeout=10
+		)
 	if r.status_code == 200:
 		j = r.json()
 		desc = ""
@@ -382,7 +413,7 @@ def define(word: str) -> nextcord.Embed:
 	)
 
 
-def roll(text: str) -> Union[Tuple[None], Tuple[int, int, str, bool, int]]:
+def roll(text: str) -> Union[tuple[None], tuple[int, int, str, bool, int]]:
 	# Takes a string of the format mdn+b and rolls m
 	# n-sided dice with a modifier of b. m and b are optional.
 	diceNum: Union[str, int]
@@ -441,21 +472,22 @@ def info(
 	if target and not isinstance(target, str):
 		# Discord occasionally reports people with an activity as
 		# not having one; if so, go invisible and back online
-		emb = (
-			bbEmbed(
-				value=target.activity.name if target.activity else "",  # type: ignore
-				col=target.color
-			)
-			.set_author(name=target, icon_url=fetchAvatar(target))
-			.set_thumbnail(url=fetchAvatar(target))
-			.add_field(
-				name="Registered for Discord on",
-				value=truncTime(target) + " UTC"
-			)
-			.add_field(
-				name="Joined this server on",
-				value=str(target.joined_at)[:-10] + " UTC"
-			)
+		activity = (
+			target.activity.name
+			if target.activity and target.activity.name
+			else ""
+		)
+		emb = bbEmbed(
+			value=activity, col=target.color
+		).set_author(
+			name=target, icon_url=fetchAvatar(target)
+		).set_thumbnail(
+			url=fetchAvatar(target)
+		).add_field(
+			name="Registered for Discord on", value=truncTime(target) + " UTC"
+		).add_field(
+			name="Joined this server on",
+			value=str(target.joined_at)[:-10] + " UTC"
 		)
 		if len(target.roles) > 1:
 			# Every user has the "@everyone" role, so check
@@ -488,7 +520,7 @@ def av(
 	return invalidTargetEmbed
 
 
-def ctxCreatedThread(ctx: commands.Context) -> bool:
+def ctxCreatedThread(ctx: botContext) -> bool:
 	"""
 	Threads created with the name set to a command (e.g., a thread named !flip)
 	will trigger that command as the first action in that thread. This is not
@@ -496,7 +528,7 @@ def ctxCreatedThread(ctx: commands.Context) -> bool:
 	or a thread name being changed, this method will catch that.
 
 	Args:
-		ctx (commands.Context): The context in which the command is being invoked
+		ctx botContext: The context in which the command is being invoked
 
 	Returns:
 		bool: Whether the event is valid to trigger a command.
@@ -510,13 +542,15 @@ def ctxCreatedThread(ctx: commands.Context) -> bool:
 
 class bbHelpCommand(commands.HelpCommand):
 	async def send_bot_help(
-		self, mapping: Dict[commands.Cog, List[commands.Command]]
+		self,
+		mapping: dict[commands.Cog, list[commands.Command]]  # type: ignore
 	) -> int:
 		if ctxCreatedThread(self.context):
 			return -1
 		if not self.context.guild:
 			commandNum = 15
 		elif self.context.author.guild_permissions.manage_messages:  # type: ignore
+			# TODO: after switch from MockUser to MockMember, remove ignore
 			commandNum = 20
 		else:
 			commandNum = 17
@@ -527,7 +561,10 @@ class bbHelpCommand(commands.HelpCommand):
 				"Display a user's balance. Write just !av"
 				" if you want to see your own balance."
 			),
-			("!bucks", "Shows you an explanation for how BeardlessBucks work."),
+			(
+				"!bucks",
+				"Shows you an explanation for how BeardlessBucks work."
+			),
 			("!reset", "Resets you to 200 BeardlessBucks."),
 			("!fact", "Gives you a random fun fact."),
 			("!source", "Shows you the source of most facts used in !fact."),
@@ -562,7 +599,8 @@ class bbHelpCommand(commands.HelpCommand):
 			("!ping", "Checks Beardless Bot's latency."),
 			(
 				"!buy red/blue/pink/orange",
-				"Removes 50k BeardlessBucks and grants you a special color role."
+				"Removes 50k BeardlessBucks and"
+				" grants you a special color role."
 			),
 			(
 				"!info [user/username]",
@@ -580,7 +618,7 @@ class bbHelpCommand(commands.HelpCommand):
 		emb = bbEmbed("Beardless Bot Commands")
 		for commandPair in commandList[:commandNum]:
 			emb.add_field(name=commandPair[0], value=commandPair[1])
-		await self.get_destination().send(embed=emb)
+		await self.get_destination().send(embed=emb)  # type: ignore
 		return 1
 
 	async def send_error_message(self, error: str) -> None:
@@ -600,10 +638,13 @@ def scamCheck(text: str) -> bool:
 
 	"""
 	msg = text.lower()
-	checkOne = re.compile(r"^.*https?://d\w\wc\wr(d|t)\.\w{2,4}.*").match(msg)
-	checkTwo = re.compile(r"^.*https?://d\w\wc\wr\wn\wtr\w\.\w{2,5}.*").match(msg)
-	checkThree = re.compile(r"^.*(nitro|gift|@everyone).*").match(msg)
-	checkFour = all((
+	suspiciousLink = bool(
+		re.compile(
+			r"^.*https?://d\w\wc\wr(\wn\wtr\w\.\w{2,5}|(d|t)\.\w{2,4}).*"
+		).match(msg)
+	)
+	keyWords = bool(re.compile(r"^.*(nitro|gift|@everyone).*").match(msg))
+	bulkKeyWords = all((
 		"http" in msg,
 		"@everyone" in msg or "stym" in msg,
 		any(("nitro" in msg, "discord" in msg, ".gift/" in msg)),
@@ -615,11 +656,9 @@ def scamCheck(text: str) -> bool:
 			"discocl" in msg
 		))
 	))
-	checkFive = re.compile(r"^.*https://discord.gift/.*").match(msg)
+	validGift = bool(re.compile(r"^.*https://discord.gift/.*").match(msg))
 
-	return (
-		((bool(checkOne) or bool(checkTwo)) and bool(checkThree)) or checkFour
-	) and not bool(checkFive)
+	return ((suspiciousLink and keyWords) or bulkKeyWords) and not validGift
 
 
 def onJoin(guild: nextcord.Guild, role: nextcord.Role) -> nextcord.Embed:
@@ -639,12 +678,13 @@ def search(searchterm: str = "") -> nextcord.Embed:
 def tweet() -> str:
 	with open("resources/eggtweets_clean.txt") as f:
 		words = f.read().split()
-	chains: Dict[str, List[str]] = {}
+	chains: dict[str, list[str]] = {}
 	keySize = randint(1, 2)
 	for i in range(len(words) - keySize):
 		if (key := " ".join(words[i:i + keySize])) not in chains:
 			chains[key] = []
 		chains[key].append(words[i + keySize])
+
 	key = s = choice(list(chains.keys()))
 	for _i in range(randint(10, 35)):
 		word = choice(chains[key])
@@ -673,7 +713,7 @@ reasons = (
 	" Without them, I can't do much, so I'm leaving. If you add me back to"
 	" this server, please make sure to leave checked the box that grants me"
 	" the Administrator permission.\nIf you have any questions, feel free"
-	" to contact my creator, Captain No-Beard#7511."
+	" to contact my creator, captainnobeard."
 )
 
 noPerms = bbEmbed(
@@ -685,17 +725,13 @@ addUrl = (
 	"654133911558946837&permissions=8&scope=bot)"
 )
 
-inviteMsg = (
-	bbEmbed(
-		"Want to add this bot to your server?", "[Click this link!]" + addUrl
-	)
-	.set_thumbnail(url=prof)
-	.add_field(
-		name="If you like Beardless Bot...",
-		inline=False,
-		value="Please leave a review on [top.gg]"
-		"(https://top.gg/bot/654133911558946837)."
-	)
+inviteMsg = bbEmbed(
+	"Want to add this bot to your server?", "[Click this link!]" + addUrl
+).set_thumbnail(url=prof).add_field(
+	name="If you like Beardless Bot...",
+	inline=False,
+	value="Please leave a review on [top.gg]"
+	"(https://top.gg/bot/654133911558946837)."
 )
 
 sparDesc = (
@@ -707,26 +743,18 @@ sparDesc = (
 	"\nPlease use the roles channel to give yourself the correct roles."
 )
 
-sparPins = (
-	bbEmbed("How to use this channel.")
-	.add_field(
-		name="To spar someone from your region:",
-		value=sparDesc,
-		inline=False
-	)
-	.add_field(
-		name="If you don't want to get pings:",
-		inline=False,
-		value="Remove your region role. Otherwise, responding"
-		" 'no' to calls to spar is annoying and counterproductive,"
-		" and will earn you a warning."
-	)
+sparPins = bbEmbed("How to use this channel.").add_field(
+	name="To spar someone from your region:", value=sparDesc, inline=False
+).add_field(
+	name="If you don't want to get pings:",
+	inline=False,
+	value="Remove your region role. Otherwise, responding 'no' to calls to"
+	" spar is annoying and counterproductive, and will earn you a warning."
 )
 
 redditEmb = bbEmbed(
 	"The Official Eggsoup Subreddit", "https://www.reddit.com/r/eggsoup/"
 ).set_thumbnail(url=redditThumb)
-
 
 animals = bbEmbed("Animal Photo Commands:").add_field(
 	name="!dog",

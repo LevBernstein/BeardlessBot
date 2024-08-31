@@ -1,6 +1,6 @@
 """Beadless Bot event logging methods"""
 
-from typing import List, Optional
+from typing import Optional
 
 import nextcord
 
@@ -23,10 +23,10 @@ def logDeleteMsg(msg: nextcord.Message) -> nextcord.Embed:
 
 
 def logPurge(
-	msg: nextcord.Message, msgList: List[nextcord.Message]
+	msg: nextcord.Message, msgList: list[nextcord.Message]
 ) -> nextcord.Embed:
 
-	def purgeReport(msgList: List[nextcord.Message]) -> str:
+	def purgeReport(msgList: list[nextcord.Message]) -> str:
 		return "99+" if len(msgList) > 99 else str(len(msgList) - 1)
 
 	assert isinstance(
@@ -65,7 +65,7 @@ def logEditMsg(
 
 
 def logClearReacts(
-	msg: nextcord.Message, reactions: List[nextcord.Reaction]
+	msg: nextcord.Message, reactions: list[nextcord.Reaction]
 ) -> nextcord.Embed:
 	assert isinstance(
 		msg.channel, (nextcord.abc.GuildChannel, nextcord.Thread)
@@ -116,7 +116,9 @@ def logMemberJoin(member: nextcord.Member) -> nextcord.Embed:
 def logMemberRemove(member: nextcord.Member) -> nextcord.Embed:
 	emb = bbEmbed(
 		"", f"Member {member.mention} left\nID: {member.id}", 0xFF0000, True
-	).set_author(name=f"{member} left the server", icon_url=fetchAvatar(member))
+	).set_author(
+		name=f"{member} left the server", icon_url=fetchAvatar(member)
+	)
 	if len(member.roles) > 1:
 		emb.add_field(
 			name="Roles:",
