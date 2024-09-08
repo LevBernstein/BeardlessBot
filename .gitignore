@@ -14,3 +14,4 @@ junit.xml
 .pytest_cache/*
 include/*
 bandit.txt
+.ruff_cache

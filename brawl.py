@@ -2,17 +2,18 @@
 
 from datetime import datetime
 from json import dump, dumps, load, loads
+from pathlib import Path
 from random import choice
-from typing import Any, Optional, Union
+from typing import Any
 
 import aiofiles
 import httpx
 import requests
 from bs4 import BeautifulSoup
 from nextcord import Colour, Embed, Member
-from steam.steamid import SteamID  # type: ignore
+from steam.steamid import SteamID  # type: ignore[import-untyped]
 
-from misc import bbEmbed, fetchAvatar
+from misc import BB_COLOR, bbEmbed, fetchAvatar
 
 badClaim = (
 	"Please do !brawlclaim followed by the URL of your steam profile."
@@ -72,7 +73,7 @@ regions = (
 
 
 def getBrawlData() -> dict[
-	str, dict[str, list[dict[str, Union[str, dict[str, str]]]]]
+	str, dict[str, list[dict[str, str | dict[str, str]]]]
 ]:
 	# TODO: unit test
 	r = requests.get("https://brawlhalla.com/legends", timeout=10)
@@ -84,7 +85,7 @@ def getBrawlData() -> dict[
 	return brawlDict
 
 
-data = getBrawlData()
+DATA = getBrawlData()
 
 
 def brawlWinRate(j: dict[str, int]) -> float:
@@ -102,12 +103,11 @@ def pingMsg(target: str, h: int, m: int, s: int) -> str:
 	)
 
 
-async def randomBrawl(ranType: str, key: Optional[str] = None) -> Embed:
-	if ranType in ("legend", "weapon"):
+async def randomBrawl(ranType: str, key: str | None = None) -> Embed:
+	if ranType in {"legend", "weapon"}:
 		if ranType == "legend":
 			legends = tuple(
-				legend["legend_name_key"].title()  # type: ignore
-				for legend in fetchLegends()
+				legend["legend_name_key"].title() for legend in fetchLegends()
 			)
 			if key:
 				emb = await legendInfo(key, choice(legends).lower())
@@ -116,7 +116,7 @@ async def randomBrawl(ranType: str, key: Optional[str] = None) -> Embed:
 			return bbEmbed(
 				"Random Legend", f"Your legend is {choice(legends)}."
 			)
-		weapon = choice([i["name"] for i in data["weapons"]["nodes"]])
+		weapon = choice([i["name"] for i in DATA["weapons"]["nodes"]])
 		assert isinstance(weapon, str)
 		return bbEmbed(
 			"Random Weapon", f"Your weapon is {weapon}."
@@ -127,15 +127,15 @@ async def randomBrawl(ranType: str, key: Optional[str] = None) -> Embed:
 
 
 def claimProfile(discordId: int, brawlId: int) -> None:
-	with open("resources/claimedProfs.json") as f:
+	with Path("resources/claimedProfs.json").open() as f:
 		profs = load(f)
 	profs[str(discordId)] = brawlId
-	with open("resources/claimedProfs.json", "w") as g:
+	with Path("resources/claimedProfs.json").open("w") as g:
 		dump(profs, g, indent=4)
 
 
-def fetchBrawlId(discordId: int) -> Optional[int]:
-	with open("resources/claimedProfs.json") as f:
+def fetchBrawlId(discordId: int) -> int | None:
+	with Path("resources/claimedProfs.json").open() as f:
 		for key, value in load(f).items():
 			if key == str(discordId):
 				assert isinstance(value, int)
@@ -143,8 +143,8 @@ def fetchBrawlId(discordId: int) -> Optional[int]:
 	return None
 
 
-def fetchLegends() -> list[dict[str, Union[str, int]]]:
-	with open("resources/legends.json") as f:
+def fetchLegends() -> list[dict[str, str]]:
+	with Path("resources/legends.json").open() as f:
 		legends = load(f)
 	assert isinstance(legends, list)
 	return legends
@@ -152,18 +152,18 @@ def fetchLegends() -> list[dict[str, Union[str, int]]]:
 
 async def brawlApiCall(
 	route: str, arg: str, key: str, amp: str = "?"
-) -> Union[dict[str, Any], list[dict[str, Union[str, int]]], None]:
+) -> dict[str, Any] | list[dict[str, str | int]] | None:
 	url = f"https://api.brawlhalla.com/{route}{arg}{amp}api_key={key}"
 	async with httpx.AsyncClient() as client:
 		r = await client.get(url, timeout=10)
 	j = r.json()
 	if len(j) == 0:
 		return None
-	assert isinstance(j, (dict, list))
+	assert isinstance(j, dict | list)
 	return j
 
 
-async def getBrawlId(brawlKey: str, profileUrl: str) -> Optional[int]:
+async def getBrawlId(brawlKey: str, profileUrl: str) -> int | None:
 	if (
 		not isinstance(profileUrl, str)
 		or not (steamId := SteamID.from_url(profileUrl))
@@ -189,17 +189,21 @@ def getLegendPicture(legendName: str) -> str:
 	# TODO: unit test
 	if legendName == "redraptor":
 		legendName = "red-raptor"
-	legend = [i for i in data["legends"]["nodes"] if i["slug"] == legendName]
-	return legend[0]["legendFields"]["icon"]["sourceUrl"]  # type: ignore
+	legend = [i for i in DATA["legends"]["nodes"] if i["slug"] == legendName]
+	icon = legend[0]["legendFields"]["icon"]  # type: ignore[index]
+	assert isinstance(icon, dict)
+	return icon["sourceUrl"]
 
 
 def getWeaponPicture(weaponName: str) -> str:
 	# TODO: unit test
-	weapon = [i for i in data["weapons"]["nodes"] if i["name"] == weaponName]
-	return weapon[0]["weaponFields"]["icon"]["sourceUrl"]  # type: ignore
+	weapon = [i for i in DATA["weapons"]["nodes"] if i["name"] == weaponName]
+	icon = weapon[0]["weaponFields"]["icon"]  # type: ignore[index]
+	assert isinstance(icon, dict)
+	return icon["sourceUrl"]
 
 
-async def legendInfo(brawlKey: str, legendName: str) -> Optional[Embed]:
+async def legendInfo(brawlKey: str, legendName: str) -> Embed | None:
 	if legendName == "hugin":
 		legendName = "munin"
 	for legend in fetchLegends():
@@ -303,7 +307,7 @@ async def getRank(target: Member, brawlKey: str) -> Embed:
 				)
 			)
 			if (
-				(emb.colour and emb.colour.value == 0xFFF994)
+				(emb.colour and emb.colour.value == BB_COLOR)
 				or twosTeam["rating"] > r["rating"]
 			):
 				for thumb in rankedThumbnails:
@@ -439,5 +443,5 @@ def brawlCommands() -> Embed:
 	return emb
 
 
-# TODO implement leaderboard, glory
+# TODO: implement leaderboard, glory
 # See: https://github.com/BrawlDB/gerard3/blob/master/src/utils/glory.js

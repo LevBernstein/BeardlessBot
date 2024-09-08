@@ -1,11 +1,12 @@
 """Beardless Bot miscellaneous methods"""
 
 import logging
+import random
 import re
 from datetime import datetime
 from json import loads
-from random import choice, randint
-from typing import Optional, Union
+from pathlib import Path
+from typing import Final
 from urllib.parse import quote_plus
 
 import httpx
@@ -89,9 +90,17 @@ joinMsg = (
 	" order to allow me to moderate all users."
 )
 
-msgMaxLength = "**Message length exceeds 1024 characters.**"
+MAX_MSG_LENGTH: Final[int] = 1024
+
+msgMaxLength = f"**Message length exceeds {MAX_MSG_LENGTH} characters.**"
+
+OK: Final[int] = 200
 
 botContext = commands.Context[commands.Bot]
+
+targetTypes = str | nextcord.User | nextcord.Member | None
+
+BB_COLOR: Final[int] = 0xFFF994
 
 
 # Wrapper for nextcord.Embed() that defaults to
@@ -99,7 +108,8 @@ botContext = commands.Context[commands.Bot]
 def bbEmbed(
 	name: str = "",
 	value: str = "",
-	col: Union[int, nextcord.Color] = 0xFFF994,
+	col: int | nextcord.Color = BB_COLOR,
+	*,
 	showTime: bool = False
 ) -> nextcord.Embed:
 	return nextcord.Embed(
@@ -112,7 +122,7 @@ def bbEmbed(
 
 def contCheck(msg: nextcord.Message) -> str:
 	if msg.content:
-		if len(msg.content) > 1024:
+		if len(msg.content) > MAX_MSG_LENGTH:
 			return msgMaxLength
 		return msg.content
 	return "**Embed**"
@@ -128,9 +138,13 @@ def logException(e: Exception, ctx: botContext) -> None:
 
 	"""
 	logging.error(
-		f"{e} Command: {ctx.invoked_with}; Author: {ctx.author};"
-		f" Content: {contCheck(ctx.message)}; Guild: {ctx.guild};"
-		f" Type: {type(e)}"
+		"%s Command: %s; Author: %s; Content: %s; Guild: %s; Type: %s",
+		e,
+		ctx.invoked_with,
+		ctx.author,
+		contCheck(ctx.message),
+		ctx.guild,
+		type(e)
 	)
 
 
@@ -146,6 +160,7 @@ async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
 
 	"""
 	overwrite = nextcord.PermissionOverwrite(send_messages=False)
+	# TODO: Add error handling for role creation, set_permissions
 	role = await guild.create_role(
 		name="Muted",
 		colour=nextcord.Colour(0x818386),
@@ -163,7 +178,7 @@ async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
 
 def memSearch(
 	message: nextcord.Message, target: str
-) -> Optional[nextcord.Member]:
+) -> nextcord.Member | None:
 	"""
 	User lookup helper method. Finds user based on username and/or
 	discriminator (#1234). Runs in linear time; worst case, does not find a
@@ -174,7 +189,7 @@ def memSearch(
 		target (str): The target of the search. Ideally a username
 
 	Returns:
-		Optional[nextcord.Member]: A matching user, if one can be found.
+		nextcord.Member or None: A matching user, if one can be found.
 
 	"""
 	term = str(target).lower()
@@ -187,14 +202,15 @@ def memSearch(
 			if "#" not in term:
 				return member
 			semiMatch = member
-		if member.nick and term == member.nick.lower() and not semiMatch:
-			looseMatch = member
-		elif not (semiMatch or looseMatch) and term in member.name.lower():
+		if (
+			(member.nick and term == member.nick.lower() and not semiMatch)
+			or (not (semiMatch or looseMatch) and term in member.name.lower())
+		):
 			looseMatch = member
 	return semiMatch if semiMatch else looseMatch
 
 
-def getLogChannel(guild: nextcord.Guild) -> Optional[nextcord.TextChannel]:
+def getLogChannel(guild: nextcord.Guild) -> nextcord.TextChannel | None:
 	"""
 	#bb-log channel lookup helper method.
 
@@ -202,7 +218,7 @@ def getLogChannel(guild: nextcord.Guild) -> Optional[nextcord.TextChannel]:
 		guild (nextcord.Guild): The guild to search
 
 	Returns:
-		Optional[nextcord.TextChannel]: The bb-log channel if it exists;
+		nextcord.TextChannel or None: The bb-log channel if it exists;
 			else, None.
 
 	"""
@@ -213,7 +229,7 @@ def getLogChannel(guild: nextcord.Guild) -> Optional[nextcord.TextChannel]:
 
 
 def fetchAvatar(
-	user: Union[nextcord.Member, nextcord.User, nextcord.ClientUser]
+	user: nextcord.Member | nextcord.User | nextcord.ClientUser
 ) -> str:
 	"""
 	Pull a given user's avatar url.
@@ -232,39 +248,43 @@ def fetchAvatar(
 	return user.default_avatar.url
 
 
-async def animal(animalType: str, breed: Optional[str] = None) -> str:
-	r: Optional[httpx.Response] = None
+def getMoose(r: httpx.Response) -> str:
+	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
+	moose = random.choice(
+		tuple(
+			m for m in soup.stripped_strings
+			if m.startswith("moose") and m.endswith(".jpg")
+		)
+	)
 
-	if "moose" in (animalType, breed):
+	return (
+		"https://raw.githubusercontent.com/"
+		f"LevBernstein/moosePictures/main/{moose}"
+	)
+
+
+async def animal(animalType: str, breed: str | None = None) -> str:
+	r: httpx.Response | None = None
+
+	if "moose" in {animalType, breed}:
 		async with httpx.AsyncClient() as client:
 			r = await client.get(
 				"https://github.com/LevBernstein/moosePictures/", timeout=10
 			)
-		if r.status_code == 200:
-			soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
-			moose = choice(
-				tuple(
-					m for m in soup.stripped_strings
-					if m.startswith("moose") and m.endswith(".jpg")
-				)
-			)
-
-			return (
-				"https://raw.githubusercontent.com/"
-				f"LevBernstein/moosePictures/main/{moose}"
-			)
+		if r.status_code == OK:
+			return getMoose(r)
 
 	elif animalType == "dog":
 		# Dog API has been throwing 522 errors
 		for i in range(10):
 			if i != 0:
-				logging.error(f"Dog API trying again, call {i}")
+				logging.error("Dog API trying again, call %i", i)
 			if not breed:
 				async with httpx.AsyncClient() as client:
 					r = await client.get(
 						"https://dog.ceo/api/breeds/image/random", timeout=10
 					)
-				if r.status_code == 200:
+				if r.status_code == OK:
 					message = r.json()["message"]
 					assert isinstance(message, str)
 					return message
@@ -273,7 +293,7 @@ async def animal(animalType: str, breed: Optional[str] = None) -> str:
 					r = await client.get(
 						"https://dog.ceo/api/breeds/list/all", timeout=10
 					)
-				if r.status_code == 200:
+				if r.status_code == OK:
 					return "Dog breeds: {}.".format(
 						", ".join(dog for dog in r.json()["message"])
 					)
@@ -283,13 +303,11 @@ async def animal(animalType: str, breed: Optional[str] = None) -> str:
 						f"https://dog.ceo/api/breed/{breed}/images/random",
 						timeout=10
 					)
-				message = (
-					r.json()["message"] if "message" in r.json() else None
-				)
+				message = r.json().get("message", None)
 				if (
-					r.status_code == 200
+					r.status_code == OK
 					and isinstance(message, str)
-					and not r.json()["message"].startswith("Breed not found")
+					and not message.startswith("Breed not found")
 				):
 					return message
 				return "Breed not found! Do !dog breeds to see all breeds."
@@ -301,17 +319,17 @@ async def animal(animalType: str, breed: Optional[str] = None) -> str:
 			r = await client.get(
 				"https://api.thecatapi.com/v1/images/search", timeout=10
 			)
-		if r.status_code == 200:
+		if r.status_code == OK:
 			url = r.json()[0]["url"]
 			assert isinstance(url, str)
 			return url
 
-	elif animalType in ("bunny", "rabbit"):
+	elif animalType in {"bunny", "rabbit"}:
 		async with httpx.AsyncClient() as client:
 			r = await client.get(
 				"https://api.bunnies.io/v2/loop/random/?media=gif", timeout=10
 			)
-		if r.status_code == 200:
+		if r.status_code == OK:
 			gif = r.json()["media"]["gif"]
 			assert isinstance(gif, str)
 			return gif
@@ -319,12 +337,12 @@ async def animal(animalType: str, breed: Optional[str] = None) -> str:
 	elif animalType == "fox":
 		async with httpx.AsyncClient() as client:
 			r = await client.get("https://randomfox.ca/floof/", timeout=10)
-		if r.status_code == 200:
+		if r.status_code == OK:
 			image = r.json()["image"]
 			assert isinstance(image, str)
 			return image
 
-	elif animalType in ("duck", "lizard"):
+	elif animalType in {"duck", "lizard"}:
 		async with httpx.AsyncClient() as client:
 			r = await client.get(
 				(
@@ -334,7 +352,7 @@ async def animal(animalType: str, breed: Optional[str] = None) -> str:
 				),
 				timeout=10
 			)
-		if r.status_code == 200:
+		if r.status_code == OK:
 			url = r.json()["url"]
 			assert isinstance(url, str)
 			return url
@@ -342,22 +360,23 @@ async def animal(animalType: str, breed: Optional[str] = None) -> str:
 	elif animalType == "bear":
 		return (
 			"https://placebear.com/"
-			f"{randint(200, 400)}/{randint(200, 400)}"
+			f"{random.randint(200, 400)}/{random.randint(200, 400)}"
 		)
 
 	elif animalType == "frog":
-		frog = choice(frogList)["name"]
+		frog = random.choice(frogList)["name"]
 		return (
 			"https://raw.githubusercontent.com/"
 			f"a9-i/frog/main/ImgSetOpt/{frog}"
 		)
 
 	elif animalType == "seal":
-		sealID = str(randint(0, 83)).rjust(4, "0")
-		return f"https://focabot.github.io/random-seal/seals/{sealID}.jpg"
+		sealId = str(random.randint(0, 83)).rjust(4, "0")
+		return f"https://focabot.github.io/random-seal/seals/{sealId}.jpg"
 
-	if r is not None and r.status_code != 200:
-		raise httpx.RequestError(f"Failed to call {animalType} Animal API")
+	if r is not None and r.status_code != OK:
+		msg = f"Failed to call {animalType} Animal API"
+		raise httpx.RequestError(msg)
 	raise ValueError("Invalid Animal: " + animalType)
 
 
@@ -388,7 +407,7 @@ async def define(word: str) -> nextcord.Embed:
 			"https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word,
 			timeout=10
 		)
-	if r.status_code == 200:
+	if r.status_code == OK:
 		j = r.json()
 		desc = ""
 		p = j[0]["phonetics"]
@@ -413,10 +432,10 @@ async def define(word: str) -> nextcord.Embed:
 	)
 
 
-def roll(text: str) -> Union[tuple[None], tuple[int, int, str, bool, int]]:
+def roll(text: str) -> tuple[None] | tuple[int, int, str, bool, int]:
 	# Takes a string of the format mdn+b and rolls m
 	# n-sided dice with a modifier of b. m and b are optional.
-	diceNum: Union[str, int]
+	diceNum: str | int
 	try:
 		diceNum, command = text.split("d", 1)
 	except (IndexError, ValueError):
@@ -424,22 +443,22 @@ def roll(text: str) -> Union[tuple[None], tuple[int, int, str, bool, int]]:
 	diceNum = abs(int(diceNum)) if diceNum.replace("-", "").isnumeric() else 1
 	diceNum = min(diceNum, 999)
 	side = command.split("-")[0].split("+")[0]
-	if side in ("4", "6", "8", "100", "10", "12", "20"):
+	if side in {"4", "6", "8", "100", "10", "12", "20"}:
 		if (
 			command != side
-			and command[len(side)] in ("+", "-")
+			and command[len(side)] in {"+", "-"}
 			and (bonus := command[1 + len(side):]).isnumeric()
 		):
 			b = (-1 if "-" in command else 1) * min(int(bonus), 999999)
 		else:
 			b = 0
-		diceSum = sum(randint(1, int(side)) for i in range(diceNum))
+		diceSum = sum(random.randint(1, int(side)) for i in range(diceNum))
 		return diceSum + b, diceNum, side, "-" in command, b
 	return (None,)
 
 
 def rollReport(
-	text: str, author: Union[nextcord.User, nextcord.Member]
+	text: str, author: nextcord.User | nextcord.Member
 ) -> nextcord.Embed:
 	result = roll(text.lower())
 	if result[0] is not None:
@@ -456,48 +475,47 @@ def rollReport(
 
 
 def fact() -> str:
-	with open("resources/facts.txt") as f:
-		return choice(f.read().splitlines())
+	with Path("resources/facts.txt").open() as f:
+		return random.choice(f.read().splitlines())
 
 
-def truncTime(member: Union[nextcord.User, nextcord.Member]) -> str:
+def truncTime(member: nextcord.User | nextcord.Member) -> str:
 	return str(member.created_at)[:-10]
 
 
 def info(
-	target: Union[nextcord.Member, str], msg: nextcord.Message
+	target: nextcord.Member | str, msg: nextcord.Message
 ) -> nextcord.Embed:
-	if isinstance(target, str):
-		target = memSearch(msg, target)  # type: ignore
-	if target and not isinstance(target, str):
+	member = memSearch(msg, target) if isinstance(target, str) else target
+	if member and not isinstance(member, str):
 		# Discord occasionally reports people with an activity as
 		# not having one; if so, go invisible and back online
 		activity = (
-			target.activity.name
-			if target.activity and target.activity.name
+			member.activity.name
+			if member.activity and member.activity.name
 			else ""
 		)
 		emb = bbEmbed(
-			value=activity, col=target.color
+			value=activity, col=member.color
 		).set_author(
-			name=target, icon_url=fetchAvatar(target)
+			name=member, icon_url=fetchAvatar(member)
 		).set_thumbnail(
-			url=fetchAvatar(target)
+			url=fetchAvatar(member)
 		).add_field(
-			name="Registered for Discord on", value=truncTime(target) + " UTC"
+			name="Registered for Discord on", value=truncTime(member) + " UTC"
 		).add_field(
 			name="Joined this server on",
-			value=str(target.joined_at)[:-10] + " UTC"
+			value=str(member.joined_at)[:-10] + " UTC"
 		)
-		if len(target.roles) > 1:
+		if len(member.roles) > 1:
 			# Every user has the "@everyone" role, so check
 			# if they have more roles than that
 			emb.add_field(
 				name="Roles",
-				value=", ".join(role.mention for role in target.roles[:0:-1]),
+				value=", ".join(role.mention for role in member.roles[:0:-1]),
 				inline=False
 			)
-			# Reverse target.roles in order to make them
+			# Reverse member.roles in order to make them
 			# display in decreasing order of power
 	else:
 		emb = invalidTargetEmbed
@@ -505,17 +523,20 @@ def info(
 
 
 def av(
-	target: Union[nextcord.User, nextcord.Member, str], msg: nextcord.Message
+	target: nextcord.User | nextcord.Member | str, msg: nextcord.Message
 ) -> nextcord.Embed:
+	member: nextcord.User | nextcord.Member | str | None
 	if not msg.guild:
-		target = msg.author
+		member = msg.author
 	elif isinstance(target, str):
-		target = memSearch(msg, target)  # type: ignore
-	if target and not isinstance(target, str):
-		return (
-			bbEmbed(col=target.color)
-			.set_image(url=fetchAvatar(target))
-			.set_author(name=target, icon_url=fetchAvatar(target))
+		member = memSearch(msg, target)
+	else:
+		member = target
+	if member and not isinstance(member, str):
+		return bbEmbed(
+			col=member.color
+		).set_image(url=fetchAvatar(member)).set_author(
+			name=member, icon_url=fetchAvatar(member)
 		)
 	return invalidTargetEmbed
 
@@ -528,29 +549,49 @@ def ctxCreatedThread(ctx: botContext) -> bool:
 	or a thread name being changed, this method will catch that.
 
 	Args:
-		ctx botContext: The context in which the command is being invoked
+		ctx (botContext): The context in which the command is being invoked
 
 	Returns:
 		bool: Whether the event is valid to trigger a command.
 
 	"""
-	return ctx.message.type in (
+	return ctx.message.type in {
 		nextcord.MessageType.thread_created,
 		nextcord.MessageType.channel_name_change
-	)
+	}
 
 
-class bbHelpCommand(commands.HelpCommand):
+class BBHelpCommand(commands.HelpCommand):
+
+	def __init__(self) -> None:
+		"""
+		Call the HelpCommand constructor with an extra alias.
+		This is just for the sake of not having to pass extra arguments to
+		the HelpCommand in the commands.Bot constructor.
+
+		"""
+		super().__init__(command_attrs={"aliases": ["commands"]})
+
+	# TODO: configure proper send_command_help, send_error_message
 	async def send_bot_help(
 		self,
-		mapping: dict[commands.Cog, list[commands.Command]]  # type: ignore
+		_: dict[  # type: ignore[type-arg]
+			commands.Cog | None, list[commands.core.Command]
+		]
 	) -> int:
 		if ctxCreatedThread(self.context):
 			return -1
 		if not self.context.guild:
 			commandNum = 15
-		elif self.context.author.guild_permissions.manage_messages:  # type: ignore
+		elif (
+			self  # type: ignore[union-attr]
+			.context
+			.author
+			.guild_permissions
+			.manage_messages
+		):
 			# TODO: after switch from MockUser to MockMember, remove ignore
+			# and add isinstance(author, nextcord.Member)
 			commandNum = 20
 		else:
 			commandNum = 17
@@ -618,12 +659,21 @@ class bbHelpCommand(commands.HelpCommand):
 		emb = bbEmbed("Beardless Bot Commands")
 		for commandPair in commandList[:commandNum]:
 			emb.add_field(name=commandPair[0], value=commandPair[1])
-		await self.get_destination().send(embed=emb)  # type: ignore
+		await self.get_destination().send(  # type: ignore[no-untyped-call]
+			embed=emb
+		)
 		return 1
 
 	async def send_error_message(self, error: str) -> None:
-		# TODO: configure proper send_command_help, send_error_message
-		return None
+		"""
+		Log an error when a user tries to view the help information for a
+		command that does not exist, e.g. !help foobar
+
+		Args:
+			error (str): _description_
+
+		"""
+		logging.error("No command %s", error)
 
 
 def scamCheck(text: str) -> bool:
@@ -674,20 +724,36 @@ def search(searchterm: str = "") -> nextcord.Embed:
 	).set_thumbnail(url=prof)
 
 
-# The following Markov chain code was originally provided by CSTUY SHIP.
 def tweet() -> str:
-	with open("resources/eggtweets_clean.txt") as f:
+	"""
+	Create a tweet resembling an eggsoup tweet using a Markov text
+	generator. The generator uses a collection of eggsoup tweets scraped
+	from Twitter and massaged to be easily parsable.
+
+	Because of the small size of the collection of actual tweets, the
+	generated tweets are usually neither semantically nor syntactically valid.
+
+	The below Markov code was originally provided by CSTUY SHIP for use in
+	another projet; I have since migrated it to Python3 and made various
+	other improvements, including adding type annotations, the walrus
+	operator, the ternary operator, and other simplification.
+
+	Returns:
+		str: A fake eggsoup tweet
+
+	"""
+	with Path("resources/eggtweets_clean.txt").open() as f:
 		words = f.read().split()
 	chains: dict[str, list[str]] = {}
-	keySize = randint(1, 2)
+	keySize = random.randint(1, 2)
 	for i in range(len(words) - keySize):
 		if (key := " ".join(words[i:i + keySize])) not in chains:
 			chains[key] = []
 		chains[key].append(words[i + keySize])
 
-	key = s = choice(list(chains.keys()))
-	for _i in range(randint(10, 35)):
-		word = choice(chains[key])
+	key = s = random.choice(list(chains.keys()))
+	for _i in range(random.randint(10, 35)):
+		word = random.choice(chains[key])
 		s += " " + word
 		key = (
 			" ".join(key.split()[1:keySize + 1]) + " " + word
@@ -698,9 +764,18 @@ def tweet() -> str:
 
 
 def formattedTweet(eggTweet: str) -> str:
-	# Removes the last piece of punctuation to create a more realistic tweet
+	"""
+	Remove the last piece of punctuation to create a more realistic tweet.
+
+	Args:
+		eggTweet (str): The tweet to format
+
+	Returns:
+		str: The formatted tweet
+
+	"""
 	for i in range(len(eggTweet) - 1, -1, -1):
-		if eggTweet[i] in (".", "!", "?"):
+		if eggTweet[i] in {".", "!", "?"}:
 			return "\n" + eggTweet[:i]
 	return "\n" + eggTweet
 

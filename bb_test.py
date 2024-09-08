@@ -2,15 +2,16 @@
 
 import asyncio
 import logging
-import typing
 from collections import deque
 from collections.abc import Iterator
 from copy import copy
 from datetime import datetime
 from json import load
-from os import environ, listdir
+from os import environ
+from pathlib import Path
 from random import choice
 from time import sleep
+from typing import Any, Final, Literal, overload
 
 import aiofiles
 import httpx
@@ -19,13 +20,14 @@ import pytest
 import requests
 import responses
 from aiohttp import ClientWebSocketResponse
-from bandit.core.config import BanditConfig  # type: ignore
-from bandit.core.manager import BanditManager  # type: ignore
+from bandit.core.config import BanditConfig  # type: ignore[import-untyped]
+from bandit.core.manager import BanditManager  # type: ignore[import-untyped]
 from bs4 import BeautifulSoup
 from dotenv import dotenv_values
-from flake8.api import legacy as flake8  # type: ignore
+from flake8.api import legacy as flake8  # type: ignore[import-untyped]
 from mypy import api
 from nextcord.ext import commands
+from pytest_httpx import HTTPXMock
 
 import Bot
 import brawl
@@ -33,40 +35,50 @@ import bucks
 import logs
 import misc
 
-imageTypes = ["image/" + i for i in ("png", "jpeg", "jpg", "gif", "webp")]
+imageTypes = tuple(
+	"image/" + i for i in ("png", "jpeg", "jpg", "gif", "webp")
+)
 
-bbFiles = [f for f in listdir() if f.endswith(".py")]
+bbFiles = tuple(f.name for f in Path().glob("*.py"))
 
-# TODO: refactor away from this magic number
-bbId: typing.Final[int] = 654133911558946837
+# TODO: refactor away from magic numbers
+BB_ID: Final[int] = 654133911558946837
+CAP_BRAWL_ID: Final[int] = 7032472
 
-messageable = typing.Union[
-	nextcord.TextChannel,
-	nextcord.Thread,
-	nextcord.DMChannel,
-	nextcord.PartialMessageable,
-	nextcord.VoiceChannel,
-	nextcord.StageChannel,
-	nextcord.GroupChannel
-]
+MessageableChannel = (
+	nextcord.TextChannel
+	| nextcord.Thread
+	| nextcord.DMChannel
+	| nextcord.PartialMessageable
+	| nextcord.VoiceChannel
+	| nextcord.StageChannel
+	| nextcord.GroupChannel
+)
 
-channelTypes = typing.Union[
-	nextcord.StageChannel,
-	nextcord.VoiceChannel,
-	nextcord.TextChannel,
-	nextcord.CategoryChannel,
-	nextcord.ForumChannel,
-	None
-]
+GuildChannel = (
+	nextcord.StageChannel
+	| nextcord.VoiceChannel
+	| nextcord.TextChannel
+	| nextcord.CategoryChannel
+	| nextcord.ForumChannel
+)
 
-iconTypes = typing.Union[
-	bytes, nextcord.Asset, nextcord.Attachment, nextcord.File, None
-]
+iconTypes = (
+	bytes | nextcord.Asset | nextcord.Attachment | nextcord.File | None
+)
+
+if not (brawlKey := environ.get("BRAWLKEY")):
+	env = dotenv_values(".env")
+	try:
+		brawlKey = env["BRAWLKEY"]
+	except KeyError:
+		logging.warning(
+			"No Brawlhalla API key. Brawlhalla-"
+			"specific tests will not be run.\n"
+		)
 
 
-def goodURL(
-	resp: typing.Union[requests.models.Response, httpx.Response]
-) -> bool:
+def goodUrl(resp: requests.models.Response | httpx.Response) -> bool:
 	return (
 		200 <= resp.status_code < 400
 		and resp.headers["content-type"] in imageTypes
@@ -81,7 +93,7 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 	def __init__(
 		self,
 		loop: asyncio.AbstractEventLoop,
-		user: typing.Optional[nextcord.User] = None
+		user: nextcord.User | None = None
 	) -> None:
 		self.loop = loop
 		self.user = user
@@ -89,47 +101,52 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 		self.token = None
 		self.proxy = None
 		self.proxy_auth = None
-		self._locks = {}  # type: ignore
+		self._locks = {}  # type: ignore[assignment]
 		self._global_over = asyncio.Event()
 		self._global_over.set()
 
-	async def create_role(  # type: ignore
+	async def create_role(  # type: ignore[override]
 		self,
-		guild_id: typing.Union[str, int],
-		reason: typing.Optional[str] = None,
-		**fields: typing.Any
-	) -> dict[str, typing.Any]:
+		guild_id: str | int,
+		reason: str | None = None,
+		**fields: Any
+	) -> dict[str, Any]:
 		data = dict(fields)
 		data["id"] = guild_id
-		data["name"] = fields["name"] if "name" in fields else "TestRole"
+		if "name" not in data:
+			data["name"] = "TestRole"
 		return data
 
-	async def send_message(  # type: ignore
+	async def send_message(  # type: ignore[override]
 		self,
-		channel_id: typing.Union[str, int],
-		content: typing.Optional[str] = None,
+		channel_id: str | int,
+		content: str | None = None,
 		*,
 		tts: bool = False,
-		embed: typing.Optional[nextcord.Embed] = None,
-		embeds: typing.Optional[list[nextcord.Embed]] = None,
-		nonce: typing.Union[int, str, None] = None,
-		allowed_mentions: typing.Optional[nextcord.AllowedMentions] = None,
-		message_reference: typing.Optional[nextcord.MessageReference] = None,
-		stickers: typing.Optional[list[int]] = None,
-		components: typing.Optional[list[nextcord.Component]] = None,
-		flags: typing.Optional[int] = None
-	) -> dict[str, typing.Any]:
-		data: dict[str, typing.Any] = {
+		embed: nextcord.Embed | None = None,
+		embeds: list[nextcord.Embed] | None = None,
+		nonce: int | str | None = None,
+		allowed_mentions: nextcord.AllowedMentions | None = None,
+		message_reference: nextcord.MessageReference | None = None,
+		stickers: list[int] | None = None,
+		components: list[nextcord.Component] | None = None,
+		flags: int | None = None
+	) -> dict[str, Any]:
+		data: dict[str, Any] = {
 			"attachments": [],
 			"edited_timestamp": None,
 			"type": nextcord.Message,
 			"pinned": False,
-			"mention_everyone": (
-				"@everyone" in content
-			) if content else False,
+			"mention_everyone": content and "@everyone" in content,
 			"tts": tts,
 			"author": MockUser(),
-			"content": content or ""
+			"content": content or "",
+			"nonce": nonce,
+			"allowed_mentions": allowed_mentions,
+			"message_reference": message_reference,
+			"components": components,
+			"stickers": stickers,
+			"flags": flags
 		}
 		if embed:
 			data["embeds"] = [embed]
@@ -137,21 +154,9 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 			data["embeds"] = embeds
 		else:
 			data["embeds"] = []
-		if nonce:
-			data["nonce"] = nonce
-		if allowed_mentions:
-			data["allowed_mentions"] = allowed_mentions
-		if message_reference:
-			data["message_reference"] = message_reference
-		if components:
-			data["components"] = components
-		if stickers:
-			data["stickers"] = stickers
 		return data
 
-	async def leave_guild(
-		self, guild_id: typing.Union[str, int]
-	) -> None:
+	async def leave_guild(self, guild_id: str | int) -> None:
 		if self.user and self.user.guild and self.user.guild.id == guild_id:
 			self.user.guild = None
 
@@ -176,13 +181,18 @@ class MockUser(nextcord.User):
 		def create_message(
 			self,
 			*,
-			channel: nextcord.abc.Messageable,
-			data: dict[str, typing.Any]  # type: ignore
+			channel: MessageableChannel,
+			data: dict[str, Any]  # type: ignore[override]
 		) -> nextcord.Message:
-			data["id"] = self.last_message_id
+			data["id"] = self.user.id if self.user else "0"
+			data["components"] = []
+			data["message_reference"] = {
+				"message_id": self.last_message_id,
+				"channel_id": str(channel.id)
+			}
 			self.last_message_id += 1
 			message = nextcord.Message(
-				state=self, channel=channel, data=data  # type: ignore
+				state=self, channel=channel, data=data  # type: ignore[arg-type]
 			)
 			assert self.channel._state._messages is not None
 			self.channel._state._messages.append(message)
@@ -190,12 +200,16 @@ class MockUser(nextcord.User):
 
 		def store_user(
 			self,
-			data: dict[str, typing.Any]  # type: ignore
+			data: dict[str, str] | nextcord.User  # type: ignore[override]
 		) -> nextcord.User:
-			return MockUser()
+			if isinstance(data, nextcord.User):
+				return data
+			storedUser = self.user or MockUser(uid=int(data.get("id", "0")))
+			assert isinstance(storedUser, nextcord.User)
+			return storedUser
 
-		def _get_private_channel_by_user(  # type: ignore
-			self, user_id: typing.Optional[int]
+		def _get_private_channel_by_user(  # type: ignore[override]
+			self, user_id: int | None
 		) -> nextcord.TextChannel:
 			return self.channel
 
@@ -204,17 +218,18 @@ class MockUser(nextcord.User):
 		name: str = "testname",
 		nick: str = "testnick",
 		discriminator: str = "0000",
-		id: int = 123456789,
-		roles: typing.Optional[list[nextcord.Role]] = None,
-		guild: typing.Optional[nextcord.Guild] = None,
+		uid: int = 123456789,
+		roles: list[nextcord.Role] | None = None,
+		guild: nextcord.Guild | None = None,
+		messages: list[nextcord.Message] | None = None,
+		*,
 		customAvatar: bool = True,
-		adminPowers: bool = False,
-		messages: typing.Optional[list[nextcord.Message]] = None
+		adminPowers: bool = False
 	) -> None:
 		self.name = name
 		self.global_name = name
 		self.nick = nick
-		self.id = id
+		self.id = uid
 		self.discriminator = discriminator
 		self.bot = False
 		self.roles = roles if roles is not None else []
@@ -239,9 +254,12 @@ class MockUser(nextcord.User):
 		self._state.user = self
 		self._state.http.user_agent = str(self)
 
-	@typing.no_type_check
-	def history(self) -> Iterator[nextcord.Message]:
-		return self._state.channel.history()
+	def history(  # type: ignore[override]
+		self
+	) -> Iterator[nextcord.Message]:
+		return (  # type: ignore[no-any-return]
+			self._state.channel.history()  # type: ignore[attr-defined]
+		)
 
 	async def add_roles(self, role: nextcord.Role) -> None:
 		self.roles.append(role)
@@ -251,9 +269,7 @@ class MockChannel(nextcord.TextChannel):
 
 	class MockChannelState(nextcord.state.ConnectionState):
 		def __init__(
-			self,
-			user: typing.Optional[nextcord.User] = None,
-			messageNum: int = 0
+			self, user: nextcord.User | None = None, messageNum: int = 0
 		) -> None:
 			self.loop = asyncio.get_event_loop()
 			self.http = MockHTTPClient(self.loop, user)
@@ -265,72 +281,81 @@ class MockChannel(nextcord.TextChannel):
 		def create_message(
 			self,
 			*,
-			channel: messageable,
-			data: dict[str, typing.Any]  # type: ignore
+			channel: MessageableChannel,
+			data: dict[str, Any]  # type: ignore[override]
 		) -> nextcord.Message:
-			data["id"] = self.last_message_id
+			data["id"] = self.user.id if self.user else "0"
+			data["components"] = []
+			data["message_reference"] = {
+				"message_id": self.last_message_id,
+				"channel_id": str(channel.id)
+			}
 			self.last_message_id += 1
 			message = nextcord.Message(
 				state=self,
 				channel=channel,
-				data=data  # type: ignore
+				data=data  # type: ignore[arg-type]
 			)
 			self._messages.append(message)
 			return message
 
 		def store_user(
 			self,
-			data: dict  # type: ignore
+			data: dict[str, str] | nextcord.User  # type: ignore[override]
 		) -> nextcord.User:
-			return self.user or MockUser()
+			if isinstance(data, nextcord.User):
+				return data
+			storedUser = self.user or MockUser(uid=int(data.get("id", "0")))
+			assert isinstance(storedUser, nextcord.User)
+			return storedUser
 
 	def __init__(
 		self,
 		name: str = "testchannelname",
-		guild: typing.Optional[nextcord.Guild] = None,
-		messages: typing.Optional[list[nextcord.Message]] = None,
-		id: int = 123456789
+		guild: nextcord.Guild | None = None,
+		messages: list[nextcord.Message] | None = None,
+		chid: int = 123456789
 	) -> None:
 		self.name = name
-		self.id = id
+		self.id = chid
 		self.position = 0
 		self.slowmode_delay = 0
 		self.nsfw = False
 		self.topic = None
 		self.category_id = 0
-		self.guild = guild  # type: ignore
+		self.guild = guild  # type: ignore[assignment]
 		self.messages = messages if messages is not None else []
 		self._type = 0
 		self._state = self.MockChannelState(messageNum=len(self.messages))
 		self._overwrites = []
 		self.assignChannelToGuild(self.guild)
 
-	@typing.overload
+	@overload
 	async def set_permissions(
 		self,
-		target: typing.Union[nextcord.Member, nextcord.Role],
+		target: nextcord.Member | nextcord.Role,
 		*,
-		overwrite: typing.Optional[nextcord.PermissionOverwrite] = ...,
-		reason: typing.Optional[str] = ...,
+		overwrite: nextcord.PermissionOverwrite | None = ...,
+		reason: str | None = ...
 	) -> None:
 		...
 
-	@typing.overload
+	@overload
 	async def set_permissions(
 		self,
-		target: typing.Union[nextcord.Member, nextcord.Role],
+		target: nextcord.Member | nextcord.Role,
 		*,
-		reason: typing.Optional[str] = ...,
-		**permissions: bool,
+		reason: str | None = ...,
+		**permissions: bool
 	) -> None:
 		...
 
 	async def set_permissions(
 		self,
-		target: typing.Union[nextcord.Member, nextcord.Role],
+		target: nextcord.Member | nextcord.Role,
 		*,
-		reason: typing.Optional[str] = None,
-		**kwargs: typing.Any,
+		reason: str | None = None,
+		**kwargs: Any
 	) -> None:
 		overwrite = kwargs.pop("overwrite", None)
 		permissions: dict[str, bool] = kwargs
@@ -345,14 +370,14 @@ class MockChannel(nextcord.TextChannel):
 				"deny": deny.value
 			}
 			self._overwrites.append(
-				nextcord.abc._Overwrites(payload)  # type: ignore
+				nextcord.abc._Overwrites(payload)  # type: ignore[arg-type]
 			)
 		else:
 			for overwrite in self._overwrites:
 				if overwrite["id"] == target.id:
 					self._overwrites.remove(overwrite)
 
-	def history(self) -> Iterator[nextcord.Message]:  # type: ignore
+	def history(self) -> Iterator[nextcord.Message]:  # type: ignore[override]
 		assert self._state._messages is not None
 		return iter(reversed(self._state._messages))
 
@@ -366,9 +391,7 @@ class MockMessage(nextcord.Message):
 
 	class MockMessageState(nextcord.state.ConnectionState):
 		def __init__(
-			self,
-			user: nextcord.User,
-			guild: typing.Optional[nextcord.Guild] = None
+			self, user: nextcord.User, guild: nextcord.Guild | None = None
 		) -> None:
 			self.loop = asyncio.get_event_loop()
 			self.http = MockHTTPClient(self.loop, user=user)
@@ -381,12 +404,12 @@ class MockMessage(nextcord.Message):
 
 	def __init__(
 		self,
-		content: typing.Optional[str] = "testcontent",
-		author: typing.Optional[nextcord.User] = None,
-		guild: typing.Optional[nextcord.Guild] = None,
-		channel: typing.Optional[nextcord.TextChannel] = None,
-		embeds: typing.Optional[list[nextcord.Embed]] = None,
-		embed: typing.Optional[nextcord.Embed] = None
+		content: str | None = "testcontent",
+		author: nextcord.User | None = None,
+		guild: nextcord.Guild | None = None,
+		channel: nextcord.TextChannel | None = None,
+		embeds: list[nextcord.Embed] | None = None,
+		embed: nextcord.Embed | None = None
 	) -> None:
 		self.author = author or MockUser()
 		self.content = content or ""
@@ -397,19 +420,25 @@ class MockMessage(nextcord.Message):
 		self.mentions = []
 		self.embeds = embeds or ([embed] if embed is not None else [])
 		self.mention_everyone = False
-		self.flags = nextcord.MessageFlags._from_value(0)  # type: ignore
+		self.flags = (
+			nextcord  # type: ignore[no-untyped-call]
+			.MessageFlags
+			._from_value(0)
+		)
 		self._state = self.MockMessageState(self.author, guild)
 		assert self.channel._state._messages is not None
 		self.channel._state._messages.append(self)
 
-	async def delete(self, *, delay: typing.Optional[float] = None) -> None:
+	async def delete(self, *, delay: float | None = None) -> None:
 		assert self.channel._state._messages is not None
+		if delay is not None:
+			await asyncio.sleep(delay)
 		self.channel._state._messages.remove(self)
 
 	@staticmethod
 	def getMockReactionPayload(
-		emojiName: str = "MockEmojiName", emojiId: int = 0, me: bool = False
-	) -> dict[str, typing.Any]:
+		emojiName: str = "MockEmojiName", emojiId: int = 0, *, me: bool = False
+	) -> dict[str, Any]:
 		return {"me": me, "emoji": {"id": emojiId, "name": emojiName}}
 
 
@@ -419,11 +448,11 @@ class MockRole(nextcord.Role):
 	def __init__(
 		self,
 		name: str = "Test Role",
-		id: int = 123456789,
-		permissions: typing.Union[int, nextcord.Permissions] = 1879573680
+		rid: int = 123456789,
+		permissions: int | nextcord.Permissions = 1879573680
 	) -> None:
 		self.name = name
-		self.id = id
+		self.id = rid
 		self.hoist = False
 		self.mentionable = True
 		self.position = 1
@@ -444,45 +473,51 @@ class MockGuild(nextcord.Guild):
 			self.http = MockHTTPClient(self.loop, user=user)
 			self._intents = nextcord.Intents.all()
 
-		def is_guild_evicted(
-			self, guild: nextcord.Guild
-		) -> typing.Literal[False]:
+		def is_guild_evicted(self, guild: nextcord.Guild) -> Literal[False]:
 			return False
 
 		async def chunk_guild(
 			self,
 			guild: nextcord.Guild,
+			*,
 			wait: bool = True,
-			cache: typing.Any = None
+			cache: bool | None = None
 		) -> None:
 			pass
 
 		async def query_members(
 			self,
 			guild: nextcord.Guild,
-			query: typing.Optional[str],
+			query: str | None,
 			limit: int,
-			user_ids: typing.Optional[list[int]],
+			user_ids: list[int] | None,
 			cache: bool,
 			presences: bool
 		) -> list[nextcord.Member]:
-			return [self.user]
+			if self.user is not None:
+				await self.chunk_guild(self.user.guild)
+				users = []
+				if not user_ids or (self.user.id in user_ids):
+					users.append(self.user)
+				return users if limit > 0 else []
+			return []
 
 		def setUserGuild(self, guild: nextcord.Guild) -> None:
 			assert self.user is not None
 			self.user.guild = guild
 			self.http.user = self.user
 
+	# TODO: switch members to list[nextcord.member] | None
 	def __init__(
 		self,
-		members: typing.Optional[list[nextcord.User]] = None,
+		members: list[nextcord.User] | None = None,
 		name: str = "Test Guild",
-		id: int = 0,
-		channels: typing.Optional[list[nextcord.TextChannel]] = None,
-		roles: typing.Optional[list[nextcord.Role]] = None
+		gid: int = 0,
+		channels: list[nextcord.TextChannel] | None = None,
+		roles: list[nextcord.Role] | None = None
 	) -> None:
 		self.name = name
-		self.id = id
+		self.id = gid
 		self._state = self.MockGuildState()
 		self._members = dict(
 			enumerate(
@@ -500,31 +535,35 @@ class MockGuild(nextcord.Guild):
 		for role in self._roles.values():
 			self.assignGuild(role)
 
-	@typing.overload
+	@property
+	def me(self) -> nextcord.Member:
+		return self._state.user
+
+	@overload
 	async def create_role(
 		self,
 		*,
-		reason: typing.Optional[str] = ...,
+		reason: str | None = ...,
 		name: str = ...,
 		permissions: nextcord.Permissions = ...,
-		colour: typing.Union[nextcord.Colour, int] = ...,
+		colour: nextcord.Colour | int = ...,
 		hoist: bool = ...,
 		mentionable: bool = ...,
-		icon: typing.Union[str, iconTypes] = ...
+		icon: str | iconTypes = ...
 	) -> nextcord.Role:
 		...
 
-	@typing.overload
+	@overload
 	async def create_role(
 		self,
 		*,
-		reason: typing.Optional[str] = ...,
+		reason: str | None = ...,
 		name: str = ...,
 		permissions: nextcord.Permissions = ...,
-		color: typing.Union[nextcord.Colour, int] = ...,
+		color: nextcord.Colour | int = ...,
 		hoist: bool = ...,
 		mentionable: bool = ...,
-		icon: typing.Union[str, iconTypes] = ...
+		icon: str | iconTypes = ...
 	) -> nextcord.Role:
 		...
 
@@ -532,13 +571,13 @@ class MockGuild(nextcord.Guild):
 		self,
 		*,
 		name: str = "",
-		permissions: typing.Optional[nextcord.Permissions] = None,
-		color: typing.Union[nextcord.Colour, int] = 0,
-		colour: typing.Union[nextcord.Colour, int] = 0,
+		permissions: nextcord.Permissions | None = None,
+		color: nextcord.Colour | int = 0,
+		colour: nextcord.Colour | int = 0,
 		hoist: bool = False,
 		mentionable: bool = False,
-		icon: typing.Union[str, iconTypes] = None,
-		reason: typing.Optional[str] = None
+		icon: str | iconTypes = None,
+		reason: str | None = None
 	) -> nextcord.Role:
 		col = color or colour or nextcord.Colour.default()
 		perms = permissions or nextcord.Permissions.none()
@@ -561,40 +600,35 @@ class MockGuild(nextcord.Guild):
 	def assignGuild(self, role: nextcord.Role) -> None:
 		role.guild = self
 
-	def get_member(self, userId: int) -> typing.Optional[nextcord.Member]:
+	def get_member(self, userId: int) -> nextcord.Member | None:
 		class MockGuildMember(nextcord.Member):
-			def __init__(self, id: int):
+			def __init__(self, uid: int) -> None:
 				self.data = {"user": "foo", "roles": "0"}
 				self.guild = MockGuild()
 				self.state = MockUser.MockUserState()
-				self._user = MockUser(id=id)
+				self._user = MockUser(uid=uid)
 				self._client_status = {}
 				self.nick = "foobar"
 		return MockGuildMember(userId)
 
-	def get_channel(self, channelId: int) -> channelTypes:
+	def get_channel(self, channelId: int) -> GuildChannel | None:
 		return self._channels.get(channelId)
-
-	@property
-	def me(self) -> nextcord.Member:
-		return self._state.user
 
 
 class MockThread(nextcord.Thread):
 	def __init__(
 		self,
+		*,
 		name: str = "testThread",
-		owner: typing.Optional[nextcord.User] = None,
+		owner: nextcord.User | None = None,
 		channelId: int = 0,
-		me: typing.Optional[nextcord.Member] = None,
-		parent: typing.Optional[nextcord.TextChannel] = None,
+		me: nextcord.Member | None = None,
+		parent: nextcord.TextChannel | None = None,
 		archived: bool = False,
 		locked: bool = False
-	):
+	) -> None:
 		Bot.bot = MockBot(Bot.bot)
-		channel = parent or MockChannel(
-			id=channelId, guild=MockGuild()
-		)
+		channel = parent or MockChannel(chid=channelId, guild=MockGuild())
 		self.guild = channel.guild
 		self._state = channel._state
 		self.state = self._state
@@ -606,16 +640,16 @@ class MockThread(nextcord.Thread):
 		self.archive_timestamp = datetime.now()
 		self.locked = locked
 		self.message_count = 0
-		self._type = 0  # type: ignore
+		self._type = 0  # type: ignore[assignment]
 		self.auto_archive_duration = 10080
-		self.me = me  # type: ignore
-		self._members = copy(channel.guild._members)  # type: ignore
+		self.me = me  # type: ignore[assignment]
+		self._members = copy(channel.guild._members)  # type: ignore[arg-type]
 		if self.me and Bot.bot.user is not None and not any(
 			user.id == Bot.bot.user.id for user in self.members
 		):
 			self._members[
 				len(self.members)
-			] = Bot.bot.user.baseUser  # type: ignore
+			] = Bot.bot.user.baseUser  # type: ignore[attr-defined]
 		self.member_count = len(self.members)
 
 	async def join(self) -> None:
@@ -637,28 +671,33 @@ class MockContext(misc.botContext):
 		# as in actual Context._state
 		def __init__(
 			self,
-			user: typing.Optional[nextcord.User] = None,
-			channel: typing.Optional[nextcord.TextChannel] = None
+			user: nextcord.User | None = None,
+			channel: nextcord.TextChannel | None = None
 		) -> None:
 			self.loop = asyncio.get_event_loop()
 			self.http = MockHTTPClient(self.loop, user)
 			self.allowed_mentions = nextcord.AllowedMentions(everyone=True)
-			self.user = user  # type: ignore
+			self.user = user  # type: ignore[assignment]
 			self.channel = channel or MockChannel()
 			self.message = MockMessage()
 
 		def create_message(
 			self,
 			*,
-			channel: messageable,
-			data: dict[str, typing.Any]  # type: ignore
+			channel: MessageableChannel,
+			data: dict[str, Any]  # type: ignore[override]
 		) -> nextcord.Message:
-			data["id"] = self.channel._state.last_message_id
+			data["id"] = self.user.id if self.user else "0"
+			data["components"] = []
+			data["message_reference"] = {
+				"message_id": self.channel._state.last_message_id,
+				"channel_id": str(channel.id)
+			}
 			self.channel._state.last_message_id += 1
 			message = nextcord.Message(
 				state=self,
 				channel=channel,
-				data=data  # type: ignore
+				data=data  # type: ignore[arg-type]
 			)
 			assert self.channel._state._messages is not None
 			self.channel._state._messages.append(message)
@@ -666,17 +705,21 @@ class MockContext(misc.botContext):
 
 		def store_user(
 			self,
-			data: dict  # type: ignore
+			data: dict[str, str] | nextcord.User  # type: ignore[override]
 		) -> nextcord.User:
-			return self.user or MockUser()
+			if isinstance(data, nextcord.User):
+				return data
+			storedUser = self.user or MockUser(uid=int(data.get("id", "0")))
+			assert isinstance(storedUser, nextcord.User)
+			return storedUser
 
 	def __init__(
 		self,
 		bot: commands.Bot,
-		message: typing.Optional[nextcord.Message] = None,
-		channel: typing.Optional[nextcord.TextChannel] = None,
-		author: typing.Optional[nextcord.User] = None,
-		guild: typing.Optional[nextcord.Guild] = None
+		message: nextcord.Message | None = None,
+		channel: nextcord.TextChannel | None = None,
+		author: nextcord.User | None = None,
+		guild: nextcord.Guild | None = None
 	) -> None:
 		self.bot = bot
 		self.prefix = str(bot.command_prefix) if bot.command_prefix else "!"
@@ -691,9 +734,12 @@ class MockContext(misc.botContext):
 		self._state = self.MockContextState(channel=self.channel)
 		self.invoked_with = None
 
-	@typing.no_type_check
-	def history(self) -> Iterator[nextcord.Message]:
-		return self._state.channel.history()
+	def history(  # type: ignore[override]
+		self
+	) -> Iterator[nextcord.Message]:
+		return (  # type: ignore [no-any-return]
+			self._state.channel.history()  # type: ignore[attr-defined]
+		)
 
 
 class MockBot(commands.Bot):
@@ -706,7 +752,7 @@ class MockBot(commands.Bot):
 			self,
 			socket: ClientWebSocketResponse,
 			*,
-			loop: typing.Optional[asyncio.AbstractEventLoop] = None,
+			loop: asyncio.AbstractEventLoop | None = None,
 			_connection: nextcord.state.ConnectionState
 		) -> None:
 			self.loop = loop or asyncio.get_event_loop()
@@ -717,15 +763,15 @@ class MockBot(commands.Bot):
 			return 0.025
 
 	class MockClientUser(nextcord.ClientUser):
-		def __init__(self, bot: commands.Bot) -> None:
-			self.baseUser = MockUser(id=bbId)
+		def __init__(self) -> None:
+			self.baseUser = MockUser(uid=BB_ID)
 			self.baseUser.bot = True
 			self._state = self.baseUser._state
 			self.id = self.baseUser.id
 			self.name = "testclientuser"
 			self.discriminator = "0000"
-			self._avatar: typing.Union[str, nextcord.Asset, None] = (
-				self.baseUser.avatar  # type: ignore
+			self._avatar: str | nextcord.Asset | None = (
+				self.baseUser.avatar  # type: ignore[assignment]
 			)
 			self.bot = True
 			self.verified = True
@@ -744,7 +790,7 @@ class MockBot(commands.Bot):
 	def __init__(self, bot: commands.Bot) -> None:
 		self._connection = bot._connection
 		self.activity = None
-		self._connection.user = self.MockClientUser(self)
+		self._connection.user = self.MockClientUser()
 		self.command_prefix = bot.command_prefix
 		self.case_insensitive = bot.case_insensitive
 		self._help_command = bot.help_command
@@ -754,59 +800,49 @@ class MockBot(commands.Bot):
 		self._connection._guilds = {1: MockGuild()}
 		self.all_commands = bot.all_commands
 		self.ws = self.MockBotWebsocket(
-			None,  # type: ignore
+			None,  # type: ignore[arg-type]
 			_connection=bot._connection
 		)
 
 	async def change_presence(
 		self,
 		*,
-		activity: typing.Optional[nextcord.BaseActivity] = None,
-		status: typing.Optional[str] = None,
-		since: float = 0.0
+		activity: nextcord.BaseActivity | None = None,
+		status: str | None = None
 	) -> None:
-		self.activity = activity  # type: ignore
-		self.status = nextcord.Status.online
+		self.activity = activity  # type: ignore[assignment]
+		self.status = status or nextcord.Status.online
 
 
 class MockEmoji(nextcord.emoji.Emoji):
 	def __init__(
 		self,
 		guild: nextcord.Guild,
-		data: dict[str, typing.Any],
-		stateMessage: typing.Optional[nextcord.Message] = None
+		data: dict[str, Any],
+		stateMessage: nextcord.Message | None = None
 	) -> None:
 		self.guild_id = guild.id
 		self._state = (stateMessage or MockMessage())._state
-		self._from_data(data)  # type: ignore
-
-
-if not (brawlKey := environ.get("BRAWLKEY")):
-	env = dotenv_values(".env")
-	try:
-		brawlKey = env["BRAWLKEY"]
-	except KeyError:
-		logging.warning(
-			"No Brawlhalla API key. Brawlhalla-"
-			"specific tests will not be run.\n"
-		)
+		self._from_data(data)  # type: ignore[arg-type]
 
 
 # Run code quality tests with pytest -vk quality
-@pytest.mark.parametrize("letter", ["W", "E", "F", "I", "B"])
+@pytest.mark.parametrize(
+	"letter", ["W", "E", "F", "I", "B", "CCE", "C", "A"]
+)
 def test_pep8_compliance_with_flake8_for_code_quality(letter: str) -> None:
 	styleGuide = flake8.get_style_guide(ignore=["W191", "W503"])
 	assert styleGuide.check_files(bbFiles).get_statistics(letter) == []
 
 
 def test_full_type_checking_with_mypy_for_code_quality() -> None:
-	results = api.run(bbFiles + ["--strict"])
+	results = api.run([*bbFiles, "--strict"])
 	# assert results[0].startswith("Success: no issues found")
 	errors = [
 		i for i in results[0].split("\n")
 		if ": error: " in i and "\"__call__\" of \"Command\"" not in i
 	]
-	assert len(errors) <= 67
+	assert len(errors) <= 66
 	# TODO: After switching from MockUser to MockMember, bring this to 0.
 	# Also remove majority of # type: ignores
 	assert results[1] == ""
@@ -819,7 +855,7 @@ def test_no_security_vulnerabilities_with_bandit_for_code_quality() -> None:
 	)
 	mgr.discover_files(bbFiles)
 	mgr.run_tests()
-	# Cast to List[str] for the sake of reporting
+	# Cast to list[str] for the sake of reporting
 	assert [str(i) for i in mgr.results] == []
 
 
@@ -839,19 +875,25 @@ def test_mockContextMembers() -> None:
 
 @pytest.mark.asyncio
 async def test_logException(caplog: pytest.LogCaptureFixture) -> None:
+	author = MockUser(adminPowers=True)
+	guild = MockGuild()
+	invokedWith = "mute"
 	ctx = MockContext(
 		Bot.bot,
 		message=MockMessage(content="!mute foo"),
-		author=MockUser(adminPowers=True),
-		guild=MockGuild()
+		author=author,
+		guild=guild
 	)
-	ctx.invoked_with = "mute"
+	ctx.invoked_with = invokedWith
 	assert await Bot.cmdMute(ctx, "foo") == 0
-	assert caplog.records[0].msg == (
-		"Member \"foo\" not found. Command: mute; Author:"
-		" testname#0000; Content: !mute foo; Guild: Test Guild;"
-		" Type: <class 'nextcord.ext.commands.errors.MemberNotFound'>"
-	)
+	assert str(caplog.records[0].args) == str((
+		commands.MemberNotFound("foo"),
+		invokedWith,
+		author,
+		"!mute foo",
+		guild,
+		commands.MemberNotFound
+	))
 
 
 @pytest.mark.asyncio
@@ -859,41 +901,40 @@ async def test_createMutedRole() -> None:
 	g = MockGuild(roles=[])
 	role = await misc.createMutedRole(g)
 	assert role.name == "Muted"
-	assert len(g.roles) == 1 and g.roles[0] == role
+	assert g.roles == [role]
+
+
+def test_bot_avatar_correct_on_creation() -> None:
+	Bot.bot = MockBot(Bot.bot)
+	assert Bot.bot.user is not None
+	assert isinstance(Bot.bot.user._avatar, nextcord.Asset)
+	assert Bot.bot.user._avatar.url == (
+		f"https://cdn.discordapp.com/avatars/{BB_ID}/"
+		f"{Bot.bot.user._avatar.key}.png?size=1024"
+	)
 
 
 @pytest.mark.asyncio
 async def test_on_ready(caplog: pytest.LogCaptureFixture) -> None:
 	Bot.bot = MockBot(Bot.bot)
-	assert Bot.bot.user is not None
-	assert isinstance(Bot.bot.user._avatar, nextcord.Asset)
-	assert Bot.bot.user._avatar.url == (
-		f"https://cdn.discordapp.com/avatars/{bbId}/"
-		f"{Bot.bot.user._avatar.key}.png?size=1024"
-	)
 	caplog.set_level(logging.INFO)
 	await Bot.on_ready()
+	assert Bot.bot.activity is not None
 	assert Bot.bot.activity.name == "try !blackjack and !flip"
 	assert Bot.bot.status == nextcord.Status.online
-	assert caplog.records[4].msg == (
-		"Done! Beardless Bot serves 1 unique members across 1 servers."
-	)
+	assert caplog.records[-1].args == (1, 1)
 
 	Bot.bot._connection._guilds[2] = MockGuild(
-		name="Foo", id=1, members=Bot.bot._connection._guilds[1].members
+		name="Foo", gid=1, members=Bot.bot._connection._guilds[1].members
 	)
 	await Bot.on_ready()
-	assert caplog.records[9].msg == (
-		"Done! Beardless Bot serves 1 unique members across 2 servers."
-	)
+	assert caplog.records[-1].args == (1, 2)
 
 	Bot.bot._connection._guilds[3] = MockGuild(
-		name="Foo", id=1, members=[MockUser(id=12, name="Foobar")]
+		name="Foo", gid=1, members=[MockUser(uid=12, name="Foobar")]
 	)
 	await Bot.on_ready()
-	assert caplog.records[14].msg == (
-		"Done! Beardless Bot serves 2 unique members across 3 servers."
-	)
+	assert caplog.records[-1].args == (2, 3)
 
 
 @pytest.mark.asyncio
@@ -905,11 +946,11 @@ async def test_on_ready_raises_exceptions(
 		Bot: commands.Bot, activity: nextcord.Game
 	) -> None:
 		resp = requests.Response()
-		resp.status = 404  # type: ignore
-		raise nextcord.HTTPException(resp, str(Bot) + str(activity))
+		resp.status = 404  # type: ignore[attr-defined]
+		raise nextcord.HTTPException(resp, f"{Bot}, activity {activity}")
 
 	def mock_raise_FileNotFoundError(filepath: str, mode: str) -> None:
-		raise FileNotFoundError()
+		raise FileNotFoundError(filepath + "," + mode)
 
 	Bot.bot = MockBot(Bot.bot)
 	Bot.bot._connection._guilds = {}
@@ -918,9 +959,9 @@ async def test_on_ready_raises_exceptions(
 			"bb_test.MockBot.change_presence", mock_raise_HTTPException
 		)
 		await Bot.on_ready()
-		assert caplog.records[0].msg == (
-			"Failed to update avatar or status!"
-		)
+	assert caplog.records[0].msg == (
+		"Failed to update avatar or status!"
+	)
 	assert caplog.records[1].msg == (
 		"Bot is in no servers! Add it to a server."
 	)
@@ -928,9 +969,9 @@ async def test_on_ready_raises_exceptions(
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr("aiofiles.open", mock_raise_FileNotFoundError)
 		await Bot.on_ready()
-		assert caplog.records[2].msg == (
-			"Avatar file not found! Check your directory structure."
-		)
+	assert caplog.records[2].msg == (
+		"Avatar file not found! Check your directory structure."
+	)
 	assert caplog.records[3].msg == (
 		"Bot is in no servers! Add it to a server."
 	)
@@ -950,17 +991,18 @@ async def test_on_guild_join(caplog: pytest.LogCaptureFixture) -> None:
 	assert emb.description == misc.joinMsg.format(g.name, "<@&123456789>")
 
 	g._state.user = MockUser(adminPowers=False)
-	g._state.setUserGuild(g)  # type: ignore
+	g._state.setUserGuild(g)  # type: ignore[attr-defined]
 	caplog.set_level(logging.INFO)
 	await Bot.on_guild_join(g)
 	emb = next(ch.history()).embeds[0]
 	assert emb.title == "I need admin perms!"
 	assert emb.description == misc.reasons
-	assert caplog.records[3].msg == "Left Foo."
+	assert caplog.records[3].msg == "Left %s."
+	assert caplog.records[3].args == ("Foo",)
 
 
 @pytest.mark.parametrize(
-	"content, description",
+	("content", "description"),
 	[("e", "e"), ("", "**Embed**"), ("e" * 1025, misc.msgMaxLength)]
 )
 def test_contCheck(content: str, description: str) -> None:
@@ -991,17 +1033,17 @@ async def test_on_bulk_message_delete() -> None:
 	m = MockMessage(channel=ch)
 	m.guild = MockGuild(channels=[ch])
 	messages = [m, m, m]
-	emb = await Bot.on_bulk_message_delete(messages)  # type: ignore
+	emb = await Bot.on_bulk_message_delete(messages)  # type: ignore[arg-type]
 	assert emb is not None
-	log = logs.logPurge(messages[0], messages)  # type: ignore
+	log = logs.logPurge(messages[0], messages)  # type: ignore[arg-type]
 	assert emb.description == log.description
 	assert log.description == "Purged 2 messages in <#123456789>."
 	assert next(ch.history()).embeds[0].description == log.description
 
 	messages = [m] * 105
-	emb = await Bot.on_bulk_message_delete(messages)  # type: ignore
+	emb = await Bot.on_bulk_message_delete(messages)  # type: ignore[arg-type]
 	assert emb is not None
-	log = logs.logPurge(messages[0], messages)  # type: ignore
+	log = logs.logPurge(messages[0], messages)  # type: ignore[arg-type]
 	assert emb.description == log.description
 	assert log.description == "Purged 99+ messages in <#123456789>."
 
@@ -1012,16 +1054,16 @@ async def test_on_bulk_message_delete() -> None:
 
 @pytest.mark.asyncio
 async def test_on_reaction_clear() -> None:
-	ch = MockChannel(id=0, name="bb-log")
+	ch = MockChannel(chid=0, name="bb-log")
 	guild = MockGuild(channels=[ch])
 	ch.guild = guild
 	reaction = nextcord.Reaction(
 		message=MockMessage(),
-		data=MockMessage.getMockReactionPayload("foo")  # type: ignore
+		data=MockMessage.getMockReactionPayload("foo")  # type: ignore[arg-type]
 	)
 	otherReaction = nextcord.Reaction(
 		message=MockMessage(),
-		data=MockMessage.getMockReactionPayload("bar")  # type: ignore
+		data=MockMessage.getMockReactionPayload("bar")  # type: ignore[arg-type]
 	)
 	msg = MockMessage(guild=guild)
 	emb = await Bot.on_reaction_clear(msg, [reaction, otherReaction])
@@ -1216,21 +1258,20 @@ async def test_on_message_edit() -> None:
 	emb = await Bot.on_message_edit(before, after)
 	assert emb is not None
 
-	assert len(g.roles) == 1 and g.roles[0].name == "Muted"
+	assert len(g.roles) == 1
+	assert g.roles[0].name == "Muted"
 	# TODO: edit after to have content of len > 1024 via message.edit
 	h = ch.history()
 	assert next(h).embeds[0].description == log.description
 	assert next(h).content.startswith("Deleted possible")
-	assert not any(
-		i.content.startswith("http://dizcort.com") for i in ch.history()
-	)
+	assert not any(i.content == after.content for i in h)
 
 	assert not await Bot.on_message_edit(MockMessage(), MockMessage())
 
 
 @pytest.mark.asyncio
 async def test_on_thread_join() -> None:
-	ch = MockChannel(id=0, name="bb-log")
+	ch = MockChannel(chid=0, name="bb-log")
 	guild = MockGuild(channels=[ch])
 	ch.guild = guild
 	thread = MockThread(parent=ch, me=MockUser(), name="Foo")
@@ -1254,7 +1295,7 @@ async def test_on_thread_join() -> None:
 
 @pytest.mark.asyncio
 async def test_on_thread_delete() -> None:
-	ch = MockChannel(id=0, name="bb-log")
+	ch = MockChannel(chid=0, name="bb-log")
 	guild = MockGuild(channels=[ch])
 	ch.guild = guild
 	thread = MockThread(parent=ch, name="Foo")
@@ -1273,7 +1314,7 @@ async def test_on_thread_delete() -> None:
 
 @pytest.mark.asyncio
 async def test_on_thread_update() -> None:
-	ch = MockChannel(id=0, name="bb-log")
+	ch = MockChannel(chid=0, name="bb-log")
 	guild = MockGuild(channels=[ch])
 	ch.guild = guild
 	before = MockThread(parent=ch, name="Foo")
@@ -1323,15 +1364,24 @@ def test_tweet() -> None:
 	assert ("\n" + eggTweet).startswith(misc.formattedTweet(eggTweet))
 	assert "." not in misc.formattedTweet("test tweet.")
 	assert "." not in misc.formattedTweet("test tweet")
-	tweetLen = len(eggTweet.split(" "))
-	assert 11 <= tweetLen <= 37
+	assert 11 <= len(eggTweet.split(" ")) <= 37
+
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.choice", lambda _: "the")
+		mp.setattr("random.randint", lambda x, _: x)
+		eggTweet = misc.tweet()
+
+	assert eggTweet == "The" + (" the" * 10)
 
 
 @pytest.mark.parametrize("side", [4, 6, 8, 10, 12, 20, 100])
 def test_dice_regular(side: int) -> None:
 	user = MockUser()
 	text = "d" + str(side)
-	assert misc.roll(text)[0] in range(1, side + 1)
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.randint", lambda _, y: y)
+		assert misc.roll(text)[0] == side
+
 	report = misc.rollReport(text, user)
 	assert isinstance(report.description, str)
 	assert report.description.startswith("You got")
@@ -1341,7 +1391,6 @@ def test_dice_regular(side: int) -> None:
 
 def test_dice_irregular() -> None:
 	user = MockUser()
-	assert misc.roll("d20-4")[0] in range(-3, 17)
 	emb = misc.rollReport("d20-4", user)
 	assert isinstance(emb.description, str)
 	assert emb.description.startswith("You got")
@@ -1356,30 +1405,38 @@ def test_dice_irregular() -> None:
 
 	assert not misc.roll("d40")[0]
 
-	results = misc.roll("d100+asfjksdfhkdsfhksd")
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.randint", lambda _, y: y)
+		assert misc.roll("d20-4")[0] == 16
+
+		results = misc.roll("d100+asfjksdfhkdsfhksd")
 	assert len(results) == 5
-	assert results[0] in range(1, 101)
+	assert results[0] == 100
 	assert results[4] == 0
 
 
 @pytest.mark.parametrize("count", [-5, 1, 2, 3, 5, 100])
 def test_dice_multiple(count: int) -> None:
-	assert misc.roll(str(count) + "d4")[0] in range(1, (abs(count) * 4) + 1)
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.randint", lambda _, y: y)
+		assert misc.roll(str(count) + "d4")[0] == abs(count) * 4
 
 
 def test_dice_multiple_irregular() -> None:
-	assert misc.roll("10d20-4")[0] in range(6, 197)
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.randint", lambda _, y: y)
+		assert misc.roll("10d20-4")[0] == 196
 
-	assert misc.roll("ad100")[0] in range(1, 101)
+		assert misc.roll("ad100")[0] == 100
 
-	assert misc.roll("0d8")[0] == 0
+		assert misc.roll("0d8")[0] == 0
 
-	assert misc.roll("0d12+57")[0] == 57
+		assert misc.roll("0d12+57")[0] == 57
 
 
 def test_logMute() -> None:
-	message = MockMessage(channel=MockChannel(id=1))
-	member = MockUser(id=2)
+	message = MockMessage(channel=MockChannel(chid=1))
+	member = MockUser(uid=2)
 	assert logs.logMute(member, message, "5", "hours", 18000).description == (
 		"Muted <@2> for 5 hours in <#1>."
 	)
@@ -1390,7 +1447,7 @@ def test_logMute() -> None:
 
 
 def test_logUnmute() -> None:
-	member = MockUser(id=3)
+	member = MockUser(uid=3)
 	assert logs.logUnmute(member, MockUser()).description == "Unmuted <@3>."
 
 
@@ -1399,12 +1456,13 @@ def test_getLogChannel() -> None:
 	ch = misc.getLogChannel(
 		MockGuild(channels=[MockChannel(name="bb-log")])
 	)
-	assert isinstance(ch, nextcord.TextChannel) and ch.name == "bb-log"
+	assert isinstance(ch, nextcord.TextChannel)
+	assert ch.name == "bb-log"
 
 
 def test_fetchAvatar_custom() -> None:
 	userId = 12121212
-	member = MockUser(id=userId)
+	member = MockUser(uid=userId)
 	assert isinstance(member.avatar, nextcord.Asset)
 	assert member.avatar.url == (
 		f"https://cdn.discordapp.com/avatars/{userId}/"
@@ -1414,7 +1472,7 @@ def test_fetchAvatar_custom() -> None:
 
 
 def test_fetchAvatar_default() -> None:
-	member = MockUser(id=5000000, customAvatar=False)
+	member = MockUser(uid=5000000, customAvatar=False)
 	assert member.avatar is None
 	assert member.default_avatar.url == (
 		f"https://cdn.discordapp.com/embed/avatars/{member.id >> 22}.png"
@@ -1423,7 +1481,8 @@ def test_fetchAvatar_default() -> None:
 
 
 @pytest.mark.parametrize(
-	"username, content", [
+	("username", "content"),
+	[
 		("searchterm", "searchterm#9999"),
 		("searchterm", "searchterm"),
 		("searchterm", "search"),
@@ -1449,22 +1508,23 @@ def test_memSearch_invalid() -> None:
 
 
 def test_register() -> None:
-	bb = MockUser("Beardless Bot", "Beardless Bot", "5757", bbId)
+	bb = MockUser("Beardless Bot", "Beardless Bot", "5757", BB_ID)
 	bucks.reset(bb)
 	assert bucks.register(bb).description == (
 		"You are already in the system! Hooray! You"
-		f" have 200 BeardlessBucks, <@{bbId}>."
+		f" have 200 BeardlessBucks, <@{BB_ID}>."
 	)
 
 	bb.name = ",badname,"
 	assert bucks.register(bb).description == (
-		bucks.commaWarn.format(f"<@{bbId}>")
+		bucks.commaWarn.format(f"<@{BB_ID}>")
 	)
 
 
 @pytest.mark.parametrize(
-	"target, result", [
-		(MockUser("Test", "", "5757", bbId), "'s balance is 200"),
+	("target", "result"),
+	[
+		(MockUser("Test", "", "5757", BB_ID), "'s balance is 200"),
 		(MockUser(","), bucks.commaWarn.format("<@123456789>")),
 		("Invalid user", "Invalid user!")
 	]
@@ -1472,25 +1532,30 @@ def test_register() -> None:
 def test_balance(target: nextcord.User, result: str) -> None:
 	msg = MockMessage("!bal", guild=MockGuild())
 	desc = bucks.balance(target, msg).description
-	assert isinstance(desc, str) and result in desc
+	assert isinstance(desc, str)
+	assert result in desc
 
 
 def test_reset() -> None:
-	bb = MockUser("Beardless Bot", "Beardless Bot", "5757", bbId)
+	bb = MockUser("Beardless Bot", "Beardless Bot", "5757", BB_ID)
 	assert bucks.reset(bb).description == (
-		f"You have been reset to 200 BeardlessBucks, <@{bbId}>."
+		f"You have been reset to 200 BeardlessBucks, <@{BB_ID}>."
 	)
 
 	bb.name = ",badname,"
-	assert bucks.reset(bb).description == bucks.commaWarn.format(f"<@{bbId}>")
+	assert bucks.reset(bb).description == bucks.commaWarn.format(f"<@{BB_ID}>")
 
 
 def test_writeMoney() -> None:
-	bb = MockUser("Beardless Bot", "Beardless Bot", "5757", bbId)
+	bb = MockUser("Beardless Bot", "Beardless Bot", "5757", BB_ID)
 	bucks.reset(bb)
-	assert bucks.writeMoney(bb, "-all", False, False) == (0, 200)
+	assert bucks.writeMoney(
+		bb, "-all", writing=False, adding=False
+	) == (0, 200)
 
-	assert bucks.writeMoney(bb, -1000000, True, False) == (-2, None)
+	assert bucks.writeMoney(
+		bb, -1000000, writing=True, adding=False
+	) == (-2, None)
 
 
 def test_leaderboard() -> None:
@@ -1498,23 +1563,22 @@ def test_leaderboard() -> None:
 	assert lb.title == "BeardlessBucks Leaderboard"
 	fields = lb.fields
 	if len(fields) >= 2:  # This check in case of an empty leaderboard
-		assert fields[0].value is not None and fields[1].value is not None
+		assert fields[0].value is not None
+		assert fields[1].value is not None
 		assert int(fields[0].value) > int(fields[1].value)
 
-	lb = bucks.leaderboard(MockUser(name="bad,name", id=0), MockMessage())
+	lb = bucks.leaderboard(MockUser(name="bad,name", uid=0), MockMessage())
 	assert len(lb.fields) == len(fields)
 
 	lb = bucks.leaderboard(
-		MockUser("Beardless Bot", "Beardless Bot", "5757", bbId),
+		MockUser("Beardless Bot", "Beardless Bot", "5757", BB_ID),
 		MockMessage()
 	)
 	assert len(lb.fields) == len(fields) + 2
 
 
 @pytest.mark.asyncio
-async def test_define_valid(  # type: ignore
-	httpx_mock
-) -> None:
+async def test_define_valid(httpx_mock: HTTPXMock) -> None:
 	httpx_mock.add_response(
 		url="https://api.dictionaryapi.dev/api/v2/entries/en_US/foo",
 		json=[
@@ -1526,12 +1590,13 @@ async def test_define_valid(  # type: ignore
 		]
 	)
 	word = await misc.define("foo")
-	assert word.title == "FOO" and word.description == "Audio: spam"
+	assert word.title == "FOO"
+	assert word.description == "Audio: spam"
 
 
 @pytest.mark.asyncio
-async def test_define_no_audio_has_blank_description(  # type: ignore
-	httpx_mock
+async def test_define_no_audio_has_blank_description(
+	httpx_mock: HTTPXMock
 ) -> None:
 	httpx_mock.add_response(
 		url="https://api.dictionaryapi.dev/api/v2/entries/en_US/foo",
@@ -1544,12 +1609,13 @@ async def test_define_no_audio_has_blank_description(  # type: ignore
 		]
 	)
 	word = await misc.define("foo")
-	assert word.title == "FOO" and word.description == ""
+	assert word.title == "FOO"
+	assert word.description == ""
 
 
 @pytest.mark.asyncio
-async def test_define_invalid_word_returns_no_results_found(  # type: ignore
-	httpx_mock
+async def test_define_invalid_word_returns_no_results_found(
+	httpx_mock: HTTPXMock
 ) -> None:
 	httpx_mock.add_response(
 		url="https://api.dictionaryapi.dev/api/v2/entries/en_US/foo",
@@ -1560,8 +1626,8 @@ async def test_define_invalid_word_returns_no_results_found(  # type: ignore
 
 
 @pytest.mark.asyncio
-async def test_define_api_down_returns_error_message(  # type: ignore
-	httpx_mock
+async def test_define_api_down_returns_error_message(
+	httpx_mock: HTTPXMock
 ) -> None:
 	httpx_mock.add_response(
 		url="https://api.dictionaryapi.dev/api/v2/entries/en_US/test",
@@ -1573,9 +1639,7 @@ async def test_define_api_down_returns_error_message(  # type: ignore
 
 
 @pytest.mark.asyncio
-async def test_cmdDefine(  # type: ignore
-	httpx_mock
-) -> None:
+async def test_cmdDefine(httpx_mock: HTTPXMock) -> None:
 	Bot.bot = MockBot(Bot.bot)
 	ch = MockChannel()
 	ctx = MockContext(
@@ -1586,31 +1650,31 @@ async def test_cmdDefine(  # type: ignore
 	)
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr("misc.define", "raise Exception")
-		assert await Bot.cmdDefine(ctx, "f") == 0  # type: ignore
+		assert await Bot.cmdDefine(ctx, words="f") == 0
 	assert next(ch.history()).content.startswith("The API I use to get")
 
 	resp = [{"word": "f", "phonetics": [], "meanings": [{"definitions": []}]}]
 	httpx_mock.add_response(
 		url="https://api.dictionaryapi.dev/api/v2/entries/en_US/f", json=resp
 	)
-	assert await Bot.cmdDefine(ctx, "f") == 1
+	assert await Bot.cmdDefine(ctx, words="f") == 1
 	emb = next(ch.history()).embeds[0]
 	definition = await misc.define("f")
 	assert emb.title == definition.title == "F"
 
 
 def test_flip() -> None:
-	bb = MockUser("Beardless Bot", "Beardless Bot", "5757", bbId)
+	bb = MockUser("Beardless Bot", "Beardless Bot", "5757", BB_ID)
 	assert bucks.flip(bb, "0").endswith("actually bet anything.")
 
 	assert bucks.flip(bb, "invalidbet").startswith("Invalid bet.")
 
 	bucks.reset(bb)
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("random.randint", lambda x, y: 0)
+		mp.setattr("random.randint", lambda *_: 0)
 		assert bucks.flip(bb, "all") == (
 			"Tails! You lose! Your losses have been"
-			f" deducted from your balance, <@{bbId}>."
+			f" deducted from your balance, <@{BB_ID}>."
 		)
 	balMsg = bucks.balance(bb, MockMessage("!bal", bb))
 	assert isinstance(balMsg.description, str)
@@ -1618,7 +1682,7 @@ def test_flip() -> None:
 
 	bucks.reset(bb)
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("random.randint", lambda x, y: 0)
+		mp.setattr("random.randint", lambda *_: 0)
 		bucks.flip(bb, 37)
 	balMsg = bucks.balance(bb, MockMessage("!bal", bb))
 	assert isinstance(balMsg.description, str)
@@ -1626,38 +1690,38 @@ def test_flip() -> None:
 
 	bucks.reset(bb)
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("random.randint", lambda x, y: 1)
+		mp.setattr("random.randint", lambda *_: 1)
 		assert bucks.flip(bb, "all") == (
 			"Heads! You win! Your winnings have been"
-			f" added to your balance, <@{bbId}>."
+			f" added to your balance, <@{BB_ID}>."
 		)
 	balMsg = bucks.balance(bb, MockMessage("!bal", bb))
 	assert isinstance(balMsg.description, str)
 	assert "is 400" in balMsg.description
 
 	bucks.reset(bb)
-	bucks.flip(bb, "100")
 	assert bucks.flip(bb, "10000000000000").startswith("You do not have")
 	bucks.reset(bb)
 	balMsg = bucks.balance(bb, MockMessage("!bal", bb))
-	assert isinstance(balMsg.description, str) and "200" in balMsg.description
+	assert isinstance(balMsg.description, str)
+	assert "200" in balMsg.description
 
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("bucks.writeMoney", lambda *x: (2, 0))
-		assert bucks.flip(bb, "0") == bucks.newUserMsg.format(f"<@{bbId}>")
+		mp.setattr("bucks.writeMoney", lambda *_, **__: (2, 0))
+		assert bucks.flip(bb, "0") == bucks.newUserMsg.format(f"<@{BB_ID}>")
 
 	bb.name = ",invalidname,"
-	assert bucks.flip(bb, "0") == bucks.commaWarn.format(f"<@{bbId}>")
+	assert bucks.flip(bb, "0") == bucks.commaWarn.format(f"<@{BB_ID}>")
 
 
 @pytest.mark.asyncio
 async def test_cmdFlip() -> None:
-	bb = MockUser("Beardless Bot", "Beardless Bot", "5757", bbId)
+	bb = MockUser("Beardless Bot", "Beardless Bot", "5757", BB_ID)
 	Bot.bot = MockBot(Bot.bot)
 	ch = MockChannel()
 	ctx = MockContext(Bot.bot, MockMessage("!flip 0"), ch, bb, MockGuild())
 	Bot.games = []
-	assert await Bot.cmdFlip(ctx, "0") == 1  # type: ignore
+	assert await Bot.cmdFlip(ctx, "0") == 1
 	emb = next(ch.history()).embeds[0]
 	assert emb.description is not None
 	assert emb.description.endswith("actually bet anything.")
@@ -1665,29 +1729,30 @@ async def test_cmdFlip() -> None:
 	Bot.games.append(bucks.BlackjackGame(bb, 10))
 	assert await Bot.cmdFlip(ctx, "0") == 1
 	emb = next(ch.history()).embeds[0]
-	assert emb.description == bucks.finMsg.format(f"<@{bbId}>")
+	assert emb.description == bucks.finMsg.format(f"<@{BB_ID}>")
 
 
 def test_blackjack() -> None:
-	bb = MockUser("Beardless Bot", "Beardless Bot", "5757", bbId)
+	bb = MockUser("Beardless Bot", "Beardless Bot", "5757", BB_ID)
 	assert bucks.blackjack(bb, "invalidbet")[0].startswith("Invalid bet.")
 
 	bucks.reset(bb)
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("bucks.BlackjackGame.perfect", lambda x: False)
+		mp.setattr("bucks.BlackjackGame.perfect", lambda _: False)
 		report, game = bucks.blackjack(bb, 0)
 		assert isinstance(game, bucks.BlackjackGame)
 		assert "You hit 21!" not in report
 
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("bucks.BlackjackGame.perfect", lambda x: True)
+		mp.setattr("bucks.BlackjackGame.perfect", lambda _: True)
 		report, game = bucks.blackjack(bb, "0")
-		assert game is None and "You hit 21" in report
+		assert game is None
+		assert "You hit 21" in report
 
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("bucks.writeMoney", lambda *x: (2, 0))
+		mp.setattr("bucks.writeMoney", lambda *_, **__: (2, 0))
 		assert bucks.blackjack(bb, "0")[0] == (
-			bucks.newUserMsg.format(f"<@{bbId}>")
+			bucks.newUserMsg.format(f"<@{BB_ID}>")
 		)
 
 	bucks.reset(bb)
@@ -1696,19 +1761,19 @@ def test_blackjack() -> None:
 
 	bucks.reset(bb)
 	bb.name = ",invalidname,"
-	assert bucks.blackjack(bb, 0)[0] == bucks.commaWarn.format(f"<@{bbId}>")
+	assert bucks.blackjack(bb, 0)[0] == bucks.commaWarn.format(f"<@{BB_ID}>")
 
 
 @pytest.mark.asyncio
 async def test_cmdBlackjack() -> None:
-	bb = MockUser("Beardless Bot", "Beardless Bot", "5757", bbId)
+	bb = MockUser("Beardless Bot", "Beardless Bot", "5757", BB_ID)
 	ch = MockChannel()
 	Bot.bot = MockBot(Bot.bot)
 	ctx = MockContext(
 		Bot.bot, MockMessage("!blackjack 0"), ch, bb, MockGuild()
 	)
 	Bot.games = []
-	assert await Bot.cmdBlackjack(ctx, "all") == 1  # type: ignore
+	assert await Bot.cmdBlackjack(ctx, "all") == 1
 	emb = next(ch.history()).embeds[0]
 	assert emb.description is not None
 	assert emb.description.startswith("Your starting hand consists of")
@@ -1717,7 +1782,7 @@ async def test_cmdBlackjack() -> None:
 	assert await Bot.cmdBlackjack(ctx, "0") == 1
 	emb = next(ch.history()).embeds[0]
 	assert emb.description is not None
-	assert emb.description == bucks.finMsg.format(f"<@{bbId}>")
+	assert emb.description == bucks.finMsg.format(f"<@{BB_ID}>")
 
 
 def test_blackjack_perfect() -> None:
@@ -1729,17 +1794,17 @@ def test_blackjack_perfect() -> None:
 @pytest.mark.asyncio
 async def test_cmdDeal() -> None:
 	Bot.games = []
-	bb = MockUser("Beardless,Bot", "Beardless Bot", "5757", bbId)
+	bb = MockUser("Beardless,Bot", "Beardless Bot", "5757", BB_ID)
 	ch = MockChannel()
 	ctx = MockContext(Bot.bot, MockMessage("!hit"), ch, bb, MockGuild())
 	assert await Bot.cmdDeal(ctx) == 1
 	emb = next(ch.history()).embeds[0]
-	assert emb.description == bucks.commaWarn.format(f"<@{bbId}>")
+	assert emb.description == bucks.commaWarn.format(f"<@{BB_ID}>")
 
 	bb.name = "Beardless Bot"
 	assert await Bot.cmdDeal(ctx) == 1
 	emb = next(ch.history()).embeds[0]
-	assert emb.description == bucks.noGameMsg.format(f"<@{bbId}>")
+	assert emb.description == bucks.noGameMsg.format(f"<@{BB_ID}>")
 
 	game = bucks.BlackjackGame(bb, 0)
 	game.cards = [2, 2]
@@ -1755,7 +1820,7 @@ async def test_cmdDeal() -> None:
 	assert await Bot.cmdDeal(ctx) == 1
 	emb = next(ch.history()).embeds[0]
 	assert emb.description is not None
-	assert f"You busted. Game over, <@{bbId}>." in emb.description
+	assert f"You busted. Game over, <@{BB_ID}>." in emb.description
 	assert len(Bot.games) == 0
 
 	# TODO: use monkeypatch to force a perfect
@@ -1779,13 +1844,13 @@ def test_blackjack_deal() -> None:
 	assert "will be treated as a 1" in game.message
 
 	game.cards = []
-	assert "You hit 21!" in game.deal(True)
+	assert "You hit 21!" in game.deal(debug=True)
 
 
 def test_blackjack_cardName() -> None:
-	assert bucks.BlackjackGame.cardName(10) in (
+	assert bucks.BlackjackGame.cardName(10) in {
 		"a 10", "a Jack", "a Queen", "a King"
-	)
+	}
 	assert bucks.BlackjackGame.cardName(11) == "an Ace"
 
 	assert bucks.BlackjackGame.cardName(8) == "an 8"
@@ -1824,14 +1889,14 @@ def test_blackjack_startingHand() -> None:
 	assert len(game.cards) == 2
 	assert game.message.startswith("Your starting hand consists of ")
 
-	assert "You hit 21!" in game.startingHand(True)
+	assert "You hit 21!" in game.startingHand(debugBlackjack=True)
 
-	assert "two Aces" in game.startingHand(False, True)
+	assert "two Aces" in game.startingHand(debugDoubleAces=True)
 
 
 def test_activeGame() -> None:
-	author = MockUser(name="target", id=0)
-	games = [bucks.BlackjackGame(MockUser(name="not", id=1), 10)] * 9
+	author = MockUser(name="target", uid=0)
+	games = [bucks.BlackjackGame(MockUser(name="not", uid=1), 10)] * 9
 	assert not bucks.activeGame(games, author)
 
 	games.append(bucks.BlackjackGame(author, 10))
@@ -1868,19 +1933,21 @@ def test_av() -> None:
 
 
 @pytest.mark.asyncio
-async def test_bbHelpCommand() -> None:
-	helpCommand = misc.bbHelpCommand()
+async def test_BBHelpCommand(caplog: pytest.LogCaptureFixture) -> None:
+	helpCommand = misc.BBHelpCommand()
+	assert helpCommand.command_attrs["aliases"] == ["commands"]
 	ch = MockChannel()
 	helpCommand.context = MockContext(Bot.bot, guild=None, channel=ch)
 	await helpCommand.send_bot_help({})
 
 	helpCommand.context.guild = MockGuild()
-	helpCommand.context.author.guild_permissions = (  # type: ignore
+	user = helpCommand.context.author
+	user.guild_permissions = (  # type: ignore[misc,union-attr]
 		nextcord.Permissions(manage_messages=True)
 	)
 	await helpCommand.send_bot_help({})
 
-	helpCommand.context.author.guild_permissions = (  # type: ignore
+	user.guild_permissions = (  # type: ignore[misc,union-attr]
 		nextcord.Permissions(manage_messages=False)
 	)
 	await helpCommand.send_bot_help({})
@@ -1893,18 +1960,20 @@ async def test_bbHelpCommand() -> None:
 	helpCommand.context.message.type = nextcord.MessageType.thread_created
 	assert await helpCommand.send_bot_help({}) == -1
 
-	# For the time being, just pass on all invalid help calls
-	assert not await helpCommand.send_error_message("Foo")  # type: ignore
+	# For the time being, just pass on all invalid help calls;
+	# don't send any messages.
+	await helpCommand.send_error_message("Bar")
+	assert caplog.records[0].msg == "No command %s"
+	assert caplog.records[0].args == ("Bar",)
+	assert len(caplog.records) == 1
 
 
 def test_pingMsg() -> None:
-	assert (
-		brawl.pingMsg("<@200>", 1, 1, 1)
-		.endswith("You can ping again in 1 hour, 1 minute, and 1 second.")
+	assert brawl.pingMsg("<@200>", 1, 1, 1).endswith(
+		"You can ping again in 1 hour, 1 minute, and 1 second."
 	)
-	assert (
-		brawl.pingMsg("<@200", 2, 2, 2)
-		.endswith("You can ping again in 2 hours, 2 minutes, and 2 seconds.")
+	assert brawl.pingMsg("<@200", 2, 2, 2).endswith(
+		"You can ping again in 2 hours, 2 minutes, and 2 seconds."
 	)
 
 
@@ -1916,7 +1985,7 @@ def test_scamCheck() -> None:
 		"hey @everyone check it! http://discocl.com/ nitro!"
 	)
 	assert not misc.scamCheck(
-		"Hey Discord friends, check out https://top.gg/bot/" + str(bbId)
+		"Hey Discord friends, check out https://top.gg/bot/" + str(BB_ID)
 	)
 	assert not misc.scamCheck(
 		"Here's an actual gift link https://discord.gift/s23d35fls55d13l1fjds"
@@ -1928,6 +1997,7 @@ def test_scamCheck() -> None:
 	"searchterm", ["лексика", "spaced words", "/", "'", "''", "'foo'", "\\\""]
 )
 def test_search_valid(searchterm: str) -> None:
+	sleep(1)
 	url = misc.search(searchterm).description
 	assert isinstance(url, str)
 	r = requests.get(url, timeout=10)
@@ -1938,9 +2008,10 @@ def test_search_valid(searchterm: str) -> None:
 
 
 @pytest.mark.parametrize(
-	"searchterm, title", [("", "Google"), (" ", "- Google Search")]
+	("searchterm", "title"), [("", "Google"), (" ", "- Google Search")]
 )
 def test_search_irregular(searchterm: str, title: str) -> None:
+	sleep(1)
 	url = misc.search(searchterm).description
 	assert isinstance(url, str)
 	r = requests.get(url, timeout=10)
@@ -1951,12 +2022,12 @@ def test_search_irregular(searchterm: str, title: str) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("animalName", list(misc.animalList) + ["dog"])
+@pytest.mark.parametrize("animalName", [*list(misc.animalList), "dog"])
 async def test_animal_with_goodUrl(animalName: str) -> None:
 	url = await misc.animal(animalName)
 	async with httpx.AsyncClient() as client:
 		response = await client.get(url, timeout=10)
-	assert goodURL(response)
+	assert goodUrl(response)
 
 
 @pytest.mark.asyncio
@@ -1968,7 +2039,7 @@ async def test_animal_dog_breed() -> None:
 	url = await misc.animal("dog", choice(breeds))
 	async with httpx.AsyncClient() as client:
 		response = await client.get(url, timeout=10)
-	assert goodURL(response)
+	assert goodUrl(response)
 
 	msg = await misc.animal("dog", "invalidbreed")
 	assert msg.startswith("Breed not")
@@ -1979,19 +2050,19 @@ async def test_animal_dog_breed() -> None:
 	url = await misc.animal("dog", "moose")
 	async with httpx.AsyncClient() as client:
 		response = await client.get(url, timeout=10)
-	assert goodURL(response)
+	assert goodUrl(response)
 
 
 @pytest.mark.asyncio
 async def test_invalid_animal_throws_exception() -> None:
-	with pytest.raises(ValueError):
+	with pytest.raises(ValueError, match="Invalid Animal: invalidAnimal"):
 		await misc.animal("invalidAnimal")
 
 
 @pytest.mark.asyncio
-async def test_dog_api_down_throws_exception(  # type: ignore
+async def test_dog_api_down_throws_exception(
 	caplog: pytest.LogCaptureFixture,
-	httpx_mock
+	httpx_mock: HTTPXMock
 ) -> None:
 	httpx_mock.add_response(
 		url="https://dog.ceo/api/breeds/image/random",
@@ -2002,7 +2073,8 @@ async def test_dog_api_down_throws_exception(  # type: ignore
 		await misc.animal("dog")
 
 	assert len(caplog.records) == 9
-	assert caplog.records[8].msg == "Dog API trying again, call 9"
+	assert caplog.records[8].msg == "Dog API trying again, call %i"
+	assert caplog.records[8].args == (9,)
 
 
 @responses.activate
@@ -2070,7 +2142,7 @@ async def test_cmdGuide() -> None:
 	assert await Bot.cmdGuide(ctx) == 0
 
 	assert ctx.guild is not None
-	ctx.guild.id = 442403231864324119
+	ctx.guild.id = Bot.EGG_GUILD_ID
 	assert await Bot.cmdGuide(ctx) == 1
 	assert next(
 		ctx.history()
@@ -2090,7 +2162,7 @@ async def test_cmdMute() -> None:
 	assert await Bot.cmdMute(ctx, "foo") == 0
 
 	# if trying to mute the bot
-	assert await Bot.cmdMute(ctx, f"<@{bbId}>") == 0
+	assert await Bot.cmdMute(ctx, f"<@{BB_ID}>") == 0
 
 	# if no target
 	assert await Bot.cmdMute(ctx, None) == 0
@@ -2116,8 +2188,8 @@ async def test_thread_creation_does_not_invoke_commands() -> None:
 
 
 @pytest.mark.asyncio
-async def test_getRank_monkeypatched_for_2s_top_rating(  # type: ignore
-	httpx_mock
+async def test_getRank_monkeypatched_for_2s_top_rating(
+	httpx_mock: HTTPXMock
 ) -> None:
 	httpx_mock.add_response(
 		url="https://api.brawlhalla.com/player/1/ranked?api_key=foo",
@@ -2139,21 +2211,21 @@ async def test_getRank_monkeypatched_for_2s_top_rating(  # type: ignore
 	)
 
 	try:
-		brawl.claimProfile(196354892208537600, 1)
-		emb = await brawl.getRank(MockUser(id=196354892208537600), "foo")
+		brawl.claimProfile(Bot.OWNER_ID, 1)
+		emb = await brawl.getRank(MockUser(uid=Bot.OWNER_ID), "foo")
 		assert emb.fields[0].name == "Ranked 2s"
 		assert isinstance(emb.fields[0].value, str)
 		assert emb.fields[0].value.startswith("**Foo+Bar")
 		assert emb.fields[0].value.endswith("50.0% winrate")
 		assert isinstance(emb.color, nextcord.Colour)
-		assert emb.color.value == 20916
+		assert emb.color.value == brawl.rankColors["Platinum"]
 	finally:
-		brawl.claimProfile(196354892208537600, 7032472)
+		brawl.claimProfile(Bot.OWNER_ID, CAP_BRAWL_ID)
 
 
 @pytest.mark.asyncio
-async def test_brawlApiCall_returns_None_when_never_played(  # type: ignore
-	httpx_mock
+async def test_brawlApiCall_returns_None_when_never_played(
+	httpx_mock: HTTPXMock
 ) -> None:
 	httpx_mock.add_response(
 		url="https://api.brawlhalla.com/search?steamid=37&api_key=foo", json=[]
@@ -2163,7 +2235,7 @@ async def test_brawlApiCall_returns_None_when_never_played(  # type: ignore
 	) is None
 
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("steam.steamid.SteamID.from_url", lambda x: "37")
+		mp.setattr("steam.steamid.SteamID.from_url", lambda _: "37")
 		assert await brawl.getBrawlId("foo", "foo.bar") is None
 
 
@@ -2200,30 +2272,31 @@ if brawlKey:
 		assert legend.title == "Brawlhalla Randomizer"
 
 	def test_fetchBrawlID() -> None:
-		assert brawl.fetchBrawlId(196354892208537600) == 7032472
-		assert not brawl.fetchBrawlId(bbId)
+		assert brawl.fetchBrawlId(Bot.OWNER_ID) == CAP_BRAWL_ID
+		assert not brawl.fetchBrawlId(BB_ID)
 
 	def test_claimProfile() -> None:
-		with open("resources/claimedProfs.json") as f:
+		with Path("resources/claimedProfs.json").open() as f:
 			profsLen = len(load(f))
 		try:
-			brawl.claimProfile(196354892208537600, 1)
-			with open("resources/claimedProfs.json") as f:
+			brawl.claimProfile(Bot.OWNER_ID, 1)
+			with Path("resources/claimedProfs.json").open() as f:
 				assert profsLen == len(load(f))
-			assert brawl.fetchBrawlId(196354892208537600) == 1
+			assert brawl.fetchBrawlId(Bot.OWNER_ID) == 1
 		finally:
-			brawl.claimProfile(196354892208537600, 7032472)
-			assert brawl.fetchBrawlId(196354892208537600) == 7032472
+			brawl.claimProfile(Bot.OWNER_ID, CAP_BRAWL_ID)
+			assert brawl.fetchBrawlId(Bot.OWNER_ID) == CAP_BRAWL_ID
 
 	@pytest.mark.asyncio
 	@pytest.mark.parametrize(
-		"url, result", [
-			("https://steamcommunity.com/id/beardless", 7032472),
+		("url", "result"),
+		[
+			("https://steamcommunity.com/id/beardless", CAP_BRAWL_ID),
 			("badurl", None),
 			("https://steamcommunity.com/badurl", None)
 		]
 	)
-	async def test_getBrawlId(url: str, result: typing.Optional[int]) -> None:
+	async def test_getBrawlId(url: str, result: int | None) -> None:
 		assert brawlKey is not None
 		sleep(2)
 		assert await brawl.getBrawlId(brawlKey, url) == result
@@ -2232,13 +2305,13 @@ if brawlKey:
 	async def test_getRank() -> None:
 		assert brawlKey is not None
 		sleep(5)
-		user = MockUser(id=0)
+		user = MockUser(uid=0)
 		rank = await brawl.getRank(user, brawlKey)
 		assert rank.description == brawl.unclaimed.format("<@0>")
 
-		user.id = 196354892208537600
+		user.id = Bot.OWNER_ID
 		rank = await brawl.getRank(user, brawlKey)
-		assert rank.footer.text == "Brawl ID 7032472"
+		assert rank.footer.text == "Brawl ID " + str(CAP_BRAWL_ID)
 
 		rank = await brawl.getRank(user, brawlKey)
 		assert rank.description == (
@@ -2246,12 +2319,12 @@ if brawlKey:
 		)
 
 		try:
-			brawl.claimProfile(196354892208537600, 37)
+			brawl.claimProfile(Bot.OWNER_ID, 37)
 			rank = await brawl.getRank(user, brawlKey)
 			assert isinstance(rank.color, nextcord.Colour)
-			assert rank.color.value == 16306282
+			assert rank.color.value == brawl.rankColors["Gold"]
 		finally:
-			brawl.claimProfile(196354892208537600, 7032472)
+			brawl.claimProfile(Bot.OWNER_ID, CAP_BRAWL_ID)
 
 	@pytest.mark.asyncio
 	async def test_getLegends() -> None:
@@ -2295,45 +2368,45 @@ if brawlKey:
 	async def test_getStats() -> None:
 		assert brawlKey is not None
 		sleep(5)
-		user = MockUser(id=0)
+		user = MockUser(uid=0)
 		stats = await brawl.getStats(user, brawlKey)
 		assert stats.description == brawl.unclaimed.format("<@0>")
 
-		user.id = 196354892208537600
+		user.id = Bot.OWNER_ID
 		try:
-			brawl.claimProfile(196354892208537600, 7032472)
+			brawl.claimProfile(Bot.OWNER_ID, CAP_BRAWL_ID)
 			emb = await brawl.getStats(user, brawlKey)
-			assert emb.footer.text == "Brawl ID 7032472"
-			assert len(emb.fields) in (3, 4)
+			assert emb.footer.text == "Brawl ID " + str(CAP_BRAWL_ID)
+			assert len(emb.fields) in {3, 4}
 
-			brawl.claimProfile(196354892208537600, 1247373426)
+			brawl.claimProfile(Bot.OWNER_ID, 1247373426)
 			emb = await brawl.getStats(user, brawlKey)
 			assert emb.description is not None
 			assert emb.description.startswith(
 				"This profile doesn't have stats"
 			)
 		finally:
-			brawl.claimProfile(196354892208537600, 7032472)
+			brawl.claimProfile(Bot.OWNER_ID, CAP_BRAWL_ID)
 
 	@pytest.mark.asyncio
 	async def test_getClan() -> None:
 		assert brawlKey is not None
 		sleep(5)
-		user = MockUser(id=0)
+		user = MockUser(uid=0)
 		clan = await brawl.getClan(user, brawlKey)
 		assert clan.description == brawl.unclaimed.format("<@0>")
 
-		user.id = 196354892208537600
+		user.id = Bot.OWNER_ID
 		try:
-			brawl.claimProfile(196354892208537600, 7032472)
+			brawl.claimProfile(Bot.OWNER_ID, CAP_BRAWL_ID)
 			clan = await brawl.getClan(user, brawlKey)
 			assert clan.title == "DinersDriveInsDives"
 
-			brawl.claimProfile(196354892208537600, 5895238)
+			brawl.claimProfile(Bot.OWNER_ID, 5895238)
 			clan = await brawl.getClan(user, brawlKey)
 			assert clan.description == "You are not in a clan!"
 		finally:
-			brawl.claimProfile(196354892208537600, 7032472)
+			brawl.claimProfile(Bot.OWNER_ID, CAP_BRAWL_ID)
 
 	def test_brawlCommands() -> None:
 		assert len(brawl.brawlCommands().fields) == 6
