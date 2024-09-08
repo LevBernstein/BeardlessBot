@@ -1889,9 +1889,14 @@ def test_blackjack_startingHand() -> None:
 	assert len(game.cards) == 2
 	assert game.message.startswith("Your starting hand consists of ")
 
+	game.cards = []
 	assert "You hit 21!" in game.startingHand(debugBlackjack=True)
+	assert len(game.cards) == 2
 
+	game.cards = []
 	assert "two Aces" in game.startingHand(debugDoubleAces=True)
+	assert len(game.cards) == 2
+	assert game.cards[1] == 1
 
 
 def test_activeGame() -> None:

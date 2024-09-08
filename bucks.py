@@ -117,7 +117,7 @@ class BlackjackGame:
 
 		Args:
 			debugBlackjack (bool): Used to test hitting GOAL (default is False)
-			debugDoubleAces(bool): Used to test dealing two Aces
+			debugDoubleAces (bool): Used to test dealing two Aces
 				(default is False)
 
 		Returns:
