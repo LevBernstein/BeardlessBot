@@ -236,8 +236,8 @@ async def legendInfo(brawlKey: str, legendName: str) -> Embed | None:
 				.add_field(
 					name="Stats",
 					value=(
-						f"{r["strength"]} Str, {r["dexterity"]} Dex,"
-						f" {r["defense"]} Def, {r["speed"]} Spd"
+						f"{r['strength']} Str, {r['dexterity']} Dex,"
+						f" {r['defense']} Def, {r['speed']} Spd"
 					)
 				)
 			)
@@ -265,14 +265,14 @@ async def getRank(target: Member, brawlKey: str) -> Embed:
 		).set_footer(text=f"Brawl ID {brawlId}").set_author(
 			name=target, icon_url=fetchAvatar(target)
 		)
-	emb = bbEmbed(f"{r["name"]}, {r["region"]}").set_footer(
+	emb = bbEmbed(f"{r['name']}, {r['region']}").set_footer(
 		text=f"Brawl ID {brawlId}"
 	).set_author(name=target, icon_url=fetchAvatar(target))
 	if "games" in r and r["games"] != 0:
 		winRate = brawlWinRate(r)
 		embVal = (
-			f"**{r["tier"]}** ({r["rating"]}/{r["peak_rating"]} Peak)\n"
-			f"{r["wins"]} W / {r["games"] - r["wins"]} L / {winRate}% winrate"
+			f"**{r['tier']}** ({r['rating']}/{r['peak_rating']} Peak)\n"
+			f"{r['wins']} W / {r['games'] - r['wins']} L / {winRate}% winrate"
 		)
 		if r["legends"]:
 			topLegend = None
@@ -300,10 +300,10 @@ async def getRank(target: Member, brawlKey: str) -> Embed:
 			emb.add_field(
 				name="Ranked 2s",
 				value=(
-					f"**{twosTeam["teamname"]}\n"
-					f"{twosTeam["tier"]}** ({twosTeam["rating"]} /"
-					f" {twosTeam["peak_rating"]} Peak)\n{twosTeam["wins"]}"
-					f" W / {twosTeam["games"] - twosTeam["wins"]} L /"
+					f"**{twosTeam['teamname']}\n"
+					f"{twosTeam['tier']}** ({twosTeam['rating']} /"
+					f" {twosTeam['peak_rating']} Peak)\n{twosTeam['wins']}"
+					f" W / {twosTeam['games'] - twosTeam['wins']} L /"
 					f" {brawlWinRate(twosTeam)}% winrate"
 				)
 			)
@@ -343,8 +343,8 @@ async def getStats(target: Member, brawlKey: str) -> Embed:
 		return bbEmbed("Beardless Bot Brawlhalla Stats", noStats)
 	assert isinstance(r, dict)
 	winLoss = (
-		f"{r["wins"]} Wins / {r["games"] - r["wins"]} Losses"
-		f"\n{r["games"]} Games\n{brawlWinRate(r)}% Winrate"
+		f"{r['wins']} Wins / {r['games'] - r['wins']} Losses"
+		f"\n{r['games']} Games\n{brawlWinRate(r)}% Winrate"
 	)
 	emb = bbEmbed("Brawlhalla Stats for " + r["name"]).set_footer(
 		text=f"Brawl ID {brawlId}"
@@ -385,7 +385,7 @@ async def getStats(target: Member, brawlKey: str) -> Embed:
 				)
 			)
 	if "clan" in r:
-		val = f"{r["clan"]["clan_name"]}\nClan ID {r["clan"]["clan_id"]}"
+		val = r["clan"]["clan_name"] + "\nClan ID " + r["clan"]["clan_id"]
 		emb.add_field(name="Clan", value=val)
 	return emb
 
@@ -415,11 +415,11 @@ async def getClan(target: Member, brawlKey: str) -> Embed:
 			r["clan_xp"],
 			len(r["clan"])
 		)
-	).set_footer(text=f"Clan ID {r["clan_id"]}")
+	).set_footer(text=f"Clan ID {r['clan_id']}")
 	for i in range(min(len(r["clan"]), 9)):
 		member = r["clan"][i]
 		val = (
-			f"{member["rank"]} ({member["xp"]} xp)\nJoined "
+			f"{member['rank']} ({member['xp']} xp)\nJoined "
 			+ str(datetime.fromtimestamp(member["join_date"]))[:-9]
 		)
 		emb.add_field(name=member["name"], value=val)
