@@ -385,7 +385,7 @@ async def getStats(target: Member, brawlKey: str) -> Embed:
 				)
 			)
 	if "clan" in r:
-		val = ["clan"]["clan_name"] + "\nClan ID " + str(r["clan"]["clan_id"])
+		val = r["clan"]["clan_name"] + "\nClan ID " + str(r["clan"]["clan_id"])
 		emb.add_field(name="Clan", value=val)
 	return emb
 
