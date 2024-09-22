@@ -14,38 +14,31 @@ import nextcord
 import requests
 from bs4 import BeautifulSoup
 from nextcord.ext import commands
+from nextcord.utils import get
 
-diceMsg = (
-	"Enter !roll [count]d[number][+/-][modifier] to roll [count]"
-	" [number]-sided dice and add or subtract a modifier. For example:"
-	" !d8+3, or !4d100-17, or !d6."
+MaxMsgLength: Final[int] = 1024
+Ok: Final[int] = 200
+BbColor: Final[int] = 0xFFF994
+BbId: Final[int] = 654133911558946837
+
+ProfUrl = (
+	"https://cdn.discordapp.com/attachments/61303032"
+	"2644451349/947434005878435910/CapGift.jpg"
 )
 
-prof = (
-	"https://cdn.discordapp.com/attachments/613030322644451349/"
-	"947434005878435910/CapGift.jpg"
+AnimalList = (
+	"cat", "duck", "fox", "seal", "rabbit", "lizard", "frog", "bear"
 )
 
-animalList = (
-	"cat",
-	"duck",
-	"fox",
-	"seal",
-	"rabbit",
-	"lizard",
-	"frog",
-	"bear",
-)
-
-hierarchyMsg = (
+HierarchyMsg = (
 	"It looks like I don't have permission to modify that user's roles!"
 	" Raise my place in the role hierarchy, please."
 )
 
-naughty = "You do not have permission to use this command, {}."
+Naughty = "You do not have permission to use this command, {}."
 
-greetings = (
-	"How ya doin?",
+Greetings = (
+	"How ya doin'?",
 	"Yo!",
 	"What's cookin?",
 	"Hello!",
@@ -53,54 +46,28 @@ greetings = (
 	"Hi!",
 	"What's up?",
 	"Hey!",
-	"How's it goin?",
-	"Greetings!"
+	"How's it goin'?",
+	"Greetings!",
+	"Howdy!",
+	"G'day!"
 )
 
-redditThumb = (
-	"https://b.thumbs.redditmedia.com/xJ1-nJJ"
-	"zHopKe25_bMxKgePiT3HWADjtxioxlku7qcM.png"
-)
+BearRootUrl = "https://placebear.com/{}/{}"
 
-tweetThumb = (
-	"https://pbs.twimg.com/profile_images/13"
-	"97696436393836546/NgpD6O57_400x400.jpg"
-)
+FrogRootUrl = "https://raw.githubusercontent.com/a9-i/frog/main/ImgSetOpt/"
 
-scamDM = (
-	"This is an automated message. You have sent a message that has"
-	" been identified as containing a scam nitro link in **{}**. Your"
-	" account may have been compromised. Please take the appropriate"
-	" measures and be sure to reach out to an admin if you need help."
-)
+SealRootUrl = "https://focabot.github.io/random-seal/seals/{}.jpg"
 
-scamReport = (
-	"Deleted possible scam nitro link sent by {} in {}.\nMessage content:\n{}"
-)
+BotContext = commands.Context[commands.Bot]
 
-scamDelete = "**Deleted possible nitro scam link. Alerting mods.**"
+TargetTypes = str | nextcord.User | nextcord.Member
 
-joinMsg = (
-	"Thanks for adding me to {}! There are a few things you can do to unlock"
-	" my full potential.\nIf you want event logging, make a channel named"
-	" #bb-log.\nIf you want a region-based sparring system, make a channel"
-	" named #looking-for-spar.\nIf you want special color roles, purchasable"
-	" with BeardlessBucks, create roles named special red/blue/orange/pink."
-	"\nDon't forget to move my {} role up to the top of the role hierarchy in"
-	" order to allow me to moderate all users."
-)
-
-MAX_MSG_LENGTH: Final[int] = 1024
-
-msgMaxLength = f"**Message length exceeds {MAX_MSG_LENGTH} characters.**"
-
-OK: Final[int] = 200
-
-botContext = commands.Context[commands.Bot]
-
-targetTypes = str | nextcord.User | nextcord.Member | None
-
-BB_COLOR: Final[int] = 0xFFF994
+MuteTimeConversion = {
+	"day": 86400.0,
+	"hour": 3600.0,
+	"minute": 60.0,
+	"second": 1.0
+}
 
 
 # Wrapper for nextcord.Embed() that defaults to
@@ -108,7 +75,7 @@ BB_COLOR: Final[int] = 0xFFF994
 def bbEmbed(
 	name: str = "",
 	value: str = "",
-	col: int | nextcord.Color = BB_COLOR,
+	col: int | nextcord.Color = BbColor,
 	*,
 	showTime: bool = False
 ) -> nextcord.Embed:
@@ -122,13 +89,13 @@ def bbEmbed(
 
 def contCheck(msg: nextcord.Message) -> str:
 	if msg.content:
-		if len(msg.content) > MAX_MSG_LENGTH:
-			return msgMaxLength
+		if len(msg.content) >= MaxMsgLength:
+			return f"**Message length exceeds {MaxMsgLength} characters.**"
 		return msg.content
 	return "**Embed**"
 
 
-def logException(e: Exception, ctx: botContext) -> None:
+def logException(e: Exception, ctx: BotContext) -> None:
 	"""
 	Act as a wrapper for logging.error to help with debugging.
 
@@ -194,7 +161,7 @@ def memSearch(
 	"""
 	term = str(target).lower()
 	semiMatch = looseMatch = None
-	assert message.guild
+	assert message.guild is not None
 	for member in message.guild.members:
 		if term == str(member).lower() or term == str(member.id):
 			return member
@@ -212,7 +179,8 @@ def memSearch(
 
 def getLogChannel(guild: nextcord.Guild) -> nextcord.TextChannel | None:
 	"""
-	#bb-log channel lookup helper method.
+	#bb-log channel lookup helper method. Return the first TextChannel with
+	the name of "bb-log" if one exists.
 
 	Args:
 		guild (nextcord.Guild): The guild to search
@@ -243,85 +211,124 @@ def fetchAvatar(
 			avatar url.
 
 	"""
-	if user.avatar:
+	if user.avatar is not None:
 		return user.avatar.url
 	return user.default_avatar.url
 
 
-def getMoose(r: httpx.Response) -> str:
-	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
-	moose = random.choice(
-		tuple(
-			m for m in soup.stripped_strings
-			if m.startswith("moose") and m.endswith(".jpg")
-		)
-	)
+class AnimalException(httpx.RequestError):
+	def __init__(self, *, animal: str) -> None:
+		super().__init__(f"Failed to call {animal.title()} Animal API")
 
-	return (
-		"https://raw.githubusercontent.com/"
-		f"LevBernstein/moosePictures/main/{moose}"
+
+async def getMoose() -> str:
+	async with httpx.AsyncClient() as client:
+		r = await client.get(
+			"https://github.com/LevBernstein/moosePictures/", timeout=10
+		)
+	if r.status_code == Ok:
+		soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
+		moose = random.choice(
+			tuple(
+				m for m in soup.stripped_strings
+				if m.startswith("moose") and m.endswith(".jpg")
+			)
+		)
+
+		return (
+			"https://raw.githubusercontent.com/"
+			f"LevBernstein/moosePictures/main/{moose}"
+		)
+	raise AnimalException(animal="moose")
+
+
+async def getDog(breed: str | None = None) -> str:
+	if not breed:
+		async with httpx.AsyncClient() as client:
+			r = await client.get(
+				"https://dog.ceo/api/breeds/image/random", timeout=10
+			)
+		if r.status_code == Ok and isinstance(
+			message := r.json()["message"], str
+		):
+			return message
+	elif breed.startswith("breed"):
+		async with httpx.AsyncClient() as client:
+			r = await client.get(
+				"https://dog.ceo/api/breeds/list/all", timeout=10
+			)
+		if r.status_code == Ok:
+			return "Dog breeds: {}.".format(
+				", ".join(dog for dog in r.json()["message"])
+			)
+	elif breed.isalpha():
+		async with httpx.AsyncClient() as client:
+			r = await client.get(
+				f"https://dog.ceo/api/breed/{breed}/images/random",
+				timeout=10
+			)
+		if r.status_code == Ok and isinstance(
+			message := r.json().get("message", None), str
+		):
+			return message
+		return "Breed not found! Do !dog breeds to see all breeds."
+	else:
+		return "Breed not found! Do !dog breeds to see all breeds."
+	raise AnimalException(animal="dog")
+
+
+def getFrogList() -> list[str]:
+	"""
+	Get a list of filenames of frog imges. On some requests, formatting fails,
+	resulting in a KeyError when trying to find the payload key within the
+	json body of a particular script tag. When that happens, massage the
+	response a bit so that the proper payload can be located.
+
+	Amortize the cost of pulling the frog images by making just one initial
+	call within misc.py.
+
+	Returns:
+		list[str]: A list of frog image filenames.
+
+	"""
+	r = requests.get(
+		"https://github.com/a9-i/frog/tree/main/ImgSetOpt", timeout=10
 	)
+	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
+	try:
+		j = loads(soup.findAll("script")[-1].text)["payload"]
+	except KeyError:
+		j = loads(
+			soup.findAll("script")[-2].text.replace("\\", "\\\\")
+		)["payload"]
+	return [i["name"] for i in j["tree"]["items"]]
+
+
+FrogList = getFrogList()
 
 
 async def animal(animalType: str, breed: str | None = None) -> str:
+	if animalType == "bear":
+		return BearRootUrl.format(
+			random.randint(200, 400), random.randint(200, 400)
+		)
+	if animalType == "frog":
+		return FrogRootUrl + random.choice(FrogList)
+	if animalType == "seal":
+		return SealRootUrl.format(str(random.randint(0, 83)).rjust(4, "0"))
+	if "moose" in {animalType, breed}:
+		return await getMoose()
+	if animalType == "dog":
+		return await getDog(breed)
+
 	r: httpx.Response | None = None
 
-	if "moose" in {animalType, breed}:
-		async with httpx.AsyncClient() as client:
-			r = await client.get(
-				"https://github.com/LevBernstein/moosePictures/", timeout=10
-			)
-		if r.status_code == OK:
-			return getMoose(r)
-
-	elif animalType == "dog":
-		# Dog API has been throwing 522 errors
-		for i in range(10):
-			if i != 0:
-				logging.error("Dog API trying again, call %i", i)
-			if not breed:
-				async with httpx.AsyncClient() as client:
-					r = await client.get(
-						"https://dog.ceo/api/breeds/image/random", timeout=10
-					)
-				if r.status_code == OK:
-					message = r.json()["message"]
-					assert isinstance(message, str)
-					return message
-			elif breed.startswith("breed"):
-				async with httpx.AsyncClient() as client:
-					r = await client.get(
-						"https://dog.ceo/api/breeds/list/all", timeout=10
-					)
-				if r.status_code == OK:
-					return "Dog breeds: {}.".format(
-						", ".join(dog for dog in r.json()["message"])
-					)
-			elif breed.isalpha():
-				async with httpx.AsyncClient() as client:
-					r = await client.get(
-						f"https://dog.ceo/api/breed/{breed}/images/random",
-						timeout=10
-					)
-				message = r.json().get("message", None)
-				if (
-					r.status_code == OK
-					and isinstance(message, str)
-					and not message.startswith("Breed not found")
-				):
-					return message
-				return "Breed not found! Do !dog breeds to see all breeds."
-			else:
-				return "Breed not found! Do !dog breeds to see all breeds."
-
-	elif animalType == "cat":
+	if animalType == "cat":
 		async with httpx.AsyncClient() as client:
 			r = await client.get(
 				"https://api.thecatapi.com/v1/images/search", timeout=10
 			)
-		if r.status_code == OK:
-			url = r.json()[0]["url"]
-			assert isinstance(url, str)
+		if r.status_code == Ok and isinstance(url := r.json()[0]["url"], str):
 			return url
 
 	elif animalType in {"bunny", "rabbit"}:
@@ -329,18 +336,16 @@ async def animal(animalType: str, breed: str | None = None) -> str:
 			r = await client.get(
 				"https://api.bunnies.io/v2/loop/random/?media=gif", timeout=10
 			)
-		if r.status_code == OK:
-			gif = r.json()["media"]["gif"]
-			assert isinstance(gif, str)
-			return gif
+		if r.status_code == Ok and isinstance(
+			url := r.json()["media"]["gif"], str
+		):
+			return url
 
 	elif animalType == "fox":
 		async with httpx.AsyncClient() as client:
 			r = await client.get("https://randomfox.ca/floof/", timeout=10)
-		if r.status_code == OK:
-			image = r.json()["image"]
-			assert isinstance(image, str)
-			return image
+		if r.status_code == Ok and isinstance(url := r.json()["image"], str):
+			return url
 
 	elif animalType in {"duck", "lizard"}:
 		async with httpx.AsyncClient() as client:
@@ -352,53 +357,12 @@ async def animal(animalType: str, breed: str | None = None) -> str:
 				),
 				timeout=10
 			)
-		if r.status_code == OK:
-			url = r.json()["url"]
-			assert isinstance(url, str)
+		if r.status_code == Ok and isinstance(url := r.json()["url"], str):
 			return url
 
-	elif animalType == "bear":
-		return (
-			"https://placebear.com/"
-			f"{random.randint(200, 400)}/{random.randint(200, 400)}"
-		)
-
-	elif animalType == "frog":
-		frog = random.choice(frogList)["name"]
-		return (
-			"https://raw.githubusercontent.com/"
-			f"a9-i/frog/main/ImgSetOpt/{frog}"
-		)
-
-	elif animalType == "seal":
-		sealId = str(random.randint(0, 83)).rjust(4, "0")
-		return f"https://focabot.github.io/random-seal/seals/{sealId}.jpg"
-
-	if r is not None and r.status_code != OK:
-		msg = f"Failed to call {animalType} Animal API"
-		raise httpx.RequestError(msg)
+	if r is not None:
+		raise AnimalException(animal=animalType)
 	raise ValueError("Invalid Animal: " + animalType)
-
-
-# Amortize the cost of pulling the frog images by making one initial call.
-# Two possible layouts, one when formatting fails.
-def getFrogList() -> list[dict[str, str]]:
-	r = requests.get(
-		"https://github.com/a9-i/frog/tree/main/ImgSetOpt", timeout=10
-	)
-	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
-	try:
-		j = loads(soup.findAll("script")[-1].text)["payload"]
-	except KeyError:
-		j = loads(
-			soup.findAll("script")[-2].text.replace("\\", "\\\\")
-		)["payload"]
-	frogs = j["tree"]["items"]
-	assert isinstance(frogs, list)
-	return frogs
-
-
-frogList = getFrogList()
 
 
 async def define(word: str) -> nextcord.Embed:
@@ -407,7 +371,7 @@ async def define(word: str) -> nextcord.Embed:
 			"https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word,
 			timeout=10
 		)
-	if r.status_code == OK:
+	if r.status_code == Ok:
 		j = r.json()
 		desc = ""
 		p = j[0]["phonetics"]
@@ -433,8 +397,26 @@ async def define(word: str) -> nextcord.Embed:
 
 
 def roll(text: str) -> tuple[None] | tuple[int, int, str, bool, int]:
-	# Takes a string of the format mdn+b and rolls m
-	# n-sided dice with a modifier of b. m and b are optional.
+	"""
+	Take a string of the format mdn+/-b and roll m n-sided dice with a modifier
+	of b added to the final result. m and b are optional. b can be negative.
+
+	Args:
+		text (str): The roll string to process
+
+	Returns:
+		tuple[None] | tuple[int, int, str, bool, int]: An empty tuple if the
+			roll failed due to invalid input; otherwise, a tuple with
+			five elements:
+				int: The total roll, with modifier (b) included
+				int: The number of dice rolled (m), up to 999
+				str: The number of sides (n) each rolled die has
+				bool: Whether the modifier was negative
+				int: The modifier
+			This tuple is designed to be processed into a readable string
+			by rollReport().
+
+	"""
 	diceNum: str | int
 	try:
 		diceNum, command = text.split("d", 1)
@@ -442,8 +424,8 @@ def roll(text: str) -> tuple[None] | tuple[int, int, str, bool, int]:
 		return (None,)
 	diceNum = abs(int(diceNum)) if diceNum.replace("-", "").isnumeric() else 1
 	diceNum = min(diceNum, 999)
-	side = command.split("-")[0].split("+")[0]
-	if side in {"4", "6", "8", "100", "10", "12", "20"}:
+	validSides = {"4", "6", "8", "100", "10", "12", "20"}
+	if (side := command.split("-")[0].split("+")[0]) in validSides:
 		if (
 			command != side
 			and command[len(side)] in {"+", "-"}
@@ -518,7 +500,7 @@ def info(
 			# Reverse member.roles in order to make them
 			# display in decreasing order of power
 	else:
-		emb = invalidTargetEmbed
+		emb = InvalidTargetEmbed
 	return emb
 
 
@@ -538,10 +520,10 @@ def av(
 		).set_image(url=fetchAvatar(member)).set_author(
 			name=member, icon_url=fetchAvatar(member)
 		)
-	return invalidTargetEmbed
+	return InvalidTargetEmbed
 
 
-def ctxCreatedThread(ctx: botContext) -> bool:
+def ctxCreatedThread(ctx: BotContext) -> bool:
 	"""
 	Threads created with the name set to a command (e.g., a thread named !flip)
 	will trigger that command as the first action in that thread. This is not
@@ -670,7 +652,8 @@ class BBHelpCommand(commands.HelpCommand):
 		command that does not exist, e.g. !help foobar
 
 		Args:
-			error (str): _description_
+			error (str): The name of the non-existent command that was
+				attempted to be called
 
 		"""
 		logging.error("No command %s", error)
@@ -711,17 +694,98 @@ def scamCheck(text: str) -> bool:
 	return ((suspiciousLink and keyWords) or bulkKeyWords) and not validGift
 
 
+async def deleteScamAndNotify(
+	message: nextcord.Message
+) -> None:
+	"""
+	Delete a possible scam message, inform the user their account may have
+	been compromised, mute the user, and inform server moderators about the
+	possibly compromised account.
+
+	Args:
+		message (nextcord.Message): The message that has been flagged
+
+	"""
+	assert message.guild is not None
+	logging.info(
+		"Possible nitro scam detected in %s/%i",
+		message.guild.name,
+		message.guild.id
+	)
+
+	if not (role := get(message.guild.roles, name="Muted")):
+		role = await createMutedRole(message.guild)
+		# TODO: after migrating from MockUser to MockMember,
+		# add assert not isinstance(after.author, nextcord.User)
+		# and remove below type ignore
+		await message.author.add_roles(role)  # type: ignore[union-attr]
+
+	await message.delete()
+	await message.channel.send(
+		"**Deleted possible nitro scam link. Alerting mods.**"
+	)
+	await message.author.send(
+		"This is an automated message. You have sent a message that has been"
+		f" identified as containing a scam nitro link in **{message.guild}**."
+		" Your account may have been compromised. Please take the appropriate"
+		" measures and be sure to reach out to an admin if you need help."
+	)
+
+	scamReport = (
+		f"Deleted possible scam nitro link sent by {message.author.mention}"
+		f" in {message.channel.mention}."  # type: ignore[union-attr]
+		f"\nMessage content:\n{message.content}"
+	)
+	for channel in message.guild.text_channels:
+		if channel.name in {"infractions", "bb-log"}:
+			await channel.send(scamReport)
+
+
 def onJoin(guild: nextcord.Guild, role: nextcord.Role) -> nextcord.Embed:
+	"""
+	Send a message in a server after joining it explaining bb's basic
+	functions and restrictions, as well as any further setup actions that
+	should be taken.
+
+	Args:
+		guild (nextcord.Guild): The guild that has been joined
+		role (nextcord.Role): Beardless Bot's default role in that server
+
+	Returns:
+		nextcord.Embed: An embed explaining important information.
+
+	"""
+	description = (
+		f"Thanks for adding me to {guild.name}! There are a few things you"
+		" can do to unlock my full potential.\nIf you want event logging,"
+		" make a channel named #bb-log.\nIf you want a region-based sparring"
+		" system, make a channel named #looking-for-spar.\nIf you want"
+		" special color roles, purchasable with BeardlessBucks, create roles"
+		" named special red/blue/orange/pink.\nDon't forget to move my"
+		f" {role.mention} role up to the top of the role hierarchy in order"
+		" to allow me to moderate all users."
+	)
 	return bbEmbed(
-		f"Hello, {guild.name}!", joinMsg.format(guild.name, role.mention)
-	).set_thumbnail(url=prof)
+		f"Hello, {guild.name}!", description
+	).set_thumbnail(url=ProfUrl)
 
 
 def search(searchterm: str = "") -> nextcord.Embed:
+	"""
+	Google something. Useful for when people can't seem to realize that they
+	have the power to Google things themselves.
+
+	Args:
+		searchterm (str): The term to search via Google (default is "")
+
+	Returns:
+		nextcord.Embed: An embed containing a link to the search results.
+
+	"""
 	return bbEmbed(
 		"Search Results",
 		"https://www.google.com/search?q=" + quote_plus(searchterm)
-	).set_thumbnail(url=prof)
+	).set_thumbnail(url=ProfUrl)
 
 
 def tweet() -> str:
@@ -734,12 +798,12 @@ def tweet() -> str:
 	generated tweets are usually neither semantically nor syntactically valid.
 
 	The below Markov code was originally provided by CSTUY SHIP for use in
-	another projet; I have since migrated it to Python3 and made various
+	another project; I have since migrated it to Python3 and made various
 	other improvements, including adding type annotations, the walrus
 	operator, the ternary operator, and other simplification.
 
 	Returns:
-		str: A fake eggsoup tweet
+		str: A fake eggsoup tweet.
 
 	"""
 	with Path("resources/eggtweets_clean.txt").open() as f:
@@ -752,14 +816,12 @@ def tweet() -> str:
 		chains[key].append(words[i + keySize])
 
 	key = s = random.choice(list(chains.keys()))
-	for _i in range(random.randint(10, 35)):
+	for _ in range(random.randint(10, 35)):
 		word = random.choice(chains[key])
 		s += " " + word
 		key = (
-			" ".join(key.split()[1:keySize + 1]) + " " + word
-			if keySize > 1
-			else word
-		)
+			(" ".join(key.split()[1:keySize + 1]) + " ") if keySize > 1 else ""
+		) + word
 	return s[0].title() + s[1:]
 
 
@@ -771,7 +833,7 @@ def formattedTweet(eggTweet: str) -> str:
 		eggTweet (str): The tweet to format
 
 	Returns:
-		str: The formatted tweet
+		str: The formatted tweet.
 
 	"""
 	for i in range(len(eggTweet) - 1, -1, -1):
@@ -780,10 +842,91 @@ def formattedTweet(eggTweet: str) -> str:
 	return "\n" + eggTweet
 
 
-# Stock embeds:
-# TODO: convert these to methods
+def getLastNumericChar(duration: str) -> int:
+	"""
+	Find the last numeric character in a string. For use in Bot.cmdMute.
 
-reasons = (
+	Args:
+		duration (str): The string to check
+
+	Returns:
+		int: The position of the last numeric character in the string
+			(beginning indexing at 1). If a numeric character cannot be found,
+			return 0. This is a bit hacky, but results in sanitized user input
+			for cmdMute.
+
+	"""
+	for i, c in enumerate(duration):
+		if not c.isnumeric():
+			return i
+	return len(duration)
+
+
+def processMuteDuration(
+	duration: str | None, additional: str
+) -> tuple[str | None, str, float | None]:
+	"""
+	Process the user-provided input of duration and additional in order to
+	extract the actual mute time, reason, and mute time in seconds.
+
+	Args:
+		duration (str | None): The main string arg that contains the mute time
+			in the form xy, where x is an integer and y is a valid time span
+			in the keys of MuteTimeConversion
+		additional (str): The remaining string portion of the user input,
+			possibly containing the reason for the mute action
+
+	Returns:
+		tuple[str | None, str, float | None]: A tuple containing:
+			str | None: The processed duration if it exists; else, None
+			str: The mute reason if it exists; else, an empty string
+			float | None: The actual mute duration, in seconds, if it exists;
+				else, None.
+
+	"""
+	mTime = None
+	if duration:
+		duration = duration.lower()
+		if (lastNumeric := getLastNumericChar(duration)) != 0:
+			unit = duration[lastNumeric:]
+			for key, value in MuteTimeConversion.items():
+				# Check for first char, whole word, plural
+				if unit in {key[0], key, key + "s"}:
+					duration = duration[:lastNumeric]  # the numeric part
+					mTime = float(duration) * value
+					duration += " " + key + ("" if duration == "1" else "s")
+					break
+		if lastNumeric == 0 or mTime is None:
+			# treat duration as mute reason
+			additional = duration + " " + additional
+			duration = None
+	return duration, additional.strip(), mTime
+
+
+def getTarget(ctx: BotContext, target: str) -> TargetTypes:
+	"""
+	Parse the command context and the target arg for the most valid target.
+
+	Args:
+		ctx (BotContext): The command invocation context
+		target (str): The user-provided argument pointing to a target
+
+	Returns:
+		TargetTypes: A mentioned User/Member, if one exists; else, the
+			user-provided target if one was given (target != ""); else, the
+			user who is responsible for the invocation of the command.
+
+	"""
+	return (
+		ctx.message.mentions[0]
+		if ctx.message.mentions
+		else target or ctx.author
+	)
+
+
+# Stock embeds. TODO: convert these to methods
+
+AdminPermsReasons = (
 	"Beardless Bot requires permissions in order to do just about anything."
 	" Without them, I can't do much, so I'm leaving. If you add me back to"
 	" this server, please make sure to leave checked the box that grants me"
@@ -791,25 +934,24 @@ reasons = (
 	" to contact my creator, captainnobeard."
 )
 
-noPerms = bbEmbed(
-	"I need admin perms!", reasons, 0xFF0000
-).set_author(name="Beardless Bot", icon_url=prof)
+NoPermsEmbed = bbEmbed(
+	"I need admin perms!", AdminPermsReasons, 0xFF0000
+).set_author(name="Beardless Bot", icon_url=ProfUrl)
 
-addUrl = (
+AddUrl = (
 	"(https://discord.com/api/oauth2/authorize?client_id="
-	"654133911558946837&permissions=8&scope=bot)"
+	f"{BbId}&permissions=8&scope=bot)"
 )
 
-inviteMsg = bbEmbed(
-	"Want to add this bot to your server?", "[Click this link!]" + addUrl
-).set_thumbnail(url=prof).add_field(
+Invite_Embed = bbEmbed(
+	"Want to add this bot to your server?", "[Click this link!]" + AddUrl
+).set_thumbnail(url=ProfUrl).add_field(
 	name="If you like Beardless Bot...",
 	inline=False,
-	value="Please leave a review on [top.gg]"
-	"(https://top.gg/bot/654133911558946837)."
+	value=f"Please leave a review on [top.gg](https://top.gg/bot/{BbId})."
 )
 
-sparDesc = (
+SparDesc = (
 	"Do the command !spar [region] [other info]."
 	"\nFor instance, to find a diamond from US-E to play 2s with, I would do:"
 	"\n**!spar US-E looking for a diamond 2s partner**."
@@ -818,8 +960,8 @@ sparDesc = (
 	"\nPlease use the roles channel to give yourself the correct roles."
 )
 
-sparPins = bbEmbed("How to use this channel.").add_field(
-	name="To spar someone from your region:", value=sparDesc, inline=False
+SparPinsEmbed = bbEmbed("How to use this channel.").add_field(
+	name="To spar someone from your region:", value=SparDesc, inline=False
 ).add_field(
 	name="If you don't want to get pings:",
 	inline=False,
@@ -827,22 +969,14 @@ sparPins = bbEmbed("How to use this channel.").add_field(
 	" spar is annoying and counterproductive, and will earn you a warning."
 )
 
-redditEmb = bbEmbed(
+EggRedditEmbed = bbEmbed(
 	"The Official Eggsoup Subreddit", "https://www.reddit.com/r/eggsoup/"
-).set_thumbnail(url=redditThumb)
+).set_thumbnail(url=(
+	"https://b.thumbs.redditmedia.com/xJ1-nJJ"
+	"zHopKe25_bMxKgePiT3HWADjtxioxlku7qcM.png"
+))
 
-animals = bbEmbed("Animal Photo Commands:").add_field(
-	name="!dog",
-	value=(
-		"Can also do !dog breeds to see breeds you"
-		" can get pictures of with !dog [breed]"
-	),
-	inline=False
-)
-for animalName in animalList:
-	animals.add_field(name="!" + animalName, value="_ _")
-
-invalidTargetEmbed = bbEmbed(
+InvalidTargetEmbed = bbEmbed(
 	"Invalid target!",
 	(
 		"Please choose a valid target. Valid targets"

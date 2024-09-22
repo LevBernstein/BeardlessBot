@@ -13,9 +13,9 @@ from bs4 import BeautifulSoup
 from nextcord import Colour, Embed, Member
 from steam.steamid import SteamID  # type: ignore[import-untyped]
 
-from misc import BB_COLOR, bbEmbed, fetchAvatar
+from misc import BbColor, bbEmbed, fetchAvatar
 
-badClaim = (
+BadClaim = (
 	"Please do !brawlclaim followed by the URL of your steam profile."
 	"\nExample: !brawlclaim https://steamcommunity.com/id/beardless"
 	"\nAlternatively, you can claim via your Brawlhalla ID, which"
@@ -23,25 +23,25 @@ badClaim = (
 	"Example: !brawlclaim 7032472."
 )
 
-badRegion = (
+BadRegion = (
 	"Please specify a valid region, {}! Valid regions are US-E, US-W, EU,"
 	" AUS, SEA, BRZ, JPN, MEA, SAF. If you need help, try doing !pins."
 )
 
-reqLimit = (
+RequestLimit = (
 	"I've reached the request limit for the Brawlhalla API"
-	" or run into an unforseen error."
+	" or run into an unforeseen error."
 	" Please wait 15 minutes and try again later."
 )
 
-unclaimed = "{} needs to claim their profile first! " + badClaim
+UnclaimedMsg = "{} needs to claim their profile first! " + BadClaim
 
-thumbBase = (
+ThumbBase = (
 	"https://static.wikia.nocookie.net/brawlhalla_gamepedia/images/"
 	"{}/Banner_Rank_{}.png/revision/latest/scale-to-width-down/{}"
 )
 
-rankedThumbnails = [
+RankedThumbnails = [
 	("4/46", "Diamond", "84?cb=20161110140154"),
 	("6/6e", "Platinum", "102?cb=20161110140140"),
 	("6/69", "Gold", "109?cb=20161110140126"),
@@ -50,7 +50,7 @@ rankedThumbnails = [
 	("e/e1", "Tin", "112?cb=20161110140036")
 ]
 
-rankColors = {
+RankColors = {
 	"Diamond": 0x3D2399,
 	"Platinum": 0x0051B4,
 	"Gold": 0xF8D06A,
@@ -59,7 +59,7 @@ rankColors = {
 	"Tin": 0x355536
 }
 
-regions = (
+Regions = (
 	"jpn",
 	"brz",
 	"us-w",
@@ -85,7 +85,7 @@ def getBrawlData() -> dict[
 	return brawlDict
 
 
-DATA = getBrawlData()
+Data = getBrawlData()
 
 
 def brawlWinRate(j: dict[str, int]) -> float:
@@ -116,7 +116,7 @@ async def randomBrawl(ranType: str, key: str | None = None) -> Embed:
 			return bbEmbed(
 				"Random Legend", f"Your legend is {choice(legends)}."
 			)
-		weapon = choice([i["name"] for i in DATA["weapons"]["nodes"]])
+		weapon = choice([i["name"] for i in Data["weapons"]["nodes"]])
 		assert isinstance(weapon, str)
 		return bbEmbed(
 			"Random Weapon", f"Your weapon is {weapon}."
@@ -189,7 +189,7 @@ def getLegendPicture(legendName: str) -> str:
 	# TODO: unit test
 	if legendName == "redraptor":
 		legendName = "red-raptor"
-	legend = [i for i in DATA["legends"]["nodes"] if i["slug"] == legendName]
+	legend = [i for i in Data["legends"]["nodes"] if i["slug"] == legendName]
 	icon = legend[0]["legendFields"]["icon"]  # type: ignore[index]
 	assert isinstance(icon, dict)
 	return icon["sourceUrl"]
@@ -197,7 +197,7 @@ def getLegendPicture(legendName: str) -> str:
 
 def getWeaponPicture(weaponName: str) -> str:
 	# TODO: unit test
-	weapon = [i for i in DATA["weapons"]["nodes"] if i["name"] == weaponName]
+	weapon = [i for i in Data["weapons"]["nodes"] if i["name"] == weaponName]
 	icon = weapon[0]["weaponFields"]["icon"]  # type: ignore[index]
 	assert isinstance(icon, dict)
 	return icon["sourceUrl"]
@@ -236,8 +236,8 @@ async def legendInfo(brawlKey: str, legendName: str) -> Embed | None:
 				.add_field(
 					name="Stats",
 					value=(
-						f"{r['strength']} Str, {r['dexterity']} Dex,"
-						f" {r['defense']} Def, {r['speed']} Spd"
+						f"{r["strength"]} Str, {r["dexterity"]} Dex,"
+						f" {r["defense"]} Def, {r["speed"]} Spd"
 					)
 				)
 			)
@@ -250,7 +250,8 @@ async def legendInfo(brawlKey: str, legendName: str) -> Embed | None:
 async def getRank(target: Member, brawlKey: str) -> Embed:
 	if not (brawlId := fetchBrawlId(target.id)):
 		return bbEmbed(
-			"Beardless Bot Brawlhalla Rank", unclaimed.format(target.mention)
+			"Beardless Bot Brawlhalla Rank",
+			UnclaimedMsg.format(target.mention)
 		)
 	r = await brawlApiCall("player/", str(brawlId) + "/ranked", brawlKey)
 	assert isinstance(r, dict)
@@ -264,14 +265,14 @@ async def getRank(target: Member, brawlKey: str) -> Embed:
 		).set_footer(text=f"Brawl ID {brawlId}").set_author(
 			name=target, icon_url=fetchAvatar(target)
 		)
-	emb = bbEmbed(f"{r['name']}, {r['region']}").set_footer(
+	emb = bbEmbed(f"{r["name"]}, {r["region"]}").set_footer(
 		text=f"Brawl ID {brawlId}"
 	).set_author(name=target, icon_url=fetchAvatar(target))
 	if "games" in r and r["games"] != 0:
 		winRate = brawlWinRate(r)
 		embVal = (
-			f"**{r['tier']}** ({r['rating']}/{r['peak_rating']} Peak)\n"
-			f"{r['wins']} W / {r['games'] - r['wins']} L / {winRate}% winrate"
+			f"**{r["tier"]}** ({r["rating"]}/{r["peak_rating"]} Peak)\n"
+			f"{r["wins"]} W / {r["games"] - r["wins"]} L / {winRate}% winrate"
 		)
 		if r["legends"]:
 			topLegend = None
@@ -284,10 +285,10 @@ async def getRank(target: Member, brawlKey: str) -> Embed:
 					f" {topLegend[1]} Elo"
 				)
 		emb.add_field(name="Ranked 1s", value=embVal)
-		for thumb in rankedThumbnails:
+		for thumb in RankedThumbnails:
 			if thumb[1] in r["tier"]:
-				emb.colour = Colour(rankColors[thumb[1]])
-				emb.set_thumbnail(thumbBase.format(*thumb))
+				emb.colour = Colour(RankColors[thumb[1]])
+				emb.set_thumbnail(ThumbBase.format(*thumb))
 				break
 	if "2v2" in r and len(r["2v2"]) != 0:
 		twosTeam = None
@@ -299,21 +300,21 @@ async def getRank(target: Member, brawlKey: str) -> Embed:
 			emb.add_field(
 				name="Ranked 2s",
 				value=(
-					f"**{twosTeam['teamname']}\n"
-					f"{twosTeam['tier']}** ({twosTeam['rating']} /"
-					f" {twosTeam['peak_rating']} Peak)\n{twosTeam['wins']}"
-					f" W / {twosTeam['games'] - twosTeam['wins']} L /"
+					f"**{twosTeam["teamname"]}\n"
+					f"{twosTeam["tier"]}** ({twosTeam["rating"]} /"
+					f" {twosTeam["peak_rating"]} Peak)\n{twosTeam["wins"]}"
+					f" W / {twosTeam["games"] - twosTeam["wins"]} L /"
 					f" {brawlWinRate(twosTeam)}% winrate"
 				)
 			)
 			if (
-				(emb.colour and emb.colour.value == BB_COLOR)
+				(emb.colour and emb.colour.value == BbColor)
 				or twosTeam["rating"] > r["rating"]
 			):
-				for thumb in rankedThumbnails:
+				for thumb in RankedThumbnails:
 					if thumb[1] in twosTeam["tier"]:
-						emb.colour = Colour(rankColors[thumb[1]])
-						emb.set_thumbnail(thumbBase.format(*thumb))
+						emb.colour = Colour(RankColors[thumb[1]])
+						emb.set_thumbnail(ThumbBase.format(*thumb))
 						break
 	return emb
 
@@ -330,7 +331,8 @@ async def getStats(target: Member, brawlKey: str) -> Embed:
 
 	if not (brawlId := fetchBrawlId(target.id)):
 		return bbEmbed(
-			"Beardless Bot Brawlhalla Stats", unclaimed.format(target.mention)
+			"Beardless Bot Brawlhalla Stats",
+			UnclaimedMsg.format(target.mention)
 		)
 	r = await brawlApiCall("player/", str(brawlId) + "/stats", brawlKey)
 	if r is None or len(r) < 4:
@@ -341,8 +343,8 @@ async def getStats(target: Member, brawlKey: str) -> Embed:
 		return bbEmbed("Beardless Bot Brawlhalla Stats", noStats)
 	assert isinstance(r, dict)
 	winLoss = (
-		f"{r['wins']} Wins / {r['games'] - r['wins']} Losses"
-		f"\n{r['games']} Games\n{brawlWinRate(r)}% Winrate"
+		f"{r["wins"]} Wins / {r["games"] - r["wins"]} Losses"
+		f"\n{r["games"]} Games\n{brawlWinRate(r)}% Winrate"
 	)
 	emb = bbEmbed("Brawlhalla Stats for " + r["name"]).set_footer(
 		text=f"Brawl ID {brawlId}"
@@ -383,7 +385,7 @@ async def getStats(target: Member, brawlKey: str) -> Embed:
 				)
 			)
 	if "clan" in r:
-		val = f"{r['clan']['clan_name']}\nClan ID {r['clan']['clan_id']}"
+		val = f"{r["clan"]["clan_name"]}\nClan ID {r["clan"]["clan_id"]}"
 		emb.add_field(name="Clan", value=val)
 	return emb
 
@@ -391,11 +393,13 @@ async def getStats(target: Member, brawlKey: str) -> Embed:
 async def getClan(target: Member, brawlKey: str) -> Embed:
 	if not (brawlId := fetchBrawlId(target.id)):
 		return bbEmbed(
-			"Beardless Bot Brawlhalla Clan", unclaimed.format(target.mention)
+			"Beardless Bot Brawlhalla Clan",
+			UnclaimedMsg.format(target.mention)
 		)
 	# Takes two API calls: one to get clan ID from player stats,
 	# one to get clan from clan ID. As a result, this command is very slow.
 	# TODO: Try to find a way around this.
+	# https://github.com/LevBernstein/BeardlessBot/issues/14
 	r = await brawlApiCall("player/", str(brawlId) + "/stats", brawlKey)
 	assert isinstance(r, dict)
 	if "clan" not in r:
@@ -411,11 +415,11 @@ async def getClan(target: Member, brawlKey: str) -> Embed:
 			r["clan_xp"],
 			len(r["clan"])
 		)
-	).set_footer(text=f"Clan ID {r['clan_id']}")
+	).set_footer(text=f"Clan ID {r["clan_id"]}")
 	for i in range(min(len(r["clan"]), 9)):
 		member = r["clan"][i]
 		val = (
-			f"{member['rank']} ({member['xp']} xp)\nJoined "
+			f"{member["rank"]} ({member["xp"]} xp)\nJoined "
 			+ str(datetime.fromtimestamp(member["join_date"]))[:-9]
 		)
 		emb.add_field(name=member["name"], value=val)
@@ -444,4 +448,6 @@ def brawlCommands() -> Embed:
 
 
 # TODO: implement leaderboard, glory
+# https://github.com/LevBernstein/BeardlessBot/issues/15
+# https://github.com/LevBernstein/BeardlessBot/issues/17
 # See: https://github.com/BrawlDB/gerard3/blob/master/src/utils/glory.js

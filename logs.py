@@ -4,11 +4,11 @@ from typing import Final
 
 import nextcord
 
-from misc import bbEmbed, contCheck, fetchAvatar, prof, truncTime
+from misc import ProfUrl, bbEmbed, contCheck, fetchAvatar, truncTime
 
 # TODO: Implement log thread locked/unlocked
 
-MAX_PURGED_MSGS: Final[int] = 99
+MaxPurgedMsgs: Final[int] = 99
 
 
 def logDeleteMsg(msg: nextcord.Message) -> nextcord.Embed:
@@ -30,8 +30,8 @@ def logPurge(
 
 	def purgeReport(msgList: list[nextcord.Message]) -> str:
 		return (
-			f"{MAX_PURGED_MSGS}+"
-			if len(msgList) > MAX_PURGED_MSGS
+			f"{MaxPurgedMsgs}+"
+			if len(msgList) > MaxPurgedMsgs
 			else str(len(msgList) - 1)
 		)
 
@@ -43,7 +43,7 @@ def logPurge(
 		f"Purged {purgeReport(msgList)} messages in {msg.channel.mention}.",
 		0xFF0000,
 		showTime=True
-	).set_author(name="Purge!", icon_url=prof)
+	).set_author(name="Purge!", icon_url=ProfUrl)
 
 
 def logEditMsg(
@@ -94,13 +94,13 @@ def logClearReacts(
 def logDeleteChannel(channel: nextcord.abc.GuildChannel) -> nextcord.Embed:
 	return bbEmbed(
 		"", f'Channel "{channel.name}" deleted.', 0xFF0000, showTime=True
-	).set_author(name="Channel deleted", icon_url=prof)
+	).set_author(name="Channel deleted", icon_url=ProfUrl)
 
 
 def logCreateChannel(channel: nextcord.abc.GuildChannel) -> nextcord.Embed:
 	return bbEmbed(
 		"", f'Channel "{channel.name}" created.', 0x00FF00, showTime=True
-	).set_author(name="Channel created", icon_url=prof)
+	).set_author(name="Channel created", icon_url=ProfUrl)
 
 
 def logMemberJoin(member: nextcord.Member) -> nextcord.Embed:
@@ -184,16 +184,12 @@ def logUnban(member: nextcord.Member) -> nextcord.Embed:
 
 
 def logMute(
-	member: nextcord.Member,
-	message: nextcord.Message,
-	duration: str | None,
-	mString: str | None,
-	mTime: float | None
+	member: nextcord.Member, message: nextcord.Message, duration: str | None
 ) -> nextcord.Embed:
 	assert isinstance(
 		message.channel, nextcord.abc.GuildChannel | nextcord.Thread
 	)
-	mid = f" for {duration} {mString}" if mTime else ""
+	mid = f" for {duration}" if duration else ""
 	return bbEmbed(
 		"Beardless Bot Mute",
 		f"Muted {member.mention}{mid} in {message.channel.mention}.",
@@ -221,22 +217,22 @@ def logCreateThread(thread: nextcord.Thread) -> nextcord.Embed:
 		f" parent channel {thread.parent.mention}.",
 		0x00FF00,
 		showTime=True
-	).set_author(name="Thread created", icon_url=prof)
+	).set_author(name="Thread created", icon_url=ProfUrl)
 
 
 def logDeleteThread(thread: nextcord.Thread) -> nextcord.Embed:
 	return bbEmbed(
 		"", f"Thread \"{thread.name}\" deleted.", 0xFF0000, showTime=True
-	).set_author(name="Thread deleted", icon_url=prof)
+	).set_author(name="Thread deleted", icon_url=ProfUrl)
 
 
 def logThreadArchived(thread: nextcord.Thread) -> nextcord.Embed:
 	return bbEmbed(
 		"", f"Thread \"{thread.name}\" archived.", 0xFFFF00, showTime=True
-	).set_author(name="Thread archived", icon_url=prof)
+	).set_author(name="Thread archived", icon_url=ProfUrl)
 
 
 def logThreadUnarchived(thread: nextcord.Thread) -> nextcord.Embed:
 	return bbEmbed(
 		"", f"Thread \"{thread.name}\" unarchived.", 0xFFFF00, showTime=True
-	).set_author(name="Thread unarchived", icon_url=prof)
+	).set_author(name="Thread unarchived", icon_url=ProfUrl)
