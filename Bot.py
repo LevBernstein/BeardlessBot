@@ -34,10 +34,10 @@ OwnerId: Final[int] = 196354892208537600
 EggGuildId: Final[int] = 442403231864324119
 SparCooldown: Final[int] = 7200
 
-bot = commands.Bot(
+BeardlessBot = commands.Bot(
 	command_prefix="!",
 	case_insensitive=True,
-	help_command=misc.BBHelpCommand(),
+	help_command=misc.BbHelpCommand(),
 	intents=nextcord.Intents.all(),
 	chunk_guilds_at_startup=False,
 	owner_id=OwnerId
@@ -53,7 +53,7 @@ RoleColors = {
 }
 
 
-@bot.event
+@BeardlessBot.event
 async def on_ready() -> None:
 	"""
 	Startup method. Fires whenever the Bot connects to the Gateway.
@@ -71,11 +71,11 @@ async def on_ready() -> None:
 
 	status = nextcord.Game(name="try !blackjack and !flip")
 	try:
-		await bot.change_presence(activity=status)
+		await BeardlessBot.change_presence(activity=status)
 		logging.info("Status updated!")
-		assert bot.user is not None
+		assert BeardlessBot.user is not None
 		async with aiofiles.open("resources/images/prof.png", "rb") as f:
-			await bot.user.edit(avatar=await f.read())
+			await BeardlessBot.user.edit(avatar=await f.read())
 	except nextcord.HTTPException:
 		logging.exception("Failed to update avatar or status!")
 	except FileNotFoundError:
@@ -86,16 +86,16 @@ async def on_ready() -> None:
 		logging.info("Avatar updated!")
 
 	try:
-		members = set(bot.guilds[0].members)
+		members = set(BeardlessBot.guilds[0].members)
 	except IndexError:
 		logging.exception("Bot is in no servers! Add it to a server.")
 	else:
-		for guild in bot.guilds:
+		for guild in BeardlessBot.guilds:
 			# Do this first so all servers can spar immediately
 			SparPings[guild.id] = dict.fromkeys(brawl.Regions, 0)
 		logging.info("Zeroed sparpings! Sparring is now possible.")
 		logging.info("Chunking guilds, collecting analytics...")
-		for guild in bot.guilds:
+		for guild in BeardlessBot.guilds:
 			members = members.union(set(guild.members))
 			await guild.chunk()
 
@@ -103,11 +103,11 @@ async def on_ready() -> None:
 			"Chunking complete! Beardless Bot serves"
 			" %i unique members across %i servers.",
 			len(members),
-			len(bot.guilds)
+			len(BeardlessBot.guilds)
 		)
 
 
-@bot.event
+@BeardlessBot.event
 async def on_guild_join(guild: nextcord.Guild) -> None:
 	logging.info("Just joined %s!", guild.name)
 
@@ -122,7 +122,9 @@ async def on_guild_join(guild: nextcord.Guild) -> None:
 			else:
 				logging.info("Sent join message in %s.", channel.name)
 				break
-		logging.info("Beardless Bot is now in %i servers.", len(bot.guilds))
+		logging.info(
+			"Beardless Bot is now in %i servers.", len(BeardlessBot.guilds)
+		)
 		SparPings[guild.id] = dict.fromkeys(brawl.Regions, 0)
 	else:
 		logging.warning("Not given admin perms in %s.", guild.name)
@@ -141,7 +143,7 @@ async def on_guild_join(guild: nextcord.Guild) -> None:
 # Event logging
 
 
-@bot.event
+@BeardlessBot.event
 async def on_message_delete(msg: nextcord.Message) -> nextcord.Embed | None:
 	if (
 		msg.guild
@@ -157,7 +159,7 @@ async def on_message_delete(msg: nextcord.Message) -> nextcord.Embed | None:
 	return None
 
 
-@bot.event
+@BeardlessBot.event
 async def on_bulk_message_delete(
 	msgList: list[nextcord.Message]
 ) -> nextcord.Embed | None:
@@ -169,13 +171,13 @@ async def on_bulk_message_delete(
 	return None
 
 
-@bot.event
+@BeardlessBot.event
 async def on_message_edit(
 	before: nextcord.Message, after: nextcord.Message
 ) -> nextcord.Embed | None:
 	if after.guild and (before.content != after.content):
 		assert isinstance(
-			after.channel, nextcord.TextChannel | nextcord.Thread
+			after.channel, nextcord.abc.GuildChannel | nextcord.Thread
 		)
 		if misc.scamCheck(after.content):
 			await misc.deleteScamAndNotify(after)
@@ -186,7 +188,7 @@ async def on_message_edit(
 	return None
 
 
-@bot.event
+@BeardlessBot.event
 async def on_reaction_clear(
 	msg: nextcord.Message, reactions: list[nextcord.Reaction]
 ) -> nextcord.Embed | None:
@@ -198,7 +200,7 @@ async def on_reaction_clear(
 	return None
 
 
-@bot.event
+@BeardlessBot.event
 async def on_guild_channel_delete(
 	ch: nextcord.abc.GuildChannel
 ) -> nextcord.Embed | None:
@@ -209,7 +211,7 @@ async def on_guild_channel_delete(
 	return None
 
 
-@bot.event
+@BeardlessBot.event
 async def on_guild_channel_create(
 	ch: nextcord.abc.GuildChannel
 ) -> nextcord.Embed | None:
@@ -220,7 +222,7 @@ async def on_guild_channel_create(
 	return None
 
 
-@bot.event
+@BeardlessBot.event
 async def on_member_join(member: nextcord.Member) -> nextcord.Embed | None:
 	if channel := misc.getLogChannel(member.guild):
 		emb = logs.logMemberJoin(member)
@@ -229,7 +231,7 @@ async def on_member_join(member: nextcord.Member) -> nextcord.Embed | None:
 	return None
 
 
-@bot.event
+@BeardlessBot.event
 async def on_member_remove(member: nextcord.Member) -> nextcord.Embed | None:
 	if channel := misc.getLogChannel(member.guild):
 		emb = logs.logMemberRemove(member)
@@ -238,7 +240,7 @@ async def on_member_remove(member: nextcord.Member) -> nextcord.Embed | None:
 	return None
 
 
-@bot.event
+@BeardlessBot.event
 async def on_member_update(
 	before: nextcord.Member, after: nextcord.Member
 ) -> nextcord.Embed | None:
@@ -254,9 +256,9 @@ async def on_member_update(
 	return None
 
 
-@bot.event
+@BeardlessBot.event
 async def on_member_ban(
-	guild: nextcord.Guild, member: nextcord.Member
+	guild: nextcord.Guild, member: nextcord.Member | nextcord.User
 ) -> nextcord.Embed | None:
 	if channel := misc.getLogChannel(guild):
 		emb = logs.logBan(member)
@@ -265,9 +267,9 @@ async def on_member_ban(
 	return None
 
 
-@bot.event
+@BeardlessBot.event
 async def on_member_unban(
-	guild: nextcord.Guild, member: nextcord.Member
+	guild: nextcord.Guild, member: nextcord.Member | nextcord.User
 ) -> nextcord.Embed | None:
 	if channel := misc.getLogChannel(guild):
 		emb = logs.logUnban(member)
@@ -276,7 +278,7 @@ async def on_member_unban(
 	return None
 
 
-@bot.event
+@BeardlessBot.event
 async def on_thread_join(thread: nextcord.Thread) -> nextcord.Embed | None:
 	if thread.me:
 		return None
@@ -288,7 +290,7 @@ async def on_thread_join(thread: nextcord.Thread) -> nextcord.Embed | None:
 	return None
 
 
-@bot.event
+@BeardlessBot.event
 async def on_thread_delete(thread: nextcord.Thread) -> nextcord.Embed | None:
 	if channel := misc.getLogChannel(thread.guild):
 		emb = logs.logDeleteThread(thread)
@@ -297,7 +299,7 @@ async def on_thread_delete(thread: nextcord.Thread) -> nextcord.Embed | None:
 	return None
 
 
-@bot.event
+@BeardlessBot.event
 async def on_thread_update(
 	before: nextcord.Thread, after: nextcord.Thread
 ) -> nextcord.Embed | None:
@@ -317,7 +319,7 @@ async def on_thread_update(
 # Commands:
 
 
-@bot.command(name="flip")  # type: ignore[arg-type]
+@BeardlessBot.command(name="flip")  # type: ignore[arg-type]
 async def cmdFlip(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -329,7 +331,9 @@ async def cmdFlip(ctx: misc.BotContext, bet: str = "10") -> int:
 	return 1
 
 
-@bot.command(name="blackjack", aliases=("bj",))  # type: ignore[arg-type]
+@BeardlessBot.command(  # type: ignore[arg-type]
+	name="blackjack", aliases=("bj",)
+)
 async def cmdBlackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -343,7 +347,7 @@ async def cmdBlackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 	return 1
 
 
-@bot.command(name="deal", aliases=("hit",))  # type: ignore[arg-type]
+@BeardlessBot.command(name="deal", aliases=("hit",))  # type: ignore[arg-type]
 async def cmdDeal(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -363,7 +367,9 @@ async def cmdDeal(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@bot.command(name="stay", aliases=("stand",))  # type: ignore[arg-type]
+@BeardlessBot.command(  # type: ignore[arg-type]
+	name="stay", aliases=("stand",)
+)
 async def cmdStay(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -386,7 +392,7 @@ async def cmdStay(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@bot.command(name="av", aliases=("avatar",))  # type: ignore[arg-type]
+@BeardlessBot.command(name="av", aliases=("avatar",))  # type: ignore[arg-type]
 async def cmdAv(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -394,7 +400,7 @@ async def cmdAv(ctx: misc.BotContext, *, target: str = "") -> int:
 	return 1
 
 
-@bot.command(name="info")  # type: ignore[arg-type]
+@BeardlessBot.command(name="info")  # type: ignore[arg-type]
 async def cmdInfo(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild:
 		return -1
@@ -411,7 +417,9 @@ async def cmdInfo(ctx: misc.BotContext, *, target: str = "") -> int:
 	return 1
 
 
-@bot.command(name="balance", aliases=("bal",))  # type: ignore[arg-type]
+@BeardlessBot.command(  # type: ignore[arg-type]
+	name="balance", aliases=("bal",)
+)
 async def cmdBalance(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -421,7 +429,7 @@ async def cmdBalance(ctx: misc.BotContext, *, target: str = "") -> int:
 	return 1
 
 
-@bot.command(  # type: ignore[arg-type]
+@BeardlessBot.command(  # type: ignore[arg-type]
 	name="leaderboard", aliases=("leaderboards", "lb")
 )
 async def cmdLeaderboard(ctx: misc.BotContext, *, target: str = "") -> int:
@@ -433,7 +441,7 @@ async def cmdLeaderboard(ctx: misc.BotContext, *, target: str = "") -> int:
 	return 1
 
 
-@bot.command(name="dice")  # type: ignore[arg-type]
+@BeardlessBot.command(name="dice")  # type: ignore[arg-type]
 async def cmdDice(ctx: misc.BotContext) -> int | nextcord.Embed:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -448,7 +456,7 @@ async def cmdDice(ctx: misc.BotContext) -> int | nextcord.Embed:
 	return emb
 
 
-@bot.command(name="reset")  # type: ignore[arg-type]
+@BeardlessBot.command(name="reset")  # type: ignore[arg-type]
 async def cmdReset(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -456,7 +464,7 @@ async def cmdReset(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@bot.command(name="register")  # type: ignore[arg-type]
+@BeardlessBot.command(name="register")  # type: ignore[arg-type]
 async def cmdRegister(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -464,7 +472,7 @@ async def cmdRegister(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@bot.command(name="bucks")  # type: ignore[arg-type]
+@BeardlessBot.command(name="bucks")  # type: ignore[arg-type]
 async def cmdBucks(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -472,7 +480,7 @@ async def cmdBucks(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@bot.command(name="hello", aliases=("hi",))  # type: ignore[arg-type]
+@BeardlessBot.command(name="hello", aliases=("hi",))  # type: ignore[arg-type]
 async def cmdHello(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -480,7 +488,7 @@ async def cmdHello(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@bot.command(name="source")  # type: ignore[arg-type]
+@BeardlessBot.command(name="source")  # type: ignore[arg-type]
 async def cmdSource(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -492,7 +500,9 @@ async def cmdSource(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@bot.command(name="add", aliases=("join", "invite"))  # type: ignore[arg-type]
+@BeardlessBot.command(  # type: ignore[arg-type]
+	name="add", aliases=("join", "invite")
+)
 async def cmdAdd(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -500,7 +510,7 @@ async def cmdAdd(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@bot.command(name="rohan")  # type: ignore[arg-type]
+@BeardlessBot.command(name="rohan")  # type: ignore[arg-type]
 async def cmdRohan(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -508,7 +518,7 @@ async def cmdRohan(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@bot.command(name="random")  # type: ignore[arg-type]
+@BeardlessBot.command(name="random")  # type: ignore[arg-type]
 async def cmdRandomBrawl(
 	ctx: misc.BotContext, ranType: str = "None"
 ) -> int:
@@ -519,7 +529,7 @@ async def cmdRandomBrawl(
 	return 1
 
 
-@bot.command(name="fact")  # type: ignore[arg-type]
+@BeardlessBot.command(name="fact")  # type: ignore[arg-type]
 async def cmdFact(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -529,7 +539,7 @@ async def cmdFact(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@bot.command(  # type: ignore[arg-type]
+@BeardlessBot.command(  # type: ignore[arg-type]
 	name="animals", aliases=("animal", "pets")
 )
 async def cmdAnimals(ctx: misc.BotContext) -> int:
@@ -559,7 +569,7 @@ async def cmdAnimals(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@bot.command(name="define")  # type: ignore[arg-type]
+@BeardlessBot.command(name="define")  # type: ignore[arg-type]
 async def cmdDefine(ctx: misc.BotContext, *, words: str = "") -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -576,19 +586,19 @@ async def cmdDefine(ctx: misc.BotContext, *, words: str = "") -> int:
 	return 1
 
 
-@bot.command(name="ping")  # type: ignore[arg-type]
+@BeardlessBot.command(name="ping")  # type: ignore[arg-type]
 async def cmdPing(ctx: misc.BotContext) -> int:
-	if misc.ctxCreatedThread(ctx):
+	if misc.ctxCreatedThread(ctx) or BeardlessBot.user is None:
 		return -1
-	assert bot.user is not None
 	emb = misc.bbEmbed(
-		"Pinged", f"Beardless Bot's latency is {int(1000 * bot.latency)} ms."
-	).set_thumbnail(url=misc.fetchAvatar(bot.user))
+		"Pinged",
+		f"Beardless Bot's latency is {int(1000 * BeardlessBot.latency)} ms."
+	).set_thumbnail(url=misc.fetchAvatar(BeardlessBot.user))
 	await ctx.send(embed=emb)
 	return 1
 
 
-@bot.command(name="roll")  # type: ignore[arg-type]
+@BeardlessBot.command(name="roll")  # type: ignore[arg-type]
 async def cmdRoll(
 	ctx: misc.BotContext, dice: str = "None"
 ) -> int:
@@ -598,7 +608,7 @@ async def cmdRoll(
 	return 1
 
 
-@bot.command(name="dog")  # type: ignore[arg-type]
+@BeardlessBot.command(name="dog")  # type: ignore[arg-type]
 async def cmdDog(ctx: misc.BotContext, *, breed: str = "") -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -625,7 +635,7 @@ async def cmdDog(ctx: misc.BotContext, *, breed: str = "") -> int:
 	return 1
 
 
-@bot.command(  # type: ignore[arg-type]
+@BeardlessBot.command(  # type: ignore[arg-type]
 	name="moose", aliases=(*misc.AnimalList, "bunny")
 )
 async def cmdAnimal(ctx: misc.BotContext, *, breed: str = "") -> int:
@@ -654,7 +664,7 @@ async def cmdAnimal(ctx: misc.BotContext, *, breed: str = "") -> int:
 # Server-only commands (not usable in DMs):
 
 
-@bot.command(name="mute")  # type: ignore[arg-type]
+@BeardlessBot.command(name="mute")  # type: ignore[arg-type]
 async def cmdMute(
 	ctx: misc.BotContext,
 	target: str | None = None,
@@ -687,7 +697,7 @@ async def cmdMute(
 		)
 		return 0
 	# If user tries to mute BB:
-	if bot.user is not None and muteTarget.id == bot.user.id:
+	if BeardlessBot.user is not None and muteTarget.id == BeardlessBot.user.id:
 		await ctx.send("I am too powerful to be muted. Stop trying.")
 		return 0
 	if not (role := get(ctx.guild.roles, name="Muted")):
@@ -695,15 +705,14 @@ async def cmdMute(
 	duration, reason, mTime = misc.processMuteDuration(duration, additional)
 	try:
 		await muteTarget.add_roles(role)
-	except nextcord.DiscordException as e:
+	except nextcord.Forbidden as e:
 		misc.logException(e, ctx)
 		await ctx.send(misc.HierarchyMsg)
 		return 0
-	report = "Muted " + muteTarget.mention
 	addendum = (" for " + duration + ".") if duration is not None else "."
-	emb = misc.bbEmbed("Beardless Bot Mute", report + addendum).set_author(
-		name=ctx.author, icon_url=misc.fetchAvatar(ctx.author)
-	)
+	emb = misc.bbEmbed(
+		"Beardless Bot Mute", "Muted " + muteTarget.mention + addendum
+	).set_author(name=ctx.author, icon_url=misc.fetchAvatar(ctx.author))
 	if reason:
 		emb.add_field(name="Mute Reason:", value=reason, inline=False)
 	await ctx.send(embed=emb)
@@ -728,16 +737,11 @@ async def cmdMute(
 			"Autounmuted %s after waiting%s", muteTarget.name, addendum
 		)
 		if channel := misc.getLogChannel(ctx.guild):
-			await channel.send(
-				embed=logs.logUnmute(
-					muteTarget,
-					ctx.author  # type: ignore[arg-type]
-				)
-			)
+			await channel.send(embed=logs.logUnmute(muteTarget, ctx.author))
 	return 1
 
 
-@bot.command(name="unmute")  # type: ignore[arg-type]
+@BeardlessBot.command(name="unmute")  # type: ignore[arg-type]
 async def cmdUnmute(
 	ctx: misc.BotContext, target: str | None = None
 ) -> int:
@@ -760,17 +764,14 @@ async def cmdUnmute(
 			except commands.MemberNotFound as e:
 				misc.logException(e, ctx)
 				report = "Invalid target! Target must be a mention or user ID."
-			except nextcord.DiscordException as e:
+			except nextcord.Forbidden as e:
 				misc.logException(e, ctx)
 				report = misc.HierarchyMsg
 			else:
 				report = f"Unmuted {mutedMember.mention}."
 				if channel := misc.getLogChannel(ctx.guild):
 					await channel.send(
-						embed=logs.logUnmute(
-							mutedMember,
-							ctx.author  # type: ignore[arg-type]
-						)
+						embed=logs.logUnmute(mutedMember, ctx.author)
 					)
 		else:
 			report = f"Invalid target, {ctx.author.mention}."
@@ -778,7 +779,7 @@ async def cmdUnmute(
 	return 1
 
 
-@bot.command(name="purge")  # type: ignore[arg-type]
+@BeardlessBot.command(name="purge")  # type: ignore[arg-type]
 async def cmdPurge(
 	ctx: misc.BotContext, num: str | None = None
 ) -> int:
@@ -795,7 +796,11 @@ async def cmdPurge(
 				"Beardless Bot Purge", "Invalid message number!"
 			))
 			return 0
-		await ctx.channel.purge(  # type: ignore[union-attr]
+		assert isinstance(
+			ctx.channel,
+			nextcord.TextChannel | nextcord.VoiceChannel | nextcord.Thread
+		)
+		await ctx.channel.purge(
 			limit=mNum + 1, check=lambda msg: not msg.pinned
 		)
 		return 1
@@ -805,17 +810,18 @@ async def cmdPurge(
 	return 0
 
 
-@bot.command(name="buy")  # type: ignore[arg-type]
+@BeardlessBot.command(name="buy")  # type: ignore[arg-type]
 async def cmdBuy(
 	ctx: misc.BotContext, color: str = "none"
 ) -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild:
 		return -1
+	assert isinstance(ctx.author, nextcord.Member)
 	report = "Invalid color. Choose blue, red, orange, or pink, {}."
 	if (color := color.lower()) in RoleColors:
 		if not (role := get(ctx.guild.roles, name="special " + color)):
 			report = "That color role does not exist in this server, {}."
-		elif role in ctx.author.roles:  # type: ignore[union-attr]
+		elif role in ctx.author.roles:
 			report = "You already have this special color, {}."
 		else:
 			if not role.color.value:
@@ -832,7 +838,7 @@ async def cmdBuy(
 					f"Color {role.mention}"
 					" purchased successfully, {}!"
 				)
-				await ctx.author.add_roles(role)  # type: ignore[union-attr]
+				await ctx.author.add_roles(role)
 			elif result == bucks.MoneyFlags.CommaInUsername:
 				assert isinstance(bonus, str)
 				report = bonus
@@ -845,13 +851,16 @@ async def cmdBuy(
 	return 1
 
 
-@bot.command(  # type: ignore[arg-type]
+@BeardlessBot.command(  # type: ignore[arg-type]
 	name="pins", aliases=("sparpins", "howtospar")
 )
 async def cmdPins(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild:
 		return -1
-	if ctx.channel.name == "looking-for-spar":  # type: ignore[union-attr]
+	assert not isinstance(
+		ctx.channel, nextcord.DMChannel | nextcord.PartialMessageable
+	)
+	if ctx.channel.name == "looking-for-spar":
 		await ctx.send(embed=misc.SparPinsEmbed)
 		return 1
 	await ctx.send(
@@ -866,14 +875,17 @@ async def cmdPins(ctx: misc.BotContext) -> int:
 	return 0
 
 
-@bot.command(name="spar")  # type: ignore[arg-type]
+@BeardlessBot.command(name="spar")  # type: ignore[arg-type]
 async def cmdSpar(
 	ctx: misc.BotContext, region: str | None = None, *, additional: str = ""
 ) -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild:
 		return -1
 	author = ctx.author.mention
-	if ctx.channel.name != "looking-for-spar":  # type: ignore[union-attr]
+	assert not isinstance(
+		ctx.channel, nextcord.DMChannel | nextcord.PartialMessageable
+	)
+	if ctx.channel.name != "looking-for-spar":
 		await ctx.send(f"Please only use !spar in looking-for-spar, {author}.")
 		return 0
 	if not region:
@@ -914,7 +926,7 @@ async def cmdSpar(
 # Commands requiring a Brawlhalla API key:
 
 
-@bot.command(name="brawl")  # type: ignore[arg-type]
+@BeardlessBot.command(name="brawl")  # type: ignore[arg-type]
 async def cmdBrawl(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
@@ -924,23 +936,18 @@ async def cmdBrawl(ctx: misc.BotContext) -> int:
 	return 0
 
 
-@bot.command(name="brawlclaim")  # type: ignore[arg-type]
+@BeardlessBot.command(name="brawlclaim")  # type: ignore[arg-type]
 async def cmdBrawlclaim(ctx: misc.BotContext, profUrl: str = "None") -> int:
 	if misc.ctxCreatedThread(ctx) or not BrawlKey:
 		return -1
-	brawlId: int | None = (
+	brawlId = (
 		int(profUrl)
 		if profUrl.isnumeric()
 		else await brawl.getBrawlId(BrawlKey, profUrl)
 	)
 	if brawlId is not None:
-		try:
-			brawl.claimProfile(ctx.author.id, brawlId)
-		except Exception as e:
-			misc.logException(e, ctx)
-			report = brawl.RequestLimit
-		else:
-			report = "Profile claimed."
+		brawl.claimProfile(ctx.author.id, brawlId)
+		report = "Profile claimed."
 	else:
 		report = "Invalid profile URL/Brawlhalla ID! " + brawl.BadClaim
 	await ctx.send(
@@ -949,7 +956,7 @@ async def cmdBrawlclaim(ctx: misc.BotContext, profUrl: str = "None") -> int:
 	return 1
 
 
-@bot.command(name="brawlrank")  # type: ignore[arg-type]
+@BeardlessBot.command(name="brawlrank")  # type: ignore[arg-type]
 async def cmdBrawlrank(
 	ctx: misc.BotContext, *, target: str = ""
 ) -> int | None:
@@ -963,10 +970,7 @@ async def cmdBrawlrank(
 		rankTarget = misc.memSearch(ctx.message, rankTarget)
 	if rankTarget:
 		try:
-			emb = await brawl.getRank(
-				rankTarget,  # type: ignore[arg-type]
-				BrawlKey
-			)
+			emb = await brawl.getRank(rankTarget, BrawlKey)
 			await ctx.send(embed=emb)
 		except Exception as e:
 			misc.logException(e, ctx)
@@ -979,7 +983,7 @@ async def cmdBrawlrank(
 	return 1
 
 
-@bot.command(name="brawlstats")  # type: ignore[arg-type]
+@BeardlessBot.command(name="brawlstats")  # type: ignore[arg-type]
 async def cmdBrawlstats(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild or not BrawlKey:
 		return -1
@@ -989,10 +993,7 @@ async def cmdBrawlstats(ctx: misc.BotContext, *, target: str = "") -> int:
 		statsTarget = misc.memSearch(ctx.message, statsTarget)
 	if statsTarget:
 		try:
-			emb = await brawl.getStats(
-				statsTarget,  # type: ignore[arg-type]
-				BrawlKey
-			)
+			emb = await brawl.getStats(statsTarget, BrawlKey)
 			await ctx.send(embed=emb)
 		except Exception as e:
 			misc.logException(e, ctx)
@@ -1005,7 +1006,7 @@ async def cmdBrawlstats(ctx: misc.BotContext, *, target: str = "") -> int:
 	return 0
 
 
-@bot.command(name="brawlclan")  # type: ignore[arg-type]
+@BeardlessBot.command(name="brawlclan")  # type: ignore[arg-type]
 async def cmdBrawlclan(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild or not BrawlKey:
 		return -1
@@ -1015,10 +1016,7 @@ async def cmdBrawlclan(ctx: misc.BotContext, *, target: str = "") -> int:
 		clanTarget = misc.memSearch(ctx.message, clanTarget)
 	if clanTarget:
 		try:
-			emb = await brawl.getClan(
-				clanTarget,  # type: ignore[arg-type]
-				BrawlKey
-			)
+			emb = await brawl.getClan(clanTarget, BrawlKey)
 			await ctx.send(embed=emb)
 		except Exception as e:
 			misc.logException(e, ctx)
@@ -1031,7 +1029,7 @@ async def cmdBrawlclan(ctx: misc.BotContext, *, target: str = "") -> int:
 	return 0
 
 
-@bot.command(name="brawllegend")  # type: ignore[arg-type]
+@BeardlessBot.command(name="brawllegend")  # type: ignore[arg-type]
 async def cmdBrawllegend(
 	ctx: misc.BotContext, legend: str | None = None
 ) -> int:
@@ -1059,7 +1057,9 @@ async def cmdBrawllegend(
 # Server-specific commands:
 
 
-@bot.command(name="tweet", aliases=("eggtweet",))  # type: ignore[arg-type]
+@BeardlessBot.command(  # type: ignore[arg-type]
+	name="tweet", aliases=("eggtweet",)
+)
 async def cmdTweet(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild:
 		return -1
@@ -1075,7 +1075,7 @@ async def cmdTweet(ctx: misc.BotContext) -> int:
 	return 0
 
 
-@bot.command(name="reddit")  # type: ignore[arg-type]
+@BeardlessBot.command(name="reddit")  # type: ignore[arg-type]
 async def cmdReddit(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild:
 		return -1
@@ -1085,7 +1085,7 @@ async def cmdReddit(ctx: misc.BotContext) -> int:
 	return 0
 
 
-@bot.command(name="guide")  # type: ignore[arg-type]
+@BeardlessBot.command(name="guide")  # type: ignore[arg-type]
 async def cmdGuide(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild:
 		return -1
@@ -1098,7 +1098,7 @@ async def cmdGuide(ctx: misc.BotContext) -> int:
 	return 0
 
 
-@bot.command(  # type: ignore[arg-type]
+@BeardlessBot.command(  # type: ignore[arg-type]
 	name="search", aliases=("google", "lmgtfy")
 )
 async def cmdSearch(ctx: misc.BotContext, *, arg: str = "") -> int:
@@ -1108,7 +1108,7 @@ async def cmdSearch(ctx: misc.BotContext, *, arg: str = "") -> int:
 	return 1
 
 
-@bot.listen()
+@BeardlessBot.listen()
 async def on_command_error(
 	ctx: misc.BotContext, e: commands.errors.CommandError
 ) -> int:
@@ -1144,7 +1144,7 @@ async def on_command_error(
 	return 1
 
 
-@bot.listen("on_message")
+@BeardlessBot.listen("on_message")
 async def handleMessages(message: nextcord.Message) -> int:
 	"""
 	Process messages from users for possible scams. Basically just a wrapper
@@ -1187,7 +1187,7 @@ def launch() -> None:
 		)
 
 	try:
-		bot.run(env["DISCORDTOKEN"])
+		BeardlessBot.run(env["DISCORDTOKEN"])
 	except KeyError:
 		logging.exception(
 			"Fatal error! DISCORDTOKEN environment variable has not"
@@ -1206,7 +1206,9 @@ if __name__ == "__main__":
 		force=True,
 		handlers=[
 			logging.FileHandler(
-				datetime.now().strftime("resources/logs/%Y-%m-%d-%H-%M-%S.log")
+				datetime.now(misc.TimeZone).strftime(
+					"resources/logs/%Y-%m-%d-%H-%M-%S.log"
+				)
 			),
 			logging.StreamHandler(stdout)
 		]

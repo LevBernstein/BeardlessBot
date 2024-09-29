@@ -3,11 +3,13 @@
 import logging
 import random
 import re
+from collections.abc import Mapping
 from datetime import datetime
 from json import loads
 from pathlib import Path
-from typing import Final
+from typing import Any, Final, override
 from urllib.parse import quote_plus
+from zoneinfo import ZoneInfo
 
 import httpx
 import nextcord
@@ -20,6 +22,7 @@ MaxMsgLength: Final[int] = 1024
 Ok: Final[int] = 200
 BbColor: Final[int] = 0xFFF994
 BbId: Final[int] = 654133911558946837
+TimeZone = ZoneInfo("America/New_York")
 
 ProfUrl = (
 	"https://cdn.discordapp.com/attachments/61303032"
@@ -70,8 +73,6 @@ MuteTimeConversion = {
 }
 
 
-# Wrapper for nextcord.Embed() that defaults to
-# commonly-used values and is easier to call
 def bbEmbed(
 	name: str = "",
 	value: str = "",
@@ -79,11 +80,26 @@ def bbEmbed(
 	*,
 	showTime: bool = False
 ) -> nextcord.Embed:
+	"""
+	Act as a wrapper for nextcord.Embed that defaults to commonly used-values
+	and is easier to call.
+
+	Args:
+		name (str): The title of the Embed (default is "")
+		value (str): The description of the Embed (default is "")
+		col (int | nextcord.Color): The color of the Embed (default is BbColor)
+		showTime (bool): Whether to display the timestamp at the time of
+			the Embed's creation (default is False)
+
+	Returns:
+		nextcord.Embed: The created Embed.
+
+	"""
 	return nextcord.Embed(
 		title=name,
 		description=value,
 		color=col,
-		timestamp=datetime.now() if showTime else None
+		timestamp=datetime.now(TimeZone) if showTime else None
 	)
 
 
@@ -222,10 +238,8 @@ class AnimalException(httpx.RequestError):
 
 
 async def getMoose() -> str:
-	async with httpx.AsyncClient() as client:
-		r = await client.get(
-			"https://github.com/LevBernstein/moosePictures/", timeout=10
-		)
+	async with httpx.AsyncClient(timeout=10) as client:
+		r = await client.get("https://github.com/LevBernstein/moosePictures/")
 	if r.status_code == Ok:
 		soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 		moose = random.choice(
@@ -244,31 +258,26 @@ async def getMoose() -> str:
 
 async def getDog(breed: str | None = None) -> str:
 	if not breed:
-		async with httpx.AsyncClient() as client:
-			r = await client.get(
-				"https://dog.ceo/api/breeds/image/random", timeout=10
-			)
+		async with httpx.AsyncClient(timeout=10) as client:
+			r = await client.get("https://dog.ceo/api/breeds/image/random")
 		if r.status_code == Ok and isinstance(
 			message := r.json()["message"], str
 		):
 			return message
 	elif breed.startswith("breed"):
-		async with httpx.AsyncClient() as client:
-			r = await client.get(
-				"https://dog.ceo/api/breeds/list/all", timeout=10
-			)
+		async with httpx.AsyncClient(timeout=10) as client:
+			r = await client.get("https://dog.ceo/api/breeds/list/all")
 		if r.status_code == Ok:
 			return "Dog breeds: {}.".format(
 				", ".join(dog for dog in r.json()["message"])
 			)
 	elif breed.isalpha():
-		async with httpx.AsyncClient() as client:
+		async with httpx.AsyncClient(timeout=10) as client:
 			r = await client.get(
-				f"https://dog.ceo/api/breed/{breed}/images/random",
-				timeout=10
+				f"https://dog.ceo/api/breed/{breed}/images/random"
 			)
 		if r.status_code == Ok and isinstance(
-			message := r.json().get("message", None), str
+			message := r.json().get("message"), str
 		):
 			return message
 		return "Breed not found! Do !dog breeds to see all breeds."
@@ -324,17 +333,15 @@ async def animal(animalType: str, breed: str | None = None) -> str:
 	r: httpx.Response | None = None
 
 	if animalType == "cat":
-		async with httpx.AsyncClient() as client:
-			r = await client.get(
-				"https://api.thecatapi.com/v1/images/search", timeout=10
-			)
+		async with httpx.AsyncClient(timeout=10) as client:
+			r = await client.get("https://api.thecatapi.com/v1/images/search")
 		if r.status_code == Ok and isinstance(url := r.json()[0]["url"], str):
 			return url
 
 	elif animalType in {"bunny", "rabbit"}:
-		async with httpx.AsyncClient() as client:
+		async with httpx.AsyncClient(timeout=10) as client:
 			r = await client.get(
-				"https://api.bunnies.io/v2/loop/random/?media=gif", timeout=10
+				"https://api.bunnies.io/v2/loop/random/?media=gif"
 			)
 		if r.status_code == Ok and isinstance(
 			url := r.json()["media"]["gif"], str
@@ -342,20 +349,17 @@ async def animal(animalType: str, breed: str | None = None) -> str:
 			return url
 
 	elif animalType == "fox":
-		async with httpx.AsyncClient() as client:
-			r = await client.get("https://randomfox.ca/floof/", timeout=10)
+		async with httpx.AsyncClient(timeout=10) as client:
+			r = await client.get("https://randomfox.ca/floof/")
 		if r.status_code == Ok and isinstance(url := r.json()["image"], str):
 			return url
 
 	elif animalType in {"duck", "lizard"}:
-		async with httpx.AsyncClient() as client:
+		async with httpx.AsyncClient(timeout=10) as client:
 			r = await client.get(
-				(
-					"https://random-d.uk/api/quack"
-					if animalType == "duck"
-					else "https://nekos.life/api/v2/img/lizard"
-				),
-				timeout=10
+				"https://random-d.uk/api/quack"
+				if animalType == "duck"
+				else "https://nekos.life/api/v2/img/lizard"
 			)
 		if r.status_code == Ok and isinstance(url := r.json()["url"], str):
 			return url
@@ -366,17 +370,18 @@ async def animal(animalType: str, breed: str | None = None) -> str:
 
 
 async def define(word: str) -> nextcord.Embed:
-	async with httpx.AsyncClient() as client:
+	async with httpx.AsyncClient(timeout=10) as client:
 		r = await client.get(
-			"https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word,
-			timeout=10
+			"https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word
 		)
 	if r.status_code == Ok:
 		j = r.json()
-		desc = ""
 		p = j[0]["phonetics"]
-		if p and "audio" in p[0] and p[0]["audio"]:
-			desc = f"Audio: {j[0]['phonetics'][0]['audio']}"
+		desc = (
+			f"Audio: {p[0]['audio']}"
+			if p and "audio" in p[0] and p[0]["audio"]
+			else ""
+		)
 		emb = bbEmbed(j[0]["word"].upper(), desc)
 		i = 0
 		for entry in j:
@@ -543,8 +548,9 @@ def ctxCreatedThread(ctx: BotContext) -> bool:
 	}
 
 
-class BBHelpCommand(commands.HelpCommand):
+class BbHelpCommand(commands.HelpCommand):
 
+	@override
 	def __init__(self) -> None:
 		"""
 		Call the HelpCommand constructor with an extra alias.
@@ -555,10 +561,11 @@ class BBHelpCommand(commands.HelpCommand):
 		super().__init__(command_attrs={"aliases": ["commands"]})
 
 	# TODO: configure proper send_command_help, send_error_message
+	@override
 	async def send_bot_help(
 		self,
-		_: dict[  # type: ignore[type-arg]
-			commands.Cog | None, list[commands.core.Command]
+		_: Mapping[
+			commands.Cog | None, list[commands.core.Command[Any, Any, Any]]
 		]
 	) -> int:
 		if ctxCreatedThread(self.context):
@@ -646,6 +653,7 @@ class BBHelpCommand(commands.HelpCommand):
 		)
 		return 1
 
+	@override
 	async def send_error_message(self, error: str) -> None:
 		"""
 		Log an error when a user tries to view the help information for a
@@ -731,10 +739,10 @@ async def deleteScamAndNotify(
 		" measures and be sure to reach out to an admin if you need help."
 	)
 
+	assert isinstance(message.channel, nextcord.TextChannel | nextcord.Thread)
 	scamReport = (
 		f"Deleted possible scam nitro link sent by {message.author.mention}"
-		f" in {message.channel.mention}."  # type: ignore[union-attr]
-		f"\nMessage content:\n{message.content}"
+		f" in {message.channel.mention}.\nMessage content:\n{message.content}"
 	)
 	for channel in message.guild.text_channels:
 		if channel.name in {"infractions", "bb-log"}:

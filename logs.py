@@ -163,7 +163,7 @@ def logMemberRolesChange(
 	).set_author(name=after, icon_url=fetchAvatar(after))
 
 
-def logBan(member: nextcord.Member) -> nextcord.Embed:
+def logBan(member: nextcord.Member | nextcord.User) -> nextcord.Embed:
 	return bbEmbed(
 		value=f"Member {member.mention} banned\n{member.name}",
 		col=0xFF0000,
@@ -173,7 +173,7 @@ def logBan(member: nextcord.Member) -> nextcord.Embed:
 	).set_thumbnail(url=fetchAvatar(member))
 
 
-def logUnban(member: nextcord.Member) -> nextcord.Embed:
+def logUnban(member: nextcord.Member | nextcord.User) -> nextcord.Embed:
 	return bbEmbed(
 		value=f"Member {member.mention} unbanned\n{member.name}",
 		col=0x00FF00,
@@ -184,7 +184,9 @@ def logUnban(member: nextcord.Member) -> nextcord.Embed:
 
 
 def logMute(
-	member: nextcord.Member, message: nextcord.Message, duration: str | None
+	member: nextcord.Member | nextcord.User,
+	message: nextcord.Message,
+	duration: str | None
 ) -> nextcord.Embed:
 	assert isinstance(
 		message.channel, nextcord.abc.GuildChannel | nextcord.Thread
@@ -199,7 +201,8 @@ def logMute(
 
 
 def logUnmute(
-	member: nextcord.Member, author: nextcord.Member
+	member: nextcord.Member | nextcord.User,
+	author: nextcord.Member | nextcord.User
 ) -> nextcord.Embed:
 	return bbEmbed(
 		"Beardless Bot Mute",

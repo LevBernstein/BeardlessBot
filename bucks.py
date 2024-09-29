@@ -361,12 +361,13 @@ def balance(
 		" (or enter their username), or do !balance without a"
 		f" target to see your own balance, {msg.author.mention}."
 	)
-	if isinstance(target, str):
-		target = memSearch(msg, target)  # type: ignore[assignment]
-	if target and not isinstance(target, str):
-		result, bonus = writeMoney(target, 300, writing=False, adding=False)
+	balTarget = memSearch(msg, target) if isinstance(target, str) else target
+	if balTarget and not isinstance(balTarget, str):
+		result, bonus = writeMoney(balTarget, 300, writing=False, adding=False)
 		if result == MoneyFlags.BalanceUnchanged:
-			report = f"{target.mention}'s balance is {bonus} BeardlessBucks."
+			report = (
+				f"{balTarget.mention}'s balance is {bonus} BeardlessBucks."
+			)
 		else:
 			report = str(bonus) if result in {
 				MoneyFlags.CommaInUsername, MoneyFlags.Registered
