@@ -93,13 +93,13 @@ def logClearReacts(
 
 def logDeleteChannel(channel: nextcord.abc.GuildChannel) -> nextcord.Embed:
 	return bbEmbed(
-		"", f'Channel "{channel.name}" deleted.', 0xFF0000, showTime=True
+		"", f"Channel \"{channel.name}\" deleted.", 0xFF0000, showTime=True
 	).set_author(name="Channel deleted", icon_url=ProfUrl)
 
 
 def logCreateChannel(channel: nextcord.abc.GuildChannel) -> nextcord.Embed:
 	return bbEmbed(
-		"", f'Channel "{channel.name}" created.', 0x00FF00, showTime=True
+		"", f"Channel \"{channel.name}\" created.", 0x00FF00, showTime=True
 	).set_author(name="Channel created", icon_url=ProfUrl)
 
 

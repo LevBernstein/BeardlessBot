@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release 2.4.5 ![Coverage badge](./resources/images/coverage.svg) ![Unit tests badge](./resources/images/tests.svg) ![Docstring coverage badge](./resources/images/docstr-coverage.svg) ![flake8 badge](./resources/images/flake8-badge.svg)
+### Full Release 2.5.0 ![Coverage badge](./resources/images/coverage.svg) ![Unit tests badge](./resources/images/tests.svg) ![Docstring coverage badge](./resources/images/docstr-coverage.svg) ![flake8 badge](./resources/images/flake8-badge.svg)
 
 A Discord bot supporting gambling (coin flips and blackjack),
 a currency system, fun facts, and more.
@@ -20,10 +20,13 @@ follow the steps outlined directly below in [Installation](#installation).
 1. Download the repository.
 
 2. Download [Python 3](https://python.org/downloads), and then run
-`pip3 install -r resources/requirements.txt`. Beardless Bot requires Python
-3.10 or newer, and has been tested on 3.10.4, 3.11.9, and 3.12.3. If you are
-using python virtualenv, name your virtualenv "venv" and run
-`source venv/bin/activate` before running `pip3 install`.
+`pip3 install -r resources/requirements.txt`. If you are using python
+virtualenv, name your virtualenv "venv" and run `source venv/bin/activate`
+before running `pip3 install`. Beardless Bot requires Python 3.12, and has
+been tested on 3.12.0, 3.12.3, and 3.12.6. Older versions of Beardless
+Bot--specifically those before 2.5.0--can run on 3.10 and 3.11 in addition
+to 3.12. Support for 3.13.0 in future releases of Beardless Bot will depend
+on nextcord.py removing the deprecated audioop library as a dependency.
 
 3. Create a file named ".env" in the same directory as Bot.py. Insert
 into it the line `DISCORDTOKEN=yourtoken`, where yourtoken is the Discord API

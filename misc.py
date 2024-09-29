@@ -378,7 +378,7 @@ async def define(word: str) -> nextcord.Embed:
 		j = r.json()
 		p = j[0]["phonetics"]
 		desc = (
-			f"Audio: {p[0]['audio']}"
+			f"Audio: {p[0]["audio"]}"
 			if p and "audio" in p[0] and p[0]["audio"]
 			else ""
 		)

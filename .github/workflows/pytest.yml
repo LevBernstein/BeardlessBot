@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ "3.12.3", "3.11.9", "3.10.4" ]
+        python-version: [ "3.12.0", "3.12.3", "3.12.6" ]
     name: Beardless Bot Python ${{ matrix.python-version }} unit tests
     steps:
       - name: Enable Brawl tests on latest Python only
