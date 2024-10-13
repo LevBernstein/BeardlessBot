@@ -1,4 +1,4 @@
-"""Beadless Bot event logging methods"""
+"""Beadless Bot event logging methods."""
 
 from typing import Final
 
@@ -11,21 +11,21 @@ from misc import ProfUrl, bbEmbed, contCheck, fetchAvatar, truncTime
 MaxPurgedMsgs: Final[int] = 99
 
 
-def logDeleteMsg(msg: nextcord.Message) -> nextcord.Embed:
+def logDeleteMsg(message: nextcord.Message) -> nextcord.Embed:
 	assert isinstance(
-		msg.channel, nextcord.abc.GuildChannel | nextcord.Thread
+		message.channel, nextcord.abc.GuildChannel | nextcord.Thread
 	)
 	return bbEmbed(
 		"",
-		f"**Deleted message sent by {msg.author.mention} in "
-		f"**{msg.channel.mention}\n{contCheck(msg)}",
+		f"**Deleted message sent by {message.author.mention} in "
+		f"**{message.channel.mention}\n{contCheck(message)}",
 		0xFF0000,
 		showTime=True
-	).set_author(name=msg.author, icon_url=fetchAvatar(msg.author))
+	).set_author(name=message.author, icon_url=fetchAvatar(message.author))
 
 
 def logPurge(
-	msg: nextcord.Message, msgList: list[nextcord.Message]
+	msg: nextcord.Message, messages: list[nextcord.Message]
 ) -> nextcord.Embed:
 
 	def purgeReport(msgList: list[nextcord.Message]) -> str:
@@ -40,7 +40,7 @@ def logPurge(
 	)
 	return bbEmbed(
 		"",
-		f"Purged {purgeReport(msgList)} messages in {msg.channel.mention}.",
+		f"Purged {purgeReport(messages)} messages in {msg.channel.mention}.",
 		0xFF0000,
 		showTime=True
 	).set_author(name="Purge!", icon_url=ProfUrl)
@@ -70,22 +70,22 @@ def logEditMsg(
 
 
 def logClearReacts(
-	msg: nextcord.Message, reactions: list[nextcord.Reaction]
+	message: nextcord.Message, reactions: list[nextcord.Reaction]
 ) -> nextcord.Embed:
 	assert isinstance(
-		msg.channel, nextcord.abc.GuildChannel | nextcord.Thread
+		message.channel, nextcord.abc.GuildChannel | nextcord.Thread
 	)
 	return bbEmbed(
 		"",
-		f"Reactions cleared from message sent by {msg.author.mention}"
-		f" in {msg.channel.mention}.",
+		f"Reactions cleared from message sent by {message.author.mention}"
+		f" in {message.channel.mention}.",
 		0xFF0000,
 		showTime=True
 	).set_author(
-		name=msg.author, icon_url=fetchAvatar(msg.author)
+		name=message.author, icon_url=fetchAvatar(message.author)
 	).add_field(
 		name="Message content:",
-		value=contCheck(msg) + f"\n[Jump to Message]({msg.jump_url})"
+		value=contCheck(message) + f"\n[Jump to Message]({message.jump_url})"
 	).add_field(
 		name="Reactions:", value=", ".join(str(r) for r in reactions)
 	)
@@ -146,24 +146,20 @@ def logMemberNickChange(
 def logMemberRolesChange(
 	before: nextcord.Member, after: nextcord.Member
 ) -> nextcord.Embed:
-	if len(before.roles) > len(after.roles):
-		roles, others = before.roles, after.roles
-		verb, color = "removed from", 0xFF0000
-	else:
-		roles, others = after.roles, before.roles
-		verb, color = "added to", 0x00FF00
-	for role in roles:
-		if role not in others:
-			newRole = role
-			break
+	verb, color = (
+		("removed from", 0xFF0000)
+		if len(before.roles) > len(after.roles)
+		else ("added to", 0x00FF00)
+	)
+	role = set(after.roles).symmetric_difference(set(before.roles)).pop()
 	return bbEmbed(
-		value=f"Role {newRole.mention} {verb} {after.mention}.",
+		value=f"Role {role.mention} {verb} {after.mention}.",
 		col=color,
 		showTime=True
 	).set_author(name=after, icon_url=fetchAvatar(after))
 
 
-def logBan(member: nextcord.Member | nextcord.User) -> nextcord.Embed:
+def logBan(member: nextcord.Member) -> nextcord.Embed:
 	return bbEmbed(
 		value=f"Member {member.mention} banned\n{member.name}",
 		col=0xFF0000,
@@ -173,7 +169,7 @@ def logBan(member: nextcord.Member | nextcord.User) -> nextcord.Embed:
 	).set_thumbnail(url=fetchAvatar(member))
 
 
-def logUnban(member: nextcord.Member | nextcord.User) -> nextcord.Embed:
+def logUnban(member: nextcord.Member) -> nextcord.Embed:
 	return bbEmbed(
 		value=f"Member {member.mention} unbanned\n{member.name}",
 		col=0x00FF00,
@@ -184,9 +180,7 @@ def logUnban(member: nextcord.Member | nextcord.User) -> nextcord.Embed:
 
 
 def logMute(
-	member: nextcord.Member | nextcord.User,
-	message: nextcord.Message,
-	duration: str | None
+	member: nextcord.Member, message: nextcord.Message, duration: str | None
 ) -> nextcord.Embed:
 	assert isinstance(
 		message.channel, nextcord.abc.GuildChannel | nextcord.Thread
@@ -201,8 +195,7 @@ def logMute(
 
 
 def logUnmute(
-	member: nextcord.Member | nextcord.User,
-	author: nextcord.Member | nextcord.User
+	member: nextcord.Member, author: nextcord.Member
 ) -> nextcord.Embed:
 	return bbEmbed(
 		"Beardless Bot Mute",

@@ -1,4 +1,4 @@
-"""Beardless Bot Brawlhalla methods"""
+"""Beardless Bot Brawlhalla methods."""
 
 import json
 import random
@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 from nextcord import Colour, Embed, Member, User
 from steam.steamid import SteamID  # type: ignore[import-untyped]
 
-from misc import BbColor, TimeZone, bbEmbed, fetchAvatar
+from misc import BbColor, Ok, TimeZone, bbEmbed, fetchAvatar
 
 BadClaim = (
 	"Please do !brawlclaim followed by the URL of your steam profile."
@@ -152,13 +152,13 @@ def fetchLegends() -> list[dict[str, str]]:
 
 async def brawlApiCall(
 	route: str, arg: str, brawlKey: str, amp: str = "?"
-) -> dict[str, Any] | list[dict[str, str | int]] | None:
+) -> dict[str, Any] | list[dict[str, str | int]]:
 	url = f"https://api.brawlhalla.com/{route}{arg}{amp}api_key={brawlKey}"
 	async with httpx.AsyncClient(timeout=10) as client:
 		r = await client.get(url)
+	if r.status_code != Ok:
+		raise httpx.RequestError("Request failed with " + str(r.status_code))
 	j = r.json()
-	if len(j) == 0:
-		return None
 	assert isinstance(j, dict | list)
 	return j
 
@@ -262,6 +262,57 @@ def getTopLegend(
 	return topLegend
 
 
+def getOnesRank(emb: Embed, r: dict[str, Any]) -> Embed:
+	# TODO: unit test
+	embVal = (
+		f"**{r["tier"]}** ({r["rating"]}/{r["peak_rating"]} Peak)\n{r["wins"]}"
+		f" W / {r["games"] - r["wins"]} L / {brawlWinRate(r)}% winrate"
+	)
+	if (topLegend := getTopLegend(r["legends"])) is not None:
+		embVal += (
+			f"\nTop Legend: {topLegend[0].title()}, {topLegend[1]} Elo"
+		)
+	emb.add_field(name="Ranked 1s", value=embVal)
+	for thumb in RankedThumbnails:
+		if thumb[1] in r["tier"]:
+			emb.colour = Colour(RankColors[thumb[1]])
+			emb.set_thumbnail(ThumbBase.format(*thumb))
+			break
+	return emb
+
+
+def getTwosRank(emb: Embed, r: dict[str, Any]) -> Embed:
+	# TODO: unit test
+	# Should be called after getOnesRank, not before
+	twosTeam = None
+	for team in r["2v2"]:
+		# Find highest-Elo 2s pairing
+		if not twosTeam or twosTeam["rating"] < team["rating"]:
+			twosTeam = team
+	if twosTeam:
+		emb.add_field(
+			name="Ranked 2s",
+			value=(
+				f"**{twosTeam["teamname"]}\n"
+				f"{twosTeam["tier"]}** ({twosTeam["rating"]} /"
+				f" {twosTeam["peak_rating"]} Peak)\n{twosTeam["wins"]}"
+				f" W / {twosTeam["games"] - twosTeam["wins"]} L /"
+				f" {brawlWinRate(twosTeam)}% winrate"
+			)
+		)
+		if (
+			(emb.colour and emb.colour.value == BbColor)
+			or twosTeam["rating"] > r["rating"]
+		):
+			# Higher 2s Elo than 1s Elo
+			for thumb in RankedThumbnails:
+				if thumb[1] in twosTeam["tier"]:
+					emb.colour = Colour(RankColors[thumb[1]])
+					emb.set_thumbnail(ThumbBase.format(*thumb))
+					break
+	return emb
+
+
 async def getRank(target: Member | User, brawlKey: str) -> Embed:
 	if not (brawlId := fetchBrawlId(target.id)):
 		return bbEmbed(
@@ -270,7 +321,7 @@ async def getRank(target: Member | User, brawlKey: str) -> Embed:
 		)
 	r = await brawlApiCall("player/", str(brawlId) + "/ranked", brawlKey)
 	assert isinstance(r, dict)
-	if len(r) < 4 or (
+	if not r or (
 		("games" in r and r["games"] == 0)
 		and ("2v2" in r and len(r["2v2"]) == 0)
 	):
@@ -284,48 +335,9 @@ async def getRank(target: Member | User, brawlKey: str) -> Embed:
 		text=f"Brawl ID {brawlId}"
 	).set_author(name=target, icon_url=fetchAvatar(target))
 	if "games" in r and r["games"] != 0:
-		winRate = brawlWinRate(r)
-		embVal = (
-			f"**{r["tier"]}** ({r["rating"]}/{r["peak_rating"]} Peak)\n"
-			f"{r["wins"]} W / {r["games"] - r["wins"]} L / {winRate}% winrate"
-		)
-		if (topLegend := getTopLegend(r["legends"])) is not None:
-			embVal += (
-				f"\nTop Legend: {topLegend[0].title()}, {topLegend[1]} Elo"
-			)
-		emb.add_field(name="Ranked 1s", value=embVal)
-		for thumb in RankedThumbnails:
-			if thumb[1] in r["tier"]:
-				emb.colour = Colour(RankColors[thumb[1]])
-				emb.set_thumbnail(ThumbBase.format(*thumb))
-				break
+		emb = getOnesRank(emb, r)
 	if "2v2" in r and len(r["2v2"]) != 0:
-		twosTeam = None
-		for team in r["2v2"]:
-			# Find highest-Elo 2s pairing
-			if not twosTeam or twosTeam["rating"] < team["rating"]:
-				twosTeam = team
-		if twosTeam:
-			emb.add_field(
-				name="Ranked 2s",
-				value=(
-					f"**{twosTeam["teamname"]}\n"
-					f"{twosTeam["tier"]}** ({twosTeam["rating"]} /"
-					f" {twosTeam["peak_rating"]} Peak)\n{twosTeam["wins"]}"
-					f" W / {twosTeam["games"] - twosTeam["wins"]} L /"
-					f" {brawlWinRate(twosTeam)}% winrate"
-				)
-			)
-			if (
-				(emb.colour and emb.colour.value == BbColor)
-				or twosTeam["rating"] > r["rating"]
-			):
-				# Higher 2s Elo than 1s Elo
-				for thumb in RankedThumbnails:
-					if thumb[1] in twosTeam["tier"]:
-						emb.colour = Colour(RankColors[thumb[1]])
-						emb.set_thumbnail(ThumbBase.format(*thumb))
-						break
+		emb = getTwosRank(emb, r)
 	return emb
 
 
@@ -350,6 +362,38 @@ def getTopTtk(legend: dict[str, str | int]) -> tuple[str, float]:
 	)
 
 
+def getTopLegendStats(
+	legends: list[dict[str, str | int]]
+) -> tuple[tuple[str, float | int] | None, ...]:
+	# TODO: unit test
+	mostUsed: tuple[str, int] | None = None
+	topWinrate: tuple[str, float] | None = None
+	topDps: tuple[str, float] | None = None
+	lowestTtk: tuple[str, float] | None = None
+	for legend in legends:
+		assert isinstance(legend["xp"], int)
+		assert isinstance(legend["legend_name_key"], str)
+		if not mostUsed or mostUsed[1] < legend["xp"]:
+			mostUsed = (legend["legend_name_key"].title(), legend["xp"])
+		if legend["games"] and (
+			topWinrate is None
+			or topWinrate[1] < brawlWinRate(legend)  # type: ignore[arg-type]
+		):
+			topWinrate = (
+				legend["legend_name_key"].title(),
+				brawlWinRate(legend)  # type: ignore[arg-type]
+			)
+		if legend["matchtime"] and (
+			topDps is None or topDps[1] < getTopDps(legend)[1]
+		):
+			topDps = getTopDps(legend)
+		if legend["kos"] and (
+			lowestTtk is None or lowestTtk[1] > getTopTtk(legend)[1]
+		):
+			lowestTtk = getTopTtk(legend)
+	return mostUsed, topWinrate, topDps, lowestTtk
+
+
 async def getStats(target: Member | User, brawlKey: str) -> Embed:
 	if not (brawlId := fetchBrawlId(target.id)):
 		return bbEmbed(
@@ -357,7 +401,7 @@ async def getStats(target: Member | User, brawlKey: str) -> Embed:
 			UnclaimedMsg.format(target.mention)
 		)
 	r = await brawlApiCall("player/", str(brawlId) + "/stats", brawlKey)
-	if r is None or len(r) < 4:
+	if not r:
 		noStats = (
 			"This profile doesn't have stats associated with it."
 			" Please make sure you've claimed the correct profile."
@@ -374,27 +418,9 @@ async def getStats(target: Member | User, brawlKey: str) -> Embed:
 		name="Overall W/L", value=winLoss
 	).set_author(name=target, icon_url=fetchAvatar(target))
 	if "legends" in r:
-		mostUsed: tuple[str, int] | None = None
-		topWinrate: tuple[str, float] | None = None
-		topDps: tuple[str, float] | None = None
-		lowestTtk: tuple[str, float] | None = None
-		for legend in r["legends"]:
-			if not mostUsed or mostUsed[1] < legend["xp"]:
-				mostUsed = (legend["legend_name_key"].title(), legend["xp"])
-			if legend["games"] and (
-				topWinrate is None or topWinrate[1] < brawlWinRate(legend)
-			):
-				topWinrate = (
-					legend["legend_name_key"].title(), brawlWinRate(legend)
-				)
-			if legend["matchtime"] and (
-				topDps is None or topDps[1] < getTopDps(legend)[1]
-			):
-				topDps = getTopDps(legend)
-			if legend["kos"] and (
-				lowestTtk is None or lowestTtk[1] > getTopTtk(legend)[1]
-			):
-				lowestTtk = getTopTtk(legend)
+		mostUsed, topWinrate, topDps, lowestTtk = getTopLegendStats(
+			r["legends"]
+		)
 		if all((mostUsed, topWinrate, topDps, lowestTtk)):
 			assert isinstance(mostUsed, tuple)
 			assert isinstance(topWinrate, tuple)
@@ -410,7 +436,7 @@ async def getStats(target: Member | User, brawlKey: str) -> Embed:
 				)
 			)
 	if "clan" in r:
-		val = r["clan"]["clan_name"] + "\nClan ID " + str(r["clan"]["clan_id"])
+		val = f"{r["clan"]["clan_name"]}\nClan ID {r["clan"]["clan_id"]}"
 		emb.add_field(name="Clan", value=val)
 	return emb
 

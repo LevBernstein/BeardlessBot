@@ -1,4 +1,4 @@
-"""Beardless Bot methods that modify resources/money.csv"""
+"""Beardless Bot methods that modify resources/money.csv."""
 
 import csv
 import random
@@ -38,14 +38,19 @@ NoGameMsg = (
 
 class BlackjackGame:
 	"""
-	Blackjack game instance. New instance created for each game.
-	Instances are server-agnostic; only one game allowed per player
-	across all servers.
+	Blackjack game instance.
+
+	New instance created for each game. Instances are server-agnostic; only
+	one game allowed per player across all servers.
+
+	TODO: make the deck consist of 52 cards, with dealing a card popping it
 
 	Attributes:
-		CardVals (tuple[int]): Blackjack values for each card
+		AceVal (int): The high value of an Ace
 		DealerSoftGoal (int): The soft sum up to which the dealer will hit
+		FaceVal (int): The value of a face card (J Q K)
 		Goal (int): The desired score
+		CardVals (tuple[int]): Blackjack values for each card
 		user (nextcord.User or Member): The user who is playing this game
 		bet (int): The number of BeardlessBucks the user is betting
 		cards (list): The list of cards the user has been dealt
@@ -69,9 +74,11 @@ class BlackjackGame:
 
 	"""
 
-	CardVals = (2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11)
+	AceVal = 11
 	DealerSoftGoal = 17
+	FaceVal = 10
 	Goal = 21
+	CardVals = (2, 3, 4, 5, 6, 7, 8, 9, 10, FaceVal, FaceVal, FaceVal, 11)
 
 	def __init__(
 		self,
@@ -79,9 +86,11 @@ class BlackjackGame:
 		bet: int
 	) -> None:
 		"""
-		Create a new BlackjackGame instance. In order to simulate the dealer
-		standing on a soft 17, the dealer's sum will be incremented by a
-		random card value until reaching 17.
+		Create a new BlackjackGame instance.
+
+		In order to simulate the dealer standing on DealerSoftGoal, the
+		dealer's sum will be incremented by a random card value until
+		reaching DealerSoftGoal.
 
 		Args:
 			user (nextcord.User or Member): The user who is playing this game
@@ -91,22 +100,22 @@ class BlackjackGame:
 		self.user = user
 		self.bet = bet
 		self.cards: list[int] = []
-		self.dealerUp = random.randint(2, 11)
+		self.dealerUp = random.randint(2, BlackjackGame.AceVal)
 		self.dealerSum = self.dealerUp
 		while self.dealerSum < BlackjackGame.DealerSoftGoal:
-			self.dealerSum += random.randint(1, 10)
+			self.dealerSum += random.randint(1, BlackjackGame.FaceVal)
 		self.message = self.startingHand()
 
 	@staticmethod
 	def cardName(card: int) -> str:
 		"""Return the human-friendly name of a card based on int value."""
-		if card == 10:
-			return "a " + random.choice(("10", "Jack", "Queen", "King"))
-		if card == 11:
+		if card == BlackjackGame.FaceVal:
+			return "a " + random.choice(
+				(str(BlackjackGame.FaceVal), "Jack", "Queen", "King")
+			)
+		if card == BlackjackGame.AceVal:
 			return "an Ace"
-		if card == 8:
-			return "an 8"
-		return "a " + str(card)
+		return "an 8" if card == 8 else ("a " + str(card))  # noqa: PLR2004
 
 	def perfect(self) -> bool:
 		"""Check if the user has reached a Blackjack."""
@@ -145,7 +154,6 @@ class BlackjackGame:
 				" with one card face down. "
 			)
 			if self.checkBust() or debugDoubleAces:
-				# Case only fires if you're dealt two aces or testing this
 				self.cards[1] = 1
 				self.bet *= -1
 				message = (
@@ -175,9 +183,9 @@ class BlackjackGame:
 			f"You were dealt {BlackjackGame.cardName(dealt)},"
 			f" bringing your total to {sum(self.cards)}. "
 		)
-		if 11 in self.cards and self.checkBust():
+		if BlackjackGame.AceVal in self.cards and self.checkBust():
 			for i, card in enumerate(self.cards):
-				if card == 11:
+				if card == BlackjackGame.AceVal:
 					self.cards[i] = 1
 					self.bet *= -1
 					break
@@ -403,6 +411,7 @@ def leaderboard(
 ) -> nextcord.Embed:
 	"""
 	Find the top min(len(money.csv), 10) users by balance in money.csv.
+
 	Runtime = |money.csv| + runtime of sorted(money.csv) + 10
 	= O(n) + O(nlog(n)) + 10 = O(nlog(n)).
 
@@ -419,15 +428,15 @@ def leaderboard(
 			reports target's position and balance.
 
 	"""
-	lbDict: dict[str, int] = {}
 	emb = bbEmbed("BeardlessBucks Leaderboard")
 	if (msg and isinstance(target, str)):
 		target = memSearch(msg, target)
 	if target and isinstance(target, nextcord.User | nextcord.Member):
 		writeMoney(target, 300, writing=False, adding=False)
 	with Path("resources/money.csv").open() as csvfile:
-		for row in csv.reader(csvfile, delimiter=","):
-			lbDict[row[2]] = int(row[1])
+		lbDict = {
+			row[2]: int(row[1]) for row in csv.reader(csvfile, delimiter=",")
+		}
 	# Sort by value for each key in lbDict, which is BeardlessBucks balance
 	sortedDict = OrderedDict(sorted(lbDict.items(), key=itemgetter(1)))
 	pos = targetBal = None
@@ -513,7 +522,7 @@ def blackjack(
 	author: nextcord.User | nextcord.Member, bet: str | int
 ) -> tuple[str, BlackjackGame | None]:
 	"""
-	Gambles a certain number of BeardlessBucks on blackjack.
+	Gamble a certain number of BeardlessBucks on blackjack.
 
 	Args:
 		author (nextcord.User or Member): The user who is gambling

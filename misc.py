@@ -1,4 +1,4 @@
-"""Beardless Bot miscellaneous methods"""
+"""Beardless Bot miscellaneous methods."""
 
 import logging
 import random
@@ -18,8 +18,9 @@ from bs4 import BeautifulSoup
 from nextcord.ext import commands
 from nextcord.utils import get
 
-MaxMsgLength: Final[int] = 1024
+MaxMsgLength: Final[int] = 1023
 Ok: Final[int] = 200
+BadRequest: Final[int] = 404
 BbColor: Final[int] = 0xFFF994
 BbId: Final[int] = 654133911558946837
 TimeZone = ZoneInfo("America/New_York")
@@ -81,6 +82,8 @@ def bbEmbed(
 	showTime: bool = False
 ) -> nextcord.Embed:
 	"""
+	nextcord.Embed wrapper.
+
 	Act as a wrapper for nextcord.Embed that defaults to commonly used-values
 	and is easier to call.
 
@@ -103,11 +106,11 @@ def bbEmbed(
 	)
 
 
-def contCheck(msg: nextcord.Message) -> str:
-	if msg.content:
-		if len(msg.content) >= MaxMsgLength:
+def contCheck(message: nextcord.Message) -> str:
+	if message.content:
+		if len(message.content) >= MaxMsgLength:
 			return f"**Message length exceeds {MaxMsgLength} characters.**"
-		return msg.content
+		return message.content
 	return "**Embed**"
 
 
@@ -142,6 +145,9 @@ async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
 		nextcord.Role: The Muted role.
 
 	"""
+	if (role := get(guild.roles, name="Muted")) is not None:
+		return role
+
 	overwrite = nextcord.PermissionOverwrite(send_messages=False)
 	# TODO: Add error handling for role creation, set_permissions
 	role = await guild.create_role(
@@ -152,10 +158,15 @@ async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
 			send_messages=False,
 			read_messages=True,
 			send_messages_in_threads=False
-		)
+		),
+		reason="BB Muted Role"
 	)
 	for channel in guild.channels:
-		await channel.set_permissions(role, overwrite=overwrite)
+		await channel.set_permissions(
+			role,
+			overwrite=overwrite,
+			reason="Preventing Muted users from chatting in this channel"
+		)
 	return role
 
 
@@ -163,9 +174,11 @@ def memSearch(
 	message: nextcord.Message, target: str
 ) -> nextcord.Member | None:
 	"""
-	User lookup helper method. Finds user based on username and/or
-	discriminator (#1234). Runs in linear time; worst case, does not find a
-	loosely-matching target, takes O(n) operations
+	User lookup helper method.
+
+	Finds user based on username and/or discriminator (#1234).
+	Runs in linear time; worst case, does not find a loosely-matching target,
+	takes O(n) operations.
 
 	Args:
 		message (nextcord.Message): The message that invoked this command
@@ -195,8 +208,9 @@ def memSearch(
 
 def getLogChannel(guild: nextcord.Guild) -> nextcord.TextChannel | None:
 	"""
-	#bb-log channel lookup helper method. Return the first TextChannel with
-	the name of "bb-log" if one exists.
+	bb-log channel lookup helper method.
+
+	Return the first TextChannel with the name of "bb-log" if one exists.
 
 	Args:
 		guild (nextcord.Guild): The guild to search
@@ -207,9 +221,7 @@ def getLogChannel(guild: nextcord.Guild) -> nextcord.TextChannel | None:
 
 	"""
 	channels = [c for c in guild.text_channels if c.name == "bb-log"]
-	if channels and isinstance(channels[0], nextcord.TextChannel):
-		return channels[0]
-	return None
+	return channels[0] if channels else None
 
 
 def fetchAvatar(
@@ -233,7 +245,19 @@ def fetchAvatar(
 
 
 class AnimalException(httpx.RequestError):
+	"""Exception raised when an Animal API call fails."""
+
 	def __init__(self, *, animal: str) -> None:
+		"""
+		httpx.RequestError wrapper.
+
+		Call super().__init__ with an Exception message based on whatever
+		animal API call has failed.
+
+		Args:
+			animal (str): The animal API call that has failed
+
+		"""
 		super().__init__(f"Failed to call {animal.title()} Animal API")
 
 
@@ -288,10 +312,12 @@ async def getDog(breed: str | None = None) -> str:
 
 def getFrogList() -> list[str]:
 	"""
-	Get a list of filenames of frog imges. On some requests, formatting fails,
-	resulting in a KeyError when trying to find the payload key within the
-	json body of a particular script tag. When that happens, massage the
-	response a bit so that the proper payload can be located.
+	Get a list of filenames of frog images.
+
+	On some requests, formatting fails, resulting in a KeyError when trying to
+	find the payload key within the json body of a particular script tag.
+	When that happens, massage the response a bit so that the proper payload
+	can be located.
 
 	Amortize the cost of pulling the frog images by making just one initial
 	call within misc.py.
@@ -317,42 +343,44 @@ FrogList = getFrogList()
 
 
 async def animal(animalType: str, breed: str | None = None) -> str:
+	url: str | None = None
+
 	if animalType == "bear":
-		return BearRootUrl.format(
+		url = BearRootUrl.format(
 			random.randint(200, 400), random.randint(200, 400)
 		)
-	if animalType == "frog":
-		return FrogRootUrl + random.choice(FrogList)
-	if animalType == "seal":
-		return SealRootUrl.format(str(random.randint(0, 83)).rjust(4, "0"))
-	if "moose" in {animalType, breed}:
-		return await getMoose()
-	if animalType == "dog":
-		return await getDog(breed)
 
-	r: httpx.Response | None = None
+	elif animalType == "frog":
+		url = FrogRootUrl + random.choice(FrogList)
 
-	if animalType == "cat":
+	elif animalType == "seal":
+		url = SealRootUrl.format(str(random.randint(0, 83)).rjust(4, "0"))
+
+	elif "moose" in {animalType, breed}:
+		url = await getMoose()
+
+	elif animalType == "dog":
+		url = await getDog(breed)
+
+	elif animalType == "cat":
 		async with httpx.AsyncClient(timeout=10) as client:
 			r = await client.get("https://api.thecatapi.com/v1/images/search")
-		if r.status_code == Ok and isinstance(url := r.json()[0]["url"], str):
-			return url
+		if r.status_code == Ok:
+			url = r.json()[0]["url"]
 
 	elif animalType in {"bunny", "rabbit"}:
 		async with httpx.AsyncClient(timeout=10) as client:
 			r = await client.get(
 				"https://api.bunnies.io/v2/loop/random/?media=gif"
 			)
-		if r.status_code == Ok and isinstance(
-			url := r.json()["media"]["gif"], str
-		):
-			return url
+		if r.status_code == Ok:
+			url = r.json()["media"]["gif"]
 
 	elif animalType == "fox":
 		async with httpx.AsyncClient(timeout=10) as client:
 			r = await client.get("https://randomfox.ca/floof/")
-		if r.status_code == Ok and isinstance(url := r.json()["image"], str):
-			return url
+		if r.status_code == Ok:
+			url = r.json()["image"]
 
 	elif animalType in {"duck", "lizard"}:
 		async with httpx.AsyncClient(timeout=10) as client:
@@ -361,12 +389,15 @@ async def animal(animalType: str, breed: str | None = None) -> str:
 				if animalType == "duck"
 				else "https://nekos.life/api/v2/img/lizard"
 			)
-		if r.status_code == Ok and isinstance(url := r.json()["url"], str):
-			return url
+		if r.status_code == Ok:
+			url = r.json()["url"]
 
-	if r is not None:
-		raise AnimalException(animal=animalType)
-	raise ValueError("Invalid Animal: " + animalType)
+	else:
+		raise ValueError("Invalid Animal: " + animalType)
+
+	if isinstance(url, str):
+		return url
+	raise AnimalException(animal=animalType)
 
 
 async def define(word: str) -> nextcord.Embed:
@@ -393,7 +424,7 @@ async def define(word: str) -> nextcord.Embed:
 						value=definition["definition"]
 					)
 		return emb
-	if r.status_code == 404:
+	if r.status_code == BadRequest:
 		return bbEmbed("Beardless Bot Definitions", "No results found.")
 	return bbEmbed(
 		"Beardless Bot Definitions",
@@ -401,8 +432,10 @@ async def define(word: str) -> nextcord.Embed:
 	)
 
 
-def roll(text: str) -> tuple[None] | tuple[int, int, str, bool, int]:
+def roll(text: str) -> tuple[int, int, str, bool, int] | None:
 	"""
+	Convert a roll message into a dice roll.
+
 	Take a string of the format mdn+/-b and roll m n-sided dice with a modifier
 	of b added to the final result. m and b are optional. b can be negative.
 
@@ -410,9 +443,8 @@ def roll(text: str) -> tuple[None] | tuple[int, int, str, bool, int]:
 		text (str): The roll string to process
 
 	Returns:
-		tuple[None] | tuple[int, int, str, bool, int]: An empty tuple if the
-			roll failed due to invalid input; otherwise, a tuple with
-			five elements:
+		tuple[int, int, str, bool, int] | None: None if the roll failed due
+		to invalid input; otherwise, a tuple with five elements:
 				int: The total roll, with modifier (b) included
 				int: The number of dice rolled (m), up to 999
 				str: The number of sides (n) each rolled die has
@@ -426,7 +458,7 @@ def roll(text: str) -> tuple[None] | tuple[int, int, str, bool, int]:
 	try:
 		diceNum, command = text.split("d", 1)
 	except (IndexError, ValueError):
-		return (None,)
+		return None
 	diceNum = abs(int(diceNum)) if diceNum.replace("-", "").isnumeric() else 1
 	diceNum = min(diceNum, 999)
 	validSides = {"4", "6", "8", "100", "10", "12", "20"}
@@ -441,14 +473,14 @@ def roll(text: str) -> tuple[None] | tuple[int, int, str, bool, int]:
 			b = 0
 		diceSum = sum(random.randint(1, int(side)) for i in range(diceNum))
 		return diceSum + b, diceNum, side, "-" in command, b
-	return (None,)
+	return None
 
 
 def rollReport(
 	text: str, author: nextcord.User | nextcord.Member
 ) -> nextcord.Embed:
 	result = roll(text.lower())
-	if result[0] is not None:
+	if result is not None:
 		modifier = "" if result[3] else "+"
 		title = f"Rolling {result[1]}d{result[2]}{modifier}{result[4]}"
 		report = f"You got {result[0]}, {author.mention}."
@@ -509,7 +541,7 @@ def info(
 	return emb
 
 
-def av(
+def avatar(
 	target: nextcord.User | nextcord.Member | str, msg: nextcord.Message
 ) -> nextcord.Embed:
 	member: nextcord.User | nextcord.Member | str | None
@@ -530,6 +562,8 @@ def av(
 
 def ctxCreatedThread(ctx: BotContext) -> bool:
 	"""
+	Check if a thread creation triggers a command.
+
 	Threads created with the name set to a command (e.g., a thread named !flip)
 	will trigger that command as the first action in that thread. This is not
 	intended behavior; as such, if the context event is a thread being created
@@ -549,11 +583,13 @@ def ctxCreatedThread(ctx: BotContext) -> bool:
 
 
 class BbHelpCommand(commands.HelpCommand):
+	"""Nextcord !help command handler."""
 
 	@override
 	def __init__(self) -> None:
 		"""
 		Call the HelpCommand constructor with an extra alias.
+
 		This is just for the sake of not having to pass extra arguments to
 		the HelpCommand in the commands.Bot constructor.
 
@@ -573,14 +609,9 @@ class BbHelpCommand(commands.HelpCommand):
 		if not self.context.guild:
 			commandNum = 15
 		elif (
-			self  # type: ignore[union-attr]
-			.context
-			.author
-			.guild_permissions
-			.manage_messages
+			isinstance(self.context.author, nextcord.Member)
+			and self.context.author.guild_permissions.manage_messages
 		):
-			# TODO: after switch from MockUser to MockMember, remove ignore
-			# and add isinstance(author, nextcord.Member)
 			commandNum = 20
 		else:
 			commandNum = 17
@@ -656,8 +687,10 @@ class BbHelpCommand(commands.HelpCommand):
 	@override
 	async def send_error_message(self, error: str) -> None:
 		"""
+		Non-existent command inovcation handler.
+
 		Log an error when a user tries to view the help information for a
-		command that does not exist, e.g. !help foobar
+		command that does not exist, e.g. !help foobar.
 
 		Args:
 			error (str): The name of the non-existent command that was
@@ -706,6 +739,8 @@ async def deleteScamAndNotify(
 	message: nextcord.Message
 ) -> None:
 	"""
+	Process a message that has been flagged as a scam.
+
 	Delete a possible scam message, inform the user their account may have
 	been compromised, mute the user, and inform server moderators about the
 	possibly compromised account.
@@ -721,12 +756,9 @@ async def deleteScamAndNotify(
 		message.guild.id
 	)
 
-	if not (role := get(message.guild.roles, name="Muted")):
-		role = await createMutedRole(message.guild)
-		# TODO: after migrating from MockUser to MockMember,
-		# add assert not isinstance(after.author, nextcord.User)
-		# and remove below type ignore
-		await message.author.add_roles(role)  # type: ignore[union-attr]
+	role = await createMutedRole(message.guild)
+	assert not isinstance(message.author, nextcord.User)
+	await message.author.add_roles(role)
 
 	await message.delete()
 	await message.channel.send(
@@ -751,9 +783,10 @@ async def deleteScamAndNotify(
 
 def onJoin(guild: nextcord.Guild, role: nextcord.Role) -> nextcord.Embed:
 	"""
-	Send a message in a server after joining it explaining bb's basic
-	functions and restrictions, as well as any further setup actions that
-	should be taken.
+	Send an explanatory message after joining a server.
+
+	The message explains bb's basic functions and restrictions, as well as any
+	further setup actions that should be taken.
 
 	Args:
 		guild (nextcord.Guild): The guild that has been joined
@@ -780,8 +813,10 @@ def onJoin(guild: nextcord.Guild, role: nextcord.Role) -> nextcord.Embed:
 
 def search(searchterm: str = "") -> nextcord.Embed:
 	"""
-	Google something. Useful for when people can't seem to realize that they
-	have the power to Google things themselves.
+	Google something.
+
+	Useful for when people can't seem to realize that they have the power to
+	Google things themselves.
 
 	Args:
 		searchterm (str): The term to search via Google (default is "")
@@ -798,9 +833,10 @@ def search(searchterm: str = "") -> nextcord.Embed:
 
 def tweet() -> str:
 	"""
-	Create a tweet resembling an eggsoup tweet using a Markov text
-	generator. The generator uses a collection of eggsoup tweets scraped
-	from Twitter and massaged to be easily parsable.
+	Generate a tweet using a Markov text generator.
+
+	The tweet resembles one by eggsoup. The generator uses a collection of
+	eggsoup tweets scraped from Twitter and massaged to be easily parsable.
 
 	Because of the small size of the collection of actual tweets, the
 	generated tweets are usually neither semantically nor syntactically valid.
@@ -870,11 +906,39 @@ def getLastNumericChar(duration: str) -> int:
 	return len(duration)
 
 
+async def processMuteTarget(
+	ctx: BotContext, target: str | None, bot: commands.Bot
+) -> nextcord.Member | None:
+	# TODO: unit test
+	assert isinstance(ctx.author, nextcord.Member)
+	if not ctx.author.guild_permissions.manage_messages:
+		await ctx.send(Naughty.format(ctx.author.mention))
+		return None
+	if not target:
+		await ctx.send(f"Please specify a target, {ctx.author.mention}.")
+		return None
+	try:
+		muteTarget = await commands.MemberConverter().convert(ctx, target)
+	except commands.MemberNotFound:
+		await ctx.send(embed=bbEmbed(
+			"Beardless Bot Mute",
+			"Invalid target! Target must be a mention or user ID."
+		))
+		return None
+	# If user tries to mute BB:
+	if bot.user is not None and muteTarget.id == bot.user.id:
+		await ctx.send("I am too powerful to be muted. Stop trying.")
+		return None
+	return muteTarget
+
+
 def processMuteDuration(
 	duration: str | None, additional: str
 ) -> tuple[str | None, str, float | None]:
 	"""
-	Process the user-provided input of duration and additional in order to
+	Process user-provided mute input.
+
+	Convert the input in the form of duration and additional in order to
 	extract the actual mute time, reason, and mute time in seconds.
 
 	Args:
@@ -914,6 +978,8 @@ def processMuteDuration(
 def getTarget(ctx: BotContext, target: str) -> TargetTypes:
 	"""
 	Parse the command context and the target arg for the most valid target.
+
+	TODO: refactor to call memSearch.
 
 	Args:
 		ctx (BotContext): The command invocation context
