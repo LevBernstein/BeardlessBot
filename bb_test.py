@@ -33,7 +33,6 @@ from flake8.api import legacy as flake8  # type: ignore[import-untyped]
 from mypy.api import run as mypy
 from nextcord.abc import Snowflake as SnowflakeABC
 from nextcord.ext import commands
-from nextcord.types.channel import PermPayload
 from nextcord.types.emoji import Emoji as EmojiPayload
 from nextcord.types.emoji import PartialEmoji as PartialEmojiPayload
 from nextcord.types.message import Message as MessagePayload
@@ -524,12 +523,12 @@ class MockChannel(nextcord.TextChannel):
 			overwrite = nextcord.PermissionOverwrite(**permissions)
 		if overwrite is not None:
 			allow, deny = overwrite.pair()
-			payload = PermPayload(
-				id=target.id,
-				type=0 if isinstance(target, nextcord.Role) else 1,
-				allow=allow.value,
-				deny=deny.value
-			)
+			payload = {
+				"id": target.id,
+				"type": 0 if isinstance(target, nextcord.Role) else 1,
+				"allow": allow.value,
+				"deny": deny.value
+			}
 			self._overwrites.append(nextcord.abc._Overwrites(payload))
 		else:
 			for ow in self._overwrites:
