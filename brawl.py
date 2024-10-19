@@ -73,7 +73,7 @@ Regions = (
 
 
 def getBrawlData() -> dict[
-	str, dict[str, list[dict[str, str | dict[str, str]]]]
+	str, dict[str, list[dict[str, str | dict[str, str | dict[str, str]]]]]
 ]:
 	# TODO: unit test
 	r = requests.get("https://brawlhalla.com/legends", timeout=10)
@@ -88,7 +88,9 @@ def getBrawlData() -> dict[
 Data = getBrawlData()
 
 
-def brawlWinRate(j: dict[str, int]) -> float:
+def brawlWinRate(j: dict[str, str | int]) -> float:
+	assert isinstance(j["wins"], int)
+	assert isinstance(j["games"], int)
 	return round(j["wins"] / j["games"] * 100, 1)
 
 
@@ -127,7 +129,7 @@ async def randomBrawl(ranType: str, brawlKey: str | None = None) -> Embed:
 
 
 def claimProfile(discordId: int, brawlId: int) -> None:
-	with Path("resources/claimedProfs.json").open() as f:
+	with Path("resources/claimedProfs.json").open("r") as f:
 		profs = json.load(f)
 	profs[str(discordId)] = brawlId
 	with Path("resources/claimedProfs.json").open("w") as g:
@@ -135,7 +137,7 @@ def claimProfile(discordId: int, brawlId: int) -> None:
 
 
 def fetchBrawlId(discordId: int) -> int | None:
-	with Path("resources/claimedProfs.json").open() as f:
+	with Path("resources/claimedProfs.json").open("r") as f:
 		for key, value in json.load(f).items():
 			if key == str(discordId):
 				assert isinstance(value, int)
@@ -144,14 +146,14 @@ def fetchBrawlId(discordId: int) -> int | None:
 
 
 def fetchLegends() -> list[dict[str, str]]:
-	with Path("resources/legends.json").open() as f:
+	with Path("resources/legends.json").open("r") as f:
 		legends = json.load(f)
 	assert isinstance(legends, list)
 	return legends
 
 
 async def brawlApiCall(
-	route: str, arg: str, brawlKey: str, amp: str = "?"
+	route: str, arg: str | int, brawlKey: str, amp: str = "?"
 ) -> dict[str, Any] | list[dict[str, str | int]]:
 	url = f"https://api.brawlhalla.com/{route}{arg}{amp}api_key={brawlKey}"
 	async with httpx.AsyncClient(timeout=10) as client:
@@ -377,11 +379,10 @@ def getTopLegendStats(
 			mostUsed = (legend["legend_name_key"].title(), legend["xp"])
 		if legend["games"] and (
 			topWinrate is None
-			or topWinrate[1] < brawlWinRate(legend)  # type: ignore[arg-type]
+			or topWinrate[1] < brawlWinRate(legend)
 		):
 			topWinrate = (
-				legend["legend_name_key"].title(),
-				brawlWinRate(legend)  # type: ignore[arg-type]
+				legend["legend_name_key"].title(), brawlWinRate(legend)
 			)
 		if legend["matchtime"] and (
 			topDps is None or topDps[1] < getTopDps(legend)[1]

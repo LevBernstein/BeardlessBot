@@ -1,5 +1,6 @@
 """Beadless Bot event logging methods."""
 
+from collections.abc import Sequence
 from typing import Final
 
 import nextcord
@@ -12,32 +13,30 @@ MaxPurgedMsgs: Final[int] = 99
 
 
 def logDeleteMsg(message: nextcord.Message) -> nextcord.Embed:
-	assert isinstance(
-		message.channel, nextcord.abc.GuildChannel | nextcord.Thread
+	assert hasattr(message.channel, "mention")
+	prefix = (
+		f"**Deleted message sent by {message.author.mention} in "
+		f"**{message.channel.mention}\n"
 	)
 	return bbEmbed(
-		"",
-		f"**Deleted message sent by {message.author.mention} in "
-		f"**{message.channel.mention}\n{contCheck(message)}",
-		0xFF0000,
+		value=f"{prefix}{contCheck(message, len(prefix))}",
+		col=0xFF0000,
 		showTime=True
 	).set_author(name=message.author, icon_url=fetchAvatar(message.author))
 
 
 def logPurge(
-	msg: nextcord.Message, messages: list[nextcord.Message]
+	msg: nextcord.Message, messages: Sequence[nextcord.Message]
 ) -> nextcord.Embed:
 
-	def purgeReport(msgList: list[nextcord.Message]) -> str:
+	def purgeReport(msgList: Sequence[nextcord.Message]) -> str:
 		return (
 			f"{MaxPurgedMsgs}+"
 			if len(msgList) > MaxPurgedMsgs
 			else str(len(msgList) - 1)
 		)
 
-	assert isinstance(
-		msg.channel, nextcord.abc.GuildChannel | nextcord.Thread
-	)
+	assert hasattr(msg.channel, "mention")
 	return bbEmbed(
 		"",
 		f"Purged {purgeReport(messages)} messages in {msg.channel.mention}.",
@@ -49,9 +48,8 @@ def logPurge(
 def logEditMsg(
 	before: nextcord.Message, after: nextcord.Message
 ) -> nextcord.Embed:
-	assert isinstance(
-		before.channel, nextcord.abc.GuildChannel | nextcord.Thread
-	)
+	assert hasattr(before.channel, "mention")
+	addendum = f"\n[Jump to Message]({after.jump_url})"
 	return bbEmbed(
 		"",
 		f"Messaged edited by {before.author.mention}"
@@ -61,10 +59,12 @@ def logEditMsg(
 	).set_author(
 		name=before.author, icon_url=fetchAvatar(before.author)
 	).add_field(
-		name="Before:", value=contCheck(before), inline=False
+		name="Before:", value=contCheck(before, 7), inline=False
 	).add_field(
 		name="After:",
-		value=f"{contCheck(after)}\n[Jump to Message]({after.jump_url})",
+		value=(
+			f"{contCheck(after, len(addendum))}{addendum}"
+		),
 		inline=False
 	)
 
@@ -72,9 +72,8 @@ def logEditMsg(
 def logClearReacts(
 	message: nextcord.Message, reactions: list[nextcord.Reaction]
 ) -> nextcord.Embed:
-	assert isinstance(
-		message.channel, nextcord.abc.GuildChannel | nextcord.Thread
-	)
+	assert hasattr(message.channel, "mention")
+	jumpLink = f"\n[Jump to Message]({message.jump_url})"
 	return bbEmbed(
 		"",
 		f"Reactions cleared from message sent by {message.author.mention}"
@@ -85,7 +84,7 @@ def logClearReacts(
 		name=message.author, icon_url=fetchAvatar(message.author)
 	).add_field(
 		name="Message content:",
-		value=contCheck(message) + f"\n[Jump to Message]({message.jump_url})"
+		value=contCheck(message, len(jumpLink)) + jumpLink
 	).add_field(
 		name="Reactions:", value=", ".join(str(r) for r in reactions)
 	)
@@ -182,9 +181,7 @@ def logUnban(member: nextcord.Member) -> nextcord.Embed:
 def logMute(
 	member: nextcord.Member, message: nextcord.Message, duration: str | None
 ) -> nextcord.Embed:
-	assert isinstance(
-		message.channel, nextcord.abc.GuildChannel | nextcord.Thread
-	)
+	assert hasattr(message.channel, "mention")
 	mid = f" for {duration}" if duration else ""
 	return bbEmbed(
 		"Beardless Bot Mute",

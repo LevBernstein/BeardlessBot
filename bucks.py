@@ -50,7 +50,7 @@ class BlackjackGame:
 		DealerSoftGoal (int): The soft sum up to which the dealer will hit
 		FaceVal (int): The value of a face card (J Q K)
 		Goal (int): The desired score
-		CardVals (tuple[int]): Blackjack values for each card
+		CardVals (tuple[int, ...]): Blackjack values for each card
 		user (nextcord.User or Member): The user who is playing this game
 		bet (int): The number of BeardlessBucks the user is betting
 		cards (list): The list of cards the user has been dealt
@@ -78,7 +78,7 @@ class BlackjackGame:
 	DealerSoftGoal = 17
 	FaceVal = 10
 	Goal = 21
-	CardVals = (2, 3, 4, 5, 6, 7, 8, 9, 10, FaceVal, FaceVal, FaceVal, 11)
+	CardVals = (2, 3, 4, 5, 6, 7, 8, 9, 10, FaceVal, FaceVal, FaceVal, AceVal)
 
 	def __init__(
 		self,
@@ -290,7 +290,7 @@ def writeMoney(
 		return (
 			MoneyFlags.CommaInUsername, CommaWarn.format(member.mention)
 		)
-	with Path("resources/money.csv").open() as csvfile:
+	with Path("resources/money.csv").open("r") as csvfile:
 		for row in csv.reader(csvfile, delimiter=","):
 			if str(member.id) == row[0]:  # found member
 				if isinstance(amount, str):  # for people betting all
@@ -309,7 +309,7 @@ def writeMoney(
 					newLine = ",".join((row[0], row[1], str(member)))
 					newBank = int(row[1])
 					result = MoneyFlags.BalanceUnchanged
-				with Path("resources/money.csv").open() as f:
+				with Path("resources/money.csv").open("r") as f:
 					money = "".join(list(f)).replace(",".join(row), newLine)
 				with Path("resources/money.csv").open("w") as f:
 					f.writelines(money)
@@ -433,7 +433,7 @@ def leaderboard(
 		target = memSearch(msg, target)
 	if target and isinstance(target, nextcord.User | nextcord.Member):
 		writeMoney(target, 300, writing=False, adding=False)
-	with Path("resources/money.csv").open() as csvfile:
+	with Path("resources/money.csv").open("r") as csvfile:
 		lbDict = {
 			row[2]: int(row[1]) for row in csv.reader(csvfile, delimiter=",")
 		}

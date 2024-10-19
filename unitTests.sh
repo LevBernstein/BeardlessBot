@@ -21,7 +21,7 @@ genbadge flake8 -i flake8stats.txt -o \
 rm flake8stats.txt 2> /dev/null;
 genbadge tests -i junit.xml -o resources/images/tests.svg >> /dev/null;
 rm junit.xml 2> /dev/null;
-docstr-coverage ./ -e ".*env/*" -v 0 --badge \
+docstr-coverage ./ -e ".*bb_test.py/*|.*env/*" -v 0 --badge \
 	resources/images/docstr-coverage.svg 2> /dev/null;
 
 #Truncate decimals in coverage badge. Very hacky; I wish

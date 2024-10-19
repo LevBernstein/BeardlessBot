@@ -754,5 +754,17 @@
         "dexterity": "3",
         "defense": "8",
         "speed": "3"
+    },
+    {
+        "legend_id": 66,
+        "legend_name_key": "king zuva",
+        "bio_name": "King Zuva",
+        "bio_aka": "The Stampede",
+        "weapon_one": "Hammer",
+        "weapon_two": "Boots",
+        "strength": "8",
+        "dexterity": "4",
+        "defense": "6",
+        "speed": "4"
     }
 ]

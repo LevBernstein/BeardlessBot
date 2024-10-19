@@ -3,9 +3,10 @@
 import asyncio
 import logging
 import random
+import sys
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
-from sys import stdout
 from time import time
 from typing import Final
 
@@ -21,10 +22,11 @@ import bucks
 import logs
 import misc
 
-with Path("README.MD").open() as readme:
+with Path("README.MD").open("r") as readme:
 	__version__ = " ".join(readme.read().split(" ")[3:6])
 
 # This dictionary is for keeping track of pings in the lfs channels.
+# TODO: use on_close() to make wait times persist through restarts
 SparPings: dict[int, dict[str, int]] = {}
 
 # This array stores the active instances of blackjack.
@@ -164,7 +166,7 @@ async def on_message_delete(
 
 @BeardlessBot.event
 async def on_bulk_message_delete(
-	messages: list[nextcord.Message]
+	messages: Sequence[nextcord.Message]
 ) -> nextcord.Embed | None:
 	emb = None
 	assert messages[0].guild is not None
@@ -180,9 +182,6 @@ async def on_message_edit(
 ) -> nextcord.Embed | None:
 	emb = None
 	if after.guild and (before.content != after.content):
-		assert isinstance(
-			after.channel, nextcord.abc.GuildChannel | nextcord.Thread
-		)
 		if misc.scamCheck(after.content):
 			await misc.deleteScamAndNotify(after)
 		if logChannel := misc.getLogChannel(after.guild):
@@ -600,12 +599,15 @@ async def cmdRoll(
 	return 1
 
 
-@BeardlessBot.command(name="dog")  # type: ignore[arg-type]
+@BeardlessBot.command(name="dog", aliases=("moose",))  # type: ignore[arg-type]
 async def cmdDog(ctx: misc.BotContext, *, breed: str = "") -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
+	assert ctx.invoked_with is not None
 	try:
-		dogUrl = await misc.animal("dog", breed.lower())
+		dogUrl = await misc.getDog(
+			breed.lower() if ctx.invoked_with.lower() != "moose" else "moose"
+		)
 	except (misc.AnimalException, ValueError, KeyError) as e:
 		logging.exception("Failed getting dog breed: %s", breed)
 		misc.logException(e, ctx)
@@ -626,7 +628,7 @@ async def cmdDog(ctx: misc.BotContext, *, breed: str = "") -> int:
 
 
 @BeardlessBot.command(  # type: ignore[arg-type]
-	name="moose", aliases=(*misc.AnimalList, "bunny")
+	name="bunny", aliases=misc.AnimalList
 )
 async def cmdAnimal(ctx: misc.BotContext, *, breed: str = "") -> int:
 	if misc.ctxCreatedThread(ctx):
@@ -634,7 +636,7 @@ async def cmdAnimal(ctx: misc.BotContext, *, breed: str = "") -> int:
 	assert ctx.invoked_with is not None
 	species = ctx.invoked_with.lower()
 	try:
-		url = await misc.animal(species)
+		url = await misc.getAnimal(species)
 	except (misc.AnimalException, ValueError, KeyError) as e:
 		logging.exception("%s %s", species, breed)
 		misc.logException(e, ctx)
@@ -749,7 +751,7 @@ async def cmdPurge(
 ) -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild:
 		return -1
-	assert isinstance(ctx.author, nextcord.Member)
+	assert hasattr(ctx.author, "guild_permissions")
 	if ctx.author.guild_permissions.manage_messages:
 		if num is None or not num.isnumeric() or ((mNum := int(num)) < 0):
 			await ctx.send(embed=misc.bbEmbed(
@@ -816,9 +818,7 @@ async def cmdBuy(
 async def cmdPins(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild:
 		return -1
-	assert not isinstance(
-		ctx.channel, nextcord.DMChannel | nextcord.PartialMessageable
-	)
+	assert hasattr(ctx.channel, "name")
 	if ctx.channel.name == "looking-for-spar":
 		await ctx.send(embed=misc.SparPinsEmbed)
 		return 1
@@ -841,9 +841,7 @@ async def cmdSpar(
 	if misc.ctxCreatedThread(ctx) or not ctx.guild:
 		return -1
 	author = ctx.author.mention
-	assert not isinstance(
-		ctx.channel, nextcord.DMChannel | nextcord.PartialMessageable
-	)
+	assert hasattr(ctx.channel, "name")
 	if ctx.channel.name != "looking-for-spar":
 		await ctx.send(f"Please only use !spar in looking-for-spar, {author}.")
 		return 0
@@ -918,8 +916,8 @@ async def cmdBrawlrank(
 	# TODO: write valid target method; no need for this copy paste
 	# have it return target, report
 	rankTarget: misc.TargetTypes | None = misc.getTarget(ctx, target)
+	report = "Invalid target!"
 	if isinstance(rankTarget, str):
-		report = "Invalid target!"
 		rankTarget = misc.memSearch(ctx.message, rankTarget)
 	if rankTarget:
 		try:
@@ -939,8 +937,8 @@ async def cmdBrawlstats(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild or not BrawlKey:
 		return -1
 	statsTarget: misc.TargetTypes | None = misc.getTarget(ctx, target)
+	report = "Invalid target!"
 	if isinstance(statsTarget, str):
-		report = "Invalid target!"
 		statsTarget = misc.memSearch(ctx.message, statsTarget)
 	if statsTarget:
 		try:
@@ -962,8 +960,8 @@ async def cmdBrawlclan(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild or not BrawlKey:
 		return -1
 	clanTarget: misc.TargetTypes | None = misc.getTarget(ctx, target)
+	report = "Invalid target!"
 	if isinstance(clanTarget, str):
-		report = "Invalid target!"
 		clanTarget = misc.memSearch(ctx.message, clanTarget)
 	if clanTarget:
 		try:
@@ -1164,11 +1162,11 @@ if __name__ == "__main__":
 		handlers=[
 			logging.FileHandler(datetime.now(misc.TimeZone).strftime(
 				"resources/logs/%Y-%m-%d-%H-%M-%S.log"
-			)), logging.StreamHandler(stdout)
+			)), logging.StreamHandler(sys.stdout)
 		]
 	)
 
-	# HTTPX can tend to flood logs with INFO-level calls; set it to >= WARNING
+	# HTTPX tends to flood logs with INFO-level calls; set it to >= WARNING
 	logging.getLogger("httpx").setLevel(logging.WARNING)
 
 	launch()

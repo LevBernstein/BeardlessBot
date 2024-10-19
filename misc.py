@@ -18,7 +18,7 @@ from bs4 import BeautifulSoup
 from nextcord.ext import commands
 from nextcord.utils import get
 
-MaxMsgLength: Final[int] = 1023
+MaxMsgLength: Final[int] = 1024
 Ok: Final[int] = 200
 BadRequest: Final[int] = 404
 BbColor: Final[int] = 0xFFF994
@@ -106,9 +106,31 @@ def bbEmbed(
 	)
 
 
-def contCheck(message: nextcord.Message) -> str:
+def contCheck(message: nextcord.Message, offset: int = 0) -> str:
+	"""
+	Check if a message contains any valid text content.
+
+	Embed fields have a length limit of 1024 characters. This can lead to
+	problems when logging message edit/deletion and displaying the content of
+	those messages. As such, check if the content, including any additional
+	information that needs to be displayed, exceeds 1024 characters in length.
+	In addition, if the message length is 0, report that the message iactually
+	contains an instance of nextcord.Embed, and therefore has no text content.
+
+	Args:
+		message (nextcord.Message): The message to check
+		offset (int): The additional message length to account for; this is
+			subtracted from MaxMsgLength to get the actual allowable message
+			length (default is 0)
+
+	Returns:
+		str: The content to report, if it would be valid to do so.
+
+	"""
 	if message.content:
-		if len(message.content) >= MaxMsgLength:
+		if len(message.content) > max(
+			min(MaxMsgLength - offset, MaxMsgLength), 0
+		):
 			return f"**Message length exceeds {MaxMsgLength} characters.**"
 		return message.content
 	return "**Embed**"
@@ -261,6 +283,19 @@ class AnimalException(httpx.RequestError):
 		super().__init__(f"Failed to call {animal.title()} Animal API")
 
 
+async def fetchAnimal(url: str, *args: str | int) -> str | None:
+	async with httpx.AsyncClient(timeout=10) as client:
+		r = await client.get(url)
+	if r.status_code == Ok:
+		j = r.json()
+		for arg in args:
+			assert callable(j.pop)
+			j = j.pop(arg)
+		assert isinstance(j, str)
+		return j
+	return None
+
+
 async def getMoose() -> str:
 	async with httpx.AsyncClient(timeout=10) as client:
 		r = await client.get("https://github.com/LevBernstein/moosePictures/")
@@ -282,12 +317,14 @@ async def getMoose() -> str:
 
 async def getDog(breed: str | None = None) -> str:
 	if not breed:
-		async with httpx.AsyncClient(timeout=10) as client:
-			r = await client.get("https://dog.ceo/api/breeds/image/random")
-		if r.status_code == Ok and isinstance(
-			message := r.json()["message"], str
+		if isinstance(
+			message := await fetchAnimal(
+				"https://dog.ceo/api/breeds/image/random", "message"
+			), str
 		):
 			return message
+	elif breed == "moose":
+		return await getMoose()
 	elif breed.startswith("breed"):
 		async with httpx.AsyncClient(timeout=10) as client:
 			r = await client.get("https://dog.ceo/api/breeds/list/all")
@@ -295,16 +332,12 @@ async def getDog(breed: str | None = None) -> str:
 			return "Dog breeds: {}.".format(
 				", ".join(dog for dog in r.json()["message"])
 			)
-	elif breed.isalpha():
-		async with httpx.AsyncClient(timeout=10) as client:
-			r = await client.get(
-				f"https://dog.ceo/api/breed/{breed}/images/random"
-			)
-		if r.status_code == Ok and isinstance(
-			message := r.json().get("message"), str
-		):
-			return message
-		return "Breed not found! Do !dog breeds to see all breeds."
+	elif breed.isalpha() and isinstance(
+		message := await fetchAnimal(
+			f"https://dog.ceo/api/breed/{breed}/images/random", "message"
+		), str
+	):
+		return message
 	else:
 		return "Breed not found! Do !dog breeds to see all breeds."
 	raise AnimalException(animal="dog")
@@ -342,7 +375,7 @@ def getFrogList() -> list[str]:
 FrogList = getFrogList()
 
 
-async def animal(animalType: str, breed: str | None = None) -> str:
+async def getAnimal(animalType: str) -> str:
 	url: str | None = None
 
 	if animalType == "bear":
@@ -356,41 +389,27 @@ async def animal(animalType: str, breed: str | None = None) -> str:
 	elif animalType == "seal":
 		url = SealRootUrl.format(str(random.randint(0, 83)).rjust(4, "0"))
 
-	elif "moose" in {animalType, breed}:
-		url = await getMoose()
-
-	elif animalType == "dog":
-		url = await getDog(breed)
-
 	elif animalType == "cat":
-		async with httpx.AsyncClient(timeout=10) as client:
-			r = await client.get("https://api.thecatapi.com/v1/images/search")
-		if r.status_code == Ok:
-			url = r.json()[0]["url"]
+		url = await fetchAnimal(
+			"https://api.thecatapi.com/v1/images/search", 0, "url"
+		)
 
 	elif animalType in {"bunny", "rabbit"}:
-		async with httpx.AsyncClient(timeout=10) as client:
-			r = await client.get(
-				"https://api.bunnies.io/v2/loop/random/?media=gif"
-			)
-		if r.status_code == Ok:
-			url = r.json()["media"]["gif"]
+		url = await fetchAnimal(
+			"https://api.bunnies.io/v2/loop/random/?media=gif", "media", "gif"
+		)
 
 	elif animalType == "fox":
-		async with httpx.AsyncClient(timeout=10) as client:
-			r = await client.get("https://randomfox.ca/floof/")
-		if r.status_code == Ok:
-			url = r.json()["image"]
+		url = await fetchAnimal("https://randomfox.ca/floof/", "image")
 
 	elif animalType in {"duck", "lizard"}:
-		async with httpx.AsyncClient(timeout=10) as client:
-			r = await client.get(
+		url = await fetchAnimal(
+			(
 				"https://random-d.uk/api/quack"
 				if animalType == "duck"
 				else "https://nekos.life/api/v2/img/lizard"
-			)
-		if r.status_code == Ok:
-			url = r.json()["url"]
+			), "url"
+		)
 
 	else:
 		raise ValueError("Invalid Animal: " + animalType)
@@ -494,7 +513,8 @@ def rollReport(
 
 
 def fact() -> str:
-	with Path("resources/facts.txt").open() as f:
+	"""Get a random fun fact from facts.txt."""
+	with Path("resources/facts.txt").open("r") as f:
 		return random.choice(f.read().splitlines())
 
 
@@ -609,7 +629,7 @@ class BbHelpCommand(commands.HelpCommand):
 		if not self.context.guild:
 			commandNum = 15
 		elif (
-			isinstance(self.context.author, nextcord.Member)
+			hasattr(self.context.author, "guild_permissions")
 			and self.context.author.guild_permissions.manage_messages
 		):
 			commandNum = 20
@@ -771,7 +791,7 @@ async def deleteScamAndNotify(
 		" measures and be sure to reach out to an admin if you need help."
 	)
 
-	assert isinstance(message.channel, nextcord.TextChannel | nextcord.Thread)
+	assert hasattr(message.channel, "mention")
 	scamReport = (
 		f"Deleted possible scam nitro link sent by {message.author.mention}"
 		f" in {message.channel.mention}.\nMessage content:\n{message.content}"
@@ -850,7 +870,7 @@ def tweet() -> str:
 		str: A fake eggsoup tweet.
 
 	"""
-	with Path("resources/eggtweets_clean.txt").open() as f:
+	with Path("resources/eggtweets_clean.txt").open("r") as f:
 		words = f.read().split()
 	chains: dict[str, list[str]] = {}
 	keySize = random.randint(1, 2)
@@ -910,7 +930,7 @@ async def processMuteTarget(
 	ctx: BotContext, target: str | None, bot: commands.Bot
 ) -> nextcord.Member | None:
 	# TODO: unit test
-	assert isinstance(ctx.author, nextcord.Member)
+	assert hasattr(ctx.author, "guild_permissions")
 	if not ctx.author.guild_permissions.manage_messages:
 		await ctx.send(Naughty.format(ctx.author.mention))
 		return None
@@ -925,7 +945,6 @@ async def processMuteTarget(
 			"Invalid target! Target must be a mention or user ID."
 		))
 		return None
-	# If user tries to mute BB:
 	if bot.user is not None and muteTarget.id == bot.user.id:
 		await ctx.send("I am too powerful to be muted. Stop trying.")
 		return None
