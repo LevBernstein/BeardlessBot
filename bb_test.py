@@ -238,7 +238,7 @@ class MockMember(nextcord.Member):
 		self.guild = guild or MockGuild()
 		self.activities = ()
 		self._user._banner = None
-		self.roleList = [MockRole("everyone", 0)] + (roles or [])
+		self.roleList = [MockRole("everyone", self.guild.id)] + (roles or [])
 		self._roles = SnowflakeList(map(int, []))
 		self._timeout = None
 		self._avatar = (
@@ -482,7 +482,6 @@ class MockChannel(nextcord.TextChannel):
 		self.messages = messages or []
 		self._type = 0
 		self._state = self.MockChannelState(messageNum=len(self.messages))
-		self._overwrites = []
 		self.assignChannelToGuild(self.guild)
 
 	@overload
@@ -523,17 +522,24 @@ class MockChannel(nextcord.TextChannel):
 			overwrite = nextcord.PermissionOverwrite(**permissions)
 		if overwrite is not None:
 			allow, deny = overwrite.pair()
-			payload = {
-				"id": target.id,
-				"type": 0 if isinstance(target, nextcord.Role) else 1,
-				"allow": allow.value,
-				"deny": deny.value
-			}
-			self._overwrites.append(nextcord.abc._Overwrites(payload))
+			perm_type = 0 if isinstance(target, nextcord.Role) else 1
+			logging.info(
+				"Setting perms on channel: %s for target: %s,"
+				" allow: %s, deny: %s, type: %s, reason: %s",
+				self.id,
+				target.id,
+				allow.value,
+				deny.value,
+				perm_type,
+				reason
+			)
 		else:
-			for ow in self._overwrites:
-				if ow.id == target.id:
-					self._overwrites.remove(ow)
+			logging.info(
+				"Deleting perms on channel: %s for target: %s, reason: %s",
+				self.id,
+				target.id,
+				reason
+			)
 
 	@override
 	def history(
