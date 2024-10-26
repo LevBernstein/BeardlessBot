@@ -43,8 +43,6 @@ class BlackjackGame:
 	New instance created for each game. Instances are server-agnostic; only
 	one game allowed per player across all servers.
 
-	TODO: make the deck consist of 52 cards, with dealing a card popping it
-
 	Attributes:
 		AceVal (int): The high value of an Ace
 		DealerSoftGoal (int): The soft sum up to which the dealer will hit
@@ -74,6 +72,8 @@ class BlackjackGame:
 
 	"""
 
+	# TODO: Make the deck consist of 52 cards, with dealing a card popping it
+
 	AceVal = 11
 	DealerSoftGoal = 17
 	FaceVal = 10
@@ -99,7 +99,7 @@ class BlackjackGame:
 		"""
 		self.user = user
 		self.bet = bet
-		self.cards: list[int] = []
+		self.hand: list[int] = []
 		self.dealerUp = random.randint(2, BlackjackGame.AceVal)
 		self.dealerSum = self.dealerUp
 		while self.dealerSum < BlackjackGame.DealerSoftGoal:
@@ -119,7 +119,7 @@ class BlackjackGame:
 
 	def perfect(self) -> bool:
 		"""Check if the user has reached a Blackjack."""
-		return sum(self.cards) == BlackjackGame.Goal
+		return sum(self.hand) == BlackjackGame.Goal
 
 	def startingHand(
 		self, *, debugBlackjack: bool = False, debugDoubleAces: bool = False
@@ -136,13 +136,13 @@ class BlackjackGame:
 			str: The message to show the user.
 
 		"""
-		self.cards.append(random.choice(BlackjackGame.CardVals))
-		self.cards.append(random.choice(BlackjackGame.CardVals))
+		self.hand.append(random.choice(BlackjackGame.CardVals))
+		self.hand.append(random.choice(BlackjackGame.CardVals))
 		message = (
 			"Your starting hand consists of"
-			f" {BlackjackGame.cardName(self.cards[0])}"
-			f" and {BlackjackGame.cardName(self.cards[1])}."
-			f" Your total is {sum(self.cards)}. "
+			f" {BlackjackGame.cardName(self.hand[0])}"
+			f" and {BlackjackGame.cardName(self.hand[1])}."
+			f" Your total is {sum(self.hand)}. "
 		)
 		if (self.perfect() or debugBlackjack) and not debugDoubleAces:
 			message += (
@@ -154,7 +154,7 @@ class BlackjackGame:
 				" with one card face down. "
 			)
 			if self.checkBust() or debugDoubleAces:
-				self.cards[1] = 1
+				self.hand[1] = 1
 				self.bet *= -1
 				message = (
 					"Your starting hand consists of two Aces."
@@ -178,25 +178,25 @@ class BlackjackGame:
 
 		"""
 		dealt = random.choice(BlackjackGame.CardVals)
-		self.cards.append(dealt)
+		self.hand.append(dealt)
 		self.message = (
 			f"You were dealt {BlackjackGame.cardName(dealt)},"
-			f" bringing your total to {sum(self.cards)}. "
+			f" bringing your total to {sum(self.hand)}. "
 		)
-		if BlackjackGame.AceVal in self.cards and self.checkBust():
-			for i, card in enumerate(self.cards):
+		if BlackjackGame.AceVal in self.hand and self.checkBust():
+			for i, card in enumerate(self.hand):
 				if card == BlackjackGame.AceVal:
-					self.cards[i] = 1
+					self.hand[i] = 1
 					self.bet *= -1
 					break
 			self.message += (
 				"To avoid busting, your Ace will be treated as a 1."
-				f" Your new total is {sum(self.cards)}. "
+				f" Your new total is {sum(self.hand)}. "
 			)
 		self.message += (
 			"Your card values are {}. The dealer is"
 			" showing {}, with one card face down."
-		).format(", ".join(str(card) for card in self.cards), self.dealerUp)
+		).format(", ".join(str(card) for card in self.hand), self.dealerUp)
 		if self.checkBust():
 			self.message += f" You busted. Game over, {self.user.mention}."
 		elif self.perfect() or debug:
@@ -212,7 +212,7 @@ class BlackjackGame:
 
 	def checkBust(self) -> bool:
 		"""Check if a user has gone over Goal. Returns bool."""
-		if sum(self.cards) > BlackjackGame.Goal:
+		if sum(self.hand) > BlackjackGame.Goal:
 			self.bet *= -1
 			return True
 		return False
@@ -221,13 +221,13 @@ class BlackjackGame:
 		"""End the game. Returns int: 1 if user's bal changed, else 0."""
 		change = 1
 		self.message = "The dealer has a total of {}."
-		if sum(self.cards) > self.dealerSum and not self.checkBust():
+		if sum(self.hand) > self.dealerSum and not self.checkBust():
 			self.message += f" You're closer to {BlackjackGame.Goal}"
 			self.message += (
 				" with a sum of {}. You win!  Your winnings"
 				" have been added to your balance, {}."
 			)
-		elif sum(self.cards) == self.dealerSum:
+		elif sum(self.hand) == self.dealerSum:
 			change = 0
 			self.message += (
 				" That ties your sum of {}. Your bet has been returned, {}."
@@ -245,7 +245,7 @@ class BlackjackGame:
 			)
 			self.bet *= -1
 		self.message = self.message.format(
-			self.dealerSum, sum(self.cards), self.user.mention
+			self.dealerSum, sum(self.hand), self.user.mention
 		)
 		if not self.bet:
 			self.message += (
@@ -290,7 +290,7 @@ def writeMoney(
 		return (
 			MoneyFlags.CommaInUsername, CommaWarn.format(member.mention)
 		)
-	with Path("resources/money.csv").open("r") as csvfile:
+	with Path("resources/money.csv").open("r", encoding="UTF-8") as csvfile:
 		for row in csv.reader(csvfile, delimiter=","):
 			if str(member.id) == row[0]:  # found member
 				if isinstance(amount, str):  # for people betting all
@@ -309,13 +309,17 @@ def writeMoney(
 					newLine = ",".join((row[0], row[1], str(member)))
 					newBank = int(row[1])
 					result = MoneyFlags.BalanceUnchanged
-				with Path("resources/money.csv").open("r") as f:
+				with Path("resources/money.csv").open(
+					"r", encoding="UTF-8"
+				) as f:
 					money = "".join(list(f)).replace(",".join(row), newLine)
-				with Path("resources/money.csv").open("w") as f:
+				with Path("resources/money.csv").open(
+					"w", encoding="UTF-8"
+				) as f:
 					f.writelines(money)
 				return result, newBank
 
-	with Path("resources/money.csv").open("a") as f:
+	with Path("resources/money.csv").open("a", encoding="UTF-8") as f:
 		f.write(f"\r\n{member.id},300,{member}")
 	return (
 		MoneyFlags.Registered,
@@ -433,7 +437,7 @@ def leaderboard(
 		target = memSearch(msg, target)
 	if target and isinstance(target, nextcord.User | nextcord.Member):
 		writeMoney(target, 300, writing=False, adding=False)
-	with Path("resources/money.csv").open("r") as csvfile:
+	with Path("resources/money.csv").open("r", encoding="UTF-8") as csvfile:
 		lbDict = {
 			row[2]: int(row[1]) for row in csv.reader(csvfile, delimiter=",")
 		}
@@ -450,7 +454,9 @@ def leaderboard(
 			targetBal = sortedDict[str(target)]
 	for i in range(min(len(sortedDict), 10)):
 		head, body = sortedDict.popitem()
-		lastEntry: bool = (i != min(len(sortedDict), 10) - 1)
+		lastEntry: bool = (
+			i != min(len(sortedDict), 10) - 1
+		)
 		emb.add_field(
 			name=f"{i + 1}. {head.split("#")[0]}", value=body, inline=lastEntry
 		)

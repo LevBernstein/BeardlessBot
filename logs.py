@@ -8,6 +8,7 @@ import nextcord
 from misc import ProfUrl, bbEmbed, contCheck, fetchAvatar, truncTime
 
 # TODO: Implement log thread locked/unlocked
+# https://github.com/LevBernstein/BeardlessBot/issues/45
 
 MaxPurgedMsgs: Final[int] = 99
 

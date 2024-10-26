@@ -22,11 +22,12 @@ import bucks
 import logs
 import misc
 
-with Path("README.MD").open("r") as readme:
+with Path("README.MD").open("r", encoding="UTF-8") as readme:
 	__version__ = " ".join(readme.read().split(" ")[3:6])
 
 # This dictionary is for keeping track of pings in the lfs channels.
 # TODO: use on_close() to make wait times persist through restarts
+# https://github.com/LevBernstein/BeardlessBot/issues/44
 SparPings: dict[int, dict[str, int]] = {}
 
 # This array stores the active instances of blackjack.
@@ -43,7 +44,8 @@ BeardlessBot = commands.Bot(
 	help_command=misc.BbHelpCommand(),
 	intents=nextcord.Intents.all(),
 	chunk_guilds_at_startup=False,
-	owner_id=OwnerId
+	owner_id=OwnerId,
+	activity=nextcord.CustomActivity(name="Try !blackjack and !flip")
 )
 
 BrawlKey: str | None = None
@@ -58,8 +60,8 @@ async def on_ready() -> None:
 	"""
 	Startup method. Fires whenever the Bot connects to the Gateway.
 
-	on_ready handles setting the Bot's status and avatar; if the Bot is
-	launched many times within a short period, you may be rate limited,
+	on_ready handles setting the Bot's avatar; if the Bot is launched
+	many times within a short period, you may be rate limited,
 	triggering an HTTPException.
 
 	The method also initializes sparPings to enable a 2-hour cooldown for the
@@ -69,15 +71,12 @@ async def on_ready() -> None:
 	"""
 	logging.info("Beardless Bot %s online!", __version__)
 
-	status = nextcord.Game(name="try !blackjack and !flip")
+	assert BeardlessBot.user is not None
 	try:
-		await BeardlessBot.change_presence(activity=status)
-		logging.info("Status updated!")
-		assert BeardlessBot.user is not None
 		async with aiofiles.open("resources/images/prof.png", "rb") as f:
 			await BeardlessBot.user.edit(avatar=await f.read())
 	except nextcord.HTTPException:
-		logging.exception("Failed to update avatar or status!")
+		logging.exception("Failed to update avatar!")
 	except FileNotFoundError:
 		logging.exception(
 			"Avatar file not found! Check your directory structure."
@@ -153,7 +152,7 @@ async def on_message_delete(
 		and (
 			(
 				hasattr(message.channel, "name")
-				and message.channel.name != "bb-log"
+				and message.channel.name != misc.LogChannelName
 			)
 			or message.content
 		)
@@ -306,6 +305,7 @@ async def on_thread_update(
 	emb = None
 	if channel := misc.getLogChannel(after.guild):
 		# TODO: log Thread.locked/unlocked
+		# https://github.com/LevBernstein/BeardlessBot/issues/45
 		if before.archived and not after.archived:
 			emb = logs.logThreadUnarchived(after)
 		elif after.archived and not before.archived:
@@ -322,10 +322,11 @@ async def on_thread_update(
 async def cmdFlip(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctxCreatedThread(ctx):
 		return -1
-	if bucks.activeGame(Games, ctx.author):
-		report = bucks.FinMsg.format(ctx.author.mention)
-	else:
-		report = bucks.flip(ctx.author, bet.lower())
+	report = (
+		bucks.FinMsg.format(ctx.author.mention)
+		if bucks.activeGame(Games, ctx.author)
+		else bucks.flip(ctx.author, bet.lower())
+	)
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Coin Flip", report))
 	return 1
 
@@ -690,6 +691,7 @@ async def cmdMute(
 	if mTime:
 		# autounmute(muteTarget, ctx, mTime, role, addendum)
 		# TODO: use on_close() to make mute times persist through restarts
+		# https://github.com/LevBernstein/BeardlessBot/issues/44
 		# Autounmute
 		logging.info(
 			"Muted %s/%i%s Muter: %s/%i. Guild: %s",
@@ -726,19 +728,21 @@ async def cmdUnmute(
 			converter = commands.MemberConverter()
 			try:
 				mutedMember = await converter.convert(ctx, target)
-				await mutedMember.remove_roles(role)
 			except commands.MemberNotFound as e:
 				misc.logException(e, ctx)
 				report = "Invalid target! Target must be a mention or user ID."
-			except nextcord.Forbidden as e:
-				misc.logException(e, ctx)
-				report = misc.HierarchyMsg
 			else:
-				report = f"Unmuted {mutedMember.mention}."
-				if channel := misc.getLogChannel(ctx.guild):
-					await channel.send(
-						embed=logs.logUnmute(mutedMember, ctx.author)
-					)
+				try:
+					await mutedMember.remove_roles(role)
+				except nextcord.Forbidden as e:
+					misc.logException(e, ctx)
+					report = misc.HierarchyMsg
+				else:
+					report = f"Unmuted {mutedMember.mention}."
+					if channel := misc.getLogChannel(ctx.guild):
+						await channel.send(
+							embed=logs.logUnmute(mutedMember, ctx.author)
+						)
 		else:
 			report = f"Invalid target, {ctx.author.mention}."
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Unmute", report))
@@ -819,12 +823,12 @@ async def cmdPins(ctx: misc.BotContext) -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild:
 		return -1
 	assert hasattr(ctx.channel, "name")
-	if ctx.channel.name == "looking-for-spar":
+	if ctx.channel.name == misc.SparChannelName:
 		await ctx.send(embed=misc.SparPinsEmbed)
 		return 1
 	await ctx.send(
 		embed=misc.bbEmbed(
-			"Try using !spar in the looking-for-spar channel."
+			f"Try using !spar in the {misc.SparChannelName} channel."
 		).add_field(
 			name="To spar someone from your region:",
 			value=misc.SparDesc,
@@ -842,8 +846,10 @@ async def cmdSpar(
 		return -1
 	author = ctx.author.mention
 	assert hasattr(ctx.channel, "name")
-	if ctx.channel.name != "looking-for-spar":
-		await ctx.send(f"Please only use !spar in looking-for-spar, {author}.")
+	if ctx.channel.name != misc.SparChannelName:
+		await ctx.send(
+			f"Please only use !spar in {misc.SparChannelName}, {author}."
+		)
 		return 0
 	if not region:
 		await ctx.send(embed=misc.SparPinsEmbed)
@@ -908,9 +914,7 @@ async def cmdBrawlclaim(ctx: misc.BotContext, profUrl: str = "None") -> int:
 
 
 @BeardlessBot.command(name="brawlrank")  # type: ignore[arg-type]
-async def cmdBrawlrank(
-	ctx: misc.BotContext, *, target: str = ""
-) -> int | None:
+async def cmdBrawlrank(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctxCreatedThread(ctx) or not ctx.guild or not BrawlKey:
 		return -1
 	# TODO: write valid target method; no need for this copy paste
@@ -922,14 +926,14 @@ async def cmdBrawlrank(
 	if rankTarget:
 		try:
 			emb = await brawl.getRank(rankTarget, BrawlKey)
-			await ctx.send(embed=emb)
 		except RequestError as e:
 			misc.logException(e, ctx)
 			report = brawl.RequestLimit
 		else:
-			return None
+			await ctx.send(embed=emb)
+			return 1
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Brawlhalla Rank", report))
-	return 1
+	return 0
 
 
 @BeardlessBot.command(name="brawlstats")  # type: ignore[arg-type]
@@ -943,11 +947,11 @@ async def cmdBrawlstats(ctx: misc.BotContext, *, target: str = "") -> int:
 	if statsTarget:
 		try:
 			emb = await brawl.getStats(statsTarget, BrawlKey)
-			await ctx.send(embed=emb)
 		except RequestError as e:
 			misc.logException(e, ctx)
 			report = brawl.RequestLimit
 		else:
+			await ctx.send(embed=emb)
 			return 1
 	await ctx.send(embed=misc.bbEmbed(
 		"Beardless Bot Brawlhalla Stats", report
@@ -966,20 +970,18 @@ async def cmdBrawlclan(ctx: misc.BotContext, *, target: str = "") -> int:
 	if clanTarget:
 		try:
 			emb = await brawl.getClan(clanTarget, BrawlKey)
-			await ctx.send(embed=emb)
 		except RequestError as e:
 			misc.logException(e, ctx)
 			report = brawl.RequestLimit
 		else:
+			await ctx.send(embed=emb)
 			return 1
 	await ctx.send(embed=misc.bbEmbed("Beardless Bot Brawlhalla Clan", report))
 	return 0
 
 
 @BeardlessBot.command(name="brawllegend")  # type: ignore[arg-type]
-async def cmdBrawllegend(
-	ctx: misc.BotContext, legend: str | None = None
-) -> int:
+async def cmdBrawllegend(ctx: misc.BotContext, legend: str = "") -> int:
 	if misc.ctxCreatedThread(ctx) or not BrawlKey:
 		return -1
 	report = (
@@ -1130,9 +1132,8 @@ def launch() -> None:
 	after that if you actually want them to fire.
 	"""
 	env = dotenv.dotenv_values(".env")
-
+	global BrawlKey  # noqa: PLW0603
 	try:
-		global BrawlKey  # noqa: PLW0603
 		BrawlKey = env["BRAWLKEY"]
 	except KeyError:
 		BrawlKey = None

@@ -23,6 +23,8 @@ Ok: Final[int] = 200
 BadRequest: Final[int] = 404
 BbColor: Final[int] = 0xFFF994
 BbId: Final[int] = 654133911558946837
+LogChannelName: Final[str] = "bb-log"
+SparChannelName: Final[str] = "looking-for-spar"
 TimeZone = ZoneInfo("America/New_York")
 
 ProfUrl = (
@@ -230,19 +232,19 @@ def memSearch(
 
 def getLogChannel(guild: nextcord.Guild) -> nextcord.TextChannel | None:
 	"""
-	bb-log channel lookup helper method.
+	LogChannelName channel lookup helper method.
 
-	Return the first TextChannel with the name of "bb-log" if one exists.
+	Return the first TextChannel with the name of LogChannelName if one exists.
 
 	Args:
 		guild (nextcord.Guild): The guild to search
 
 	Returns:
-		nextcord.TextChannel or None: The bb-log channel if it exists;
+		nextcord.TextChannel or None: The log channel if it exists;
 			else, None.
 
 	"""
-	channels = [c for c in guild.text_channels if c.name == "bb-log"]
+	channels = [c for c in guild.text_channels if c.name == LogChannelName]
 	return channels[0] if channels else None
 
 
@@ -498,8 +500,7 @@ def roll(text: str) -> tuple[int, int, str, bool, int] | None:
 def rollReport(
 	text: str, author: nextcord.User | nextcord.Member
 ) -> nextcord.Embed:
-	result = roll(text.lower())
-	if result is not None:
+	if (result := roll(text.lower())) is not None:
 		modifier = "" if result[3] else "+"
 		title = f"Rolling {result[1]}d{result[2]}{modifier}{result[4]}"
 		report = f"You got {result[0]}, {author.mention}."
@@ -514,7 +515,7 @@ def rollReport(
 
 def fact() -> str:
 	"""Get a random fun fact from facts.txt."""
-	with Path("resources/facts.txt").open("r") as f:
+	with Path("resources/facts.txt").open("r", encoding="UTF-8") as f:
 		return random.choice(f.read().splitlines())
 
 
@@ -797,7 +798,7 @@ async def deleteScamAndNotify(
 		f" in {message.channel.mention}.\nMessage content:\n{message.content}"
 	)
 	for channel in message.guild.text_channels:
-		if channel.name in {"infractions", "bb-log"}:
+		if channel.name in {"infractions", LogChannelName}:
 			await channel.send(scamReport)
 
 
@@ -819,12 +820,13 @@ def onJoin(guild: nextcord.Guild, role: nextcord.Role) -> nextcord.Embed:
 	description = (
 		f"Thanks for adding me to {guild.name}! There are a few things you"
 		" can do to unlock my full potential.\nIf you want event logging,"
-		" make a channel named #bb-log.\nIf you want a region-based sparring"
-		" system, make a channel named #looking-for-spar.\nIf you want"
-		" special color roles, purchasable with BeardlessBucks, create roles"
-		" named special red/blue/orange/pink.\nDon't forget to move my"
-		f" {role.mention} role up to the top of the role hierarchy in order"
-		" to allow me to moderate all users."
+		f" make a channel named #{LogChannelName}.\nIf you want a"
+		" region-based sparring system, make a channel named"
+		f" #{SparChannelName}.\nIf you want special color roles, purchasable"
+		" with BeardlessBucks, create roles named special"
+		f" red/blue/orange/pink.\nDon't forget to move my {role.mention} role"
+		" up to the top of the role hierarchy in order to allow me to"
+		" moderate all users."
 	)
 	return bbEmbed(
 		f"Hello, {guild.name}!", description
@@ -870,7 +872,9 @@ def tweet() -> str:
 		str: A fake eggsoup tweet.
 
 	"""
-	with Path("resources/eggtweets_clean.txt").open("r") as f:
+	with Path("resources/eggtweets_clean.txt").open(
+		"r", encoding="UTF-8"
+	) as f:
 		words = f.read().split()
 	chains: dict[str, list[str]] = {}
 	keySize = random.randint(1, 2)
@@ -930,6 +934,7 @@ async def processMuteTarget(
 	ctx: BotContext, target: str | None, bot: commands.Bot
 ) -> nextcord.Member | None:
 	# TODO: unit test
+	# https://github.com/LevBernstein/BeardlessBot/issues/47
 	assert hasattr(ctx.author, "guild_permissions")
 	if not ctx.author.guild_permissions.manage_messages:
 		await ctx.send(Naughty.format(ctx.author.mention))
@@ -998,8 +1003,6 @@ def getTarget(ctx: BotContext, target: str) -> TargetTypes:
 	"""
 	Parse the command context and the target arg for the most valid target.
 
-	TODO: refactor to call memSearch.
-
 	Args:
 		ctx (BotContext): The command invocation context
 		target (str): The user-provided argument pointing to a target
@@ -1010,6 +1013,7 @@ def getTarget(ctx: BotContext, target: str) -> TargetTypes:
 			user who is responsible for the invocation of the command.
 
 	"""
+	# TODO: refactor to call memSearch.
 	return (
 		ctx.message.mentions[0]
 		if ctx.message.mentions
@@ -1017,7 +1021,8 @@ def getTarget(ctx: BotContext, target: str) -> TargetTypes:
 	)
 
 
-# Stock embeds. TODO: convert these to methods
+# Stock embeds.
+# TODO: convert these to methods
 
 AdminPermsReasons = (
 	"Beardless Bot requires permissions in order to do just about anything."
