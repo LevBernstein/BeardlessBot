@@ -59,9 +59,7 @@ Greetings = (
 )
 
 BearRootUrl = "https://placebear.com/{}/{}"
-
 FrogRootUrl = "https://raw.githubusercontent.com/a9-i/frog/main/ImgSetOpt/"
-
 SealRootUrl = "https://focabot.github.io/random-seal/seals/{}.jpg"
 
 BotContext = commands.Context[commands.Bot]
@@ -76,7 +74,7 @@ MuteTimeConversion = {
 }
 
 
-def bbEmbed(
+def bb_embed(
 	name: str = "",
 	value: str = "",
 	col: int | nextcord.Color = BbColor,
@@ -108,7 +106,7 @@ def bbEmbed(
 	)
 
 
-def contCheck(message: nextcord.Message, offset: int = 0) -> str:
+def content_check(message: nextcord.Message, offset: int = 0) -> str:
 	"""
 	Check if a message contains any valid text content.
 
@@ -138,7 +136,7 @@ def contCheck(message: nextcord.Message, offset: int = 0) -> str:
 	return "**Embed**"
 
 
-def logException(e: Exception, ctx: BotContext) -> None:
+def log_exception(e: Exception, ctx: BotContext) -> None:
 	"""
 	Act as a wrapper for logging.error to help with debugging.
 
@@ -152,13 +150,13 @@ def logException(e: Exception, ctx: BotContext) -> None:
 		e,
 		ctx.invoked_with,
 		ctx.author,
-		contCheck(ctx.message),
+		content_check(ctx.message),
 		ctx.guild,
 		type(e),
 	)
 
 
-async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
+async def create_muted_role(guild: nextcord.Guild) -> nextcord.Role:
 	"""
 	Create a "Muted" role that prevents users from sending messages.
 
@@ -194,7 +192,7 @@ async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
 	return role
 
 
-def memSearch(
+def member_search(
 	message: nextcord.Message, target: str,
 ) -> nextcord.Member | None:
 	"""
@@ -230,7 +228,7 @@ def memSearch(
 	return semiMatch if semiMatch else looseMatch
 
 
-def getLogChannel(guild: nextcord.Guild) -> nextcord.TextChannel | None:
+def get_log_channel(guild: nextcord.Guild) -> nextcord.TextChannel | None:
 	"""
 	LogChannelName channel lookup helper method.
 
@@ -248,7 +246,7 @@ def getLogChannel(guild: nextcord.Guild) -> nextcord.TextChannel | None:
 	return channels[0] if channels else None
 
 
-def fetchAvatar(
+def fetch_avatar(
 	user: nextcord.Member | nextcord.User | nextcord.ClientUser,
 ) -> str:
 	"""
@@ -285,7 +283,7 @@ class AnimalException(httpx.RequestError):
 		super().__init__(f"Failed to call {animal.title()} Animal API")
 
 
-async def fetchAnimal(url: str, *args: str | int) -> str | None:
+async def fetch_animal(url: str, *args: str | int) -> str | None:
 	async with httpx.AsyncClient(timeout=10) as client:
 		r = await client.get(url)
 	if r.status_code == Ok:
@@ -298,7 +296,7 @@ async def fetchAnimal(url: str, *args: str | int) -> str | None:
 	return None
 
 
-async def getMoose() -> str:
+async def get_moose() -> str:
 	async with httpx.AsyncClient(timeout=10) as client:
 		r = await client.get("https://github.com/LevBernstein/moosePictures/")
 	if r.status_code == Ok:
@@ -317,16 +315,16 @@ async def getMoose() -> str:
 	raise AnimalException(animal="moose")
 
 
-async def getDog(breed: str | None = None) -> str:
+async def get_dog(breed: str | None = None) -> str:
 	if not breed:
 		if isinstance(
-			message := await fetchAnimal(
+			message := await fetch_animal(
 				"https://dog.ceo/api/breeds/image/random", "message",
 			), str,
 		):
 			return message
 	elif breed == "moose":
-		return await getMoose()
+		return await get_moose()
 	elif breed.startswith("breed"):
 		async with httpx.AsyncClient(timeout=10) as client:
 			r = await client.get("https://dog.ceo/api/breeds/list/all")
@@ -335,7 +333,7 @@ async def getDog(breed: str | None = None) -> str:
 				", ".join(dog for dog in r.json()["message"]),
 			)
 	elif breed.isalpha() and isinstance(
-		message := await fetchAnimal(
+		message := await fetch_animal(
 			f"https://dog.ceo/api/breed/{breed}/images/random", "message",
 		), str,
 	):
@@ -345,7 +343,7 @@ async def getDog(breed: str | None = None) -> str:
 	raise AnimalException(animal="dog")
 
 
-def getFrogList() -> list[str]:
+def get_frog_list() -> list[str]:
 	"""
 	Get a list of filenames of frog images.
 
@@ -374,10 +372,10 @@ def getFrogList() -> list[str]:
 	return [i["name"] for i in j["tree"]["items"]]
 
 
-FrogList = getFrogList()
+FrogList = get_frog_list()
 
 
-async def getAnimal(animalType: str) -> str:
+async def get_animal(animalType: str) -> str:
 	url: str | None = None
 
 	if animalType == "bear":
@@ -392,20 +390,20 @@ async def getAnimal(animalType: str) -> str:
 		url = SealRootUrl.format(str(random.randint(0, 83)).rjust(4, "0"))
 
 	elif animalType == "cat":
-		url = await fetchAnimal(
+		url = await fetch_animal(
 			"https://api.thecatapi.com/v1/images/search", 0, "url",
 		)
 
 	elif animalType in {"bunny", "rabbit"}:
-		url = await fetchAnimal(
+		url = await fetch_animal(
 			"https://api.bunnies.io/v2/loop/random/?media=gif", "media", "gif",
 		)
 
 	elif animalType == "fox":
-		url = await fetchAnimal("https://randomfox.ca/floof/", "image")
+		url = await fetch_animal("https://randomfox.ca/floof/", "image")
 
 	elif animalType in {"duck", "lizard"}:
-		url = await fetchAnimal(
+		url = await fetch_animal(
 			(
 				"https://random-d.uk/api/quack"
 				if animalType == "duck"
@@ -434,7 +432,7 @@ async def define(word: str) -> nextcord.Embed:
 			if p and "audio" in p[0] and p[0]["audio"]
 			else ""
 		)
-		emb = bbEmbed(j[0]["word"].upper(), desc)
+		emb = bb_embed(j[0]["word"].upper(), desc)
 		i = 0
 		for entry in j:
 			for meaning in entry["meanings"]:
@@ -446,8 +444,8 @@ async def define(word: str) -> nextcord.Embed:
 					)
 		return emb
 	if r.status_code == BadRequest:
-		return bbEmbed("Beardless Bot Definitions", "No results found.")
-	return bbEmbed(
+		return bb_embed("Beardless Bot Definitions", "No results found.")
+	return bb_embed(
 		"Beardless Bot Definitions",
 		"There was an error with the dictionary API. Please ping my creator.",
 	)
@@ -497,7 +495,7 @@ def roll(text: str) -> tuple[int, int, str, bool, int] | None:
 	return None
 
 
-def rollReport(
+def roll_report(
 	text: str, author: nextcord.User | nextcord.Member,
 ) -> nextcord.Embed:
 	if (result := roll(text.lower())) is not None:
@@ -510,7 +508,7 @@ def rollReport(
 			"Invalid roll. Enter d4, 6, 8, 10, 12, 20, or 100, as well as"
 			" number of dice and modifiers. No spaces allowed. Ex: !roll 2d4+3"
 		)
-	return bbEmbed(title, report)
+	return bb_embed(title, report)
 
 
 def fact() -> str:
@@ -519,14 +517,14 @@ def fact() -> str:
 		return random.choice(f.read().splitlines())
 
 
-def truncTime(member: nextcord.User | nextcord.Member) -> str:
+def truncate_time(member: nextcord.User | nextcord.Member) -> str:
 	return str(member.created_at)[:-10]
 
 
 def info(
 	target: nextcord.Member | str, msg: nextcord.Message,
 ) -> nextcord.Embed:
-	member = memSearch(msg, target) if isinstance(target, str) else target
+	member = member_search(msg, target) if isinstance(target, str) else target
 	if member and not isinstance(member, str):
 		# Discord occasionally reports people with an activity as
 		# not having one; if so, go invisible and back online
@@ -535,14 +533,15 @@ def info(
 			if member.activity and member.activity.name
 			else ""
 		)
-		emb = bbEmbed(
+		emb = bb_embed(
 			value=activity, col=member.color,
 		).set_author(
-			name=member, icon_url=fetchAvatar(member),
+			name=member, icon_url=fetch_avatar(member),
 		).set_thumbnail(
-			url=fetchAvatar(member),
+			url=fetch_avatar(member),
 		).add_field(
-			name="Registered for Discord on", value=truncTime(member) + " UTC",
+			name="Registered for Discord on",
+			value=truncate_time(member) + " UTC",
 		).add_field(
 			name="Joined this server on",
 			value=str(member.joined_at)[:-10] + " UTC",
@@ -569,19 +568,19 @@ def avatar(
 	if not msg.guild:
 		member = msg.author
 	elif isinstance(target, str):
-		member = memSearch(msg, target)
+		member = member_search(msg, target)
 	else:
 		member = target
 	if member and not isinstance(member, str):
-		return bbEmbed(
+		return bb_embed(
 			col=member.color,
-		).set_image(url=fetchAvatar(member)).set_author(
-			name=member, icon_url=fetchAvatar(member),
+		).set_image(url=fetch_avatar(member)).set_author(
+			name=member, icon_url=fetch_avatar(member),
 		)
 	return InvalidTargetEmbed
 
 
-def ctxCreatedThread(ctx: BotContext) -> bool:
+def ctx_created_thread(ctx: BotContext) -> bool:
 	"""
 	Check if a thread creation triggers a command.
 
@@ -625,7 +624,7 @@ class BbHelpCommand(commands.HelpCommand):
 			commands.Cog | None, list[commands.core.Command[Any, Any, Any]],
 		],
 	) -> int:
-		if ctxCreatedThread(self.context):
+		if ctx_created_thread(self.context):
 			return -1
 		if not self.context.guild:
 			commandNum = 15
@@ -697,7 +696,7 @@ class BbHelpCommand(commands.HelpCommand):
 			),
 			("!unmute [target]", "Unmutes the target."),
 		)
-		emb = bbEmbed("Beardless Bot Commands")
+		emb = bb_embed("Beardless Bot Commands")
 		for commandPair in commandList[:commandNum]:
 			emb.add_field(name=commandPair[0], value=commandPair[1])
 		await self.get_destination().send(  # type: ignore[no-untyped-call]
@@ -721,7 +720,7 @@ class BbHelpCommand(commands.HelpCommand):
 		logging.error("No command %s", error)
 
 
-def scamCheck(text: str) -> bool:
+def scam_check(text: str) -> bool:
 	"""
 	Check message content for common scam phrases.
 
@@ -756,9 +755,7 @@ def scamCheck(text: str) -> bool:
 	return ((suspiciousLink and keyWords) or bulkKeyWords) and not validGift
 
 
-async def deleteScamAndNotify(
-	message: nextcord.Message,
-) -> None:
+async def delete_scam_and_notify(message: nextcord.Message) -> None:
 	"""
 	Process a message that has been flagged as a scam.
 
@@ -777,7 +774,7 @@ async def deleteScamAndNotify(
 		message.guild.id,
 	)
 
-	role = await createMutedRole(message.guild)
+	role = await create_muted_role(message.guild)
 	assert not isinstance(message.author, nextcord.User)
 	await message.author.add_roles(role)
 
@@ -802,7 +799,7 @@ async def deleteScamAndNotify(
 			await channel.send(scamReport)
 
 
-def onJoin(guild: nextcord.Guild, role: nextcord.Role) -> nextcord.Embed:
+def on_join(guild: nextcord.Guild, role: nextcord.Role) -> nextcord.Embed:
 	"""
 	Send an explanatory message after joining a server.
 
@@ -828,7 +825,7 @@ def onJoin(guild: nextcord.Guild, role: nextcord.Role) -> nextcord.Embed:
 		" up to the top of the role hierarchy in order to allow me to"
 		" moderate all users."
 	)
-	return bbEmbed(
+	return bb_embed(
 		f"Hello, {guild.name}!", description,
 	).set_thumbnail(url=ProfUrl)
 
@@ -847,7 +844,7 @@ def search(searchterm: str = "") -> nextcord.Embed:
 		nextcord.Embed: An embed containing a link to the search results.
 
 	"""
-	return bbEmbed(
+	return bb_embed(
 		"Search Results",
 		"https://www.google.com/search?q=" + quote_plus(searchterm),
 	).set_thumbnail(url=ProfUrl)
@@ -893,7 +890,7 @@ def tweet() -> str:
 	return s[0].title() + s[1:]
 
 
-def formattedTweet(eggTweet: str) -> str:
+def format_tweet(eggTweet: str) -> str:
 	"""
 	Remove the last piece of punctuation to create a more realistic tweet.
 
@@ -910,7 +907,7 @@ def formattedTweet(eggTweet: str) -> str:
 	return "\n" + eggTweet
 
 
-def getLastNumericChar(duration: str) -> int:
+def get_last_numeric_char(duration: str) -> int:
 	"""
 	Find the last numeric character in a string. For use in Bot.cmdMute.
 
@@ -930,7 +927,7 @@ def getLastNumericChar(duration: str) -> int:
 	return len(duration)
 
 
-async def processMuteTarget(
+async def process_mute_target(
 	ctx: BotContext, target: str | None, bot: commands.Bot,
 ) -> nextcord.Member | None:
 	# TODO: unit test
@@ -945,7 +942,7 @@ async def processMuteTarget(
 	try:
 		muteTarget = await commands.MemberConverter().convert(ctx, target)
 	except commands.MemberNotFound:
-		await ctx.send(embed=bbEmbed(
+		await ctx.send(embed=bb_embed(
 			"Beardless Bot Mute",
 			"Invalid target! Target must be a mention or user ID.",
 		))
@@ -956,7 +953,7 @@ async def processMuteTarget(
 	return muteTarget
 
 
-def processMuteDuration(
+def process_mute_duration(
 	duration: str | None, additional: str,
 ) -> tuple[str | None, str, float | None]:
 	"""
@@ -983,7 +980,7 @@ def processMuteDuration(
 	mTime = None
 	if duration:
 		duration = duration.lower()
-		if (lastNumeric := getLastNumericChar(duration)) != 0:
+		if (lastNumeric := get_last_numeric_char(duration)) != 0:
 			unit = duration[lastNumeric:]
 			for key, value in MuteTimeConversion.items():
 				# Check for first char, whole word, plural
@@ -999,7 +996,7 @@ def processMuteDuration(
 	return duration, additional.strip(), mTime
 
 
-def getTarget(ctx: BotContext, target: str) -> TargetTypes:
+def get_target(ctx: BotContext, target: str) -> TargetTypes:
 	"""
 	Parse the command context and the target arg for the most valid target.
 
@@ -1013,7 +1010,7 @@ def getTarget(ctx: BotContext, target: str) -> TargetTypes:
 			user who is responsible for the invocation of the command.
 
 	"""
-	# TODO: refactor to call memSearch.
+	# TODO: refactor to call member_search.
 	return (
 		ctx.message.mentions[0]
 		if ctx.message.mentions
@@ -1021,7 +1018,7 @@ def getTarget(ctx: BotContext, target: str) -> TargetTypes:
 	)
 
 
-# Stock embeds.
+# Static embeds.
 # TODO: convert these to methods
 
 AdminPermsReasons = (
@@ -1032,7 +1029,7 @@ AdminPermsReasons = (
 	" to contact my creator, captainnobeard."
 )
 
-NoPermsEmbed = bbEmbed(
+NoPermsEmbed = bb_embed(
 	"I need admin perms!", AdminPermsReasons, 0xFF0000,
 ).set_author(name="Beardless Bot", icon_url=ProfUrl)
 
@@ -1041,7 +1038,7 @@ AddUrl = (
 	f"{BbId}&permissions=8&scope=bot)"
 )
 
-Invite_Embed = bbEmbed(
+Invite_Embed = bb_embed(
 	"Want to add this bot to your server?", "[Click this link!]" + AddUrl,
 ).set_thumbnail(url=ProfUrl).add_field(
 	name="If you like Beardless Bot...",
@@ -1058,7 +1055,7 @@ SparDesc = (
 	"\nPlease use the roles channel to give yourself the correct roles."
 )
 
-SparPinsEmbed = bbEmbed("How to use this channel.").add_field(
+SparPinsEmbed = bb_embed("How to use this channel.").add_field(
 	name="To spar someone from your region:", value=SparDesc, inline=False,
 ).add_field(
 	name="If you don't want to get pings:",
@@ -1067,14 +1064,14 @@ SparPinsEmbed = bbEmbed("How to use this channel.").add_field(
 	" spar is annoying and counterproductive, and will earn you a warning.",
 )
 
-EggRedditEmbed = bbEmbed(
+EggRedditEmbed = bb_embed(
 	"The Official Eggsoup Subreddit", "https://www.reddit.com/r/eggsoup/",
 ).set_thumbnail(url=(
 	"https://b.thumbs.redditmedia.com/xJ1-nJJ"
 	"zHopKe25_bMxKgePiT3HWADjtxioxlku7qcM.png"
 ))
 
-InvalidTargetEmbed = bbEmbed(
+InvalidTargetEmbed = bb_embed(
 	"Invalid target!",
 	(
 		"Please choose a valid target. Valid targets"
