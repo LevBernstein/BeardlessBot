@@ -83,7 +83,7 @@ class BlackjackGame:
 	def __init__(
 		self,
 		user: nextcord.User | nextcord.Member,
-		bet: int
+		bet: int,
 	) -> None:
 		"""
 		Create a new BlackjackGame instance.
@@ -111,7 +111,7 @@ class BlackjackGame:
 		"""Return the human-friendly name of a card based on int value."""
 		if card == BlackjackGame.FaceVal:
 			return "a " + random.choice(
-				(str(BlackjackGame.FaceVal), "Jack", "Queen", "King")
+				(str(BlackjackGame.FaceVal), "Jack", "Queen", "King"),
 			)
 		if card == BlackjackGame.AceVal:
 			return "an Ace"
@@ -122,7 +122,7 @@ class BlackjackGame:
 		return sum(self.hand) == BlackjackGame.Goal
 
 	def startingHand(
-		self, *, debugBlackjack: bool = False, debugDoubleAces: bool = False
+		self, *, debugBlackjack: bool = False, debugDoubleAces: bool = False,
 	) -> str:
 		"""
 		Deal the user a starting hand of 2 cards.
@@ -245,7 +245,7 @@ class BlackjackGame:
 			)
 			self.bet *= -1
 		self.message = self.message.format(
-			self.dealerSum, sum(self.hand), self.user.mention
+			self.dealerSum, sum(self.hand), self.user.mention,
 		)
 		if not self.bet:
 			self.message += (
@@ -269,7 +269,7 @@ def writeMoney(
 	amount: str | int,
 	*,
 	writing: bool,
-	adding: bool
+	adding: bool,
 ) -> tuple[MoneyFlags, str | int | None]:
 	"""
 	Check or modify a user's BeardlessBucks balance.
@@ -287,16 +287,14 @@ def writeMoney(
 
 	"""
 	if "," in member.name:
-		return (
-			MoneyFlags.CommaInUsername, CommaWarn.format(member.mention)
-		)
+		return MoneyFlags.CommaInUsername, CommaWarn.format(member.mention)
 	with Path("resources/money.csv").open("r", encoding="UTF-8") as csvfile:
 		for row in csv.reader(csvfile, delimiter=","):
 			if str(member.id) == row[0]:  # found member
 				if isinstance(amount, str):  # for people betting all
 					amount = -int(row[1]) if amount == "-all" else int(row[1])
 				newBank: str | int = str(
-					int(row[1]) + amount if adding else amount
+					int(row[1]) + amount if adding else amount,
 				)
 				if writing and row[1] != newBank:
 					if int(row[1]) + amount < 0:
@@ -310,11 +308,11 @@ def writeMoney(
 					newBank = int(row[1])
 					result = MoneyFlags.BalanceUnchanged
 				with Path("resources/money.csv").open(
-					"r", encoding="UTF-8"
+					"r", encoding="UTF-8",
 				) as f:
 					money = "".join(list(f)).replace(",".join(row), newLine)
 				with Path("resources/money.csv").open(
-					"w", encoding="UTF-8"
+					"w", encoding="UTF-8",
 				) as f:
 					f.writelines(money)
 				return result, newBank
@@ -326,7 +324,7 @@ def writeMoney(
 		(
 			"Successfully registered. You have 300"
 			f" BeardlessBucks, {member.mention}."
-		)
+		),
 	)
 
 
@@ -343,7 +341,7 @@ def register(target: nextcord.User | nextcord.Member) -> nextcord.Embed:
 	"""
 	result, bonus = writeMoney(target, 300, writing=False, adding=False)
 	report = bonus if result in {
-		MoneyFlags.CommaInUsername, MoneyFlags.Registered
+		MoneyFlags.CommaInUsername, MoneyFlags.Registered,
 	} else (
 		"You are already in the system! Hooray! You"
 		f" have {bonus} BeardlessBucks, {target.mention}."
@@ -354,7 +352,7 @@ def register(target: nextcord.User | nextcord.Member) -> nextcord.Embed:
 
 def balance(
 	target: nextcord.User | nextcord.Member | str,
-	msg: nextcord.Message
+	msg: nextcord.Message,
 ) -> nextcord.Embed:
 	"""
 	Check a user's BeardlessBucks balance.
@@ -382,7 +380,7 @@ def balance(
 			)
 		else:
 			report = str(bonus) if result in {
-				MoneyFlags.CommaInUsername, MoneyFlags.Registered
+				MoneyFlags.CommaInUsername, MoneyFlags.Registered,
 			} else "Error!"
 	return bbEmbed("BeardlessBucks Balance", report)
 
@@ -400,18 +398,15 @@ def reset(target: nextcord.User | nextcord.Member) -> nextcord.Embed:
 	"""
 	result, bonus = writeMoney(target, 200, writing=True, adding=False)
 	report = bonus if result in {
-		MoneyFlags.CommaInUsername, MoneyFlags.Registered
-	} else (
-		"You have been reset to 200"
-		f" BeardlessBucks, {target.mention}."
-	)
+		MoneyFlags.CommaInUsername, MoneyFlags.Registered,
+	} else f"You have been reset to 200 BeardlessBucks, {target.mention}."
 	assert isinstance(report, str)
 	return bbEmbed("BeardlessBucks Reset", report)
 
 
 def leaderboard(
 	target: nextcord.User | nextcord.Member | str | None = None,
-	msg: nextcord.Message | None = None
+	msg: nextcord.Message | None = None,
 ) -> nextcord.Embed:
 	"""
 	Find the top min(len(money.csv), 10) users by balance in money.csv.
@@ -458,7 +453,7 @@ def leaderboard(
 			i != min(len(sortedDict), 10) - 1
 		)
 		emb.add_field(
-			name=f"{i + 1}. {head.split("#")[0]}", value=body, inline=lastEntry
+			name=f"{i + 1}. {head.split("#")[0]}", value=body, inline=lastEntry,
 		)
 	if target and pos:
 		assert not isinstance(target, str)
@@ -525,7 +520,7 @@ def flip(author: nextcord.User | nextcord.Member, bet: str | int) -> str:
 
 
 def blackjack(
-	author: nextcord.User | nextcord.Member, bet: str | int
+	author: nextcord.User | nextcord.Member, bet: str | int,
 ) -> tuple[str, BlackjackGame | None]:
 	"""
 	Gamble a certain number of BeardlessBucks on blackjack.
@@ -578,7 +573,7 @@ def blackjack(
 
 
 def activeGame(
-	games: list[BlackjackGame], author: nextcord.User | nextcord.Member
+	games: list[BlackjackGame], author: nextcord.User | nextcord.Member,
 ) -> BlackjackGame | None:
 	"""
 	Check if a user has an active game of Blackjack.

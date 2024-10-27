@@ -33,7 +33,7 @@ ProfUrl = (
 )
 
 AnimalList = (
-	"cat", "duck", "fox", "seal", "rabbit", "lizard", "frog", "bear"
+	"cat", "duck", "fox", "seal", "rabbit", "lizard", "frog", "bear",
 )
 
 HierarchyMsg = (
@@ -55,7 +55,7 @@ Greetings = (
 	"How's it goin'?",
 	"Greetings!",
 	"Howdy!",
-	"G'day!"
+	"G'day!",
 )
 
 BearRootUrl = "https://placebear.com/{}/{}"
@@ -72,7 +72,7 @@ MuteTimeConversion = {
 	"day": 86400.0,
 	"hour": 3600.0,
 	"minute": 60.0,
-	"second": 1.0
+	"second": 1.0,
 }
 
 
@@ -81,7 +81,7 @@ def bbEmbed(
 	value: str = "",
 	col: int | nextcord.Color = BbColor,
 	*,
-	showTime: bool = False
+	showTime: bool = False,
 ) -> nextcord.Embed:
 	"""
 	nextcord.Embed wrapper.
@@ -104,7 +104,7 @@ def bbEmbed(
 		title=name,
 		description=value,
 		color=col,
-		timestamp=datetime.now(TimeZone) if showTime else None
+		timestamp=datetime.now(TimeZone) if showTime else None,
 	)
 
 
@@ -131,7 +131,7 @@ def contCheck(message: nextcord.Message, offset: int = 0) -> str:
 	"""
 	if message.content:
 		if len(message.content) > max(
-			min(MaxMsgLength - offset, MaxMsgLength), 0
+			min(MaxMsgLength - offset, MaxMsgLength), 0,
 		):
 			return f"**Message length exceeds {MaxMsgLength} characters.**"
 		return message.content
@@ -154,7 +154,7 @@ def logException(e: Exception, ctx: BotContext) -> None:
 		ctx.author,
 		contCheck(ctx.message),
 		ctx.guild,
-		type(e)
+		type(e),
 	)
 
 
@@ -181,21 +181,21 @@ async def createMutedRole(guild: nextcord.Guild) -> nextcord.Role:
 		permissions=nextcord.Permissions(
 			send_messages=False,
 			read_messages=True,
-			send_messages_in_threads=False
+			send_messages_in_threads=False,
 		),
-		reason="BB Muted Role"
+		reason="BB Muted Role",
 	)
 	for channel in guild.channels:
 		await channel.set_permissions(
 			role,
 			overwrite=overwrite,
-			reason="Preventing Muted users from chatting in this channel"
+			reason="Preventing Muted users from chatting in this channel",
 		)
 	return role
 
 
 def memSearch(
-	message: nextcord.Message, target: str
+	message: nextcord.Message, target: str,
 ) -> nextcord.Member | None:
 	"""
 	User lookup helper method.
@@ -249,7 +249,7 @@ def getLogChannel(guild: nextcord.Guild) -> nextcord.TextChannel | None:
 
 
 def fetchAvatar(
-	user: nextcord.Member | nextcord.User | nextcord.ClientUser
+	user: nextcord.Member | nextcord.User | nextcord.ClientUser,
 ) -> str:
 	"""
 	Pull a given user's avatar url.
@@ -307,7 +307,7 @@ async def getMoose() -> str:
 			tuple(
 				m for m in soup.stripped_strings
 				if m.startswith("moose") and m.endswith(".jpg")
-			)
+			),
 		)
 
 		return (
@@ -321,8 +321,8 @@ async def getDog(breed: str | None = None) -> str:
 	if not breed:
 		if isinstance(
 			message := await fetchAnimal(
-				"https://dog.ceo/api/breeds/image/random", "message"
-			), str
+				"https://dog.ceo/api/breeds/image/random", "message",
+			), str,
 		):
 			return message
 	elif breed == "moose":
@@ -332,12 +332,12 @@ async def getDog(breed: str | None = None) -> str:
 			r = await client.get("https://dog.ceo/api/breeds/list/all")
 		if r.status_code == Ok:
 			return "Dog breeds: {}.".format(
-				", ".join(dog for dog in r.json()["message"])
+				", ".join(dog for dog in r.json()["message"]),
 			)
 	elif breed.isalpha() and isinstance(
 		message := await fetchAnimal(
-			f"https://dog.ceo/api/breed/{breed}/images/random", "message"
-		), str
+			f"https://dog.ceo/api/breed/{breed}/images/random", "message",
+		), str,
 	):
 		return message
 	else:
@@ -362,14 +362,14 @@ def getFrogList() -> list[str]:
 
 	"""
 	r = requests.get(
-		"https://github.com/a9-i/frog/tree/main/ImgSetOpt", timeout=10
+		"https://github.com/a9-i/frog/tree/main/ImgSetOpt", timeout=10,
 	)
 	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 	try:
 		j = loads(soup.findAll("script")[-1].text)["payload"]
 	except KeyError:
 		j = loads(
-			soup.findAll("script")[-2].text.replace("\\", "\\\\")
+			soup.findAll("script")[-2].text.replace("\\", "\\\\"),
 		)["payload"]
 	return [i["name"] for i in j["tree"]["items"]]
 
@@ -382,7 +382,7 @@ async def getAnimal(animalType: str) -> str:
 
 	if animalType == "bear":
 		url = BearRootUrl.format(
-			random.randint(200, 400), random.randint(200, 400)
+			random.randint(200, 400), random.randint(200, 400),
 		)
 
 	elif animalType == "frog":
@@ -393,12 +393,12 @@ async def getAnimal(animalType: str) -> str:
 
 	elif animalType == "cat":
 		url = await fetchAnimal(
-			"https://api.thecatapi.com/v1/images/search", 0, "url"
+			"https://api.thecatapi.com/v1/images/search", 0, "url",
 		)
 
 	elif animalType in {"bunny", "rabbit"}:
 		url = await fetchAnimal(
-			"https://api.bunnies.io/v2/loop/random/?media=gif", "media", "gif"
+			"https://api.bunnies.io/v2/loop/random/?media=gif", "media", "gif",
 		)
 
 	elif animalType == "fox":
@@ -410,7 +410,7 @@ async def getAnimal(animalType: str) -> str:
 				"https://random-d.uk/api/quack"
 				if animalType == "duck"
 				else "https://nekos.life/api/v2/img/lizard"
-			), "url"
+			), "url",
 		)
 
 	else:
@@ -424,7 +424,7 @@ async def getAnimal(animalType: str) -> str:
 async def define(word: str) -> nextcord.Embed:
 	async with httpx.AsyncClient(timeout=10) as client:
 		r = await client.get(
-			"https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word
+			"https://api.dictionaryapi.dev/api/v2/entries/en_US/" + word,
 		)
 	if r.status_code == Ok:
 		j = r.json()
@@ -442,14 +442,14 @@ async def define(word: str) -> nextcord.Embed:
 					i += 1
 					emb.add_field(
 						name=f"Definition {i}:",
-						value=definition["definition"]
+						value=definition["definition"],
 					)
 		return emb
 	if r.status_code == BadRequest:
 		return bbEmbed("Beardless Bot Definitions", "No results found.")
 	return bbEmbed(
 		"Beardless Bot Definitions",
-		"There was an error with the dictionary API. Please ping my creator."
+		"There was an error with the dictionary API. Please ping my creator.",
 	)
 
 
@@ -498,7 +498,7 @@ def roll(text: str) -> tuple[int, int, str, bool, int] | None:
 
 
 def rollReport(
-	text: str, author: nextcord.User | nextcord.Member
+	text: str, author: nextcord.User | nextcord.Member,
 ) -> nextcord.Embed:
 	if (result := roll(text.lower())) is not None:
 		modifier = "" if result[3] else "+"
@@ -524,7 +524,7 @@ def truncTime(member: nextcord.User | nextcord.Member) -> str:
 
 
 def info(
-	target: nextcord.Member | str, msg: nextcord.Message
+	target: nextcord.Member | str, msg: nextcord.Message,
 ) -> nextcord.Embed:
 	member = memSearch(msg, target) if isinstance(target, str) else target
 	if member and not isinstance(member, str):
@@ -536,16 +536,16 @@ def info(
 			else ""
 		)
 		emb = bbEmbed(
-			value=activity, col=member.color
+			value=activity, col=member.color,
 		).set_author(
-			name=member, icon_url=fetchAvatar(member)
+			name=member, icon_url=fetchAvatar(member),
 		).set_thumbnail(
-			url=fetchAvatar(member)
+			url=fetchAvatar(member),
 		).add_field(
-			name="Registered for Discord on", value=truncTime(member) + " UTC"
+			name="Registered for Discord on", value=truncTime(member) + " UTC",
 		).add_field(
 			name="Joined this server on",
-			value=str(member.joined_at)[:-10] + " UTC"
+			value=str(member.joined_at)[:-10] + " UTC",
 		)
 		if len(member.roles) > 1:
 			# Every user has the "@everyone" role, so check
@@ -553,7 +553,7 @@ def info(
 			emb.add_field(
 				name="Roles",
 				value=", ".join(role.mention for role in member.roles[:0:-1]),
-				inline=False
+				inline=False,
 			)
 			# Reverse member.roles in order to make them
 			# display in decreasing order of power
@@ -563,7 +563,7 @@ def info(
 
 
 def avatar(
-	target: nextcord.User | nextcord.Member | str, msg: nextcord.Message
+	target: nextcord.User | nextcord.Member | str, msg: nextcord.Message,
 ) -> nextcord.Embed:
 	member: nextcord.User | nextcord.Member | str | None
 	if not msg.guild:
@@ -574,9 +574,9 @@ def avatar(
 		member = target
 	if member and not isinstance(member, str):
 		return bbEmbed(
-			col=member.color
+			col=member.color,
 		).set_image(url=fetchAvatar(member)).set_author(
-			name=member, icon_url=fetchAvatar(member)
+			name=member, icon_url=fetchAvatar(member),
 		)
 	return InvalidTargetEmbed
 
@@ -599,7 +599,7 @@ def ctxCreatedThread(ctx: BotContext) -> bool:
 	"""
 	return ctx.message.type in {
 		nextcord.MessageType.thread_created,
-		nextcord.MessageType.channel_name_change
+		nextcord.MessageType.channel_name_change,
 	}
 
 
@@ -622,8 +622,8 @@ class BbHelpCommand(commands.HelpCommand):
 	async def send_bot_help(
 		self,
 		_: Mapping[
-			commands.Cog | None, list[commands.core.Command[Any, Any, Any]]
-		]
+			commands.Cog | None, list[commands.core.Command[Any, Any, Any]],
+		],
 	) -> int:
 		if ctxCreatedThread(self.context):
 			return -1
@@ -641,11 +641,11 @@ class BbHelpCommand(commands.HelpCommand):
 			(
 				"!balance [user/username]",
 				"Display a user's balance. Write just !av"
-				" if you want to see your own balance."
+				" if you want to see your own balance.",
 			),
 			(
 				"!bucks",
-				"Shows you an explanation for how BeardlessBucks work."
+				"Shows you an explanation for how BeardlessBucks work.",
 			),
 			("!reset", "Resets you to 200 BeardlessBucks."),
 			("!fact", "Gives you a random fun fact."),
@@ -653,55 +653,55 @@ class BbHelpCommand(commands.HelpCommand):
 			(
 				"!flip [bet]",
 				"Bets a certain amount on flipping a coin. Heads"
-				" you win, tails you lose. Defaults to 10."
+				" you win, tails you lose. Defaults to 10.",
 			),
 			(
 				"!blackjack [bet]",
 				"Starts up a game of blackjack. Once you're in a"
-				" game, you can use !hit and !stay to play."
+				" game, you can use !hit and !stay to play.",
 			),
 			(
 				"!roll [count]d[num][+/-][mod]",
 				"Rolls [count] [num]-sided dice and adds or subtracts [mod]."
-				" Example: !roll d8, or !roll d100-17, or !roll 4d6+3."
+				" Example: !roll d8, or !roll d100-17, or !roll 4d6+3.",
 			),
 			("!brawl", "Displays Beardless Bot's Brawlhalla commands."),
 			("!add", "Gives you a link to add this bot to your server."),
 			(
 				"!av [user/username]",
 				"Display a user's avatar. Write just !av"
-				" if you want to see your own avatar."
+				" if you want to see your own avatar.",
 			),
 			(
 				"![animal name]",
 				"Gets a random animal picture. See the"
-				" list of animals with !animals."
+				" list of animals with !animals.",
 			),
 			("!define [word]", "Shows you the definition(s) of a word."),
 			("!ping", "Checks Beardless Bot's latency."),
 			(
 				"!buy red/blue/pink/orange",
 				"Removes 50k BeardlessBucks and"
-				" grants you a special color role."
+				" grants you a special color role.",
 			),
 			(
 				"!info [user/username]",
 				"Displays general information about a user."
-				" Write just !info to see your own info."
+				" Write just !info to see your own info.",
 			),
 			("!purge [number]", "Mass-deletes messages."),
 			(
 				"!mute [target] [duration]",
 				"Mutes someone for an amount of time."
-				" Accepts either seconds, minutes, or hours."
+				" Accepts either seconds, minutes, or hours.",
 			),
-			("!unmute [target]", "Unmutes the target.")
+			("!unmute [target]", "Unmutes the target."),
 		)
 		emb = bbEmbed("Beardless Bot Commands")
 		for commandPair in commandList[:commandNum]:
 			emb.add_field(name=commandPair[0], value=commandPair[1])
 		await self.get_destination().send(  # type: ignore[no-untyped-call]
-			embed=emb
+			embed=emb,
 		)
 		return 1
 
@@ -735,8 +735,8 @@ def scamCheck(text: str) -> bool:
 	msg = text.lower()
 	suspiciousLink = bool(
 		re.compile(
-			r"^.*https?://d\w\wc\wr(\wn\wtr\w\.\w{2,5}|(d|t)\.\w{2,4}).*"
-		).match(msg)
+			r"^.*https?://d\w\wc\wr(\wn\wtr\w\.\w{2,5}|(d|t)\.\w{2,4}).*",
+		).match(msg),
 	)
 	keyWords = bool(re.compile(r"^.*(nitro|gift|@everyone).*").match(msg))
 	bulkKeyWords = all((
@@ -748,8 +748,8 @@ def scamCheck(text: str) -> bool:
 			"airdrop" in msg,
 			"gift" in msg,
 			"left over" in msg,
-			"discocl" in msg
-		))
+			"discocl" in msg,
+		)),
 	))
 	validGift = bool(re.compile(r"^.*https://discord.gift/.*").match(msg))
 
@@ -757,7 +757,7 @@ def scamCheck(text: str) -> bool:
 
 
 async def deleteScamAndNotify(
-	message: nextcord.Message
+	message: nextcord.Message,
 ) -> None:
 	"""
 	Process a message that has been flagged as a scam.
@@ -774,7 +774,7 @@ async def deleteScamAndNotify(
 	logging.info(
 		"Possible nitro scam detected in %s/%i",
 		message.guild.name,
-		message.guild.id
+		message.guild.id,
 	)
 
 	role = await createMutedRole(message.guild)
@@ -783,13 +783,13 @@ async def deleteScamAndNotify(
 
 	await message.delete()
 	await message.channel.send(
-		"**Deleted possible nitro scam link. Alerting mods.**"
+		"**Deleted possible nitro scam link. Alerting mods.**",
 	)
 	await message.author.send(
 		"This is an automated message. You have sent a message that has been"
 		f" identified as containing a scam nitro link in **{message.guild}**."
 		" Your account may have been compromised. Please take the appropriate"
-		" measures and be sure to reach out to an admin if you need help."
+		" measures and be sure to reach out to an admin if you need help.",
 	)
 
 	assert hasattr(message.channel, "mention")
@@ -829,7 +829,7 @@ def onJoin(guild: nextcord.Guild, role: nextcord.Role) -> nextcord.Embed:
 		" moderate all users."
 	)
 	return bbEmbed(
-		f"Hello, {guild.name}!", description
+		f"Hello, {guild.name}!", description,
 	).set_thumbnail(url=ProfUrl)
 
 
@@ -849,7 +849,7 @@ def search(searchterm: str = "") -> nextcord.Embed:
 	"""
 	return bbEmbed(
 		"Search Results",
-		"https://www.google.com/search?q=" + quote_plus(searchterm)
+		"https://www.google.com/search?q=" + quote_plus(searchterm),
 	).set_thumbnail(url=ProfUrl)
 
 
@@ -873,7 +873,7 @@ def tweet() -> str:
 
 	"""
 	with Path("resources/eggtweets_clean.txt").open(
-		"r", encoding="UTF-8"
+		"r", encoding="UTF-8",
 	) as f:
 		words = f.read().split()
 	chains: dict[str, list[str]] = {}
@@ -931,7 +931,7 @@ def getLastNumericChar(duration: str) -> int:
 
 
 async def processMuteTarget(
-	ctx: BotContext, target: str | None, bot: commands.Bot
+	ctx: BotContext, target: str | None, bot: commands.Bot,
 ) -> nextcord.Member | None:
 	# TODO: unit test
 	# https://github.com/LevBernstein/BeardlessBot/issues/47
@@ -947,7 +947,7 @@ async def processMuteTarget(
 	except commands.MemberNotFound:
 		await ctx.send(embed=bbEmbed(
 			"Beardless Bot Mute",
-			"Invalid target! Target must be a mention or user ID."
+			"Invalid target! Target must be a mention or user ID.",
 		))
 		return None
 	if bot.user is not None and muteTarget.id == bot.user.id:
@@ -957,7 +957,7 @@ async def processMuteTarget(
 
 
 def processMuteDuration(
-	duration: str | None, additional: str
+	duration: str | None, additional: str,
 ) -> tuple[str | None, str, float | None]:
 	"""
 	Process user-provided mute input.
@@ -1033,7 +1033,7 @@ AdminPermsReasons = (
 )
 
 NoPermsEmbed = bbEmbed(
-	"I need admin perms!", AdminPermsReasons, 0xFF0000
+	"I need admin perms!", AdminPermsReasons, 0xFF0000,
 ).set_author(name="Beardless Bot", icon_url=ProfUrl)
 
 AddUrl = (
@@ -1042,11 +1042,11 @@ AddUrl = (
 )
 
 Invite_Embed = bbEmbed(
-	"Want to add this bot to your server?", "[Click this link!]" + AddUrl
+	"Want to add this bot to your server?", "[Click this link!]" + AddUrl,
 ).set_thumbnail(url=ProfUrl).add_field(
 	name="If you like Beardless Bot...",
 	inline=False,
-	value=f"Please leave a review on [top.gg](https://top.gg/bot/{BbId})."
+	value=f"Please leave a review on [top.gg](https://top.gg/bot/{BbId}).",
 )
 
 SparDesc = (
@@ -1059,16 +1059,16 @@ SparDesc = (
 )
 
 SparPinsEmbed = bbEmbed("How to use this channel.").add_field(
-	name="To spar someone from your region:", value=SparDesc, inline=False
+	name="To spar someone from your region:", value=SparDesc, inline=False,
 ).add_field(
 	name="If you don't want to get pings:",
 	inline=False,
 	value="Remove your region role. Otherwise, responding 'no' to calls to"
-	" spar is annoying and counterproductive, and will earn you a warning."
+	" spar is annoying and counterproductive, and will earn you a warning.",
 )
 
 EggRedditEmbed = bbEmbed(
-	"The Official Eggsoup Subreddit", "https://www.reddit.com/r/eggsoup/"
+	"The Official Eggsoup Subreddit", "https://www.reddit.com/r/eggsoup/",
 ).set_thumbnail(url=(
 	"https://b.thumbs.redditmedia.com/xJ1-nJJ"
 	"zHopKe25_bMxKgePiT3HWADjtxioxlku7qcM.png"
@@ -1080,5 +1080,5 @@ InvalidTargetEmbed = bbEmbed(
 		"Please choose a valid target. Valid targets"
 		" are either a ping or a username."
 	),
-	0xFF0000
+	0xFF0000,
 )

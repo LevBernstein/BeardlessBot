@@ -10,9 +10,9 @@ Originally created for use in eggsoup's Discord server.
 If you just want to add the bot to your own Discord
 server while I host it, you can simply
 [click this link](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot),
-then skip down to [Setup](#setup).
-If you want to run your own instance of Beardless Bot,
-follow the steps outlined directly below in [Installation](#installation).
+then skip down to [Setup](#setup). If you want to run your own instance of
+Beardless Bot, follow the steps outlined directly below in
+[Installation](#installation).
 
 
 ## Installation
@@ -36,8 +36,9 @@ token you get from [here](https://discord.com/developers/applications).
 API. If you don't have [an API key](https://dev.brawlhalla.com/), those
 commands will simply be disabled; the Bot will work fine. If you do have an
 API key, place it in .env as `BRAWLKEY=yourkey`. If you want to fork this repo
-and have Brawlhalla commands covered by unit tests, you'll need to define a
-repository secret with the name BRAWLKEY. For more information, see
+and have Brawlhalla commands covered by unit tests in the CI/CD pipeline,
+you'll need to define a repository secret with the name BRAWLKEY. For more
+information, see
 [this guide](https://docs.github.com/en/actions/reference/encrypted-secrets).
 
 5. Run `python3 Bot.py` to start the bot.
@@ -49,7 +50,7 @@ repository secret with the name BRAWLKEY. For more information, see
 
 * To use Beardless Bot's event logging, create a channel named bb-log.
 
-* To use special colors, create roles named special red,
+* To use purchasable special colors, create roles named special red,
 special blue, special pink, and special orange.
 
 
