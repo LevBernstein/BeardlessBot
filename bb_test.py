@@ -2710,6 +2710,7 @@ async def test_search_valid(searchterm: str) -> None:
 	)
 	assert await Bot.cmd_search(ctx, searchterm=searchterm) == 1
 	url = (await ch.history().next()).embeds[0].description
+	assert isinstance(url, str)
 	async with httpx.AsyncClient(timeout=10) as client:
 		r = await client.get(url)
 	assert response_ok(r)
@@ -2727,6 +2728,7 @@ async def test_search_empty_argument_redirects_to_home() -> None:
 	)
 	assert await Bot.cmd_search(ctx, searchterm="") == 1
 	url = (await ch.history().next()).embeds[0].description
+	assert isinstance(url, str)
 	async with httpx.AsyncClient(timeout=10) as client:
 		r = await client.get(url, follow_redirects=True)
 	assert response_ok(r)
