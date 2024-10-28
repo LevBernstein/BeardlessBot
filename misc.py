@@ -79,7 +79,7 @@ def bb_embed(
 	value: str = "",
 	col: int | nextcord.Color = BbColor,
 	*,
-	showTime: bool = False,
+	show_time: bool = False,
 ) -> nextcord.Embed:
 	"""
 	nextcord.Embed wrapper.
@@ -91,7 +91,7 @@ def bb_embed(
 		name (str): The title of the Embed (default is "")
 		value (str): The description of the Embed (default is "")
 		col (int | nextcord.Color): The color of the Embed (default is BbColor)
-		showTime (bool): Whether to display the timestamp at the time of
+		show_time (bool): Whether to display the timestamp at the time of
 			the Embed's creation (default is False)
 
 	Returns:
@@ -102,7 +102,7 @@ def bb_embed(
 		title=name,
 		description=value,
 		color=col,
-		timestamp=datetime.now(TimeZone) if showTime else None,
+		timestamp=datetime.now(TimeZone) if show_time else None,
 	)
 
 
@@ -375,48 +375,48 @@ def get_frog_list() -> list[str]:
 FrogList = get_frog_list()
 
 
-async def get_animal(animalType: str) -> str:
+async def get_animal(animal_type: str) -> str:
 	url: str | None = None
 
-	if animalType == "bear":
+	if animal_type == "bear":
 		url = BearRootUrl.format(
 			random.randint(200, 400), random.randint(200, 400),
 		)
 
-	elif animalType == "frog":
+	elif animal_type == "frog":
 		url = FrogRootUrl + random.choice(FrogList)
 
-	elif animalType == "seal":
+	elif animal_type == "seal":
 		url = SealRootUrl.format(str(random.randint(0, 83)).rjust(4, "0"))
 
-	elif animalType == "cat":
+	elif animal_type == "cat":
 		url = await fetch_animal(
 			"https://api.thecatapi.com/v1/images/search", 0, "url",
 		)
 
-	elif animalType in {"bunny", "rabbit"}:
+	elif animal_type in {"bunny", "rabbit"}:
 		url = await fetch_animal(
 			"https://api.bunnies.io/v2/loop/random/?media=gif", "media", "gif",
 		)
 
-	elif animalType == "fox":
+	elif animal_type == "fox":
 		url = await fetch_animal("https://randomfox.ca/floof/", "image")
 
-	elif animalType in {"duck", "lizard"}:
+	elif animal_type in {"duck", "lizard"}:
 		url = await fetch_animal(
 			(
 				"https://random-d.uk/api/quack"
-				if animalType == "duck"
+				if animal_type == "duck"
 				else "https://nekos.life/api/v2/img/lizard"
 			), "url",
 		)
 
 	else:
-		raise ValueError("Invalid Animal: " + animalType)
+		raise ValueError("Invalid Animal: " + animal_type)
 
 	if isinstance(url, str):
 		return url
-	raise AnimalException(animal=animalType)
+	raise AnimalException(animal=animal_type)
 
 
 async def define(word: str) -> nextcord.Embed:
@@ -890,21 +890,21 @@ def tweet() -> str:
 	return s[0].title() + s[1:]
 
 
-def format_tweet(eggTweet: str) -> str:
+def format_tweet(egg_tweet: str) -> str:
 	"""
 	Remove the last piece of punctuation to create a more realistic tweet.
 
 	Args:
-		eggTweet (str): The tweet to format
+		egg_tweet (str): The tweet to format
 
 	Returns:
 		str: The formatted tweet.
 
 	"""
-	for i in range(len(eggTweet) - 1, -1, -1):
-		if eggTweet[i] in {".", "!", "?"}:
-			return "\n" + eggTweet[:i]
-	return "\n" + eggTweet
+	for i in range(len(egg_tweet) - 1, -1, -1):
+		if egg_tweet[i] in {".", "!", "?"}:
+			return "\n" + egg_tweet[:i]
+	return "\n" + egg_tweet
 
 
 def get_last_numeric_char(duration: str) -> int:

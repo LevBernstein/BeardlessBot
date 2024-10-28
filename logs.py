@@ -22,7 +22,7 @@ def log_delete_msg(message: nextcord.Message) -> nextcord.Embed:
 	return bb_embed(
 		value=f"{prefix}{content_check(message, len(prefix))}",
 		col=0xFF0000,
-		showTime=True,
+		show_time=True,
 	).set_author(name=message.author, icon_url=fetch_avatar(message.author))
 
 
@@ -30,11 +30,11 @@ def log_purge(
 	msg: nextcord.Message, messages: Sequence[nextcord.Message],
 ) -> nextcord.Embed:
 
-	def purge_report(msgList: Sequence[nextcord.Message]) -> str:
+	def purge_report(msg_list: Sequence[nextcord.Message]) -> str:
 		return (
 			f"{MaxPurgedMsgs}+"
-			if len(msgList) > MaxPurgedMsgs
-			else str(len(msgList) - 1)
+			if len(msg_list) > MaxPurgedMsgs
+			else str(len(msg_list) - 1)
 		)
 
 	assert hasattr(msg.channel, "mention")
@@ -42,7 +42,7 @@ def log_purge(
 		"",
 		f"Purged {purge_report(messages)} messages in {msg.channel.mention}.",
 		0xFF0000,
-		showTime=True,
+		show_time=True,
 	).set_author(name="Purge!", icon_url=ProfUrl)
 
 
@@ -56,7 +56,7 @@ def log_edit_msg(
 		f"Messaged edited by {before.author.mention}"
 		f" in {before.channel.mention}.",
 		0xFFFF00,
-		showTime=True,
+		show_time=True,
 	).set_author(
 		name=before.author, icon_url=fetch_avatar(before.author),
 	).add_field(
@@ -78,7 +78,7 @@ def log_clear_reacts(
 		f"Reactions cleared from message sent by {message.author.mention}"
 		f" in {message.channel.mention}.",
 		0xFF0000,
-		showTime=True,
+		show_time=True,
 	).set_author(
 		name=message.author, icon_url=fetch_avatar(message.author),
 	).add_field(
@@ -91,13 +91,13 @@ def log_clear_reacts(
 
 def log_delete_channel(channel: nextcord.abc.GuildChannel) -> nextcord.Embed:
 	return bb_embed(
-		"", f"Channel \"{channel.name}\" deleted.", 0xFF0000, showTime=True,
+		"", f"Channel \"{channel.name}\" deleted.", 0xFF0000, show_time=True,
 	).set_author(name="Channel deleted", icon_url=ProfUrl)
 
 
 def log_create_channel(channel: nextcord.abc.GuildChannel) -> nextcord.Embed:
 	return bb_embed(
-		"", f"Channel \"{channel.name}\" created.", 0x00FF00, showTime=True,
+		"", f"Channel \"{channel.name}\" created.", 0x00FF00, show_time=True,
 	).set_author(name="Channel created", icon_url=ProfUrl)
 
 
@@ -107,7 +107,7 @@ def log_member_join(member: nextcord.Member) -> nextcord.Embed:
 		f"Member {member.mention} joined\nAccount registered"
 		f" on {truncate_time(member)}\nID: {member.id}",
 		0x0000FF,
-		showTime=True,
+		show_time=True,
 	).set_author(
 		name=f"{member} joined the server", icon_url=fetch_avatar(member),
 	)
@@ -117,7 +117,7 @@ def log_member_remove(member: nextcord.Member) -> nextcord.Embed:
 	emb = bb_embed(
 		value=f"Member {member.mention} left\nID: {member.id}",
 		col=0xFF0000,
-		showTime=True,
+		show_time=True,
 	).set_author(
 		name=f"{member} left the server", icon_url=fetch_avatar(member),
 	)
@@ -133,7 +133,7 @@ def log_member_nick_change(
 	before: nextcord.Member, after: nextcord.Member,
 ) -> nextcord.Embed:
 	return bb_embed(
-		"", f"Nickname of {after.mention} changed.", 0xFFFF00, showTime=True,
+		"", f"Nickname of {after.mention} changed.", 0xFFFF00, show_time=True,
 	).set_author(
 		name=after, icon_url=fetch_avatar(after),
 	).add_field(
@@ -153,7 +153,7 @@ def log_member_roles_change(
 	return bb_embed(
 		value=f"Role {role.mention} {verb} {after.mention}.",
 		col=color,
-		showTime=True,
+		show_time=True,
 	).set_author(name=after, icon_url=fetch_avatar(after))
 
 
@@ -161,7 +161,7 @@ def log_ban(member: nextcord.Member) -> nextcord.Embed:
 	return bb_embed(
 		value=f"Member {member.mention} banned\n{member.name}",
 		col=0xFF0000,
-		showTime=True,
+		show_time=True,
 	).set_author(
 		name="Member banned", icon_url=fetch_avatar(member),
 	).set_thumbnail(url=fetch_avatar(member))
@@ -171,7 +171,7 @@ def log_unban(member: nextcord.Member) -> nextcord.Embed:
 	return bb_embed(
 		value=f"Member {member.mention} unbanned\n{member.name}",
 		col=0x00FF00,
-		showTime=True,
+		show_time=True,
 	).set_author(
 		name="Member unbanned", icon_url=fetch_avatar(member),
 	).set_thumbnail(url=fetch_avatar(member))
@@ -186,7 +186,7 @@ def log_mute(
 		"Beardless Bot Mute",
 		f"Muted {member.mention}{mid} in {message.channel.mention}.",
 		0xFF0000,
-		showTime=True,
+		show_time=True,
 	).set_author(name=message.author, icon_url=fetch_avatar(message.author))
 
 
@@ -197,7 +197,7 @@ def log_unmute(
 		"Beardless Bot Mute",
 		f"Unmuted {member.mention}.",
 		0x00FF00,
-		showTime=True,
+		show_time=True,
 	).set_author(name=author, icon_url=fetch_avatar(author))
 
 
@@ -208,23 +208,23 @@ def log_create_thread(thread: nextcord.Thread) -> nextcord.Embed:
 		f"Thread \"{thread.name}\" created in"
 		f" parent channel {thread.parent.mention}.",
 		0x00FF00,
-		showTime=True,
+		show_time=True,
 	).set_author(name="Thread created", icon_url=ProfUrl)
 
 
 def log_delete_thread(thread: nextcord.Thread) -> nextcord.Embed:
 	return bb_embed(
-		"", f"Thread \"{thread.name}\" deleted.", 0xFF0000, showTime=True,
+		"", f"Thread \"{thread.name}\" deleted.", 0xFF0000, show_time=True,
 	).set_author(name="Thread deleted", icon_url=ProfUrl)
 
 
 def log_thread_archived(thread: nextcord.Thread) -> nextcord.Embed:
 	return bb_embed(
-		"", f"Thread \"{thread.name}\" archived.", 0xFFFF00, showTime=True,
+		"", f"Thread \"{thread.name}\" archived.", 0xFFFF00, show_time=True,
 	).set_author(name="Thread archived", icon_url=ProfUrl)
 
 
 def log_thread_unarchived(thread: nextcord.Thread) -> nextcord.Embed:
 	return bb_embed(
-		"", f"Thread \"{thread.name}\" unarchived.", 0xFFFF00, showTime=True,
+		"", f"Thread \"{thread.name}\" unarchived.", 0xFFFF00, show_time=True,
 	).set_author(name="Thread unarchived", icon_url=ProfUrl)

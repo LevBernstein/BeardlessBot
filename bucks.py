@@ -53,7 +53,7 @@ class BlackjackGame:
 	Methods:
 		perfect():
 			Checks if the user has reached a Blackjack
-		startingHand(debugBlackjack=False, debugDoubleAces=False):
+		startingHand(debug_blackjack=False, debug_double_aces=False):
 			Deals the user a starting hand of 2 cards
 		deal(debug=False):
 			Deals the user a card
@@ -116,14 +116,15 @@ class BlackjackGame:
 		return sum(self.hand) == BlackjackGame.Goal
 
 	def starting_hand(
-		self, *, debugBlackjack: bool = False, debugDoubleAces: bool = False,
+		self, *, debug_blackjack: bool = False, debug_double_aces: bool = False,
 	) -> str:
 		"""
 		Deal the user a starting hand of 2 cards.
 
 		Args:
-			debugBlackjack (bool): Used to test hitting Goal (default is False)
-			debugDoubleAces (bool): Used to test dealing two Aces
+			debug_blackjack (bool): Used to test hitting Goal
+				(default is False)
+			debug_double_aces (bool): Used to test dealing two Aces
 				(default is False)
 
 		Returns:
@@ -138,7 +139,7 @@ class BlackjackGame:
 			f" and {BlackjackGame.card_name(self.hand[1])}."
 			f" Your total is {sum(self.hand)}. "
 		)
-		if (self.perfect() or debugBlackjack) and not debugDoubleAces:
+		if (self.perfect() or debug_blackjack) and not debug_double_aces:
 			message += (
 				f"You hit {BlackjackGame.Goal}! You win, {self.user.mention}!"
 			)
@@ -147,7 +148,7 @@ class BlackjackGame:
 				f"The dealer is showing {self.dealerUp},"
 				" with one card face down. "
 			)
-			if self.check_bust() or debugDoubleAces:
+			if self.check_bust() or debug_double_aces:
 				self.hand[1] = 1
 				self.bet *= -1
 				message = (

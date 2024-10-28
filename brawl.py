@@ -106,19 +106,19 @@ def ping_msg(target: str, h: int, m: int, s: int) -> str:
 	)
 
 
-async def random_brawl(ranType: str, brawlKey: str | None = None) -> Embed:
-	if ranType == "legend":
+async def random_brawl(ran_type: str, brawl_key: str | None = None) -> Embed:
+	if ran_type == "legend":
 		legends = tuple(
 			legend["legend_name_key"].title() for legend in fetch_legends()
 		)
-		if brawlKey:
-			emb = await legend_info(brawlKey, random.choice(legends).lower())
+		if brawl_key:
+			emb = await legend_info(brawl_key, random.choice(legends).lower())
 			assert isinstance(emb, Embed)
 			return emb
 		return bb_embed(
 			"Random Legend", f"Your legend is {random.choice(legends)}.",
 		)
-	if ranType == "weapon":
+	if ran_type == "weapon":
 		weapon = random.choice([i["name"] for i in Data["weapons"]["nodes"]])
 		assert isinstance(weapon, str)
 		return bb_embed(
@@ -129,18 +129,18 @@ async def random_brawl(ranType: str, brawlKey: str | None = None) -> Embed:
 	)
 
 
-def claim_profile(discordId: int, brawlId: int) -> None:
+def claim_profile(user_id: int, brawl_id: int) -> None:
 	with Path("resources/claimedProfs.json").open("r", encoding="UTF-8") as f:
 		profs = json.load(f)
-	profs[str(discordId)] = brawlId
+	profs[str(user_id)] = brawl_id
 	with Path("resources/claimedProfs.json").open("w", encoding="UTF-8") as g:
 		json.dump(profs, g, indent=4)
 
 
-def fetch_brawl_id(discordId: int) -> int | None:
+def fetch_brawl_id(user_id: int) -> int | None:
 	with Path("resources/claimedProfs.json").open("r", encoding="UTF-8") as f:
 		for key, value in json.load(f).items():
-			if key == str(discordId):
+			if key == str(user_id):
 				assert isinstance(value, int)
 				return value
 	return None
@@ -154,9 +154,9 @@ def fetch_legends() -> list[dict[str, str]]:
 
 
 async def brawl_api_call(
-	route: str, arg: str | int, brawlKey: str, amp: str = "?",
+	route: str, arg: str | int, brawl_key: str, amp: str = "?",
 ) -> dict[str, Any] | list[dict[str, str | int]]:
-	url = f"https://api.brawlhalla.com/{route}{arg}{amp}api_key={brawlKey}"
+	url = f"https://api.brawlhalla.com/{route}{arg}{amp}api_key={brawl_key}"
 	async with httpx.AsyncClient(timeout=10) as client:
 		r = await client.get(url)
 	if r.status_code != Ok:
@@ -166,13 +166,13 @@ async def brawl_api_call(
 	return j
 
 
-async def get_brawl_id(brawlKey: str, profileUrl: str) -> int | None:
+async def get_brawl_id(brawl_key: str, url: str) -> int | None:
 	if (
-		not isinstance(profileUrl, str)
-		or not (steamId := SteamID.from_url(profileUrl))
+		not isinstance(url, str)
+		or not (steamId := SteamID.from_url(url))
 	):
 		return None
-	response = await brawl_api_call("search?steamid=", steamId, brawlKey, "&")
+	response = await brawl_api_call("search?steamid=", steamId, brawl_key, "&")
 	if not isinstance(response, dict):
 		return None
 	brawlId = response["brawlhalla_id"]
@@ -180,46 +180,46 @@ async def get_brawl_id(brawlKey: str, profileUrl: str) -> int | None:
 	return brawlId
 
 
-async def pull_legends(brawlKey: str) -> None:
+async def pull_legends(brawl_key: str) -> None:
 	# run whenever a new legend is released
 	async with aiofiles.open(
 		"resources/legends.json", "w", encoding="UTF-8",
 	) as f:
-		j = await brawl_api_call("legend/", "all/", brawlKey)
+		j = await brawl_api_call("legend/", "all/", brawl_key)
 		assert isinstance(j, list)
 		await f.write(json.dumps(j, indent=4))
 
 
-def get_legend_picture(legendName: str) -> str:
+def get_legend_picture(legend_name: str) -> str:
 	# TODO: unit test
 	# https://github.com/LevBernstein/BeardlessBot/issues/47
-	if legendName == "redraptor":
-		legendName = "red-raptor"
-	legend = [i for i in Data["legends"]["nodes"] if i["slug"] == legendName]
+	if legend_name == "redraptor":
+		legend_name = "red-raptor"
+	legend = [i for i in Data["legends"]["nodes"] if i["slug"] == legend_name]
 	assert isinstance(legend[0]["legendFields"], dict)
 	icon = legend[0]["legendFields"]["icon"]
 	assert isinstance(icon, dict)
 	return icon["sourceUrl"]
 
 
-def get_weapon_picture(weaponName: str) -> str:
+def get_weapon_picture(weapon_name: str) -> str:
 	# TODO: unit test
 	# https://github.com/LevBernstein/BeardlessBot/issues/47
-	weapon = [i for i in Data["weapons"]["nodes"] if i["name"] == weaponName]
+	weapon = [i for i in Data["weapons"]["nodes"] if i["name"] == weapon_name]
 	assert isinstance(weapon[0]["weaponFields"], dict)
 	icon = weapon[0]["weaponFields"]["icon"]
 	assert isinstance(icon, dict)
 	return icon["sourceUrl"]
 
 
-async def legend_info(brawlKey: str, legendName: str) -> Embed | None:
-	if legendName == "hugin":
-		legendName = "munin"
+async def legend_info(brawl_key: str, legend_name: str) -> Embed | None:
+	if legend_name == "hugin":
+		legend_name = "munin"
 	for legend in fetch_legends():
 		assert isinstance(legend["legend_name_key"], str)
-		if legendName in legend["legend_name_key"]:
+		if legend_name in legend["legend_name_key"]:
 			r = await brawl_api_call(
-				"legend/", str(legend["legend_id"]) + "/", brawlKey,
+				"legend/", str(legend["legend_id"]) + "/", brawl_key,
 			)
 			assert isinstance(r, dict)
 
@@ -323,13 +323,13 @@ def get_twos_rank(emb: Embed, r: dict[str, Any]) -> Embed:
 	return emb
 
 
-async def get_rank(target: Member | User, brawlKey: str) -> Embed:
+async def get_rank(target: Member | User, brawl_key: str) -> Embed:
 	if not (brawlId := fetch_brawl_id(target.id)):
 		return bb_embed(
 			"Beardless Bot Brawlhalla Rank",
 			UnclaimedMsg.format(target.mention),
 		)
-	r = await brawl_api_call("player/", str(brawlId) + "/ranked", brawlKey)
+	r = await brawl_api_call("player/", str(brawlId) + "/ranked", brawl_key)
 	assert isinstance(r, dict)
 	if not r or (
 		("games" in r and r["games"] == 0)
@@ -406,15 +406,15 @@ def get_top_legend_stats(
 	return mostUsed, topWinrate, topDps, lowestTtk
 
 
-async def get_stats(target: Member | User, brawlKey: str) -> Embed:
+async def get_stats(target: Member | User, brawl_key: str) -> Embed:
 	if not (brawlId := fetch_brawl_id(target.id)):
 		return bb_embed(
 			"Beardless Bot Brawlhalla Stats",
 			UnclaimedMsg.format(target.mention),
 		)
-	if not (
-		r := await brawl_api_call("player/", str(brawlId) + "/stats", brawlKey)
-	):
+	if not (r := await brawl_api_call(
+		"player/", str(brawlId) + "/stats", brawl_key,
+	)):
 		noStats = (
 			"This profile doesn't have stats associated with it."
 			" Please make sure you've claimed the correct profile."
@@ -454,7 +454,7 @@ async def get_stats(target: Member | User, brawlKey: str) -> Embed:
 	return emb
 
 
-async def get_clan(target: Member | User, brawlKey: str) -> Embed:
+async def get_clan(target: Member | User, brawl_key: str) -> Embed:
 	if not (brawlId := fetch_brawl_id(target.id)):
 		return bb_embed(
 			"Beardless Bot Brawlhalla Clan",
@@ -464,13 +464,15 @@ async def get_clan(target: Member | User, brawlKey: str) -> Embed:
 	# one to get clan from clan ID. As a result, this command is very slow.
 	# TODO: Try to find a way around this.
 	# https://github.com/LevBernstein/BeardlessBot/issues/14
-	r = await brawl_api_call("player/", str(brawlId) + "/stats", brawlKey)
+	r = await brawl_api_call("player/", str(brawlId) + "/stats", brawl_key)
 	assert isinstance(r, dict)
 	if "clan" not in r:
 		return bb_embed(
 			"Beardless Bot Brawlhalla Clan", "You are not in a clan!",
 		)
-	r = await brawl_api_call("clan/", str(r["clan"]["clan_id"]) + "/", brawlKey)
+	r = await brawl_api_call(
+		"clan/", str(r["clan"]["clan_id"]) + "/", brawl_key,
+	)
 	assert isinstance(r, dict)
 	emb = bb_embed(
 		r["clan_name"],

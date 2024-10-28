@@ -69,7 +69,7 @@ To run Beardless Bot's suite of unit tests, do `bash unitTests.sh`. This will
 also generate a coverage badge. To run an individual test--for instance, the
 Muted role creation test--use the pytest command, like so:
 `pytest -v bb_test.py::test_createMutedRole`. To run the suite of code quality
-tests, do `pytest -vk quality`.
+tests, do `pytest -vvk quality`.
 
 
 ## License

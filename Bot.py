@@ -31,7 +31,7 @@ with Path("README.MD").open("r", encoding="UTF-8") as readme:
 SparPings: dict[int, dict[str, int]] = {}
 
 # This array stores the active instances of blackjack.
-Games: list[bucks.BlackjackGame] = []
+BlackjackGames: list[bucks.BlackjackGame] = []
 
 # Replace OwnerId with your Discord user id
 OwnerId: Final[int] = 196354892208537600
@@ -53,6 +53,9 @@ BrawlKey: str | None = None
 RoleColors = {
 	"blue": 0x3C9EFD, "pink": 0xD300FF, "orange": 0xFAAA24, "red": 0xF5123D,
 }
+
+
+# Setup:
 
 
 @BeardlessBot.event
@@ -139,7 +142,7 @@ async def on_guild_join(guild: nextcord.Guild) -> None:
 		logging.info("Left %s.", guild.name)
 
 
-# Event logging
+# Event logging:
 
 
 @BeardlessBot.event
@@ -324,7 +327,7 @@ async def cmd_flip(ctx: misc.BotContext, bet: str = "10") -> int:
 		return -1
 	report = (
 		bucks.FinMsg.format(ctx.author.mention)
-		if bucks.active_game(Games, ctx.author)
+		if bucks.active_game(BlackjackGames, ctx.author)
 		else bucks.flip(ctx.author, bet.lower())
 	)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Coin Flip", report))
@@ -337,12 +340,12 @@ async def cmd_flip(ctx: misc.BotContext, bet: str = "10") -> int:
 async def cmd_blackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
-	if bucks.active_game(Games, ctx.author):
+	if bucks.active_game(BlackjackGames, ctx.author):
 		report = bucks.FinMsg.format(ctx.author.mention)
 	else:
 		report, game = bucks.blackjack(ctx.author, bet)
 		if game:
-			Games.append(game)
+			BlackjackGames.append(game)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
@@ -355,14 +358,14 @@ async def cmd_deal(ctx: misc.BotContext) -> int:
 		report = bucks.CommaWarn.format(ctx.author.mention)
 	else:
 		report = bucks.NoGameMsg.format(ctx.author.mention)
-		if game := bucks.active_game(Games, ctx.author):
+		if game := bucks.active_game(BlackjackGames, ctx.author):
 			report = game.deal()
 			if game.check_bust() or game.perfect():
 				game.check_bust()
 				bucks.write_money(
 					ctx.author, game.bet, writing=True, adding=True,
 				)
-				Games.remove(game)
+				BlackjackGames.remove(game)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
@@ -377,7 +380,7 @@ async def cmd_stay(ctx: misc.BotContext) -> int:
 		report = bucks.CommaWarn.format(ctx.author.mention)
 	else:
 		report = bucks.NoGameMsg.format(ctx.author.mention)
-		if game := bucks.active_game(Games, ctx.author):
+		if game := bucks.active_game(BlackjackGames, ctx.author):
 			result = game.stay()
 			report = game.message
 			if result and game.bet:
@@ -387,7 +390,7 @@ async def cmd_stay(ctx: misc.BotContext) -> int:
 				if written == bucks.MoneyFlags.CommaInUsername:
 					assert isinstance(bonus, str)
 					report = bonus
-			Games.remove(game)
+			BlackjackGames.remove(game)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
@@ -526,11 +529,11 @@ async def cmd_rohan(ctx: misc.BotContext) -> int:
 
 @BeardlessBot.command(name="random")  # type: ignore[arg-type]
 async def cmd_random_brawl(
-	ctx: misc.BotContext, ranType: str = "None",
+	ctx: misc.BotContext, ran_type: str = "None",
 ) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
-	emb = await brawl.random_brawl(ranType.lower(), BrawlKey)
+	emb = await brawl.random_brawl(ran_type.lower(), BrawlKey)
 	await ctx.send(embed=emb)
 	return 1
 
@@ -902,13 +905,13 @@ async def cmd_brawl(ctx: misc.BotContext) -> int:
 
 
 @BeardlessBot.command(name="brawlclaim")  # type: ignore[arg-type]
-async def cmd_brawlclaim(ctx: misc.BotContext, profUrl: str = "None") -> int:
+async def cmd_brawlclaim(ctx: misc.BotContext, url_or_id: str = "None") -> int:
 	if misc.ctx_created_thread(ctx) or not BrawlKey:
 		return -1
 	brawlId = (
-		int(profUrl)
-		if profUrl.isnumeric()
-		else await brawl.get_brawl_id(BrawlKey, profUrl)
+		int(url_or_id)
+		if url_or_id.isnumeric()
+		else await brawl.get_brawl_id(BrawlKey, url_or_id)
 	)
 	if brawlId is not None:
 		brawl.claim_profile(ctx.author.id, brawlId)
@@ -1063,6 +1066,9 @@ async def cmd_search(ctx: misc.BotContext, *, searchterm: str = "") -> int:
 	return 1
 
 
+# Listeners:
+
+
 @BeardlessBot.listen()
 async def on_command_error(
 	ctx: misc.BotContext, e: commands.errors.CommandError,
@@ -1125,6 +1131,9 @@ async def handle_messages(message: nextcord.Message) -> int:
 		return -1
 
 	return 1
+
+
+# Main:
 
 
 def launch() -> None:
