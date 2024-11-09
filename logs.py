@@ -50,7 +50,7 @@ def log_edit_msg(
 	before: nextcord.Message, after: nextcord.Message,
 ) -> nextcord.Embed:
 	assert hasattr(before.channel, "mention")
-	addendum = f"\n[Jump to Message]({after.jump_url})"
+	jump_link = f"\n[Jump to Message]({after.jump_url})"
 	return bb_embed(
 		"",
 		f"Messaged edited by {before.author.mention}"
@@ -63,7 +63,7 @@ def log_edit_msg(
 		name="Before:", value=content_check(before, 7), inline=False,
 	).add_field(
 		name="After:",
-		value=f"{content_check(after, len(addendum))}{addendum}",
+		value=f"{content_check(after, len(jump_link))}{jump_link}",
 		inline=False,
 	)
 
@@ -72,7 +72,7 @@ def log_clear_reacts(
 	message: nextcord.Message, reactions: list[nextcord.Reaction],
 ) -> nextcord.Embed:
 	assert hasattr(message.channel, "mention")
-	jumpLink = f"\n[Jump to Message]({message.jump_url})"
+	jump_link = f"\n[Jump to Message]({message.jump_url})"
 	return bb_embed(
 		"",
 		f"Reactions cleared from message sent by {message.author.mention}"
@@ -83,7 +83,7 @@ def log_clear_reacts(
 		name=message.author, icon_url=fetch_avatar(message.author),
 	).add_field(
 		name="Message content:",
-		value=content_check(message, len(jumpLink)) + jumpLink,
+		value=content_check(message, len(jump_link)) + jump_link,
 	).add_field(
 		name="Reactions:", value=", ".join(str(r) for r in reactions),
 	)

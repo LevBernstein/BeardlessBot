@@ -211,21 +211,22 @@ def member_search(
 
 	"""
 	term = str(target).lower()
-	semiMatch = looseMatch = None
+	match = loose_match = None
 	assert message.guild is not None
 	for member in message.guild.members:
 		if term == str(member).lower() or term == str(member.id):
+			# Exact match
 			return member
 		if term == member.name.lower():
 			if "#" not in term:
 				return member
-			semiMatch = member
+			match = member
 		if (
-			(member.nick and term == member.nick.lower() and not semiMatch)
-			or (not (semiMatch or looseMatch) and term in member.name.lower())
+			(member.nick and term == member.nick.lower() and not match)
+			or (not (match or loose_match) and term in member.name.lower())
 		):
-			looseMatch = member
-	return semiMatch if semiMatch else looseMatch
+			loose_match = member
+	return match or loose_match
 
 
 def get_log_channel(guild: nextcord.Guild) -> nextcord.TextChannel | None:
@@ -473,25 +474,37 @@ def roll(text: str) -> tuple[int, int, str, bool, int] | None:
 			by rollReport().
 
 	"""
-	diceNum: str | int
+	number_of_dice: str | int
 	try:
-		diceNum, command = text.split("d", 1)
+		number_of_dice, command = text.split("d", 1)
 	except (IndexError, ValueError):
 		return None
-	diceNum = abs(int(diceNum)) if diceNum.replace("-", "").isnumeric() else 1
-	diceNum = min(diceNum, 999)
-	validSides = {"4", "6", "8", "100", "10", "12", "20"}
-	if (side := command.split("-")[0].split("+")[0]) in validSides:
+	number_of_dice = (
+		abs(int(number_of_dice))
+		if number_of_dice.replace("-", "").isnumeric()
+		else 1
+	)
+	number_of_dice = min(number_of_dice, 999)
+	valid_sides = {"4", "6", "8", "100", "10", "12", "20"}
+	if (side := command.split("-")[0].split("+")[0]) in valid_sides:
 		if (
 			command != side
 			and command[len(side)] in {"+", "-"}
 			and (bonus := command[1 + len(side):]).isnumeric()
 		):
-			b = (-1 if "-" in command else 1) * min(int(bonus), 999999)
+			modifier = (-1 if "-" in command else 1) * min(int(bonus), 999999)
 		else:
-			b = 0
-		diceSum = sum(random.randint(1, int(side)) for i in range(diceNum))
-		return diceSum + b, diceNum, side, "-" in command, b
+			modifier = 0
+		dice_sum = sum(
+			random.randint(1, int(side)) for i in range(number_of_dice)
+		)
+		return (
+			dice_sum + modifier,
+			number_of_dice,
+			side,
+			"-" in command,
+			modifier,
+		)
 	return None
 
 
@@ -620,22 +633,22 @@ class BbHelpCommand(commands.HelpCommand):
 	@override
 	async def send_bot_help(
 		self,
-		_: Mapping[
+		_mapping: Mapping[
 			commands.Cog | None, list[commands.core.Command[Any, Any, Any]],
 		],
 	) -> int:
 		if ctx_created_thread(self.context):
 			return -1
 		if not self.context.guild:
-			commandNum = 15
+			commands_to_display = 15
 		elif (
 			hasattr(self.context.author, "guild_permissions")
 			and self.context.author.guild_permissions.manage_messages
 		):
-			commandNum = 20
+			commands_to_display = 20
 		else:
-			commandNum = 17
-		commandList = (
+			commands_to_display = 17
+		command_list = (
 			("!register", "Registers you with the currency system."),
 			(
 				"!balance [user/username]",
@@ -697,8 +710,8 @@ class BbHelpCommand(commands.HelpCommand):
 			("!unmute [target]", "Unmutes the target."),
 		)
 		emb = bb_embed("Beardless Bot Commands")
-		for commandPair in commandList[:commandNum]:
-			emb.add_field(name=commandPair[0], value=commandPair[1])
+		for command, description in command_list[:commands_to_display]:
+			emb.add_field(name=command, value=description)
 		await self.get_destination().send(  # type: ignore[no-untyped-call]
 			embed=emb,
 		)
@@ -732,13 +745,13 @@ def scam_check(text: str) -> bool:
 
 	"""
 	msg = text.lower()
-	suspiciousLink = bool(
+	suspicious_link = bool(
 		re.compile(
 			r"^.*https?://d\w\wc\wr(\wn\wtr\w\.\w{2,5}|(d|t)\.\w{2,4}).*",
 		).match(msg),
 	)
-	keyWords = bool(re.compile(r"^.*(nitro|gift|@everyone).*").match(msg))
-	bulkKeyWords = all((
+	keywords = bool(re.compile(r"^.*(nitro|gift|@everyone).*").match(msg))
+	bulk_keywords = all((
 		"http" in msg,
 		"@everyone" in msg or "stym" in msg,
 		any(("nitro" in msg, "discord" in msg, ".gift/" in msg)),
@@ -750,9 +763,9 @@ def scam_check(text: str) -> bool:
 			"discocl" in msg,
 		)),
 	))
-	validGift = bool(re.compile(r"^.*https://discord.gift/.*").match(msg))
+	valid_gift = bool(re.compile(r"^.*https://discord.gift/.*").match(msg))
 
-	return ((suspiciousLink and keyWords) or bulkKeyWords) and not validGift
+	return ((suspicious_link and keywords) or bulk_keywords) and not valid_gift
 
 
 async def delete_scam_and_notify(message: nextcord.Message) -> None:
@@ -790,13 +803,13 @@ async def delete_scam_and_notify(message: nextcord.Message) -> None:
 	)
 
 	assert hasattr(message.channel, "mention")
-	scamReport = (
+	scam_report = (
 		f"Deleted possible scam nitro link sent by {message.author.mention}"
 		f" in {message.channel.mention}.\nMessage content:\n{message.content}"
 	)
 	for channel in message.guild.text_channels:
 		if channel.name in {"infractions", LogChannelName}:
-			await channel.send(scamReport)
+			await channel.send(scam_report)
 
 
 def on_join(guild: nextcord.Guild, role: nextcord.Role) -> nextcord.Embed:
@@ -874,18 +887,20 @@ def tweet() -> str:
 	) as f:
 		words = f.read().split()
 	chains: dict[str, list[str]] = {}
-	keySize = random.randint(1, 2)
-	for i in range(len(words) - keySize):
-		if (key := " ".join(words[i:i + keySize])) not in chains:
+	key_size = random.randint(1, 2)
+	for i in range(len(words) - key_size):
+		if (key := " ".join(words[i:i + key_size])) not in chains:
 			chains[key] = []
-		chains[key].append(words[i + keySize])
+		chains[key].append(words[i + key_size])
 
 	key = s = random.choice(list(chains.keys()))
 	for _ in range(random.randint(10, 35)):
 		word = random.choice(chains[key])
 		s += " " + word
 		key = (
-			(" ".join(key.split()[1:keySize + 1]) + " ") if keySize > 1 else ""
+			(" ".join(key.split()[1:key_size + 1]) + " ")
+			if key_size > 1
+			else ""
 		) + word
 	return s[0].title() + s[1:]
 
@@ -940,17 +955,17 @@ async def process_mute_target(
 		await ctx.send(f"Please specify a target, {ctx.author.mention}.")
 		return None
 	try:
-		muteTarget = await commands.MemberConverter().convert(ctx, target)
+		mute_target = await commands.MemberConverter().convert(ctx, target)
 	except commands.MemberNotFound:
 		await ctx.send(embed=bb_embed(
 			"Beardless Bot Mute",
 			"Invalid target! Target must be a mention or user ID.",
 		))
 		return None
-	if bot.user is not None and muteTarget.id == bot.user.id:
+	if bot.user is not None and mute_target.id == bot.user.id:
 		await ctx.send("I am too powerful to be muted. Stop trying.")
 		return None
-	return muteTarget
+	return mute_target
 
 
 def process_mute_duration(
@@ -977,23 +992,23 @@ def process_mute_duration(
 				else, None.
 
 	"""
-	mTime = None
+	mute_time = None
 	if duration:
 		duration = duration.lower()
-		if (lastNumeric := get_last_numeric_char(duration)) != 0:
-			unit = duration[lastNumeric:]
+		if (last_numeric_char := get_last_numeric_char(duration)) != 0:
+			unit = duration[last_numeric_char:]
 			for key, value in MuteTimeConversion.items():
 				# Check for first char, whole word, plural
 				if unit in {key[0], key, key + "s"}:
-					duration = duration[:lastNumeric]  # the numeric part
-					mTime = float(duration) * value
+					duration = duration[:last_numeric_char]  # the numeric part
+					mute_time = float(duration) * value
 					duration += " " + key + ("" if duration == "1" else "s")
 					break
-		if lastNumeric == 0 or mTime is None:
+		if last_numeric_char == 0 or mute_time is None:
 			# treat duration as mute reason
 			additional = duration + " " + additional
 			duration = None
-	return duration, additional.strip(), mTime
+	return duration, additional.strip(), mute_time
 
 
 def get_target(ctx: BotContext, target: str) -> TargetTypes:

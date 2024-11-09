@@ -12,7 +12,7 @@ S101: Assert used
 S603: Subprocess call
 	(Two quality tests ruly on subprocess calls to sys.executable)
 SLF001: Private member accessed
-	(Some of the monkeypatching requires accessing private members)
+	(Some of the mocking/monkeypatching requires accessing private members)
 """
 
 # ruff: noqa: D103, PLR2004, S101, S603, SLF001
@@ -20,6 +20,7 @@ SLF001: Private member accessed
 import asyncio
 import json
 import logging
+import operator
 import os
 import subprocess
 import sys
@@ -28,7 +29,7 @@ from collections import deque
 from copy import copy
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Final, overload, override
+from typing import Any, Final, Literal, TypedDict, overload, override
 
 import dotenv
 import httpx
@@ -42,6 +43,7 @@ from codespell_lib import main as codespell
 from flake8.api import legacy as flake8  # type: ignore[import-untyped]
 from mypy.api import run as mypy
 from nextcord.ext import commands
+from nextcord.types.channel import TextChannel as TextChannelPayload
 from nextcord.types.emoji import Emoji as EmojiPayload
 from nextcord.types.emoji import PartialEmoji as PartialEmojiPayload
 from nextcord.types.message import Message as MessagePayload
@@ -373,11 +375,11 @@ class MockUser(nextcord.User):
 		) -> nextcord.User:
 			if isinstance(data, nextcord.User):
 				return data
-			storedUser = (
+			stored_user = (
 				self.user or MockUser(user_id=int(data.get("id", "0")))
 			)
-			assert isinstance(storedUser, nextcord.User)
-			return storedUser
+			assert isinstance(stored_user, nextcord.User)
+			return stored_user
 
 		@override
 		def get_channel(
@@ -501,9 +503,17 @@ class MockChannel(nextcord.TextChannel):
 
 		@override
 		def store_user(self, data: UserPayload) -> nextcord.User:
-			storedUser = self.user or MockUser(user_id=int(data["id"]))
-			assert isinstance(storedUser, nextcord.User)
-			return storedUser
+			stored_user = self.user or MockUser(user_id=int(data["id"]))
+			assert isinstance(stored_user, nextcord.User)
+			return stored_user
+
+	class MockPermPayload(TypedDict):
+		"""Drop-in replacement for PermissionOverwritePayload."""
+
+		id: nextcord.types.snowflake.Snowflake
+		type: Literal[0, 1]
+		allow: str
+		deny: str
 
 	@override
 	def __init__(
@@ -522,9 +532,10 @@ class MockChannel(nextcord.TextChannel):
 		self.category_id = 0
 		self.guild = guild or nextcord.utils.MISSING
 		self.messages = messages or []
-		self._type = 0
+		self._type: Literal[0] = 0
 		self._state = self.MockChannelState(message_number=len(self.messages))
 		self.assign_channel_to_guild(self.guild)
+		self._overwrites = []
 
 	@overload
 	@override
@@ -564,18 +575,37 @@ class MockChannel(nextcord.TextChannel):
 			overwrite = nextcord.PermissionOverwrite(**permissions)
 		if overwrite is not None:
 			allow, deny = overwrite.pair()
-			perm_type = 0 if isinstance(target, nextcord.Role) else 1
+			perm_type: Literal[0, 1] = (
+				0 if isinstance(target, nextcord.Role) else 1
+			)
+			payload = self.MockPermPayload(
+				id=target.id,
+				allow=allow.value,
+				deny=deny.value,
+				type=perm_type,
+			)
+			guild_payload = TextChannelPayload(
+				guild_id=self.guild.id,
+				position=self.position,
+				permission_overwrites=[payload],
+				nsfw=self.nsfw,
+				id=self.id,
+				name=self.name,
+				rate_limit_per_user=0,
+				default_auto_archive_duration=60,
+				default_thread_rate_limit_per_user=0,
+				type=self._type,
+				parent_id=None,
+			)
+			self._fill_overwrites(guild_payload)
 			logging.info(
-				"Setting perms on channel: %s for target: %s,"
-				" allow: %s, deny: %s, type: %s, reason: %s",
+				"Setting perms on channel: %s for target: %s, reason: %s",
 				self.id,
 				target.id,
-				allow.value,
-				deny.value,
-				perm_type,
 				reason,
 			)
 		else:
+			# TODO: proper removal logic here--remove from _overwrites
 			logging.info(
 				"Deleting perms on channel: %s for target: %s, reason: %s",
 				self.id,
@@ -815,6 +845,8 @@ class MockGuild(nextcord.Guild):
 		self.owner_id = 123456789
 		for role in self._roles.values():
 			self.assign_guild_to_role(role)
+		for ch in self._channels.values():
+			self.assign_guild_to_channel(ch)
 
 	@override
 	@property
@@ -886,7 +918,7 @@ class MockGuild(nextcord.Guild):
 			"permissions": str(perms.value),
 			"mentionable": mentionable,
 			"hoist": hoist,
-			"colour": col if isinstance(col, int) else col.value,
+			"color": col if isinstance(col, int) else col.value,
 		}
 		if isinstance(icon, str):
 			fields["unicode_emoji"] = icon
@@ -898,7 +930,6 @@ class MockGuild(nextcord.Guild):
 		)
 		role = nextcord.Role(guild=self, data=data, state=self._state)
 		self._roles[len(self.roles)] = role
-
 		return role
 
 	def assign_guild_to_role(self, role: nextcord.Role) -> None:
@@ -910,6 +941,16 @@ class MockGuild(nextcord.Guild):
 
 		"""
 		role.guild = self
+
+	def assign_guild_to_channel(self, channel: GuildChannel) -> None:
+		"""
+		Set a GuildChannel's Guild to this Guild.
+
+		Args:
+			channel (GuildChannel): The channel whose Guild will be set
+
+		"""
+		channel.guild = self
 
 	@override
 	def get_member(self, user_id: int, /) -> nextcord.Member | None:
@@ -1029,11 +1070,11 @@ class MockContext(misc.BotContext):
 		) -> nextcord.User:
 			if isinstance(data, nextcord.User):
 				return data
-			storedUser = (
+			stored_user = (
 				self.user or MockUser(user_id=int(data.get("id", "0")))
 			)
-			assert isinstance(storedUser, nextcord.User)
-			return storedUser
+			assert isinstance(stored_user, nextcord.User)
+			return stored_user
 
 	@override
 	def __init__(
@@ -1197,44 +1238,44 @@ class MockEmoji(nextcord.emoji.Emoji):
 		self._from_data(data)
 
 
+# Run code quality tests with pytest -vvk quality
 def test_with_ruff_for_code_quality() -> None:
 	"""
-	Ruff codes.
+	Test against ruff executable's output to ensure compliance.
 
-	Invalid:
-		D203: 1 blank line required before class docstring
-			(Incompatible with D211)
-		D206: Spaces instead of tabs in docstrings
-			(Tabs are the BB standard)
-		D212: Multi-line docstring summary should start on first line
-			(Incompatible with D213)
-		ERA001: Commented-out code
-			(Too many false positives)
-		N806: Variable in function should be lowercase
-			(lowerCamelCase is the BB standard)
-		Q003: Change outer quotes to avoid escaping inner quotes
-			(Double quotes is the BB standard)
-		S311: Don't use random for crypto
-			(Not doing any cryptography)
-		TD002: Missing author in TODO
-			(They're all Lev)
-		W191: Spaces instead of tabs
-			(Tabs are the BB standard)
+	Ruff codes:
+		Invalid:
+			D203: 1 blank line required before class docstring
+				(Incompatible with D211)
+			D206: Spaces instead of tabs in docstrings
+				(Tabs are the BB standard)
+			D212: Multi-line docstring summary should start on first line
+				(Incompatible with D213)
+			ERA001: Commented-out code
+				(Too many false positives)
+			Q003: Change outer quotes to avoid escaping inner quotes
+				(Double quotes is the BB standard)
+			S311: Don't use random for cryptography
+				(Not doing any cryptography)
+			TD002: Missing author in TODO
+				(They're all Lev)
+			W191: Spaces instead of tabs
+				(Tabs are the BB standard)
 
-	Temporarily disable, fix later:
-		D103: Missing docstring in public function
-			(I'm working on it...)
-		FIX002: Line contains FIXME/TODO/XXX/HACK
-			(I'm working on it...)
-		S101: Use of assert
-			(Shouldn't be present in production code)
-		TD003: Missing issue link in TODO
-			(Only some TODOs have issue links)
+		Temporarily disable, fix later:
+			D103: Missing docstring in public function
+				(I'm working on it...)
+			FIX002: Line contains FIXME/TODO/XXX/HACK
+				(I'm working on it...)
+			S101: Use of assert
+				(Shouldn't be present in production code)
+			TD003: Missing issue link in TODO
+				(Only some TODOs have issue links)
 
 	"""
-	version = f"py{sys.version_info.major}{sys.version_info.minor}"
-	invalidCodes = "D203,D206,D212,ERA001,N806,Q003,S311,TD002,W191"
-	temporaryIgnoreCodes = ",D103,FIX002,S101,TD003"
+	version = sys.version_info
+	invalid_codes = "D203,D206,D212,ERA001,Q003,S311,TD002,W191"
+	temporary_ignore_codes = "D103,FIX002,S101,TD003"
 	assert subprocess.run(
 		[
 			sys.executable,
@@ -1244,15 +1285,14 @@ def test_with_ruff_for_code_quality() -> None:
 			*FilesToCheck,
 			"--line-length=80",
 			"--select=ALL",
-			"--target-version=" + version,
+			f"--target-version=py{version.major}{version.minor}",
 			"--output-format=grouped",
-			"--ignore=" + invalidCodes + temporaryIgnoreCodes,
-		], capture_output=True, check=False, input=None,
-	).stdout == b"All checks passed!\n"
+			"--ignore=" + invalid_codes + "," + temporary_ignore_codes,
+		], capture_output=True, check=False, input=None, text=True,
+	).stdout[:-1] == "All checks passed!"
 
 
-# Run code quality tests with pytest -vk quality
-@pytest.mark.parametrize("letter", ["W", "E", "F", "C", "SIM"])
+@pytest.mark.parametrize("letter", ["W", "E", "C", "SIM"])
 def test_code_quality_with_flake8(letter: str) -> None:
 	assert StyleGuide.check_files(FilesToCheck).get_statistics(letter) == []
 
@@ -1272,7 +1312,7 @@ def test_full_type_checking_with_mypy_for_code_quality() -> None:
 		if ": error: " in i and "\"__call__\" of \"Command\"" not in i
 	]
 	assert len(errors) == 0
-	assert stderr == ""
+	assert not stderr
 
 
 def test_no_spelling_errors_with_codespell_for_code_quality() -> None:
@@ -1282,22 +1322,22 @@ def test_no_spelling_errors_with_codespell_for_code_quality() -> None:
 def test_no_out_of_date_requirements_for_code_quality() -> None:
 	# Assumes requirements.txt is of the format foo==bar, rather than
 	# foo>=bar or foo<=bar.
-	pipListOutdated = json.loads(subprocess.run(
+	pip_list_outdated = json.loads(subprocess.run(
 		[sys.executable, "-m", "pip", "list", "--outdated", "--format=json"],
 		capture_output=True,
 		check=True,
 		input=None,
 	).stdout.decode().lower())
-	outdated = {i["name"]: i["latest_version"] for i in pipListOutdated}
+	outdated = {i["name"]: i["latest_version"] for i in pip_list_outdated}
 
 	with Path("resources/requirements.txt").open("r", encoding="UTF-8") as f:
-		reqLines = {
+		req_lines = {
 			i.split("==")[0].split("[")[0]
 			for i in f.read().lower().split("\n")
 		}
 
 	assert len([
-		lib + version for lib, version in outdated.items() if lib in reqLines
+		lib + version for lib, version in outdated.items() if lib in req_lines
 	]) == 0
 
 
@@ -1354,10 +1394,10 @@ async def test_on_command_error(caplog: pytest.LogCaptureFixture) -> None:
 	assert await Bot.on_command_error(ctx, exc) == 0
 
 	ctx.message.content = "!brawllegend \""
-	badQuoteError = commands.UnexpectedQuoteError("\"")
-	assert await Bot.on_command_error(ctx, badQuoteError) == 1
+	quote_error = commands.UnexpectedQuoteError("\"")
+	assert await Bot.on_command_error(ctx, quote_error) == 1
 	assert caplog.records[1].args == (
-		badQuoteError,
+		quote_error,
 		"brawllegend",
 		author,
 		"!brawllegend \"",
@@ -1366,26 +1406,6 @@ async def test_on_command_error(caplog: pytest.LogCaptureFixture) -> None:
 	)
 	emb = (await ctx.history().next()).embeds[0]
 	assert emb.title == "Careful with quotation marks!"
-
-
-@MarkAsync
-async def test_create_muted_role(caplog: pytest.LogCaptureFixture) -> None:
-	g = MockGuild(roles=[])
-	assert len(g.roles) == 1
-	caplog.set_level(logging.INFO)
-	role = await misc.create_muted_role(g)
-	assert role.name == "Muted"
-	assert g.roles[1] == role
-	assert caplog.records[0].getMessage() == (
-		"Role creation reason: BB Muted Role"
-	)
-	assert caplog.records[1].getMessage() == (
-		"Permissions set reason: Preventing Muted"
-		" users from chatting in this channel"
-	)
-
-	role = MockRole("Muted", 500)
-	assert await misc.create_muted_role(MockGuild(roles=[role])) == role
 
 
 @MarkAsync
@@ -1401,6 +1421,31 @@ async def test_role_creation_reason_logged(
 	assert caplog.records[0].getMessage() == "Role creation reason: FooBarSpam"
 	assert len(g.roles) == 2
 	assert g.roles[1].name == "Spamalot"
+
+
+@MarkAsync
+async def test_create_muted_role(caplog: pytest.LogCaptureFixture) -> None:
+	g = MockGuild(roles=[])
+	assert len(g.roles) == 1
+	caplog.set_level(logging.INFO)
+	role = await misc.create_muted_role(g)
+	assert role.name == "Muted"
+	assert role.colour.value == 0x818386
+	assert not role.permissions.send_messages
+	assert role.permissions.read_messages
+	assert len(g.roles) == 2
+	assert g.roles[1] == role
+	assert not g.channels[0].permissions_for(role).send_messages
+	assert caplog.records[0].getMessage() == (
+		"Role creation reason: BB Muted Role"
+	)
+	assert caplog.records[1].getMessage() == (
+		"Permissions set reason: Preventing Muted"
+		" users from chatting in this channel"
+	)
+
+	role = MockRole("Muted", 500)
+	assert await misc.create_muted_role(MockGuild(roles=[role])) == role
 
 
 def test_bot_avatar_correct_on_creation() -> None:
@@ -1594,12 +1639,12 @@ async def test_on_reaction_clear() -> None:
 		message=MockMessage(),
 		data=MockMessage.get_mock_reaction_payload("foo"),
 	)
-	otherReaction = nextcord.Reaction(
+	other_reaction = nextcord.Reaction(
 		message=MockMessage(),
 		data=MockMessage.get_mock_reaction_payload("bar"),
 	)
 	msg = MockMessage(guild=guild)
-	emb = await Bot.on_reaction_clear(msg, [reaction, otherReaction])
+	emb = await Bot.on_reaction_clear(msg, [reaction, other_reaction])
 	assert emb is not None
 	assert emb.description == (
 		"Reactions cleared from message sent by <@123456789> in <#123456789>."
@@ -1611,7 +1656,7 @@ async def test_on_reaction_clear() -> None:
 	assert (await ch.history().next()).embeds[0].description == emb.description
 
 	assert await Bot.on_reaction_clear(
-		MockMessage(guild=MockGuild()), [reaction, otherReaction],
+		MockMessage(guild=MockGuild()), [reaction, other_reaction],
 	) is None
 
 
@@ -1619,10 +1664,10 @@ async def test_on_reaction_clear() -> None:
 async def test_on_guild_channel_delete() -> None:
 	ch = MockChannel(name=misc.LogChannelName)
 	g = MockGuild(channels=[ch])
-	newChannel = MockChannel(guild=g)
-	emb = await Bot.on_guild_channel_delete(newChannel)
+	new_channel = MockChannel(guild=g)
+	emb = await Bot.on_guild_channel_delete(new_channel)
 	assert emb is not None
-	log = logs.log_delete_channel(newChannel)
+	log = logs.log_delete_channel(new_channel)
 	assert emb.description == log.description
 	assert log.description == "Channel \"testchannelname\" deleted."
 	assert (await ch.history().next()).embeds[0].description == log.description
@@ -1636,10 +1681,10 @@ async def test_on_guild_channel_delete() -> None:
 async def test_on_guild_channel_create() -> None:
 	ch = MockChannel(name=misc.LogChannelName)
 	g = MockGuild(channels=[ch])
-	newChannel = MockChannel(guild=g)
-	emb = await Bot.on_guild_channel_create(newChannel)
+	new_channel = MockChannel(guild=g)
+	emb = await Bot.on_guild_channel_create(new_channel)
 	assert emb is not None
-	log = logs.log_create_channel(newChannel)
+	log = logs.log_create_channel(new_channel)
 	assert emb.description == log.description
 	assert log.description == "Channel \"testchannelname\" created."
 	assert (await ch.history().next()).embeds[0].description == log.description
@@ -1740,9 +1785,9 @@ async def test_on_member_update() -> None:
 	assert log.fields[1].value == new.nick
 	assert (await ch.history().next()).embeds[0].description == log.description
 
-	newRole = MockRole()
-	newRole.guild = guild
-	new = MockMember(nick="a", guild=guild, roles=[newRole])
+	r = MockRole()
+	r.guild = guild
+	new = MockMember(nick="a", guild=guild, roles=[r])
 	assert new.guild is not None
 	emb = await Bot.on_member_update(old, new)
 	assert emb is not None
@@ -1908,14 +1953,40 @@ async def test_cmd_hello() -> None:
 		Bot.BeardlessBot, channel=ch, guild=MockGuild(channels=[ch]),
 	)
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("random.choice", lambda x: x[0])
+		mp.setattr("random.choice", operator.itemgetter(0))
 		assert await Bot.cmd_hello(ctx) == 1
 	assert (await ch.history().next()).content == "How ya doin'?"
 
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("random.choice", lambda x: x[5])
+		mp.setattr("random.choice", operator.itemgetter(5))
 		assert await Bot.cmd_hello(ctx) == 1
 	assert (await ch.history().next()).content == "Hi!"
+
+
+@MarkAsync
+async def test_cmd_source() -> None:
+	ch = MockChannel()
+	ctx = MockContext(
+		Bot.BeardlessBot, channel=ch, guild=MockGuild(channels=[ch]),
+	)
+	assert await Bot.cmd_source(ctx) == 1
+	emb = (await ch.history().next()).embeds[0]
+	assert emb.title == "Beardless Bot Fun Facts"
+
+
+@MarkAsync
+async def test_cmd_add() -> None:
+	ch = MockChannel()
+	ctx = MockContext(
+		Bot.BeardlessBot, channel=ch, guild=MockGuild(channels=[ch]),
+	)
+	assert await Bot.cmd_add(ctx) == 1
+	emb = (await ch.history().next()).embeds[0]
+	misc_emb = misc.Invite_Embed
+	assert emb.title == misc_emb.title
+	assert emb.description == misc_emb.description
+	assert isinstance(emb.description, str)
+	assert emb.description.split("]")[1] == misc.AddUrl
 
 
 @MarkAsync
@@ -1924,18 +1995,18 @@ async def test_fact() -> None:
 	ctx = MockContext(
 		Bot.BeardlessBot, channel=ch, guild=MockGuild(channels=[ch]),
 	)
-	firstFact = (
+	first_fact = (
 		"The scientific term for brain freeze"
 		" is sphenopalatine ganglioneuralgia."
 	)
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("random.choice", lambda x: x[0])
-		assert misc.fact() == firstFact
+		mp.setattr("random.choice", operator.itemgetter(0))
+		assert misc.fact() == first_fact
 
 		mp.setattr("random.randint", lambda _, y: y)
 		assert await Bot.cmd_fact(ctx) == 1
 	emb = (await ch.history().next()).embeds[0]
-	assert emb.description == firstFact
+	assert emb.description == first_fact
 	assert emb.title == "Beardless Bot Fun Fact #111111111"
 
 
@@ -1963,16 +2034,16 @@ async def test_cmd_animals() -> None:
 def test_tweet() -> None:
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr("random.randint", lambda x, _: x)
-		eggTweet = misc.tweet()
-	assert ("\n" + eggTweet).startswith(misc.format_tweet(eggTweet))
-	assert len(eggTweet.split(" ")) == 11
+		egg_tweet = misc.tweet()
+	assert ("\n" + egg_tweet).startswith(misc.format_tweet(egg_tweet))
+	assert len(egg_tweet.split(" ")) == 11
 
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr("random.choice", lambda _: "the")
 		mp.setattr("random.randint", lambda x, _: x)
-		eggTweet = misc.tweet()
+		egg_tweet = misc.tweet()
 
-	assert eggTweet == "The" + (" the" * 10)
+	assert egg_tweet == "The" + (" the" * 10)
 
 	assert misc.format_tweet("test tweet.") == "\ntest tweet"
 	assert misc.format_tweet("test tweet") == "\ntest tweet"
@@ -2128,20 +2199,17 @@ def test_fetch_avatar_default() -> None:
 	],
 )
 def test_member_search_valid(username: str, content: str) -> None:
-	namedMember = MockMember(
-		MockUser(username, discriminator="9999"), "testnick",
-	)
+	m = MockMember(MockUser(username, discriminator="9999"), "testnick")
 	text = MockMessage(
-		content=content, guild=MockGuild(members=[MockMember(), namedMember]),
+		content=content, guild=MockGuild(members=[MockMember(), m]),
 	)
-	assert misc.member_search(text, content) == namedMember
+	assert misc.member_search(text, content) == m
 
 
 def test_member_search_invalid() -> None:
-	namedMember = MockMember(MockUser("searchterm", discriminator="9999"))
+	m = MockMember(MockUser("searchterm", discriminator="9999"))
 	text = MockMessage(
-		content="invalidterm",
-		guild=MockGuild(members=[MockMember(), namedMember]),
+		content="invalidterm", guild=MockGuild(members=[MockMember(), m]),
 	)
 	assert misc.member_search(text, text.content) is None
 
@@ -2344,17 +2412,17 @@ def test_flip() -> None:
 			"Tails! You lose! Your losses have been"
 			f" deducted from your balance, <@{misc.BbId}>."
 		)
-	balMsg = bucks.balance(bb, MockMessage("!bal", bb))
-	assert isinstance(balMsg.description, str)
-	assert "is 0" in balMsg.description
+	msg = bucks.balance(bb, MockMessage("!bal", bb))
+	assert isinstance(msg.description, str)
+	assert "is 0" in msg.description
 
 	bucks.reset(bb)
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr("random.randint", lambda *_: 0)
 		bucks.flip(bb, 37)
-	balMsg = bucks.balance(bb, MockMessage("!bal", bb))
-	assert isinstance(balMsg.description, str)
-	assert "is 163" in balMsg.description
+	msg = bucks.balance(bb, MockMessage("!bal", bb))
+	assert isinstance(msg.description, str)
+	assert "is 163" in msg.description
 
 	bucks.reset(bb)
 	with pytest.MonkeyPatch.context() as mp:
@@ -2363,16 +2431,16 @@ def test_flip() -> None:
 			"Heads! You win! Your winnings have been"
 			f" added to your balance, <@{misc.BbId}>."
 		)
-	balMsg = bucks.balance(bb, MockMessage("!bal", bb))
-	assert isinstance(balMsg.description, str)
-	assert "is 400" in balMsg.description
+	msg = bucks.balance(bb, MockMessage("!bal", bb))
+	assert isinstance(msg.description, str)
+	assert "is 400" in msg.description
 
 	bucks.reset(bb)
 	assert bucks.flip(bb, "10000000000000").startswith("You do not have")
 	bucks.reset(bb)
-	balMsg = bucks.balance(bb, MockMessage("!bal", bb))
-	assert isinstance(balMsg.description, str)
-	assert "200" in balMsg.description
+	msg = bucks.balance(bb, MockMessage("!bal", bb))
+	assert isinstance(msg.description, str)
+	assert "200" in msg.description
 
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr(
@@ -2609,67 +2677,63 @@ def test_active_game() -> None:
 
 
 def test_info() -> None:
-	namedMember = MockMember(MockUser("searchterm"))
-	guild = MockGuild(members=[MockMember(), namedMember])
-	namedMember.roles = [guild.roles[0], guild.roles[0]]
+	m = MockMember(MockUser("searchterm"))
+	guild = MockGuild(members=[MockMember(), m])
+	m.roles = [guild.roles[0], guild.roles[0]]
 	text = MockMessage("!info searchterm", guild=guild)
-	namedUserInfo = misc.info("searchterm", text)
-	assert namedUserInfo.fields[0].value == (
-		misc.truncate_time(namedMember) + " UTC"
-	)
-	assert namedUserInfo.fields[1].value == (
-		misc.truncate_time(namedMember) + " UTC"
-	)
-	assert namedUserInfo.fields[2].value == "<@&123456789>"
+	m_info = misc.info("searchterm", text)
+	assert m_info.fields[0].value == misc.truncate_time(m) + " UTC"
+	assert m_info.fields[1].value == misc.truncate_time(m) + " UTC"
+	assert m_info.fields[2].value == "<@&123456789>"
 
 	assert misc.info("!infoerror", text).title == "Invalid target!"
 
 
 def test_avatar() -> None:
-	namedMember = MockMember(MockUser("searchterm"))
-	guild = MockGuild(members=[MockMember(), namedMember])
+	m = MockMember(MockUser("searchterm"))
+	guild = MockGuild(members=[MockMember(), m])
 	text = MockMessage("!av searchterm", guild=guild)
-	avatar = str(misc.fetch_avatar(namedMember))
+	avatar = str(misc.fetch_avatar(m))
 	assert misc.avatar("searchterm", text).image.url == avatar
 
 	assert misc.avatar("error", text).title == "Invalid target!"
 
-	assert misc.avatar(namedMember, text).image.url == avatar
+	assert misc.avatar(m, text).image.url == avatar
 
 	text.guild = None
-	text.author = namedMember
+	text.author = m
 	assert misc.avatar("searchterm", text).image.url == avatar
 
 
 @MarkAsync
 async def test_bb_help_command(caplog: pytest.LogCaptureFixture) -> None:
-	helpCommand = misc.BbHelpCommand()
-	assert helpCommand.command_attrs["aliases"] == ["commands"]
+	help_command = misc.BbHelpCommand()
+	assert help_command.command_attrs["aliases"] == ["commands"]
 	ch = MockChannel()
 	author = MockMember()
-	helpCommand.context = MockContext(
+	help_command.context = MockContext(
 		Bot.BeardlessBot, author=author, guild=None, channel=ch,
 	)
-	await helpCommand.send_bot_help({})
+	await help_command.send_bot_help({})
 
-	helpCommand.context.guild = MockGuild()
+	help_command.context.guild = MockGuild()
 	author.guild_permissions = nextcord.Permissions(manage_messages=True)
-	await helpCommand.send_bot_help({})
+	await help_command.send_bot_help({})
 
 	author.guild_permissions = nextcord.Permissions(manage_messages=False)
-	await helpCommand.send_bot_help({})
+	await help_command.send_bot_help({})
 
 	h = ch.history()
 	assert len((await h.next()).embeds[0].fields) == 17
 	assert len((await h.next()).embeds[0].fields) == 20
 	assert len((await h.next()).embeds[0].fields) == 15
 
-	helpCommand.context.message.type = nextcord.MessageType.thread_created
-	assert await helpCommand.send_bot_help({}) == -1
+	help_command.context.message.type = nextcord.MessageType.thread_created
+	assert await help_command.send_bot_help({}) == -1
 
 	# For the time being, just pass on all invalid help calls;
 	# don't send any messages.
-	await helpCommand.send_error_message("Bar")
+	await help_command.send_error_message("Bar")
 	assert caplog.records[0].getMessage() == "No command Bar"
 	assert len(caplog.records) == 1
 
@@ -3103,13 +3167,13 @@ def test_fetch_brawl_id() -> None:
 
 def test_claim_profile() -> None:
 	with Path("resources/claimedProfs.json").open("r", encoding="UTF-8") as f:
-		profsLen = len(json.load(f))
+		profs_len = len(json.load(f))
 	try:
 		brawl.claim_profile(Bot.OwnerId, 1)
 		with Path("resources/claimedProfs.json").open(
 			"r", encoding="UTF-8",
 		) as f:
-			assert profsLen == len(json.load(f))
+			assert profs_len == len(json.load(f))
 		assert brawl.fetch_brawl_id(Bot.OwnerId) == 1
 	finally:
 		brawl.claim_profile(Bot.OwnerId, OwnerBrawlId)
@@ -3364,11 +3428,11 @@ if BrawlKey:
 		legend = await brawl.random_brawl("legend", BrawlKey)
 		assert len(legend.fields) == 2
 		assert legend.title is not None
-		legendInfo = await brawl.legend_info(
+		legend_info = await brawl.legend_info(
 			BrawlKey, legend.title.split(" ")[0].lower().replace(",", ""),
 		)
-		assert legendInfo is not None
-		assert legend.title == legendInfo.title
+		assert legend_info is not None
+		assert legend.title == legend_info.title
 
 		legend = await brawl.random_brawl("invalidrandom")
 		assert legend.title == "Brawlhalla Randomizer"
@@ -3378,9 +3442,9 @@ if BrawlKey:
 		# This one should not be mocked; just remove the sleep
 		assert BrawlKey is not None
 		await asyncio.sleep(5)
-		oldLegends = brawl.fetch_legends()
+		old_legends = brawl.fetch_legends()
 		await brawl.pull_legends(BrawlKey)
-		assert brawl.fetch_legends() == oldLegends
+		assert brawl.fetch_legends() == old_legends
 
 	@MarkAsync
 	async def test_legend_info() -> None:

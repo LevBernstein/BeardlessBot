@@ -152,13 +152,10 @@ async def on_message_delete(
 	emb = None
 	if (
 		message.guild
-		and (
-			(
-				hasattr(message.channel, "name")
-				and message.channel.name != misc.LogChannelName
-			)
-			or message.content
-		)
+		and ((
+			hasattr(message.channel, "name")
+			and message.channel.name != misc.LogChannelName
+		) or message.content)
 		and (channel := misc.get_log_channel(message.guild))
 	):
 		emb = logs.log_delete_msg(message)
@@ -186,9 +183,9 @@ async def on_message_edit(
 	if after.guild and (before.content != after.content):
 		if misc.scam_check(after.content):
 			await misc.delete_scam_and_notify(after)
-		if logChannel := misc.get_log_channel(after.guild):
+		if log_channel := misc.get_log_channel(after.guild):
 			emb = logs.log_edit_msg(before, after)
-			await logChannel.send(embed=emb)
+			await log_channel.send(embed=emb)
 	return emb
 
 
@@ -209,9 +206,9 @@ async def on_guild_channel_delete(
 	channel: nextcord.abc.GuildChannel,
 ) -> nextcord.Embed | None:
 	emb = None
-	if logChannel := misc.get_log_channel(channel.guild):
+	if log_channel := misc.get_log_channel(channel.guild):
 		emb = logs.log_delete_channel(channel)
-		await logChannel.send(embed=emb)
+		await log_channel.send(embed=emb)
 	return emb
 
 
@@ -220,9 +217,9 @@ async def on_guild_channel_create(
 	channel: nextcord.abc.GuildChannel,
 ) -> nextcord.Embed | None:
 	emb = None
-	if logChannel := misc.get_log_channel(channel.guild):
+	if log_channel := misc.get_log_channel(channel.guild):
 		emb = logs.log_create_channel(channel)
-		await logChannel.send(embed=emb)
+		await log_channel.send(embed=emb)
 	return emb
 
 
@@ -399,7 +396,9 @@ async def cmd_stay(ctx: misc.BotContext) -> int:
 async def cmd_av(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
-	await ctx.send(embed=misc.avatar(misc.get_target(ctx, target), ctx.message))
+	await ctx.send(embed=misc.avatar(
+		misc.get_target(ctx, target), ctx.message,
+	))
 	return 1
 
 
@@ -407,16 +406,16 @@ async def cmd_av(ctx: misc.BotContext, *, target: str = "") -> int:
 async def cmd_info(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctx_created_thread(ctx) or not ctx.guild:
 		return -1
-	infoTarget: nextcord.Member | str
+	info_target: nextcord.Member | str
 	if ctx.message.mentions:
 		assert isinstance(ctx.message.mentions[0], nextcord.Member)
-		infoTarget = ctx.message.mentions[0]
+		info_target = ctx.message.mentions[0]
 	elif target:
-		infoTarget = target
+		info_target = target
 	else:
 		assert isinstance(ctx.author, nextcord.Member)
-		infoTarget = ctx.author
-	await ctx.send(embed=misc.info(infoTarget, ctx.message))
+		info_target = ctx.author
+	await ctx.send(embed=misc.info(info_target, ctx.message))
 	return 1
 
 
@@ -572,8 +571,8 @@ async def cmd_animals(ctx: misc.BotContext) -> int:
 		),
 		inline=False,
 	)
-	for animalName in misc.AnimalList:
-		emb.add_field(name="!" + animalName, value="_ _")
+	for animal_name in misc.AnimalList:
+		emb.add_field(name="!" + animal_name, value="_ _")
 	await ctx.send(embed=emb)
 	return 1
 
@@ -615,7 +614,7 @@ async def cmd_dog(ctx: misc.BotContext, *, breed: str = "") -> int:
 		return -1
 	assert ctx.invoked_with is not None
 	try:
-		dogUrl = await misc.get_dog(
+		url = await misc.get_dog(
 			breed.lower() if ctx.invoked_with.lower() != "moose" else "moose",
 		)
 	except (misc.AnimalException, ValueError, KeyError) as e:
@@ -626,13 +625,13 @@ async def cmd_dog(ctx: misc.BotContext, *, breed: str = "") -> int:
 			"Please inform my creator and he'll see what's going on.",
 		))
 		return 0
-	if dogUrl.startswith(("Dog breeds: ", "Breed not found")):
-		await ctx.send(dogUrl)
-		return int(dogUrl.startswith("Dog breeds: "))
-	dogBreed = "Hound" if "hound" in dogUrl else dogUrl.split("/")[-2]
+	if url.startswith(("Dog breeds: ", "Breed not found")):
+		await ctx.send(url)
+		return int(url.startswith("Dog breeds: "))
+	dog_breed = "Hound" if "hound" in url else url.split("/")[-2]
 	emb = misc.bb_embed(
-		"Random " + dogBreed.replace("main", "moose").title(),
-	).set_image(url=dogUrl)
+		"Random " + dog_breed.replace("main", "moose").title(),
+	).set_image(url=url)
 	await ctx.send(embed=emb)
 	return 1
 
@@ -674,51 +673,53 @@ async def cmd_mute(
 ) -> int:
 	if misc.ctx_created_thread(ctx) or not ctx.guild:
 		return -1
-	if not (
-		muteTarget := await misc.process_mute_target(ctx, target, BeardlessBot)
-	):
+	if not (mute_target := await misc.process_mute_target(
+		ctx, target, BeardlessBot,
+	)):
 		return 0
 	role = await misc.create_muted_role(ctx.guild)
-	duration, reason, mTime = misc.process_mute_duration(duration, additional)
+	duration, reason, mute_time = misc.process_mute_duration(
+		duration, additional,
+	)
 	try:
-		await muteTarget.add_roles(role)
+		await mute_target.add_roles(role)
 	except nextcord.Forbidden as e:
 		misc.log_exception(e, ctx)
 		await ctx.send(misc.HierarchyMsg)
 		return 0
 	addendum = (" for " + duration + ".") if duration is not None else "."
 	emb = misc.bb_embed(
-		"Beardless Bot Mute", "Muted " + muteTarget.mention + addendum,
+		"Beardless Bot Mute", "Muted " + mute_target.mention + addendum,
 	).set_author(name=ctx.author, icon_url=misc.fetch_avatar(ctx.author))
 	if reason:
 		emb.add_field(name="Mute Reason:", value=reason, inline=False)
 	await ctx.send(embed=emb)
 	if channel := misc.get_log_channel(ctx.guild):
-		await channel.send(
-			embed=logs.log_mute(muteTarget, ctx.message, duration),
-		)
-	if mTime:
-		# autounmute(muteTarget, ctx, mTime, role, addendum)
+		await channel.send(embed=logs.log_mute(
+			mute_target, ctx.message, duration,
+		))
+	if mute_time:
+		# autounmute(mute_target, ctx, mute_time, role, addendum)
 		# TODO: use on_close() to make mute times persist through restarts
 		# https://github.com/LevBernstein/BeardlessBot/issues/44
 		# Autounmute
 		logging.info(
 			"Muted %s/%i%s Muter: %s/%i. Guild: %s",
-			muteTarget.name,
-			muteTarget.id,
+			mute_target.name,
+			mute_target.id,
 			addendum,
 			ctx.author.name,
 			ctx.author.id,
 			ctx.guild.name,
 		)
-		await asyncio.sleep(mTime)
-		await muteTarget.remove_roles(role)
+		await asyncio.sleep(mute_time)
+		await mute_target.remove_roles(role)
 		logging.info(
-			"Autounmuted %s after waiting%s", muteTarget.name, addendum,
+			"Autounmuted %s after waiting%s", mute_target.name, addendum,
 		)
 		if channel := misc.get_log_channel(ctx.guild):
 			assert isinstance(ctx.author, nextcord.Member)
-			await channel.send(embed=logs.log_unmute(muteTarget, ctx.author))
+			await channel.send(embed=logs.log_unmute(mute_target, ctx.author))
 	return 1
 
 
@@ -736,21 +737,21 @@ async def cmd_unmute(
 		elif target:
 			converter = commands.MemberConverter()
 			try:
-				mutedMember = await converter.convert(ctx, target)
+				muted_member = await converter.convert(ctx, target)
 			except commands.MemberNotFound as e:
 				misc.log_exception(e, ctx)
 				report = "Invalid target! Target must be a mention or user ID."
 			else:
 				try:
-					await mutedMember.remove_roles(role)
+					await muted_member.remove_roles(role)
 				except nextcord.Forbidden as e:
 					misc.log_exception(e, ctx)
 					report = misc.HierarchyMsg
 				else:
-					report = f"Unmuted {mutedMember.mention}."
+					report = f"Unmuted {muted_member.mention}."
 					if channel := misc.get_log_channel(ctx.guild):
 						await channel.send(
-							embed=logs.log_unmute(mutedMember, ctx.author),
+							embed=logs.log_unmute(muted_member, ctx.author),
 						)
 		else:
 			report = f"Invalid target, {ctx.author.mention}."
@@ -766,7 +767,7 @@ async def cmd_purge(
 		return -1
 	assert hasattr(ctx.author, "guild_permissions")
 	if ctx.author.guild_permissions.manage_messages:
-		if num is None or not num.isnumeric() or ((mNum := int(num)) < 0):
+		if num is None or not num.isnumeric() or ((limit := int(num)) < 0):
 			await ctx.send(embed=misc.bb_embed(
 				"Beardless Bot Purge", "Invalid message number!",
 			))
@@ -776,7 +777,7 @@ async def cmd_purge(
 			nextcord.TextChannel | nextcord.VoiceChannel | nextcord.Thread,
 		)
 		await ctx.channel.purge(
-			limit=mNum + 1, check=lambda msg: not msg.pinned,
+			limit=limit + 1, check=lambda msg: not msg.pinned,
 		)
 		return 1
 	await ctx.send(embed=misc.bb_embed(
@@ -864,7 +865,7 @@ async def cmd_spar(
 		await ctx.send(embed=misc.SparPinsEmbed)
 		return 0
 	report = brawl.BadRegion.format(author)
-	tooRecent: int | None = None
+	too_recent: int | None = None
 	role: nextcord.Role | None = None
 	if (region := region.lower()) in {"usw", "use"}:
 		region = region[:2] + "-" + region[2]
@@ -880,13 +881,15 @@ async def cmd_spar(
 			pings[region] = int(time())
 			report = f"{role.mention} come spar {author}"
 		else:
-			tooRecent = value
-	if role and tooRecent:
-		hours, seconds = divmod(SparCooldown - (int(time()) - tooRecent), 3600)
+			too_recent = value
+	if role and too_recent:
+		hours, seconds = divmod(
+			SparCooldown - (int(time()) - too_recent), 3600,
+		)
 		minutes, seconds = divmod(seconds, 60)
 		report = brawl.ping_msg(author, hours, minutes, seconds)
 	await ctx.send(report)
-	if additional and role and not tooRecent:
+	if additional and role and not too_recent:
 		await ctx.send(f"Additional info: \"{additional}\"".replace("@", ""))
 	return 1
 
@@ -908,17 +911,19 @@ async def cmd_brawl(ctx: misc.BotContext) -> int:
 async def cmd_brawlclaim(ctx: misc.BotContext, url_or_id: str = "None") -> int:
 	if misc.ctx_created_thread(ctx) or not BrawlKey:
 		return -1
-	brawlId = (
+	brawl_id = (
 		int(url_or_id)
 		if url_or_id.isnumeric()
 		else await brawl.get_brawl_id(BrawlKey, url_or_id)
 	)
-	if brawlId is not None:
-		brawl.claim_profile(ctx.author.id, brawlId)
+	if brawl_id is not None:
+		brawl.claim_profile(ctx.author.id, brawl_id)
 		report = "Profile claimed."
 	else:
 		report = "Invalid profile URL/Brawlhalla ID! " + brawl.BadClaim
-	await ctx.send(embed=misc.bb_embed("Beardless Bot Brawlhalla Rank", report))
+	await ctx.send(embed=misc.bb_embed(
+		"Beardless Bot Brawlhalla Rank", report,
+	))
 	return 1
 
 
@@ -928,20 +933,22 @@ async def cmd_brawlrank(ctx: misc.BotContext, *, target: str = "") -> int:
 		return -1
 	# TODO: write valid target method; no need for this copy paste
 	# have it return target, report
-	rankTarget: misc.TargetTypes | None = misc.get_target(ctx, target)
+	rank_target: misc.TargetTypes | None = misc.get_target(ctx, target)
 	report = "Invalid target!"
-	if isinstance(rankTarget, str):
-		rankTarget = misc.member_search(ctx.message, rankTarget)
-	if rankTarget:
+	if isinstance(rank_target, str):
+		rank_target = misc.member_search(ctx.message, rank_target)
+	if rank_target:
 		try:
-			emb = await brawl.get_rank(rankTarget, BrawlKey)
+			emb = await brawl.get_rank(rank_target, BrawlKey)
 		except RequestError as e:
 			misc.log_exception(e, ctx)
 			report = brawl.RequestLimit
 		else:
 			await ctx.send(embed=emb)
 			return 1
-	await ctx.send(embed=misc.bb_embed("Beardless Bot Brawlhalla Rank", report))
+	await ctx.send(embed=misc.bb_embed(
+		"Beardless Bot Brawlhalla Rank", report,
+	))
 	return 0
 
 
@@ -949,13 +956,13 @@ async def cmd_brawlrank(ctx: misc.BotContext, *, target: str = "") -> int:
 async def cmd_brawlstats(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctx_created_thread(ctx) or not ctx.guild or not BrawlKey:
 		return -1
-	statsTarget: misc.TargetTypes | None = misc.get_target(ctx, target)
+	stats_target: misc.TargetTypes | None = misc.get_target(ctx, target)
 	report = "Invalid target!"
-	if isinstance(statsTarget, str):
-		statsTarget = misc.member_search(ctx.message, statsTarget)
-	if statsTarget:
+	if isinstance(stats_target, str):
+		stats_target = misc.member_search(ctx.message, stats_target)
+	if stats_target:
 		try:
-			emb = await brawl.get_stats(statsTarget, BrawlKey)
+			emb = await brawl.get_stats(stats_target, BrawlKey)
 		except RequestError as e:
 			misc.log_exception(e, ctx)
 			report = brawl.RequestLimit
@@ -972,20 +979,22 @@ async def cmd_brawlstats(ctx: misc.BotContext, *, target: str = "") -> int:
 async def cmd_brawlclan(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctx_created_thread(ctx) or not ctx.guild or not BrawlKey:
 		return -1
-	clanTarget: misc.TargetTypes | None = misc.get_target(ctx, target)
+	clan_target: misc.TargetTypes | None = misc.get_target(ctx, target)
 	report = "Invalid target!"
-	if isinstance(clanTarget, str):
-		clanTarget = misc.member_search(ctx.message, clanTarget)
-	if clanTarget:
+	if isinstance(clan_target, str):
+		clan_target = misc.member_search(ctx.message, clan_target)
+	if clan_target:
 		try:
-			emb = await brawl.get_clan(clanTarget, BrawlKey)
+			emb = await brawl.get_clan(clan_target, BrawlKey)
 		except RequestError as e:
 			misc.log_exception(e, ctx)
 			report = brawl.RequestLimit
 		else:
 			await ctx.send(embed=emb)
 			return 1
-	await ctx.send(embed=misc.bb_embed("Beardless Bot Brawlhalla Clan", report))
+	await ctx.send(embed=misc.bb_embed(
+		"Beardless Bot Brawlhalla Clan", report,
+	))
 	return 0
 
 

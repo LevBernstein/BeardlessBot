@@ -79,11 +79,11 @@ def get_brawl_data() -> dict[
 	# https://github.com/LevBernstein/BeardlessBot/issues/47
 	r = requests.get("https://brawlhalla.com/legends", timeout=10)
 	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
-	brawlDict = json.loads(
+	brawl_dict = json.loads(
 		json.loads(soup.findAll("script")[3].contents[0])["body"],
 	)["data"]
-	assert isinstance(brawlDict, dict)
-	return brawlDict
+	assert isinstance(brawl_dict, dict)
+	return brawl_dict
 
 
 Data = get_brawl_data()
@@ -169,15 +169,17 @@ async def brawl_api_call(
 async def get_brawl_id(brawl_key: str, url: str) -> int | None:
 	if (
 		not isinstance(url, str)
-		or not (steamId := SteamID.from_url(url))
+		or not (steam_id := SteamID.from_url(url))
 	):
 		return None
-	response = await brawl_api_call("search?steamid=", steamId, brawl_key, "&")
+	response = await brawl_api_call(
+		"search?steamid=", steam_id, brawl_key, "&",
+	)
 	if not isinstance(response, dict):
 		return None
-	brawlId = response["brawlhalla_id"]
-	assert isinstance(brawlId, int)
-	return brawlId
+	brawl_id = response["brawlhalla_id"]
+	assert isinstance(brawl_id, int)
+	return brawl_id
 
 
 async def pull_legends(brawl_key: str) -> None:
@@ -261,27 +263,27 @@ def get_top_legend(
 ) -> tuple[str, int] | None:
 	# TODO: unit test
 	# https://github.com/LevBernstein/BeardlessBot/issues/47
-	topLegend = None
+	top_legend = None
 	for legend in legends:
-		if not topLegend or topLegend[1] < legend["rating"]:
+		if not top_legend or top_legend[1] < legend["rating"]:
 			assert isinstance(legend["legend_name_key"], str)
 			assert isinstance(legend["rating"], int)
-			topLegend = legend["legend_name_key"], legend["rating"]
-	return topLegend
+			top_legend = legend["legend_name_key"], legend["rating"]
+	return top_legend
 
 
 def get_ones_rank(emb: Embed, r: dict[str, Any]) -> Embed:
 	# TODO: unit test
 	# https://github.com/LevBernstein/BeardlessBot/issues/47
-	embVal = (
+	emb_val = (
 		f"**{r["tier"]}** ({r["rating"]}/{r["peak_rating"]} Peak)\n{r["wins"]}"
 		f" W / {r["games"] - r["wins"]} L / {brawl_win_rate(r)}% winrate"
 	)
-	if (topLegend := get_top_legend(r["legends"])) is not None:
-		embVal += (
-			f"\nTop Legend: {topLegend[0].title()}, {topLegend[1]} Elo"
+	if (top_legend := get_top_legend(r["legends"])) is not None:
+		emb_val += (
+			f"\nTop Legend: {top_legend[0].title()}, {top_legend[1]} Elo"
 		)
-	emb.add_field(name="Ranked 1s", value=embVal)
+	emb.add_field(name="Ranked 1s", value=emb_val)
 	for thumb in RankedThumbnails:
 		if thumb[1] in r["tier"]:
 			emb.colour = Colour(RankColors[thumb[1]])
@@ -294,29 +296,29 @@ def get_twos_rank(emb: Embed, r: dict[str, Any]) -> Embed:
 	# TODO: unit test
 	# https://github.com/LevBernstein/BeardlessBot/issues/47
 	# Should be called after getOnesRank, not before
-	twosTeam = None
+	peak_team = None
 	for team in r["2v2"]:
 		# Find highest-Elo 2s pairing
-		if not twosTeam or twosTeam["rating"] < team["rating"]:
-			twosTeam = team
-	if twosTeam:
+		if not peak_team or peak_team["rating"] < team["rating"]:
+			peak_team = team
+	if peak_team:
 		emb.add_field(
 			name="Ranked 2s",
 			value=(
-				f"**{twosTeam["teamname"]}\n"
-				f"{twosTeam["tier"]}** ({twosTeam["rating"]} /"
-				f" {twosTeam["peak_rating"]} Peak)\n{twosTeam["wins"]}"
-				f" W / {twosTeam["games"] - twosTeam["wins"]} L /"
-				f" {brawl_win_rate(twosTeam)}% winrate"
+				f"**{peak_team["teamname"]}\n"
+				f"{peak_team["tier"]}** ({peak_team["rating"]} /"
+				f" {peak_team["peak_rating"]} Peak)\n{peak_team["wins"]}"
+				f" W / {peak_team["games"] - peak_team["wins"]} L /"
+				f" {brawl_win_rate(peak_team)}% winrate"
 			),
 		)
 		if (
 			(emb.colour and emb.colour.value == BbColor)
-			or twosTeam["rating"] > r["rating"]
+			or peak_team["rating"] > r["rating"]
 		):
 			# Higher 2s Elo than 1s Elo
 			for thumb in RankedThumbnails:
-				if thumb[1] in twosTeam["tier"]:
+				if thumb[1] in peak_team["tier"]:
 					emb.colour = Colour(RankColors[thumb[1]])
 					emb.set_thumbnail(ThumbBase.format(*thumb))
 					break
@@ -324,12 +326,12 @@ def get_twos_rank(emb: Embed, r: dict[str, Any]) -> Embed:
 
 
 async def get_rank(target: Member | User, brawl_key: str) -> Embed:
-	if not (brawlId := fetch_brawl_id(target.id)):
+	if not (brawl_id := fetch_brawl_id(target.id)):
 		return bb_embed(
 			"Beardless Bot Brawlhalla Rank",
 			UnclaimedMsg.format(target.mention),
 		)
-	r = await brawl_api_call("player/", str(brawlId) + "/ranked", brawl_key)
+	r = await brawl_api_call("player/", str(brawl_id) + "/ranked", brawl_key)
 	assert isinstance(r, dict)
 	if not r or (
 		("games" in r and r["games"] == 0)
@@ -338,11 +340,11 @@ async def get_rank(target: Member | User, brawl_key: str) -> Embed:
 		return bb_embed(
 			"Beardless Bot Brawlhalla Rank",
 			"You haven't played ranked yet this season.",
-		).set_footer(text=f"Brawl ID {brawlId}").set_author(
+		).set_footer(text=f"Brawl ID {brawl_id}").set_author(
 			name=target, icon_url=fetch_avatar(target),
 		)
 	emb = bb_embed(f"{r["name"]}, {r["region"]}").set_footer(
-		text=f"Brawl ID {brawlId}",
+		text=f"Brawl ID {brawl_id}",
 	).set_author(name=target, icon_url=fetch_avatar(target))
 	if "games" in r and r["games"] != 0:
 		emb = get_ones_rank(emb, r)
@@ -379,73 +381,73 @@ def get_top_legend_stats(
 ) -> tuple[tuple[str, float | int] | None, ...]:
 	# TODO: unit test
 	# https://github.com/LevBernstein/BeardlessBot/issues/47
-	mostUsed: tuple[str, int] | None = None
-	topWinrate: tuple[str, float] | None = None
-	topDps: tuple[str, float] | None = None
-	lowestTtk: tuple[str, float] | None = None
+	most_used: tuple[str, int] | None = None
+	top_winrate: tuple[str, float] | None = None
+	top_dps: tuple[str, float] | None = None
+	lowest_ttk: tuple[str, float] | None = None
 	for legend in legends:
 		assert isinstance(legend["xp"], int)
 		assert isinstance(legend["legend_name_key"], str)
-		if not mostUsed or mostUsed[1] < legend["xp"]:
-			mostUsed = (legend["legend_name_key"].title(), legend["xp"])
+		if not most_used or most_used[1] < legend["xp"]:
+			most_used = (legend["legend_name_key"].title(), legend["xp"])
 		if legend["games"] and (
-			topWinrate is None
-			or topWinrate[1] < brawl_win_rate(legend)
+			top_winrate is None
+			or top_winrate[1] < brawl_win_rate(legend)
 		):
-			topWinrate = (
+			top_winrate = (
 				legend["legend_name_key"].title(), brawl_win_rate(legend),
 			)
 		if legend["matchtime"] and (
-			topDps is None or topDps[1] < get_top_dps(legend)[1]
+			top_dps is None or top_dps[1] < get_top_dps(legend)[1]
 		):
-			topDps = get_top_dps(legend)
+			top_dps = get_top_dps(legend)
 		if legend["kos"] and (
-			lowestTtk is None or lowestTtk[1] > get_top_ttk(legend)[1]
+			lowest_ttk is None or lowest_ttk[1] > get_top_ttk(legend)[1]
 		):
-			lowestTtk = get_top_ttk(legend)
-	return mostUsed, topWinrate, topDps, lowestTtk
+			lowest_ttk = get_top_ttk(legend)
+	return most_used, top_winrate, top_dps, lowest_ttk
 
 
 async def get_stats(target: Member | User, brawl_key: str) -> Embed:
-	if not (brawlId := fetch_brawl_id(target.id)):
+	if not (brawl_id := fetch_brawl_id(target.id)):
 		return bb_embed(
 			"Beardless Bot Brawlhalla Stats",
 			UnclaimedMsg.format(target.mention),
 		)
 	if not (r := await brawl_api_call(
-		"player/", str(brawlId) + "/stats", brawl_key,
+		"player/", str(brawl_id) + "/stats", brawl_key,
 	)):
-		noStats = (
+		no_stats = (
 			"This profile doesn't have stats associated with it."
 			" Please make sure you've claimed the correct profile."
 		)
-		return bb_embed("Beardless Bot Brawlhalla Stats", noStats)
+		return bb_embed("Beardless Bot Brawlhalla Stats", no_stats)
 	assert isinstance(r, dict)
-	winLoss = (
+	win_loss = (
 		f"{r["wins"]} Wins / {r["games"] - r["wins"]} Losses"
 		f"\n{r["games"]} Games\n{brawl_win_rate(r)}% Winrate"
 	)
 	emb = bb_embed("Brawlhalla Stats for " + r["name"]).set_footer(
-		text=f"Brawl ID {brawlId}",
+		text=f"Brawl ID {brawl_id}",
 	).add_field(name="Name", value=r["name"]).add_field(
-		name="Overall W/L", value=winLoss,
+		name="Overall W/L", value=win_loss,
 	).set_author(name=target, icon_url=fetch_avatar(target))
 	if "legends" in r:
-		mostUsed, topWinrate, topDps, lowestTtk = get_top_legend_stats(
+		most_used, top_winrate, top_dps, lowest_ttk = get_top_legend_stats(
 			r["legends"],
 		)
-		if all((mostUsed, topWinrate, topDps, lowestTtk)):
-			assert isinstance(mostUsed, tuple)
-			assert isinstance(topWinrate, tuple)
-			assert isinstance(topDps, tuple)
-			assert isinstance(lowestTtk, tuple)
+		if all((most_used, top_winrate, top_dps, lowest_ttk)):
+			assert isinstance(most_used, tuple)
+			assert isinstance(top_winrate, tuple)
+			assert isinstance(top_dps, tuple)
+			assert isinstance(lowest_ttk, tuple)
 			emb.add_field(
 				name="Legend Stats (20 game min)",
 				value=(
-					f"**Most Played:** {mostUsed[0]}\n**Highest Winrate:"
-					f"** {topWinrate[0]}, {topWinrate[1]}%\n**Highest Avg"
-					f" DPS:** {topDps[0]}, {topDps[1]}\n**Shortest Avg TTK:"
-					f"** {lowestTtk[0]}, {lowestTtk[1]}s"
+					f"**Most Played:** {most_used[0]}\n**Highest Winrate:"
+					f"** {top_winrate[0]}, {top_winrate[1]}%\n**Highest Avg"
+					f" DPS:** {top_dps[0]}, {top_dps[1]}\n**Shortest Avg TTK:"
+					f"** {lowest_ttk[0]}, {lowest_ttk[1]}s"
 				),
 			)
 	if "clan" in r:
@@ -455,7 +457,7 @@ async def get_stats(target: Member | User, brawl_key: str) -> Embed:
 
 
 async def get_clan(target: Member | User, brawl_key: str) -> Embed:
-	if not (brawlId := fetch_brawl_id(target.id)):
+	if not (brawl_id := fetch_brawl_id(target.id)):
 		return bb_embed(
 			"Beardless Bot Brawlhalla Clan",
 			UnclaimedMsg.format(target.mention),
@@ -464,7 +466,7 @@ async def get_clan(target: Member | User, brawl_key: str) -> Embed:
 	# one to get clan from clan ID. As a result, this command is very slow.
 	# TODO: Try to find a way around this.
 	# https://github.com/LevBernstein/BeardlessBot/issues/14
-	r = await brawl_api_call("player/", str(brawlId) + "/stats", brawl_key)
+	r = await brawl_api_call("player/", str(brawl_id) + "/stats", brawl_key)
 	assert isinstance(r, dict)
 	if "clan" not in r:
 		return bb_embed(
@@ -508,8 +510,8 @@ def brawl_commands() -> Embed:
 			"Randomly chooses a legend or weapon for you to play.",
 		),
 	)
-	for commandPair in comms:
-		emb.add_field(name=commandPair[0], value=commandPair[1])
+	for command, description in comms:
+		emb.add_field(name=command, value=description)
 	return emb
 
 

@@ -283,34 +283,34 @@ def write_money(
 	"""
 	if "," in member.name:
 		return MoneyFlags.CommaInUsername, CommaWarn.format(member.mention)
-	with Path("resources/money.csv").open("r", encoding="UTF-8") as csvfile:
-		for row in csv.reader(csvfile, delimiter=","):
+	with Path("resources/money.csv").open("r", encoding="UTF-8") as csv_file:
+		for row in csv.reader(csv_file, delimiter=","):
 			if str(member.id) == row[0]:  # found member
 				if isinstance(amount, str):  # for people betting all
 					amount = -int(row[1]) if amount == "-all" else int(row[1])
-				newBank: str | int = str(
+				new_bank: str | int = str(
 					int(row[1]) + amount if adding else amount,
 				)
-				if writing and row[1] != newBank:
+				if writing and row[1] != new_bank:
 					if int(row[1]) + amount < 0:
 						return MoneyFlags.NotEnoughBucks, None
-					newLine = ",".join((row[0], str(newBank), str(member)))
+					new_line = ",".join((row[0], str(new_bank), str(member)))
 					result = MoneyFlags.BalanceChanged
 				else:
 					# No change in balance. Rewrites lines anyway, to
 					# update stringified version of member
-					newLine = ",".join((row[0], row[1], str(member)))
-					newBank = int(row[1])
+					new_line = ",".join((row[0], row[1], str(member)))
+					new_bank = int(row[1])
 					result = MoneyFlags.BalanceUnchanged
 				with Path("resources/money.csv").open(
 					"r", encoding="UTF-8",
 				) as f:
-					money = "".join(list(f)).replace(",".join(row), newLine)
+					money = "".join(list(f)).replace(",".join(row), new_line)
 				with Path("resources/money.csv").open(
 					"w", encoding="UTF-8",
 				) as f:
 					f.writelines(money)
-				return result, newBank
+				return result, new_bank
 
 	with Path("resources/money.csv").open("a", encoding="UTF-8") as f:
 		f.write(f"\r\n{member.id},300,{member}")
@@ -366,14 +366,16 @@ def balance(
 		" (or enter their username), or do !balance without a"
 		f" target to see your own balance, {msg.author.mention}."
 	)
-	balTarget = (
+	bal_target = (
 		member_search(msg, target) if isinstance(target, str) else target
 	)
-	if balTarget and not isinstance(balTarget, str):
-		result, bonus = write_money(balTarget, 300, writing=False, adding=False)
+	if bal_target and not isinstance(bal_target, str):
+		result, bonus = write_money(
+			bal_target, 300, writing=False, adding=False,
+		)
 		if result == MoneyFlags.BalanceUnchanged:
 			report = (
-				f"{balTarget.mention}'s balance is {bonus} BeardlessBucks."
+				f"{bal_target.mention}'s balance is {bonus} BeardlessBucks."
 			)
 		else:
 			report = str(bonus) if result in {
@@ -429,33 +431,35 @@ def leaderboard(
 		target = member_search(msg, target)
 	if target and isinstance(target, nextcord.User | nextcord.Member):
 		write_money(target, 300, writing=False, adding=False)
-	with Path("resources/money.csv").open("r", encoding="UTF-8") as csvfile:
-		lbDict = {
-			row[2]: int(row[1]) for row in csv.reader(csvfile, delimiter=",")
+	with Path("resources/money.csv").open("r", encoding="UTF-8") as csv_file:
+		lb_dict = {
+			row[2]: int(row[1]) for row in csv.reader(csv_file, delimiter=",")
 		}
 	# Sort by value for each key in lbDict, which is BeardlessBucks balance
-	sortedDict = OrderedDict(sorted(lbDict.items(), key=itemgetter(1)))
-	pos = targetBal = None
+	sorted_dict = OrderedDict(sorted(lb_dict.items(), key=itemgetter(1)))
+	pos = target_balance = None
 	if target:
-		users = list(sortedDict.keys())
+		users = list(sorted_dict.keys())
 		try:
 			pos = len(users) - users.index(str(target))
 		except ValueError:
 			pos = None
 		else:
-			targetBal = sortedDict[str(target)]
-	for i in range(min(len(sortedDict), 10)):
-		head, body = sortedDict.popitem()
-		lastEntry: bool = (
-			i != min(len(sortedDict), 10) - 1
+			target_balance = sorted_dict[str(target)]
+	for i in range(min(len(sorted_dict), 10)):
+		head, body = sorted_dict.popitem()
+		last_entry: bool = (
+			i != min(len(sorted_dict), 10) - 1
 		)
 		emb.add_field(
-			name=f"{i + 1}. {head.split("#")[0]}", value=body, inline=lastEntry,
+			name=f"{i + 1}. {head.split("#")[0]}",
+			value=body,
+			inline=last_entry,
 		)
 	if target and pos:
 		assert not isinstance(target, str)
 		emb.add_field(name=f"{target.name}'s position:", value=pos)
-		emb.add_field(name=f"{target.name}'s balance:", value=targetBal)
+		emb.add_field(name=f"{target.name}'s balance:", value=target_balance)
 	return emb
 
 
@@ -466,6 +470,7 @@ def flip(author: nextcord.User | nextcord.Member, bet: str | int) -> str:
 	Args:
 		author (nextcord.User or Member): The user who is gambling
 		bet (str): The amount author is wagering
+
 	Returns:
 		str: A report of the outcome and how author's balance changed.
 
