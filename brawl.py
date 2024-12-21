@@ -8,10 +8,9 @@ from typing import Any
 
 import aiofiles
 import httpx
-import requests
 from bs4 import BeautifulSoup
 from nextcord import Colour, Embed, Member, User
-from steam.steamid import SteamID  # type: ignore[import-untyped]
+from steam import steamid
 
 from misc import BbColor, Ok, TimeZone, bb_embed, fetch_avatar
 
@@ -75,9 +74,7 @@ Regions = (
 def get_brawl_data() -> dict[
 	str, dict[str, list[dict[str, str | dict[str, str | dict[str, str]]]]],
 ]:
-	# TODO: unit test
-	# https://github.com/LevBernstein/BeardlessBot/issues/47
-	r = requests.get("https://brawlhalla.com/legends", timeout=10)
+	r = httpx.get("https://brawlhalla.com/legends", timeout=10)
 	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 	brawl_dict = json.loads(
 		json.loads(soup.findAll("script")[3].contents[0])["body"],
@@ -169,7 +166,7 @@ async def brawl_api_call(
 async def get_brawl_id(brawl_key: str, url: str) -> int | None:
 	if (
 		not isinstance(url, str)
-		or not (steam_id := SteamID.from_url(url))
+		or not (steam_id := steamid.from_url(url))  # type:ignore[no-untyped-call]
 	):
 		return None
 	response = await brawl_api_call(
@@ -205,8 +202,6 @@ def get_legend_picture(legend_name: str) -> str:
 
 
 def get_weapon_picture(weapon_name: str) -> str:
-	# TODO: unit test
-	# https://github.com/LevBernstein/BeardlessBot/issues/47
 	weapon = [i for i in Data["weapons"]["nodes"] if i["name"] == weapon_name]
 	assert isinstance(weapon[0]["weaponFields"], dict)
 	icon = weapon[0]["weaponFields"]["icon"]

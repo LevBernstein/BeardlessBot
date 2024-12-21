@@ -102,7 +102,16 @@ class BlackjackGame:
 
 	@staticmethod
 	def card_name(card: int) -> str:
-		"""Return the human-friendly name of a card based on int value."""
+		"""
+		Return the human-friendly name of a card based on int value.
+
+		Args:
+			card (int): The card whose name should be rendered
+
+		Returns:
+			str: A human-friendly card name.
+
+		"""
 		if card == BlackjackGame.FaceVal:
 			return "a " + random.choice(
 				(str(BlackjackGame.FaceVal), "Jack", "Queen", "King"),
@@ -112,11 +121,24 @@ class BlackjackGame:
 		return "an 8" if card == 8 else ("a " + str(card))  # noqa: PLR2004
 
 	def perfect(self) -> bool:
-		"""Check if the user has reached a Blackjack."""
+		"""
+		Check if the user has reached Goal, and therefore gotten Blackjack.
+
+		In the actual game of Blackjack, getting Blackjack requires hitting
+		21 with just your first two cards; for the sake of simplicity, use
+		this method for checking if the user has reached Goal at all.
+
+		Returns:
+			bool: Whether the user has gotten Blackjack.
+
+		"""
 		return sum(self.hand) == BlackjackGame.Goal
 
 	def starting_hand(
-		self, *, debug_blackjack: bool = False, debug_double_aces: bool = False,
+		self,
+		*,
+		debug_blackjack: bool = False,
+		debug_double_aces: bool = False,
 	) -> str:
 		"""
 		Deal the user a starting hand of 2 cards.
@@ -206,14 +228,28 @@ class BlackjackGame:
 		return self.message
 
 	def check_bust(self) -> bool:
-		"""Check if a user has gone over Goal. Returns bool."""
+		"""
+		Check if a user has gone over Goal.
+
+		If so, invert their bet to facilitate subtracting it from their total.
+
+		Returns:
+			bool: Whether the user has gone over Goal.
+
+		"""
 		if sum(self.hand) > BlackjackGame.Goal:
 			self.bet *= -1
 			return True
 		return False
 
 	def stay(self) -> int:
-		"""End the game. Returns int: 1 if user's bal changed, else 0."""
+		"""
+		End the game.
+
+		Returns:
+			int: 1 if user's balance changed; else, 0.
+
+		"""
 		change = 1
 		self.message = "The dealer has a total of {}."
 		if sum(self.hand) > self.dealerSum and not self.check_bust():

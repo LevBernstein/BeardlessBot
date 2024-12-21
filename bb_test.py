@@ -36,11 +36,10 @@ import httpx
 import nextcord
 import pytest
 import requests
-import responses
 from aiohttp import ClientWebSocketResponse
 from bs4 import BeautifulSoup
 from codespell_lib import main as codespell
-from flake8.api import legacy as flake8  # type: ignore[import-untyped]
+from flake8.api import legacy as flake8
 from mypy.api import run as mypy
 from nextcord.ext import commands
 from nextcord.types.channel import TextChannel as TextChannelPayload
@@ -57,11 +56,13 @@ import bucks
 import logs
 import misc
 
+logger = logging.getLogger(__name__)
+
 ImageTypes: set[str] = {
 	"image/" + i for i in ("png", "jpeg", "jpg", "gif", "webp")
 }
 
-FilesToCheck: tuple[str, ...] = tuple(f.name for f in Path().glob("*.py"))
+FilesToCheck: list[str] = [f.name for f in Path().glob("*.py")]
 
 OwnerBrawlId: Final[int] = 7032472
 
@@ -96,20 +97,37 @@ SnowflakeTime = datetime | nextcord.abc.Snowflake
 
 StyleGuide = flake8.get_style_guide(ignore=["W191", "W503"])
 
-BrawlKey: str | None = (
-	os.environ.get("BRAWLKEY") or dotenv.dotenv_values(".env").get("BRAWLKEY")
-)
+dotenv.load_dotenv(".env")
+BrawlKey: str | None = os.environ.get("BRAWLKEY")
 
 MarkAsync = pytest.mark.asyncio(loop_scope="module")
 
 
-def response_ok(resp: requests.models.Response | httpx.Response) -> bool:
-	"""Make sure a response has an ok exit code."""
+def response_ok(resp: httpx.Response) -> bool:
+	"""
+	Make sure a response has an ok exit code.
+
+	Args:
+		resp (httpx.Response): The response to check
+
+	Returns:
+		bool: Whether the exit code is ok.
+
+	"""
 	return misc.Ok <= resp.status_code < 400
 
 
-def valid_image_url(resp: requests.models.Response | httpx.Response) -> bool:
-	"""Make sure an image url points to a valid image."""
+def valid_image_url(resp: httpx.Response) -> bool:
+	"""
+	Make sure an image url points to a valid image.
+
+	Args:
+		resp (httpx.Response): The response to check
+
+	Returns:
+		bool: Whether the url points to a valid image.
+
+	"""
 	return response_ok(resp) and resp.headers["content-type"] in ImageTypes
 
 
@@ -145,7 +163,7 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 		data = dict(fields)
 		data["id"] = guild_id
 		if reason:
-			logging.info("Role creation reason: %s", reason)
+			logger.info("Role creation reason: %s", reason)
 		return data
 
 	@override
@@ -290,7 +308,7 @@ class MockMember(nextcord.Member):
 		reason: str | None = None,
 		atomic: bool = True,
 	) -> None:
-		logging.info(
+		logger.info(
 			"Role add reason: %s. Atomic operation: %s", reason, atomic,
 		)
 		for role in roles:
@@ -568,7 +586,7 @@ class MockChannel(nextcord.TextChannel):
 		**kwargs: Any,
 	) -> None:
 		if reason:
-			logging.info("Permissions set reason: %s", reason)
+			logger.info("Permissions set reason: %s", reason)
 		overwrite = kwargs.pop("overwrite", None)
 		permissions: dict[str, bool] = kwargs
 		if overwrite is None and len(permissions) != 0:
@@ -598,7 +616,7 @@ class MockChannel(nextcord.TextChannel):
 				parent_id=None,
 			)
 			self._fill_overwrites(guild_payload)
-			logging.info(
+			logger.info(
 				"Setting perms on channel: %s for target: %s, reason: %s",
 				self.id,
 				target.id,
@@ -606,7 +624,7 @@ class MockChannel(nextcord.TextChannel):
 			)
 		else:
 			# TODO: proper removal logic here--remove from _overwrites
-			logging.info(
+			logger.info(
 				"Deleting perms on channel: %s for target: %s, reason: %s",
 				self.id,
 				target.id,
@@ -788,7 +806,7 @@ class MockGuild(nextcord.Guild):
 			cache: bool | None = None,
 		) -> list[nextcord.Member]:
 			guild._member_count = len(guild._members)
-			logging.info(
+			logger.info(
 				"Chunked Guild %s with wait=%s and cache=%s",
 				guild,
 				wait,
@@ -806,7 +824,7 @@ class MockGuild(nextcord.Guild):
 			cache: bool,
 			presences: bool,
 		) -> list[nextcord.Member]:
-			logging.info(
+			logger.info(
 				"Queried members in Guild %s with query=%s, presences=%s",
 				guild,
 				query,
@@ -817,7 +835,9 @@ class MockGuild(nextcord.Guild):
 				await self.chunk_guild(guild, cache=cache)
 				if not user_ids or (self.user.id in user_ids):
 					assert hasattr(self.user, "base_user")
-					members.append(MockMember(self.user.base_user, guild=guild))
+					members.append(
+						MockMember(self.user.base_user, guild=guild),
+					)
 			return members
 
 	@override
@@ -1292,7 +1312,7 @@ def test_with_ruff_for_code_quality() -> None:
 	).stdout[:-1] == "All checks passed!"
 
 
-@pytest.mark.parametrize("letter", ["W", "E", "C", "SIM"])
+@pytest.mark.parametrize("letter", ["W", "E", "C"])
 def test_code_quality_with_flake8(letter: str) -> None:
 	assert StyleGuide.check_files(FilesToCheck).get_statistics(letter) == []
 
@@ -1304,6 +1324,7 @@ def test_full_type_checking_with_mypy_for_code_quality() -> None:
 	stdout, stderr, _exit_code = mypy([
 		*FilesToCheck,
 		"--strict",
+		"--follow-untyped-imports",
 		"--python-executable=" + sys.executable,
 		f"--python-version={sys.version_info.major}.{sys.version_info.minor}",
 	])
@@ -2896,11 +2917,10 @@ async def test_animal_api_down_raises_animal_exception(
 		await misc.get_animal("duck")
 
 
-@responses.activate
-def test_get_frog_list_standard_layout() -> None:
-	responses.get(
-		"https://github.com/a9-i/frog/tree/main/ImgSetOpt",
-		body=(
+def test_get_frog_list_standard_layout(httpx_mock: HTTPXMock) -> None:
+	httpx_mock.add_response(
+		url="https://github.com/a9-i/frog/tree/main/ImgSetOpt",
+		content=(
 			b"<!DOCTYPE html><html><script>{\"payload\":{\"tree\":{\"items\":"
 			b"[{\"name\":\"0\"}]}}}</script></html>"
 		),
@@ -2911,11 +2931,10 @@ def test_get_frog_list_standard_layout() -> None:
 	assert frogs[0] == "0"
 
 
-@responses.activate
-def test_get_frog_list_alt_layout() -> None:
-	responses.get(
-		"https://github.com/a9-i/frog/tree/main/ImgSetOpt",
-		body=(
+def test_get_frog_list_alt_layout(httpx_mock: HTTPXMock) -> None:
+	httpx_mock.add_response(
+		url="https://github.com/a9-i/frog/tree/main/ImgSetOpt",
+		content=(
 			b"<!DOCTYPE html><html><script>{\"payload\":{\"tree\":{\"items\":"
 			b"[{\"name\":\"0\\\"}]}}}</script><script>{}</script></html>"
 		),
@@ -3156,6 +3175,25 @@ def test_launch_invalid_discord_token_raises_discord_exception(
 	)
 
 
+@MarkAsync
+async def test_cmd_pins() -> None:
+	ctx = MockContext(Bot.BeardlessBot, author=MockMember(), guild=None)
+	assert await Bot.cmd_pins(ctx) == -1
+
+	ctx.guild = MockGuild()
+	assert (await Bot.cmd_pins(ctx)) == 0
+	assert (await ctx.history().next()).embeds[0].title == (
+		f"Try using !spar in the {misc.SparChannelName} channel."
+	)
+
+	assert hasattr(ctx.channel, "name")
+	ctx.channel.name = misc.SparChannelName
+	assert (await Bot.cmd_pins(ctx)) == 1
+	assert (await ctx.history().next()).embeds[0].title == (
+		"How to use this channel."
+	)
+
+
 def test_brawl_commands() -> None:
 	assert len(brawl.brawl_commands().fields) == 6
 
@@ -3181,7 +3219,7 @@ def test_claim_profile() -> None:
 
 
 @MarkAsync
-async def test_brawp_api_call_raises_httpx_exception_with_bad_status_code(
+async def test_brawl_api_call_raises_httpx_exception_with_bad_status_code(
 	httpx_mock: HTTPXMock,
 ) -> None:
 	httpx_mock.add_response(
@@ -3330,13 +3368,13 @@ async def test_get_brawl_id_returns_none_when_id_is_invalid() -> None:
 
 
 @MarkAsync
-async def test_get_brawl_id(httpx_mock: HTTPXMock) -> None:
+async def test_get_brawl_id_valid(httpx_mock: HTTPXMock) -> None:
 	httpx_mock.add_response(
 		url="https://api.brawlhalla.com/search?steamid=1&api_key=foo",
 		json={"brawlhalla_id": 2},
 	)
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("steam.steamid.SteamID.from_url", lambda _: "1")
+		mp.setattr("steam.steamid.from_url", lambda _: "1")
 		assert await brawl.get_brawl_id("foo", "foo.bar") == 2
 
 
@@ -3403,28 +3441,63 @@ async def test_get_clan_not_in_a_clan(httpx_mock: HTTPXMock) -> None:
 		brawl.claim_profile(Bot.OwnerId, OwnerBrawlId)
 
 
+def test_get_brawl_data(httpx_mock: HTTPXMock) -> None:
+	brawl_data_content = (
+		b'<script /><script /><script /><script>{"body": "{\\"data\\":'
+		b' {\\"weapons\\": {\\"nodes\\": [{\\"name\\":'
+		b' \\"cannon\\"}]}}}"}</script>'
+	)
+	httpx_mock.add_response(
+		url="https://brawlhalla.com/legends", content=brawl_data_content,
+	)
+	data = brawl.get_brawl_data()
+	assert len(data["weapons"]["nodes"]) == 1
+	assert data["weapons"]["nodes"][0]["name"] == "cannon"
+
+
+@MarkAsync
+async def test_random_brawl_weapon() -> None:
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr(
+			"brawl.Data", {
+				"weapons": {
+					"nodes": [{
+						"name": "gauntlets",
+						"weaponFields": {"icon": {"sourceUrl": "foo.bar"}},
+					}],
+				},
+			},
+		)
+		mp.setattr("random.choice", operator.itemgetter(0))
+		weapon = await brawl.random_brawl("weapon")
+	assert weapon.title == "Random Weapon"
+	assert weapon.description == "Your weapon is gauntlets."
+	assert weapon.thumbnail.url == "foo.bar"
+
+
+@MarkAsync
+async def test_random_brawl_legend_no_brawl_key() -> None:
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.choice", operator.itemgetter(0))
+		legend = await brawl.random_brawl("legend")
+	assert legend.title == "Random Legend"
+	assert legend.description == "Your legend is Bodvar."
+
+
+@MarkAsync
+async def test_random_brawl_invalid() -> None:
+	legend = await brawl.random_brawl("invalidrandom")
+	assert legend.title == "Brawlhalla Randomizer"
+
+
 # Tests for commands that require a Brawlhalla API key:
 
 if BrawlKey:
 	@MarkAsync
-	async def test_random_brawl() -> None:
+	async def test_random_brawl_with_brawl_key() -> None:
 		# TODO: remove randomness
 		# https://github.com/LevBernstein/BeardlessBot/issues/46
 		assert BrawlKey is not None
-		weapon = await brawl.random_brawl("weapon")
-		assert weapon.title == "Random Weapon"
-		assert weapon.thumbnail.url is not None
-		assert weapon.description is not None
-		assert (
-			weapon.description.split(" ")[-1][:-2].lower()
-			in weapon.thumbnail.url.lower().replace("guantlet", "gauntlet")
-		)
-
-		legend = await brawl.random_brawl("legend")
-		assert legend.title == "Random Legend"
-		assert legend.description is not None
-		assert legend.description.startswith("Your legend is ")
-
 		legend = await brawl.random_brawl("legend", BrawlKey)
 		assert len(legend.fields) == 2
 		assert legend.title is not None
@@ -3433,9 +3506,6 @@ if BrawlKey:
 		)
 		assert legend_info is not None
 		assert legend.title == legend_info.title
-
-		legend = await brawl.random_brawl("invalidrandom")
-		assert legend.title == "Brawlhalla Randomizer"
 
 	@MarkAsync
 	async def test_pull_legends() -> None:

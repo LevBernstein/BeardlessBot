@@ -25,6 +25,8 @@ import misc
 with Path("README.MD").open("r", encoding="UTF-8") as readme:
 	__version__ = " ".join(readme.read().split(" ")[3:6])
 
+logger = logging.getLogger(__name__)
+
 # This dictionary is for keeping track of pings in the lfs channels.
 # TODO: use on_close() to make wait times persist through restarts
 # https://github.com/LevBernstein/BeardlessBot/issues/44
@@ -72,36 +74,36 @@ async def on_ready() -> None:
 	This also allows you to get a good idea of how many unique users are in
 	all guilds in which Beardless Bot operates.
 	"""
-	logging.info("Beardless Bot %s online!", __version__)
+	logger.info("Beardless Bot %s online!", __version__)
 
 	assert BeardlessBot.user is not None
 	try:
 		async with aiofiles.open("resources/images/prof.png", "rb") as f:
 			await BeardlessBot.user.edit(avatar=await f.read())
 	except nextcord.HTTPException:
-		logging.exception("Failed to update avatar!")
+		logger.exception("Failed to update avatar!")
 	except FileNotFoundError:
-		logging.exception(
+		logger.exception(
 			"Avatar file not found! Check your directory structure.",
 		)
 	else:
-		logging.info("Avatar updated!")
+		logger.info("Avatar updated!")
 
 	try:
 		members = set(BeardlessBot.guilds[0].members)
 	except IndexError:
-		logging.exception("Bot is in no servers! Add it to a server.")
+		logger.exception("Bot is in no servers! Add it to a server.")
 	else:
 		for guild in BeardlessBot.guilds:
 			# Do this first so all servers can spar immediately
 			SparPings[guild.id] = dict.fromkeys(brawl.Regions, 0)
-		logging.info("Zeroed sparpings! Sparring is now possible.")
-		logging.info("Chunking guilds, collecting analytics...")
+		logger.info("Zeroed sparpings! Sparring is now possible.")
+		logger.info("Chunking guilds, collecting analytics...")
 		for guild in BeardlessBot.guilds:
 			members = members.union(set(guild.members))
 			await guild.chunk()
 
-		logging.info(
+		logger.info(
 			"Chunking complete! Beardless Bot serves"
 			" %i unique members across %i servers.",
 			len(members),
@@ -111,7 +113,7 @@ async def on_ready() -> None:
 
 @BeardlessBot.event
 async def on_guild_join(guild: nextcord.Guild) -> None:
-	logging.info("Just joined %s!", guild.name)
+	logger.info("Just joined %s!", guild.name)
 
 	if guild.me.guild_permissions.administrator:
 		role = get(guild.roles, name="Beardless Bot")
@@ -120,26 +122,26 @@ async def on_guild_join(guild: nextcord.Guild) -> None:
 			try:
 				await channel.send(embed=misc.on_join(guild, role))
 			except nextcord.DiscordException:
-				logging.exception("Failed to send onJoin msg!")
+				logger.exception("Failed to send onJoin msg!")
 			else:
-				logging.info("Sent join message in %s.", channel.name)
+				logger.info("Sent join message in %s.", channel.name)
 				break
-		logging.info(
+		logger.info(
 			"Beardless Bot is now in %i servers.", len(BeardlessBot.guilds),
 		)
 		SparPings[guild.id] = dict.fromkeys(brawl.Regions, 0)
 	else:
-		logging.warning("Not given admin perms in %s.", guild.name)
+		logger.warning("Not given admin perms in %s.", guild.name)
 		for channel in guild.text_channels:
 			try:
 				await channel.send(embed=misc.NoPermsEmbed)
 			except nextcord.DiscordException:
-				logging.exception("Failed to send noPerms msg!")
+				logger.exception("Failed to send noPerms msg!")
 			else:
-				logging.info("Sent no perms msg in %s.", channel.name)
+				logger.info("Sent no perms msg in %s.", channel.name)
 				break
 		await guild.leave()
-		logging.info("Left %s.", guild.name)
+		logger.info("Left %s.", guild.name)
 
 
 # Event logging:
@@ -618,7 +620,7 @@ async def cmd_dog(ctx: misc.BotContext, *, breed: str = "") -> int:
 			breed.lower() if ctx.invoked_with.lower() != "moose" else "moose",
 		)
 	except (misc.AnimalException, ValueError, KeyError) as e:
-		logging.exception("Failed getting dog breed: %s", breed)
+		logger.exception("Failed getting dog breed: %s", breed)
 		misc.log_exception(e, ctx)
 		await ctx.send(embed=misc.bb_embed(
 			"Something's gone wrong with the Dog API!",
@@ -647,7 +649,7 @@ async def cmd_animal(ctx: misc.BotContext, *, breed: str = "") -> int:
 	try:
 		url = await misc.get_animal(species)
 	except (misc.AnimalException, ValueError, KeyError) as e:
-		logging.exception("%s %s", species, breed)
+		logger.exception("%s %s", species, breed)
 		misc.log_exception(e, ctx)
 		await ctx.send(embed=misc.bb_embed(
 			"Something's gone wrong!",
@@ -703,7 +705,7 @@ async def cmd_mute(
 		# TODO: use on_close() to make mute times persist through restarts
 		# https://github.com/LevBernstein/BeardlessBot/issues/44
 		# Autounmute
-		logging.info(
+		logger.info(
 			"Muted %s/%i%s Muter: %s/%i. Guild: %s",
 			mute_target.name,
 			mute_target.id,
@@ -714,7 +716,7 @@ async def cmd_mute(
 		)
 		await asyncio.sleep(mute_time)
 		await mute_target.remove_roles(role)
-		logging.info(
+		logger.info(
 			"Autounmuted %s after waiting%s", mute_target.name, addendum,
 		)
 		if channel := misc.get_log_channel(ctx.guild):
@@ -830,11 +832,13 @@ async def cmd_buy(
 	name="pins", aliases=("sparpins", "howtospar"),
 )
 async def cmd_pins(ctx: misc.BotContext) -> int:
-	if misc.ctx_created_thread(ctx) or not ctx.guild:
+	if (
+		misc.ctx_created_thread(ctx)
+		or not ctx.guild
+		or not hasattr(ctx.channel, "name")
+	):
 		return -1
-	assert hasattr(ctx.channel, "name")
-	if ctx.channel.name == misc.SparChannelName:
-		await ctx.send(embed=misc.SparPinsEmbed)
+	if await misc.check_for_spar_channel(ctx):
 		return 1
 	await ctx.send(
 		embed=misc.bb_embed(
@@ -852,17 +856,20 @@ async def cmd_pins(ctx: misc.BotContext) -> int:
 async def cmd_spar(
 	ctx: misc.BotContext, region: str | None = None, *, additional: str = "",
 ) -> int:
-	if misc.ctx_created_thread(ctx) or not ctx.guild:
+	if (
+		misc.ctx_created_thread(ctx)
+		or not ctx.guild
+		or not hasattr(ctx.channel, "name")
+	):
 		return -1
 	author = ctx.author.mention
-	assert hasattr(ctx.channel, "name")
 	if ctx.channel.name != misc.SparChannelName:
 		await ctx.send(
 			f"Please only use !spar in {misc.SparChannelName}, {author}.",
 		)
 		return 0
 	if not region:
-		await ctx.send(embed=misc.SparPinsEmbed)
+		await misc.check_for_spar_channel(ctx)
 		return 0
 	report = brawl.BadRegion.format(author)
 	too_recent: int | None = None
@@ -1152,8 +1159,8 @@ def launch() -> None:
 	Pulls in the Brawlhalla API key and Discord token from .env. BB will still
 	run without a Brawlhalla API key, but not having a Discord token is fatal.
 
-	Note that commands.Bot.run() is blocking; you can't include any commands
-	after that if you actually want them to fire.
+	Note that commands.Bot.run() is blocking; you can't include any method
+	calls after that if you actually want them to fire.
 	"""
 	env = dotenv.dotenv_values(".env")
 	global BrawlKey  # noqa: PLW0603
@@ -1161,7 +1168,7 @@ def launch() -> None:
 		BrawlKey = env["BRAWLKEY"]
 	except KeyError:
 		BrawlKey = None
-		logging.warning(
+		logger.warning(
 			"No Brawlhalla API key. Brawlhalla-specific"
 			" commands will not be active.",
 		)
@@ -1169,15 +1176,15 @@ def launch() -> None:
 	try:
 		BeardlessBot.run(env["DISCORDTOKEN"])
 	except KeyError:
-		logging.exception(
+		logger.exception(
 			"Fatal error! DISCORDTOKEN environment variable has not"
 			" been defined. See: README.MD's installation section.",
 		)
 	except nextcord.DiscordException:
-		logging.exception("Encountered DiscordException!")
+		logger.exception("Encountered DiscordException!")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
 	# Pipe logs to stdout and logs folder
 	logging.basicConfig(
 		format="%(asctime)s: %(levelname)s: %(message)s",

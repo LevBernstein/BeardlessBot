@@ -13,10 +13,11 @@ from zoneinfo import ZoneInfo
 
 import httpx
 import nextcord
-import requests
 from bs4 import BeautifulSoup
 from nextcord.ext import commands
 from nextcord.utils import get
+
+logger = logging.getLogger(__name__)
 
 MaxMsgLength: Final[int] = 1024
 Ok: Final[int] = 200
@@ -56,6 +57,15 @@ Greetings = (
 	"Greetings!",
 	"Howdy!",
 	"G'day!",
+)
+
+SparDesc = (
+	"Do the command !spar [region] [other info]."
+	"\nFor instance, to find a diamond from US-E to play 2s with, I would do:"
+	"\n**!spar US-E looking for a diamond 2s partner**."
+	"\nValid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA, MEA, SAF."
+	"\n!spar has a 2 hour cooldown."
+	"\nPlease use the roles channel to give yourself the correct roles."
 )
 
 BearRootUrl = "https://placebear.com/{}/{}"
@@ -145,7 +155,7 @@ def log_exception(e: Exception, ctx: BotContext) -> None:
 		ctx (botContext): The command invocation context
 
 	"""
-	logging.error(
+	logger.error(
 		"%s Command: %s; Author: %s; Content: %s; Guild: %s; Type: %s",
 		e,
 		ctx.invoked_with,
@@ -360,7 +370,7 @@ def get_frog_list() -> list[str]:
 		list[str]: A list of frog image filenames.
 
 	"""
-	r = requests.get(
+	r = httpx.get(
 		"https://github.com/a9-i/frog/tree/main/ImgSetOpt", timeout=10,
 	)
 	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
@@ -525,7 +535,13 @@ def roll_report(
 
 
 def fact() -> str:
-	"""Get a random fun fact from facts.txt."""
+	"""
+	Pull a random fun fact from resources/facts.txt.
+
+	Returns:
+		str: A fun fact.
+
+	"""
 	with Path("resources/facts.txt").open("r", encoding="UTF-8") as f:
 		return random.choice(f.read().splitlines())
 
@@ -730,7 +746,7 @@ class BbHelpCommand(commands.HelpCommand):
 				attempted to be called
 
 		"""
-		logging.error("No command %s", error)
+		logger.error("No command %s", error)
 
 
 def scam_check(text: str) -> bool:
@@ -781,7 +797,7 @@ async def delete_scam_and_notify(message: nextcord.Message) -> None:
 
 	"""
 	assert message.guild is not None
-	logging.info(
+	logger.info(
 		"Possible nitro scam detected in %s/%i",
 		message.guild.name,
 		message.guild.id,
@@ -1033,6 +1049,36 @@ def get_target(ctx: BotContext, target: str) -> TargetTypes:
 	)
 
 
+async def check_for_spar_channel(ctx: BotContext) -> bool:
+	"""
+	Check if the spar command has been invoked in the sparring channel.
+
+	If so, send an informative embed explaining how to use the channel.
+
+	Args:
+		ctx (BotContext): The command invocation context
+
+	Returns:
+		bool: Whether the context was invoked in the sparring channel.
+
+	"""
+	if hasattr(ctx.channel, "name") and ctx.channel.name == SparChannelName:
+		emb = bb_embed("How to use this channel.").add_field(
+			name="To spar someone from your region:",
+			value=SparDesc,
+			inline=False,
+		).add_field(
+			name="If you don't want to get pings:",
+			inline=False,
+			value="Remove your region role. Otherwise, responding 'no' to"
+			" calls to spar is annoying and counterproductive, and will earn"
+			" you a warning.",
+		)
+		await ctx.send(embed=emb)
+		return True
+	return False
+
+
 # Static embeds.
 # TODO: convert these to methods
 
@@ -1059,24 +1105,6 @@ Invite_Embed = bb_embed(
 	name="If you like Beardless Bot...",
 	inline=False,
 	value=f"Please leave a review on [top.gg](https://top.gg/bot/{BbId}).",
-)
-
-SparDesc = (
-	"Do the command !spar [region] [other info]."
-	"\nFor instance, to find a diamond from US-E to play 2s with, I would do:"
-	"\n**!spar US-E looking for a diamond 2s partner**."
-	"\nValid regions are US-E, US-W, BRZ, EU, JPN, AUS, SEA, MEA, SAF."
-	"\n!spar has a 2 hour cooldown."
-	"\nPlease use the roles channel to give yourself the correct roles."
-)
-
-SparPinsEmbed = bb_embed("How to use this channel.").add_field(
-	name="To spar someone from your region:", value=SparDesc, inline=False,
-).add_field(
-	name="If you don't want to get pings:",
-	inline=False,
-	value="Remove your region role. Otherwise, responding 'no' to calls to"
-	" spar is annoying and counterproductive, and will earn you a warning.",
 )
 
 EggRedditEmbed = bb_embed(
