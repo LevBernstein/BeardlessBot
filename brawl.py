@@ -74,7 +74,7 @@ Regions = (
 def get_brawl_data() -> dict[
 	str, dict[str, list[dict[str, str | dict[str, str | dict[str, str]]]]],
 ]:
-	r = httpx.get("https://brawlhalla.com/legends", timeout=10)
+	r = httpx.get("https://www.brawlhalla.com/legends", timeout=10)
 	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 	brawl_dict = json.loads(
 		json.loads(soup.findAll("script")[3].contents[0])["body"],
@@ -260,10 +260,11 @@ def get_top_legend(
 	# https://github.com/LevBernstein/BeardlessBot/issues/47
 	top_legend = None
 	for legend in legends:
-		if not top_legend or top_legend[1] < legend["rating"]:
+		assert isinstance(legend["rating"], int)
+		rating: int = legend["rating"]
+		if not top_legend or top_legend[1] < rating:
 			assert isinstance(legend["legend_name_key"], str)
-			assert isinstance(legend["rating"], int)
-			top_legend = legend["legend_name_key"], legend["rating"]
+			top_legend = legend["legend_name_key"], rating
 	return top_legend
 
 

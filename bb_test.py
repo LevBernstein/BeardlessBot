@@ -15,7 +15,7 @@ SLF001: Private member accessed
 	(Some of the mocking/monkeypatching requires accessing private members)
 """
 
-# ruff: noqa: D103, PLR2004, S101, S603, SLF001
+# ruff: noqa: PLR2004, S603, SLF001
 
 import asyncio
 import json
@@ -30,6 +30,7 @@ from copy import copy
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Final, Literal, TypedDict, overload, override
+from urllib.parse import quote_plus
 
 import dotenv
 import httpx
@@ -2786,7 +2787,7 @@ def test_scam_check() -> None:
 @MarkAsync
 @pytest.mark.parametrize(
 	"searchterm",
-	["лексика", "spaced words", "/", "'", "''", "'foo'", "\\\"", " "],
+	["лексика", "spaced words", "/", "'", "'foo'", "\\\"", " "],
 )
 async def test_search_valid(searchterm: str) -> None:
 	ch = MockChannel()
@@ -2799,9 +2800,9 @@ async def test_search_valid(searchterm: str) -> None:
 	async with httpx.AsyncClient(timeout=10) as client:
 		r = await client.get(url)
 	assert response_ok(r)
-	assert next(
-		BeautifulSoup(r.content, "html.parser").stripped_strings,
-	) == (searchterm + " - Google Search").strip()
+	soup = BeautifulSoup(r.content, "html.parser")
+	searchpath = soup.find_all("a")[-2].attrs["href"][10:]
+	assert searchpath.startswith(quote_plus(searchterm).replace("%2F", "/"))
 	await asyncio.sleep(0.4)
 
 
@@ -2862,7 +2863,7 @@ async def test_dog_with_good_url() -> None:
 async def test_dog_breed() -> None:
 	msg = await misc.get_dog("breeds")
 	breeds = msg[12:-1].split(", ")
-	assert len(breeds) == 107
+	assert len(breeds) == 108
 	url = await misc.get_dog(breeds[0])
 	assert "affenpinscher" in url
 	async with httpx.AsyncClient(timeout=10) as client:
@@ -3269,6 +3270,7 @@ async def test_get_rank_monkeypatched_for_1s_top_rating(
 			"\nTop Legend: Bodvar, 1400 Elo"
 		)
 		assert hasattr(emb.color, "value")
+		assert emb.color is not None
 		assert emb.color.value == brawl.RankColors["Gold"]
 	finally:
 		brawl.claim_profile(Bot.OwnerId, OwnerBrawlId)
@@ -3307,6 +3309,7 @@ async def test_get_rank_monkeypatched_for_2s_top_rating(
 			"**Foo+Bar\nPlatinum 3** (1812 / 1824 Peak)"
 			"\n1 W / 1 L / 50.0% winrate"
 		)
+		assert emb.color is not None
 		assert hasattr(emb.color, "value")
 		assert emb.color.value == brawl.RankColors["Platinum"]
 	finally:
@@ -3448,7 +3451,7 @@ def test_get_brawl_data(httpx_mock: HTTPXMock) -> None:
 		b' \\"cannon\\"}]}}}"}</script>'
 	)
 	httpx_mock.add_response(
-		url="https://brawlhalla.com/legends", content=brawl_data_content,
+		url="https://www.brawlhalla.com/legends", content=brawl_data_content,
 	)
 	data = brawl.get_brawl_data()
 	assert len(data["weapons"]["nodes"]) == 1

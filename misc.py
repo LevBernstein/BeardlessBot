@@ -20,6 +20,7 @@ from nextcord.utils import get
 logger = logging.getLogger(__name__)
 
 MaxMsgLength: Final[int] = 1024
+MaxEmbedFields: Final[int] = 25
 Ok: Final[int] = 200
 BadRequest: Final[int] = 404
 BbColor: Final[int] = 0xFFF994
@@ -413,13 +414,12 @@ async def get_animal(animal_type: str) -> str:
 	elif animal_type == "fox":
 		url = await fetch_animal("https://randomfox.ca/floof/", "image")
 
-	elif animal_type in {"duck", "lizard"}:
+	elif animal_type == "duck":
+		return "https://random-d.uk/api/randomimg"
+
+	elif animal_type == "lizard":
 		url = await fetch_animal(
-			(
-				"https://random-d.uk/api/quack"
-				if animal_type == "duck"
-				else "https://nekos.life/api/v2/img/lizard"
-			), "url",
+			"https://nekos.life/api/v2/img/lizard", "url",
 		)
 
 	else:
@@ -448,6 +448,8 @@ async def define(word: str) -> nextcord.Embed:
 		for entry in j:
 			for meaning in entry["meanings"]:
 				for definition in meaning["definitions"]:
+					if i >= MaxEmbedFields:
+						break
 					i += 1
 					emb.add_field(
 						name=f"Definition {i}:",
