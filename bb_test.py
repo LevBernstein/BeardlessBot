@@ -2908,14 +2908,14 @@ async def test_animal_api_down_raises_animal_exception(
 	httpx_mock: HTTPXMock,
 ) -> None:
 	httpx_mock.add_response(
-		url="https://random-d.uk/api/quack",
+		url="https://api.bunnies.io/v2/loop/random/?media=gif",
 		status_code=522,
 	)
 
 	with pytest.raises(
-		misc.AnimalException, match="Failed to call Duck Animal API",
+		misc.AnimalException, match="Failed to call Rabbit Animal API",
 	):
-		await misc.get_animal("duck")
+		await misc.get_animal("rabbit")
 
 
 def test_get_frog_list_standard_layout(httpx_mock: HTTPXMock) -> None:
