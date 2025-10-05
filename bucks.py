@@ -489,13 +489,15 @@ def leaderboard(
 		)
 		emb.add_field(
 			name=f"{i + 1}. {head.split("#")[0]}",
-			value=body,
+			value=str(body),
 			inline=last_entry,
 		)
 	if target and pos:
 		assert not isinstance(target, str)
-		emb.add_field(name=f"{target.name}'s position:", value=pos)
-		emb.add_field(name=f"{target.name}'s balance:", value=target_balance)
+		emb.add_field(name=f"{target.name}'s position:", value=str(pos))
+		emb.add_field(
+			name=f"{target.name}'s balance:", value=str(target_balance),
+		)
 	return emb
 
 

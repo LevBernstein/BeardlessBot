@@ -692,7 +692,7 @@ async def cmd_mute(
 	addendum = (" for " + duration + ".") if duration is not None else "."
 	emb = misc.bb_embed(
 		"Beardless Bot Mute", "Muted " + mute_target.mention + addendum,
-	).set_author(name=ctx.author, icon_url=misc.fetch_avatar(ctx.author))
+	).set_author(name=ctx.author.name, icon_url=misc.fetch_avatar(ctx.author))
 	if reason:
 		emb.add_field(name="Mute Reason:", value=reason, inline=False)
 	await ctx.send(embed=emb)
@@ -1174,7 +1174,9 @@ def launch() -> None:
 		)
 
 	try:
-		BeardlessBot.run(env["DISCORDTOKEN"])
+		token = env["DISCORDTOKEN"]
+		assert isinstance(token, str)
+		BeardlessBot.run(token)
 	except KeyError:
 		logger.exception(
 			"Fatal error! DISCORDTOKEN environment variable has not"
@@ -1186,6 +1188,9 @@ def launch() -> None:
 
 if __name__ == "__main__":  # pragma: no cover
 	# Pipe logs to stdout and logs folder
+	resource_path = Path("./resources/logs")
+	if not resource_path.exists():
+		resource_path.mkdir(parents=True)
 	logging.basicConfig(
 		format="%(asctime)s: %(levelname)s: %(message)s",
 		datefmt="%m/%d %H:%M:%S",

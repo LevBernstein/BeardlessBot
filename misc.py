@@ -376,10 +376,10 @@ def get_frog_list() -> list[str]:
 	)
 	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 	try:
-		j = loads(soup.findAll("script")[-1].text)["payload"]
+		j = loads(soup.find_all("script")[-1].text)["payload"]
 	except KeyError:
 		j = loads(
-			soup.findAll("script")[-2].text.replace("\\", "\\\\"),
+			soup.find_all("script")[-2].text.replace("\\", "\\\\"),
 		)["payload"]
 	return [i["name"] for i in j["tree"]["items"]]
 
@@ -567,7 +567,7 @@ def info(
 		emb = bb_embed(
 			value=activity, col=member.color,
 		).set_author(
-			name=member, icon_url=fetch_avatar(member),
+			name=member.name, icon_url=fetch_avatar(member),
 		).set_thumbnail(
 			url=fetch_avatar(member),
 		).add_field(
@@ -606,7 +606,7 @@ def avatar(
 		return bb_embed(
 			col=member.color,
 		).set_image(url=fetch_avatar(member)).set_author(
-			name=member, icon_url=fetch_avatar(member),
+			name=member.name, icon_url=fetch_avatar(member),
 		)
 	return InvalidTargetEmbed
 
@@ -654,9 +654,9 @@ class BbHelpCommand(commands.HelpCommand):
 		_mapping: Mapping[
 			commands.Cog | None, list[commands.core.Command[Any, Any, Any]],
 		],
-	) -> int:
+	) -> None:
 		if ctx_created_thread(self.context):
-			return -1
+			return
 		if not self.context.guild:
 			commands_to_display = 15
 		elif (
@@ -733,7 +733,6 @@ class BbHelpCommand(commands.HelpCommand):
 		await self.get_destination().send(  # type: ignore[no-untyped-call]
 			embed=emb,
 		)
-		return 1
 
 	@override
 	async def send_error_message(self, error: str) -> None:
