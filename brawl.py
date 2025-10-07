@@ -10,7 +10,7 @@ import aiofiles
 import httpx
 from bs4 import BeautifulSoup
 from nextcord import Colour, Embed, Member, User
-from steam import steamid  # type:ignore[import-untyped]
+from steam import steamid
 
 from misc import BbColor, Ok, TimeZone, bb_embed, fetch_avatar
 

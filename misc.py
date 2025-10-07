@@ -651,7 +651,7 @@ class BbHelpCommand(commands.HelpCommand):
 	@override
 	async def send_bot_help(
 		self,
-		_mapping: Mapping[
+		_mapping: Mapping[  # type: ignore[type-arg]
 			commands.Cog | None, list[commands.core.Command[Any, Any, Any]],
 		],
 	) -> None:
@@ -730,9 +730,7 @@ class BbHelpCommand(commands.HelpCommand):
 		emb = bb_embed("Beardless Bot Commands")
 		for command, description in command_list[:commands_to_display]:
 			emb.add_field(name=command, value=description)
-		await self.get_destination().send(  # type: ignore[no-untyped-call]
-			embed=emb,
-		)
+		await self.context.channel.send(embed=emb)
 
 	@override
 	async def send_error_message(self, error: str) -> None:
@@ -893,7 +891,13 @@ def tweet() -> str:
 	The below Markov code was originally provided by CSTUY SHIP for use in
 	another project; I have since migrated it to Python3 and made various
 	other improvements, including adding type annotations, the walrus
-	operator, the ternary operator, and other simplification.
+	operator, the ternary operator, and other simplifications.
+
+	If I may get on my soapbox a moment: This is not an LLM or anything
+	approaching machine learning. It is also certainly not "AI." That does
+	raise the question, of course: if this block of code that is clearly not
+	intelligent can generate almost-coherent prose, what does that say about
+	the "intelligence" of LLM-based "AI" tools? But I digress.
 
 	Returns:
 		str: A fake eggsoup tweet.
