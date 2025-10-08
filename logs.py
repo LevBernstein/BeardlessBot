@@ -23,7 +23,10 @@ def log_delete_msg(message: nextcord.Message) -> nextcord.Embed:
 		value=f"{prefix}{content_check(message, len(prefix))}",
 		col=0xFF0000,
 		show_time=True,
-	).set_author(name=message.author, icon_url=fetch_avatar(message.author))
+	).set_author(
+		name=message.author.name,
+		icon_url=fetch_avatar(message.author),
+	)
 
 
 def log_purge(
@@ -58,7 +61,7 @@ def log_edit_msg(
 		0xFFFF00,
 		show_time=True,
 	).set_author(
-		name=before.author, icon_url=fetch_avatar(before.author),
+		name=before.author.name, icon_url=fetch_avatar(before.author),
 	).add_field(
 		name="Before:", value=content_check(before, 7), inline=False,
 	).add_field(
@@ -80,7 +83,7 @@ def log_clear_reacts(
 		0xFF0000,
 		show_time=True,
 	).set_author(
-		name=message.author, icon_url=fetch_avatar(message.author),
+		name=message.author.name, icon_url=fetch_avatar(message.author),
 	).add_field(
 		name="Message content:",
 		value=content_check(message, len(jump_link)) + jump_link,
@@ -135,10 +138,16 @@ def log_member_nick_change(
 	return bb_embed(
 		"", f"Nickname of {after.mention} changed.", 0xFFFF00, show_time=True,
 	).set_author(
-		name=after, icon_url=fetch_avatar(after),
+		name=after.name, icon_url=fetch_avatar(after),
 	).add_field(
-		name="Before:", value=before.nick, inline=False,
-	).add_field(name="After:", value=after.nick, inline=False)
+		name="Before:",
+		value=before.nick if before.nick else before.name,
+		inline=False,
+	).add_field(
+		name="After:",
+		value=after.nick if after.nick else after.name,
+		inline=False,
+	)
 
 
 def log_member_roles_change(
@@ -154,7 +163,7 @@ def log_member_roles_change(
 		value=f"Role {role.mention} {verb} {after.mention}.",
 		col=color,
 		show_time=True,
-	).set_author(name=after, icon_url=fetch_avatar(after))
+	).set_author(name=after.name, icon_url=fetch_avatar(after))
 
 
 def log_ban(member: nextcord.Member) -> nextcord.Embed:
@@ -187,7 +196,10 @@ def log_mute(
 		f"Muted {member.mention}{mid} in {message.channel.mention}.",
 		0xFF0000,
 		show_time=True,
-	).set_author(name=message.author, icon_url=fetch_avatar(message.author))
+	).set_author(
+		name=message.author.name,
+		icon_url=fetch_avatar(message.author),
+	)
 
 
 def log_unmute(
@@ -198,7 +210,7 @@ def log_unmute(
 		f"Unmuted {member.mention}.",
 		0x00FF00,
 		show_time=True,
-	).set_author(name=author, icon_url=fetch_avatar(author))
+	).set_author(name=author.name, icon_url=fetch_avatar(author))
 
 
 def log_create_thread(thread: nextcord.Thread) -> nextcord.Embed:

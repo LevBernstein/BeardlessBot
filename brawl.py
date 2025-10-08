@@ -77,7 +77,7 @@ def get_brawl_data() -> dict[
 	r = httpx.get("https://www.brawlhalla.com/legends", timeout=10)
 	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 	brawl_dict = json.loads(
-		json.loads(soup.findAll("script")[3].contents[0])["body"],
+		json.loads(soup.find_all("script")[3].contents[0])["body"],
 	)["data"]
 	assert isinstance(brawl_dict, dict)
 	return brawl_dict
@@ -337,11 +337,11 @@ async def get_rank(target: Member | User, brawl_key: str) -> Embed:
 			"Beardless Bot Brawlhalla Rank",
 			"You haven't played ranked yet this season.",
 		).set_footer(text=f"Brawl ID {brawl_id}").set_author(
-			name=target, icon_url=fetch_avatar(target),
+			name=target.name, icon_url=fetch_avatar(target),
 		)
 	emb = bb_embed(f"{r["name"]}, {r["region"]}").set_footer(
 		text=f"Brawl ID {brawl_id}",
-	).set_author(name=target, icon_url=fetch_avatar(target))
+	).set_author(name=target.name, icon_url=fetch_avatar(target))
 	if "games" in r and r["games"] != 0:
 		emb = get_ones_rank(emb, r)
 	if "2v2" in r and len(r["2v2"]) != 0:
@@ -427,7 +427,7 @@ async def get_stats(target: Member | User, brawl_key: str) -> Embed:
 		text=f"Brawl ID {brawl_id}",
 	).add_field(name="Name", value=r["name"]).add_field(
 		name="Overall W/L", value=win_loss,
-	).set_author(name=target, icon_url=fetch_avatar(target))
+	).set_author(name=target.name, icon_url=fetch_avatar(target))
 	if "legends" in r:
 		most_used, top_winrate, top_dps, lowest_ttk = get_top_legend_stats(
 			r["legends"],

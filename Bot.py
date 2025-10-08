@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 SparPings: dict[int, dict[str, int]] = {}
 
 # This array stores the active instances of blackjack.
+# TODO: convert to a map, user id to game
 BlackjackGames: list[bucks.BlackjackGame] = []
 
 # Replace OwnerId with your Discord user id
@@ -89,16 +90,16 @@ async def on_ready() -> None:
 	else:
 		logger.info("Avatar updated!")
 
-	try:
-		members = set(BeardlessBot.guilds[0].members)
-	except IndexError:
+	if len(BeardlessBot.guilds) == 0:
 		logger.exception("Bot is in no servers! Add it to a server.")
 	else:
 		for guild in BeardlessBot.guilds:
 			# Do this first so all servers can spar immediately
 			SparPings[guild.id] = dict.fromkeys(brawl.Regions, 0)
-		logger.info("Zeroed sparpings! Sparring is now possible.")
+		logger.info("Zeroed SparPings! Sparring is now possible.")
+
 		logger.info("Chunking guilds, collecting analytics...")
+		members: set[nextcord.Member] = set()
 		for guild in BeardlessBot.guilds:
 			members = members.union(set(guild.members))
 			await guild.chunk()
@@ -122,9 +123,9 @@ async def on_guild_join(guild: nextcord.Guild) -> None:
 			try:
 				await channel.send(embed=misc.on_join(guild, role))
 			except nextcord.DiscordException:
-				logger.exception("Failed to send onJoin msg!")
+				logger.exception("Failed to send on_join msg!")
 			else:
-				logger.info("Sent join message in %s.", channel.name)
+				logger.info("Sent on_join message in %s.", channel.name)
 				break
 		logger.info(
 			"Beardless Bot is now in %i servers.", len(BeardlessBot.guilds),
@@ -136,9 +137,9 @@ async def on_guild_join(guild: nextcord.Guild) -> None:
 			try:
 				await channel.send(embed=misc.NoPermsEmbed)
 			except nextcord.DiscordException:
-				logger.exception("Failed to send noPerms msg!")
+				logger.exception("Failed to send NoPerms msg!")
 			else:
-				logger.info("Sent no perms msg in %s.", channel.name)
+				logger.info("Sent NoPerms msg in %s.", channel.name)
 				break
 		await guild.leave()
 		logger.info("Left %s.", guild.name)
@@ -320,7 +321,7 @@ async def on_thread_update(
 # Commands:
 
 
-@BeardlessBot.command(name="flip")  # type: ignore[arg-type]
+@BeardlessBot.command(name="flip")
 async def cmd_flip(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -333,9 +334,7 @@ async def cmd_flip(ctx: misc.BotContext, bet: str = "10") -> int:
 	return 1
 
 
-@BeardlessBot.command(  # type: ignore[arg-type]
-	name="blackjack", aliases=("bj",),
-)
+@BeardlessBot.command(name="blackjack", aliases=("bj",))
 async def cmd_blackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -349,7 +348,7 @@ async def cmd_blackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 	return 1
 
 
-@BeardlessBot.command(name="deal", aliases=("hit",))  # type: ignore[arg-type]
+@BeardlessBot.command(name="deal", aliases=("hit",))
 async def cmd_deal(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -369,9 +368,7 @@ async def cmd_deal(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@BeardlessBot.command(  # type: ignore[arg-type]
-	name="stay", aliases=("stand",),
-)
+@BeardlessBot.command(name="stay", aliases=("stand",))
 async def cmd_stay(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -394,7 +391,7 @@ async def cmd_stay(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@BeardlessBot.command(name="av", aliases=("avatar",))  # type: ignore[arg-type]
+@BeardlessBot.command(name="av", aliases=("avatar",))
 async def cmd_av(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -404,7 +401,7 @@ async def cmd_av(ctx: misc.BotContext, *, target: str = "") -> int:
 	return 1
 
 
-@BeardlessBot.command(name="info")  # type: ignore[arg-type]
+@BeardlessBot.command(name="info")
 async def cmd_info(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctx_created_thread(ctx) or not ctx.guild:
 		return -1
@@ -421,9 +418,7 @@ async def cmd_info(ctx: misc.BotContext, *, target: str = "") -> int:
 	return 1
 
 
-@BeardlessBot.command(  # type: ignore[arg-type]
-	name="balance", aliases=("bal",),
-)
+@BeardlessBot.command(name="balance", aliases=("bal",))
 async def cmd_balance(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -433,9 +428,7 @@ async def cmd_balance(ctx: misc.BotContext, *, target: str = "") -> int:
 	return 1
 
 
-@BeardlessBot.command(  # type: ignore[arg-type]
-	name="leaderboard", aliases=("leaderboards", "lb"),
-)
+@BeardlessBot.command(name="leaderboard", aliases=("leaderboards", "lb"))
 async def cmd_leaderboard(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -445,7 +438,7 @@ async def cmd_leaderboard(ctx: misc.BotContext, *, target: str = "") -> int:
 	return 1
 
 
-@BeardlessBot.command(name="dice")  # type: ignore[arg-type]
+@BeardlessBot.command(name="dice")
 async def cmd_dice(ctx: misc.BotContext) -> int | nextcord.Embed:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -460,7 +453,7 @@ async def cmd_dice(ctx: misc.BotContext) -> int | nextcord.Embed:
 	return emb
 
 
-@BeardlessBot.command(name="reset")  # type: ignore[arg-type]
+@BeardlessBot.command(name="reset")
 async def cmd_reset(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -468,7 +461,7 @@ async def cmd_reset(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@BeardlessBot.command(name="register")  # type: ignore[arg-type]
+@BeardlessBot.command(name="register")
 async def cmd_register(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -476,7 +469,7 @@ async def cmd_register(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@BeardlessBot.command(name="bucks")  # type: ignore[arg-type]
+@BeardlessBot.command(name="bucks")
 async def cmd_bucks(ctx: misc.BotContext) -> int | nextcord.Embed:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -490,7 +483,7 @@ async def cmd_bucks(ctx: misc.BotContext) -> int | nextcord.Embed:
 	return emb
 
 
-@BeardlessBot.command(name="hello", aliases=("hi",))  # type: ignore[arg-type]
+@BeardlessBot.command(name="hello", aliases=("hi",))
 async def cmd_hello(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -498,7 +491,7 @@ async def cmd_hello(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@BeardlessBot.command(name="source")  # type: ignore[arg-type]
+@BeardlessBot.command(name="source")
 async def cmd_source(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -510,9 +503,7 @@ async def cmd_source(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@BeardlessBot.command(  # type: ignore[arg-type]
-	name="add", aliases=("join", "invite"),
-)
+@BeardlessBot.command(name="add", aliases=("join", "invite"))
 async def cmd_add(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -520,7 +511,7 @@ async def cmd_add(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@BeardlessBot.command(name="rohan")  # type: ignore[arg-type]
+@BeardlessBot.command(name="rohan")
 async def cmd_rohan(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -528,7 +519,7 @@ async def cmd_rohan(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@BeardlessBot.command(name="random")  # type: ignore[arg-type]
+@BeardlessBot.command(name="random")
 async def cmd_random_brawl(
 	ctx: misc.BotContext, ran_type: str = "None",
 ) -> int:
@@ -539,7 +530,7 @@ async def cmd_random_brawl(
 	return 1
 
 
-@BeardlessBot.command(name="fact")  # type: ignore[arg-type]
+@BeardlessBot.command(name="fact")
 async def cmd_fact(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -549,9 +540,7 @@ async def cmd_fact(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@BeardlessBot.command(  # type: ignore[arg-type]
-	name="animals", aliases=("animal", "pets"),
-)
+@BeardlessBot.command(name="animals", aliases=("animal", "pets"))
 async def cmd_animals(ctx: misc.BotContext) -> int:
 	"""
 	Send an embed listing all the valid animal commands.
@@ -579,7 +568,7 @@ async def cmd_animals(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@BeardlessBot.command(name="define")  # type: ignore[arg-type]
+@BeardlessBot.command(name="define")
 async def cmd_define(ctx: misc.BotContext, *, words: str = "") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -588,7 +577,7 @@ async def cmd_define(ctx: misc.BotContext, *, words: str = "") -> int:
 	return 1
 
 
-@BeardlessBot.command(name="ping")  # type: ignore[arg-type]
+@BeardlessBot.command(name="ping")
 async def cmd_ping(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx) or BeardlessBot.user is None:
 		return -1
@@ -600,7 +589,7 @@ async def cmd_ping(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@BeardlessBot.command(name="roll")  # type: ignore[arg-type]
+@BeardlessBot.command(name="roll")
 async def cmd_roll(
 	ctx: misc.BotContext, dice: str = "None",
 ) -> int:
@@ -610,7 +599,7 @@ async def cmd_roll(
 	return 1
 
 
-@BeardlessBot.command(name="dog", aliases=("moose",))  # type: ignore[arg-type]
+@BeardlessBot.command(name="dog", aliases=("moose",))
 async def cmd_dog(ctx: misc.BotContext, *, breed: str = "") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -638,9 +627,7 @@ async def cmd_dog(ctx: misc.BotContext, *, breed: str = "") -> int:
 	return 1
 
 
-@BeardlessBot.command(  # type: ignore[arg-type]
-	name="bunny", aliases=misc.AnimalList,
-)
+@BeardlessBot.command(name="bunny", aliases=misc.AnimalList)
 async def cmd_animal(ctx: misc.BotContext, *, breed: str = "") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -665,7 +652,7 @@ async def cmd_animal(ctx: misc.BotContext, *, breed: str = "") -> int:
 # Server-only commands (not usable in DMs):
 
 
-@BeardlessBot.command(name="mute")  # type: ignore[arg-type]
+@BeardlessBot.command(name="mute")
 async def cmd_mute(
 	ctx: misc.BotContext,
 	target: str | None = None,
@@ -692,7 +679,7 @@ async def cmd_mute(
 	addendum = (" for " + duration + ".") if duration is not None else "."
 	emb = misc.bb_embed(
 		"Beardless Bot Mute", "Muted " + mute_target.mention + addendum,
-	).set_author(name=ctx.author, icon_url=misc.fetch_avatar(ctx.author))
+	).set_author(name=ctx.author.name, icon_url=misc.fetch_avatar(ctx.author))
 	if reason:
 		emb.add_field(name="Mute Reason:", value=reason, inline=False)
 	await ctx.send(embed=emb)
@@ -725,7 +712,7 @@ async def cmd_mute(
 	return 1
 
 
-@BeardlessBot.command(name="unmute")  # type: ignore[arg-type]
+@BeardlessBot.command(name="unmute")
 async def cmd_unmute(
 	ctx: misc.BotContext, target: str | None = None,
 ) -> int:
@@ -761,7 +748,7 @@ async def cmd_unmute(
 	return 1
 
 
-@BeardlessBot.command(name="purge")  # type: ignore[arg-type]
+@BeardlessBot.command(name="purge")
 async def cmd_purge(
 	ctx: misc.BotContext, num: str | None = None,
 ) -> int:
@@ -788,7 +775,7 @@ async def cmd_purge(
 	return 0
 
 
-@BeardlessBot.command(name="buy")  # type: ignore[arg-type]
+@BeardlessBot.command(name="buy")
 async def cmd_buy(
 	ctx: misc.BotContext, color: str = "none",
 ) -> int:
@@ -828,9 +815,7 @@ async def cmd_buy(
 	return 1
 
 
-@BeardlessBot.command(  # type: ignore[arg-type]
-	name="pins", aliases=("sparpins", "howtospar"),
-)
+@BeardlessBot.command(name="pins", aliases=("sparpins", "howtospar"))
 async def cmd_pins(ctx: misc.BotContext) -> int:
 	if (
 		misc.ctx_created_thread(ctx)
@@ -852,7 +837,7 @@ async def cmd_pins(ctx: misc.BotContext) -> int:
 	return 0
 
 
-@BeardlessBot.command(name="spar")  # type: ignore[arg-type]
+@BeardlessBot.command(name="spar")
 async def cmd_spar(
 	ctx: misc.BotContext, region: str | None = None, *, additional: str = "",
 ) -> int:
@@ -904,7 +889,7 @@ async def cmd_spar(
 # Commands requiring a Brawlhalla API key:
 
 
-@BeardlessBot.command(name="brawl")  # type: ignore[arg-type]
+@BeardlessBot.command(name="brawl")
 async def cmd_brawl(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -914,7 +899,7 @@ async def cmd_brawl(ctx: misc.BotContext) -> int:
 	return 0
 
 
-@BeardlessBot.command(name="brawlclaim")  # type: ignore[arg-type]
+@BeardlessBot.command(name="brawlclaim")
 async def cmd_brawlclaim(ctx: misc.BotContext, url_or_id: str = "None") -> int:
 	if misc.ctx_created_thread(ctx) or not BrawlKey:
 		return -1
@@ -934,7 +919,7 @@ async def cmd_brawlclaim(ctx: misc.BotContext, url_or_id: str = "None") -> int:
 	return 1
 
 
-@BeardlessBot.command(name="brawlrank")  # type: ignore[arg-type]
+@BeardlessBot.command(name="brawlrank")
 async def cmd_brawlrank(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctx_created_thread(ctx) or not ctx.guild or not BrawlKey:
 		return -1
@@ -959,7 +944,7 @@ async def cmd_brawlrank(ctx: misc.BotContext, *, target: str = "") -> int:
 	return 0
 
 
-@BeardlessBot.command(name="brawlstats")  # type: ignore[arg-type]
+@BeardlessBot.command(name="brawlstats")
 async def cmd_brawlstats(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctx_created_thread(ctx) or not ctx.guild or not BrawlKey:
 		return -1
@@ -982,7 +967,7 @@ async def cmd_brawlstats(ctx: misc.BotContext, *, target: str = "") -> int:
 	return 0
 
 
-@BeardlessBot.command(name="brawlclan")  # type: ignore[arg-type]
+@BeardlessBot.command(name="brawlclan")
 async def cmd_brawlclan(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctx_created_thread(ctx) or not ctx.guild or not BrawlKey:
 		return -1
@@ -1005,7 +990,7 @@ async def cmd_brawlclan(ctx: misc.BotContext, *, target: str = "") -> int:
 	return 0
 
 
-@BeardlessBot.command(name="brawllegend")  # type: ignore[arg-type]
+@BeardlessBot.command(name="brawllegend")
 async def cmd_brawllegend(ctx: misc.BotContext, legend: str = "") -> int:
 	if misc.ctx_created_thread(ctx) or not BrawlKey:
 		return -1
@@ -1031,9 +1016,7 @@ async def cmd_brawllegend(ctx: misc.BotContext, legend: str = "") -> int:
 # Server-specific commands:
 
 
-@BeardlessBot.command(  # type: ignore[arg-type]
-	name="tweet", aliases=("eggtweet",),
-)
+@BeardlessBot.command(name="tweet", aliases=("eggtweet",))
 async def cmd_tweet(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx) or not ctx.guild:
 		return -1
@@ -1049,7 +1032,7 @@ async def cmd_tweet(ctx: misc.BotContext) -> int:
 	return 0
 
 
-@BeardlessBot.command(name="reddit")  # type: ignore[arg-type]
+@BeardlessBot.command(name="reddit")
 async def cmd_reddit(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx) or not ctx.guild:
 		return -1
@@ -1059,7 +1042,7 @@ async def cmd_reddit(ctx: misc.BotContext) -> int:
 	return 0
 
 
-@BeardlessBot.command(name="guide")  # type: ignore[arg-type]
+@BeardlessBot.command(name="guide")
 async def cmd_guide(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx) or not ctx.guild:
 		return -1
@@ -1072,9 +1055,7 @@ async def cmd_guide(ctx: misc.BotContext) -> int:
 	return 0
 
 
-@BeardlessBot.command(  # type: ignore[arg-type]
-	name="search", aliases=("google", "lmgtfy"),
-)
+@BeardlessBot.command(name="search", aliases=("google", "lmgtfy"))
 async def cmd_search(ctx: misc.BotContext, *, searchterm: str = "") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
@@ -1174,7 +1155,9 @@ def launch() -> None:
 		)
 
 	try:
-		BeardlessBot.run(env["DISCORDTOKEN"])
+		token = env["DISCORDTOKEN"]
+		assert isinstance(token, str)
+		BeardlessBot.run(token)
 	except KeyError:
 		logger.exception(
 			"Fatal error! DISCORDTOKEN environment variable has not"
@@ -1186,6 +1169,9 @@ def launch() -> None:
 
 if __name__ == "__main__":  # pragma: no cover
 	# Pipe logs to stdout and logs folder
+	logs_folder = Path("./resources/logs")
+	if not logs_folder.exists():
+		logs_folder.mkdir(parents=True)
 	logging.basicConfig(
 		format="%(asctime)s: %(levelname)s: %(message)s",
 		datefmt="%m/%d %H:%M:%S",
