@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 SparPings: dict[int, dict[str, int]] = {}
 
 # This array stores the active instances of blackjack.
+# TODO: convert to a map, user id to game
 BlackjackGames: list[bucks.BlackjackGame] = []
 
 # Replace OwnerId with your Discord user id
@@ -89,16 +90,16 @@ async def on_ready() -> None:
 	else:
 		logger.info("Avatar updated!")
 
-	try:
-		members = set(BeardlessBot.guilds[0].members)
-	except IndexError:
+	if len(BeardlessBot.guilds) == 0:
 		logger.exception("Bot is in no servers! Add it to a server.")
 	else:
 		for guild in BeardlessBot.guilds:
 			# Do this first so all servers can spar immediately
 			SparPings[guild.id] = dict.fromkeys(brawl.Regions, 0)
-		logger.info("Zeroed sparpings! Sparring is now possible.")
+		logger.info("Zeroed SparPings! Sparring is now possible.")
+
 		logger.info("Chunking guilds, collecting analytics...")
+		members: set[nextcord.Member] = set()
 		for guild in BeardlessBot.guilds:
 			members = members.union(set(guild.members))
 			await guild.chunk()
@@ -122,9 +123,9 @@ async def on_guild_join(guild: nextcord.Guild) -> None:
 			try:
 				await channel.send(embed=misc.on_join(guild, role))
 			except nextcord.DiscordException:
-				logger.exception("Failed to send onJoin msg!")
+				logger.exception("Failed to send on_join msg!")
 			else:
-				logger.info("Sent join message in %s.", channel.name)
+				logger.info("Sent on_join message in %s.", channel.name)
 				break
 		logger.info(
 			"Beardless Bot is now in %i servers.", len(BeardlessBot.guilds),
@@ -136,9 +137,9 @@ async def on_guild_join(guild: nextcord.Guild) -> None:
 			try:
 				await channel.send(embed=misc.NoPermsEmbed)
 			except nextcord.DiscordException:
-				logger.exception("Failed to send noPerms msg!")
+				logger.exception("Failed to send NoPerms msg!")
 			else:
-				logger.info("Sent no perms msg in %s.", channel.name)
+				logger.info("Sent NoPerms msg in %s.", channel.name)
 				break
 		await guild.leave()
 		logger.info("Left %s.", guild.name)
@@ -1168,9 +1169,9 @@ def launch() -> None:
 
 if __name__ == "__main__":  # pragma: no cover
 	# Pipe logs to stdout and logs folder
-	resource_path = Path("./resources/logs")
-	if not resource_path.exists():
-		resource_path.mkdir(parents=True)
+	logs_folder = Path("./resources/logs")
+	if not logs_folder.exists():
+		logs_folder.mkdir(parents=True)
 	logging.basicConfig(
 		format="%(asctime)s: %(levelname)s: %(message)s",
 		datefmt="%m/%d %H:%M:%S",

@@ -2791,6 +2791,23 @@ def test_blackjack_check_bust() -> None:
 	assert not game.check_bust()
 
 
+@MarkAsync
+async def test_cmd_stay() -> None:
+	Bot.BlackjackGames = []
+	bb = MockMember(
+		MockUser("Beardless,Bot", discriminator="5757", user_id=misc.BbId),
+	)
+	ch = MockChannel(guild=MockGuild())
+	ctx = MockContext(
+		Bot.BeardlessBot, MockMessage("!stay"), ch, bb, MockGuild(),
+	)
+	assert await Bot.cmd_stay(ctx) == 1
+	m = await latest_message(ch)
+	assert m is not None
+	assert m.embeds[0].description == bucks.CommaWarn.format(f"<@{misc.BbId}>")
+	# TODO: other branches
+
+
 def test_blackjack_stay() -> None:
 	game = bucks.BlackjackGame(MockMember(), 0)
 	game.hand = [10, 10, 1]
@@ -2847,20 +2864,35 @@ def test_info() -> None:
 	assert misc.info("!infoerror", text).title == "Invalid target!"
 
 
-def test_avatar() -> None:
+@MarkAsync
+async def test_cmd_av() -> None:
 	m = MockMember(MockUser("searchterm"))
 	guild = MockGuild(members=[MockMember(), m])
 	text = MockMessage("!av searchterm", guild=guild)
+	ch = text.channel
+	assert isinstance(ch, nextcord.TextChannel)
+	ctx = MockContext(
+		Bot.BeardlessBot, text, ch, m, MockGuild(),
+	)
 	avatar = str(misc.fetch_avatar(m))
-	assert misc.avatar("searchterm", text).image.url == avatar
+	emb = misc.avatar("searchterm", text)
+	assert emb.image.url == avatar
+	assert await Bot.cmd_av(ctx, target="searchterm") == 1
+	latest = await latest_message(ch)
+	assert latest is not None
+	assert emb.image.url == latest.embeds[0].image.url
 
-	assert misc.avatar("error", text).title == "Invalid target!"
+	emb = misc.avatar("error", text)
+	assert emb.title == "Invalid target!"
 
-	assert misc.avatar(m, text).image.url == avatar
+	emb = misc.avatar(m, text)
+	assert emb.image.url == avatar
 
 	text.guild = None
+	ctx.guild = None
 	text.author = m
-	assert misc.avatar("searchterm", text).image.url == avatar
+	emb = misc.avatar("searchterm", text)
+	assert emb.image.url == avatar
 
 
 @MarkAsync
@@ -3500,7 +3532,7 @@ async def test_get_rank_unclaimed() -> None:
 
 
 @MarkAsync
-@pytest.mark.httpx_mock(can_send_already_matched_responses=True)
+@pytest.mark.httpx_mock
 async def test_get_brawl_id_returns_none_when_never_played(
 	httpx_mock: HTTPXMock,
 ) -> None:
@@ -3508,19 +3540,16 @@ async def test_get_brawl_id_returns_none_when_never_played(
 		url="https://api.brawlhalla.com/search?steamid=37&api_key=foo",
 		json=[],
 	)
-	assert await brawl.brawl_api_call(
-		"search?steamid=", "37", "foo", "&",
-	) == []
 
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("steam.steamid.SteamID.from_url", lambda _: "37")
+		mp.setattr("steam.steamid.from_url", lambda _: "37")
 		assert await brawl.get_brawl_id("foo", "foo.bar") is None
 
 
 @MarkAsync
 async def test_get_brawl_id_returns_none_when_id_is_invalid() -> None:
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("steam.steamid.SteamID.from_url", lambda _: None)
+		mp.setattr("steam.steamid.from_url", lambda _: None)
 		assert await brawl.get_brawl_id("foo", "foo.bar") is None
 
 
