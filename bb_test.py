@@ -2756,29 +2756,42 @@ async def test_cmd_deal() -> None:
 	assert len(Bot.BlackjackGames) == 0
 
 
-def test_blackjack_deal() -> None:
+def test_blackjack_deal_treats_ace_as_1_when_going_over() -> None:
 	game = bucks.BlackjackGame(MockMember(), 10)
-	game.hand = [2, 3]
-	game.deal()
-	assert len(game.hand) == 3
-
 	game.hand = [11, 9]
-	game.deal()
-	assert sum(game.hand) <= 21
-	assert "will be treated as a 1" in game.message
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.choice", operator.itemgetter(0))
+		game.deal()
+	assert len(game.hand) == 3
+	assert sum(game.hand) == 12
+	assert game.message.startswith(
+		"You were dealt a 2, bringing your total to 22. To avoid busting,"
+		" your Ace will be treated as a 1. Your new total is 12.",
+	)
 
-	game.hand = []
-	assert "You hit 21!" in game.deal(debug=True)
+
+def test_blackjack_deal_wins_when_reaching_21() -> None:
+	m = MockMember()
+	game = bucks.BlackjackGame(m, 10)
+	game.hand = [10, 9]
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.choice", operator.itemgetter(0))
+		game.deal()
+	assert game.message.startswith(
+		"You were dealt a 2, bringing your total to 21."
+		" Your card values are 10, 9, 2. The dealer is showing ",
+	)
+	assert game.message.endswith(
+		f", with one card face down. You hit 21! You win, {m.mention}!",
+	)
 
 
 def test_blackjack_card_name() -> None:
-	assert bucks.BlackjackGame.card_name(10) in {
-		"a 10", "a Jack", "a Queen", "a King",
-	}
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.choice", operator.itemgetter(2))
+		assert bucks.BlackjackGame.card_name(10) == "a Queen"
 	assert bucks.BlackjackGame.card_name(11) == "an Ace"
-
 	assert bucks.BlackjackGame.card_name(8) == "an 8"
-
 	assert bucks.BlackjackGame.card_name(5) == "a 5"
 
 
@@ -3681,15 +3694,13 @@ async def test_random_brawl_invalid() -> None:
 if BrawlKey:
 	@MarkAsync
 	async def test_random_brawl_with_brawl_key() -> None:
-		# TODO: remove randomness
-		# https://github.com/LevBernstein/BeardlessBot/issues/46
 		assert BrawlKey is not None
-		legend = await brawl.random_brawl("legend", BrawlKey)
+		with pytest.MonkeyPatch.context() as mp:
+			mp.setattr("random.choice", operator.itemgetter(0))
+			legend = await brawl.random_brawl("legend", BrawlKey)
 		assert len(legend.fields) == 2
-		assert legend.title is not None
-		legend_info = await brawl.legend_info(
-			BrawlKey, legend.title.split(" ")[0].lower().replace(",", ""),
-		)
+		assert legend.title == "Bödvar, The Unconquered Viking, The Great Bear"
+		legend_info = await brawl.legend_info(BrawlKey, "bodvar")
 		assert legend_info is not None
 		assert legend.title == legend_info.title
 

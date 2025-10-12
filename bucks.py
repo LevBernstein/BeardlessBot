@@ -55,7 +55,7 @@ class BlackjackGame:
 			Checks if the user has reached a Blackjack
 		startingHand(debug_blackjack=False, debug_double_aces=False):
 			Deals the user a starting hand of 2 cards
-		deal(debug=False):
+		deal():
 			Deals the user a card
 		checkBust():
 			Checks if the user has gone over Goal
@@ -183,12 +183,9 @@ class BlackjackGame:
 			)
 		return message
 
-	def deal(self, *, debug: bool = False) -> str:
+	def deal(self) -> str:
 		"""
 		Deal the user a single card.
-
-		Args:
-			debug (bool): Used to test hitting Goal (default is False)
 
 		Returns:
 			str: The message to show the user.
@@ -216,7 +213,7 @@ class BlackjackGame:
 		).format(", ".join(str(card) for card in self.hand), self.dealerUp)
 		if self.check_bust():
 			self.message += f" You busted. Game over, {self.user.mention}."
-		elif self.perfect() or debug:
+		elif self.perfect():
 			self.message += (
 				f" You hit {BlackjackGame.Goal}! You win, {self.user.mention}!"
 			)
