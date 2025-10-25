@@ -307,12 +307,14 @@ async def on_thread_update(
 ) -> nextcord.Embed | None:
 	emb = None
 	if channel := misc.get_log_channel(after.guild):
-		# TODO: log Thread.locked/unlocked
-		# https://github.com/LevBernstein/BeardlessBot/issues/45
 		if before.archived and not after.archived:
 			emb = logs.log_thread_unarchived(after)
 		elif after.archived and not before.archived:
 			emb = logs.log_thread_archived(after)
+		elif before.locked and not after.locked:
+			emb = logs.log_thread_unlocked(after)
+		elif after.locked and not before.locked:
+			emb = logs.log_thread_locked(after)
 		if emb:
 			await channel.send(embed=emb)
 	return emb
@@ -357,7 +359,7 @@ async def cmd_deal(ctx: misc.BotContext) -> int:
 	else:
 		report = bucks.NoGameMsg.format(ctx.author.mention)
 		if game := bucks.active_game(BlackjackGames, ctx.author):
-			report = game.deal()
+			report = game.deal_to_player()
 			if game.check_bust() or game.perfect():
 				game.check_bust()
 				bucks.write_money(

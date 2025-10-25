@@ -1,6 +1,12 @@
 # Installs dependencies, runs tests with pytest, and reports code coverage.
 
 name: Beardless Bot Unit Tests
+permissions:
+  actions: write
+  contents: read
+  discussions: write
+  issues: write
+  pull-requests: write
 
 defaults:
   run:
@@ -17,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ "3.12.0", "3.12.6", "3.13.0 "]
+        python-version: [ "3.12.0", "3.12.6", "3.13.0" ]
     name: Beardless Bot Python ${{ matrix.python-version }} unit tests
     steps:
       - name: Enable Brawl tests on latest Python only

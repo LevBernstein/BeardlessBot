@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Any, Final, Literal, Self, TypedDict, overload, override
 from urllib.parse import quote_plus
 
+import aiofiles
 import dotenv
 import httpx
 import nextcord
@@ -96,7 +97,7 @@ ConnectionStateGetChannelTypes = (
 
 SnowflakeTime = datetime | nextcord.abc.Snowflake
 
-StyleGuide = flake8.get_style_guide(ignore=["W191", "W503"])
+StyleGuide = flake8.get_style_guide(ignore=["A003", "W191", "W503"])
 
 dotenv.load_dotenv(".env")
 BrawlKey: str | None = os.environ.get("BRAWLKEY")
@@ -169,7 +170,6 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 		self.token = None
 		self.proxy = None
 		self.proxy_auth = None
-		# self._locks = weakref.WeakValueDictionary()
 		self._global_over = asyncio.Event()
 		self._global_over.set()
 
@@ -201,6 +201,8 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 		stickers: list[int] | None = None,
 		components: list[nextcord.Component] | None = None,
 		flags: int | None = None,
+		auth: str | None = None,
+		retry_request: bool = True,
 	) -> dict[str, Any]:
 		return {
 			"attachments": [],
@@ -1362,15 +1364,12 @@ def test_with_ruff_for_code_quality() -> None:
 	).stdout[:-1] == "All checks passed!"
 
 
-@pytest.mark.parametrize("letter", ["W", "E", "C"])
+@pytest.mark.parametrize("letter", ["W", "E", "C", "A"])
 def test_code_quality_with_flake8(letter: str) -> None:
 	assert StyleGuide.check_files(FilesToCheck).get_statistics(letter) == []
 
 
 def test_full_type_checking_with_mypy_for_code_quality() -> None:
-	# Ignores certain false positives that expect the "Never" type.
-	# TODO: After mypy issue is resolved, test against exit code.
-	# https://github.com/LevBernstein/BeardlessBot/issues/49
 	stdout, stderr, exit_code = mypy([
 		*FilesToCheck,
 		"--strict",
@@ -2005,6 +2004,22 @@ async def test_on_thread_update() -> None:
 	emb = await Bot.on_thread_update(after, before)
 	assert emb is not None
 	assert emb.description == "Thread \"Foo\" archived."
+	latest = await latest_message(ch)
+	assert latest is not None
+	assert latest.embeds[0].description == emb.description
+
+	before.archived = False
+	before.locked = True
+	emb = await Bot.on_thread_update(before, after)
+	assert emb is not None
+	assert emb.description == "Thread \"Foo\" unlocked."
+	latest = await latest_message(ch)
+	assert latest is not None
+	assert latest.embeds[0].description == emb.description
+
+	emb = await Bot.on_thread_update(after, before)
+	assert emb is not None
+	assert emb.description == "Thread \"Foo\" locked."
 	latest = await latest_message(ch)
 	assert latest is not None
 	assert latest.embeds[0].description == emb.description
@@ -2690,12 +2705,6 @@ async def test_cmd_blackjack() -> None:
 	assert emb.description == bucks.FinMsg.format(f"<@{misc.BbId}>")
 
 
-def test_blackjack_perfect() -> None:
-	game = bucks.BlackjackGame(MockMember(), 10)
-	game.hand = [10, 11]
-	assert game.perfect()
-
-
 @MarkAsync
 async def test_cmd_deal() -> None:
 	Bot.BlackjackGames = []
@@ -2756,12 +2765,13 @@ async def test_cmd_deal() -> None:
 	assert len(Bot.BlackjackGames) == 0
 
 
-def test_blackjack_deal_treats_ace_as_1_when_going_over() -> None:
+def test_blackjack_deal_to_player_treats_ace_as_1_when_going_over() -> None:
 	game = bucks.BlackjackGame(MockMember(), 10)
 	game.hand = [11, 9]
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("random.choice", operator.itemgetter(0))
-		game.deal()
+		game.deck = [2, 3, 4]
+		mp.setattr("random.randint", lambda x, _: x)
+		game.deal_to_player()
 	assert len(game.hand) == 3
 	assert sum(game.hand) == 12
 	assert game.message.startswith(
@@ -2770,13 +2780,13 @@ def test_blackjack_deal_treats_ace_as_1_when_going_over() -> None:
 	)
 
 
-def test_blackjack_deal_wins_when_reaching_21() -> None:
+def test_blackjack_deal_to_player_wins_when_reaching_21() -> None:
 	m = MockMember()
 	game = bucks.BlackjackGame(m, 10)
 	game.hand = [10, 9]
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("random.choice", operator.itemgetter(0))
-		game.deal()
+		mp.setattr("random.randint", lambda x, _: x)
+		game.deal_to_player()
 	assert game.message.startswith(
 		"You were dealt a 2, bringing your total to 21."
 		" Your card values are 10, 9, 2. The dealer is showing ",
@@ -2784,6 +2794,21 @@ def test_blackjack_deal_wins_when_reaching_21() -> None:
 	assert game.message.endswith(
 		f", with one card face down. You hit 21! You win, {m.mention}!",
 	)
+
+
+def test_blackjack_deal_top_card_pops_top_card() -> None:
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.randint", lambda x, _: x)
+		game = bucks.BlackjackGame(MockMember(), 10)
+		# Two cards dealt to player, two to dealer
+		# Dealer dealt 2, 3; player dealt 4, 5
+		assert len(game.deck) == 48
+		assert game.dealerUp == 2
+		assert game.dealerSum == 5
+		assert sum(game.hand) == 9
+		# Next card should be a 6
+		assert game.deal_top_card() == 6
+		assert len(game.deck) == 47
 
 
 def test_blackjack_card_name() -> None:
@@ -2822,33 +2847,53 @@ async def test_cmd_stay() -> None:
 
 
 def test_blackjack_stay() -> None:
-	game = bucks.BlackjackGame(MockMember(), 0)
-	game.hand = [10, 10, 1]
-	game.dealerSum = 25
-	assert game.stay() == 1
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.randint", lambda x, _: x)
+		game = bucks.BlackjackGame(MockMember(), 0)
+		game.hand = [10, 10, 1]
+		game.dealerSum = 25
+		assert game.stay() == 1
 
-	game.dealerSum = 20
-	assert game.stay() == 1
-	game.deal()
-	assert game.stay() == 1
+		game.dealerSum = 20
+		assert game.stay() == 1
+		game.deal_to_player()
+		assert game.stay() == 1
 
-	game.hand = [10, 10]
-	assert game.stay() == 0
+		game.hand = [10, 10]
+		assert game.stay() == 0
+
+		game.dealerSum = 14
+		assert game.stay() == 1
 
 
 def test_blackjack_starting_hand() -> None:
-	game = bucks.BlackjackGame(MockMember(), 10)
+	m = MockMember()
+	game = bucks.BlackjackGame(m, 10)
 	game.hand = []
 	game.message = game.starting_hand()
 	assert len(game.hand) == 2
 	assert game.message.startswith("Your starting hand consists of ")
 
 	game.hand = []
-	assert "You hit 21!" in game.starting_hand(debug_blackjack=True)
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("bucks.BlackjackGame.perfect", lambda _: False)
+		assert "You hit 21!" not in game.starting_hand()
 	assert len(game.hand) == 2
 
 	game.hand = []
-	assert "two Aces" in game.starting_hand(debug_double_aces=True)
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("bucks.BlackjackGame.perfect", lambda _: True)
+		assert "You hit 21!" in game.starting_hand()
+	assert len(game.hand) == 2
+
+	game.hand = []
+	game.deck = [bucks.BlackjackGame.AceVal, bucks.BlackjackGame.AceVal]
+	assert game.starting_hand() == (
+		"Your starting hand consists of two Aces."
+		" One of them will act as a 1. Your total is 12."
+		" Type !hit to deal another card to yourself, or !stay"
+		f" to stop at your current total, {m.mention}."
+	)
 	assert len(game.hand) == 2
 	assert game.hand[1] == 1
 
@@ -3207,9 +3252,9 @@ async def test_cmd_guide() -> None:
 	assert ctx.guild is not None
 	ctx.guild.id = Bot.EggGuildId
 	assert await Bot.cmd_guide(ctx) == 1
-	assert [i async for i in ctx.history()][-1].embeds[0].title == (
-		"The Eggsoup Improvement Guide"
-	)
+	m = await latest_message(ctx.channel)
+	assert m is not None
+	assert m.embeds[0].title == "The Eggsoup Improvement Guide"
 
 
 @MarkAsync
@@ -3221,9 +3266,9 @@ async def test_cmd_reddit() -> None:
 	assert ctx.guild is not None
 	ctx.guild.id = Bot.EggGuildId
 	assert await Bot.cmd_reddit(ctx) == 1
-	assert [i async for i in ctx.history()][-1].embeds[0].title == (
-		"The Official Eggsoup Subreddit"
-	)
+	m = await latest_message(ctx.channel)
+	assert m is not None
+	assert m.embeds[0].title == "The Official Eggsoup Subreddit"
 
 
 @MarkAsync
@@ -3382,16 +3427,18 @@ async def test_cmd_pins() -> None:
 
 	ctx.guild = MockGuild()
 	assert (await Bot.cmd_pins(ctx)) == 0
-	assert [i async for i in ctx.history()][-1].embeds[0].title == (
+	m = await latest_message(ctx.channel)
+	assert m is not None
+	assert m.embeds[0].title == (
 		f"Try using !spar in the {misc.SparChannelName} channel."
 	)
 
 	assert hasattr(ctx.channel, "name")
 	ctx.channel.name = misc.SparChannelName
 	assert (await Bot.cmd_pins(ctx)) == 1
-	assert [i async for i in ctx.history()][-1].embeds[0].title == (
-		"How to use this channel."
-	)
+	m = await latest_message(ctx.channel)
+	assert m is not None
+	assert m.embeds[0].title == "How to use this channel."
 
 
 def test_brawl_commands() -> None:
@@ -3403,19 +3450,53 @@ def test_fetch_brawl_id() -> None:
 	assert brawl.fetch_brawl_id(misc.BbId) is None
 
 
-def test_claim_profile() -> None:
-	with Path("resources/claimedProfs.json").open("r", encoding="UTF-8") as f:
-		profs_len = len(json.load(f))
-	try:
-		brawl.claim_profile(Bot.OwnerId, 1)
-		with Path("resources/claimedProfs.json").open(
-			"r", encoding="UTF-8",
-		) as f:
-			assert profs_len == len(json.load(f))
-		assert brawl.fetch_brawl_id(Bot.OwnerId) == 1
-	finally:
-		brawl.claim_profile(Bot.OwnerId, OwnerBrawlId)
-		assert brawl.fetch_brawl_id(Bot.OwnerId) == OwnerBrawlId
+def test_get_top_dps() -> None:
+	payload: dict[str, int | str] = {
+		"matchtime": 3,
+		"legend_name_key": "sidra",
+		"damagedealt": "10",
+		"kos": 6,
+	}
+	top_dps = brawl.get_top_dps(payload)
+	assert len(top_dps) == 2
+	assert top_dps[0] == "Sidra"
+	assert top_dps[1] == 3.3
+
+
+def test_get_top_ttk() -> None:
+	payload: dict[str, int | str] = {
+		"matchtime": 3,
+		"legend_name_key": "sidra",
+		"damagedealt": "10",
+		"kos": 6,
+	}
+	top_ttk = brawl.get_top_ttk(payload)
+	assert len(top_ttk) == 2
+	assert top_ttk[0] == "Sidra"
+	assert top_ttk[1] == 0.5
+
+
+@MarkAsync
+async def test_claim_profile() -> None:
+	assert brawl.fetch_brawl_id(Bot.OwnerId) == OwnerBrawlId
+	async with aiofiles.open("resources/claimedProfs.json") as f:
+		profs_len = len(json.loads(await f.read()))
+	ctx = MockContext(
+		Bot.BeardlessBot, author=MockMember(MockUser(user_id=Bot.OwnerId)),
+	)
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("Bot.BrawlKey", lambda _: "Foo")
+		try:
+			assert (await Bot.cmd_brawlclaim(ctx, "1")) == 1
+			async with aiofiles.open("resources/claimedProfs.json") as f:
+				assert profs_len == len(json.loads(await f.read()))
+			assert brawl.fetch_brawl_id(Bot.OwnerId) == 1
+			m = await latest_message(ctx.channel)
+			assert m is not None
+			assert m.embeds[0].description == "Profile claimed."
+		finally:
+			brawl.claim_profile(Bot.OwnerId, OwnerBrawlId)
+			assert brawl.fetch_brawl_id(Bot.OwnerId) == OwnerBrawlId
 
 
 @MarkAsync

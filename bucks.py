@@ -45,28 +45,29 @@ class BlackjackGame:
 		CardVals (tuple[int, ...]): Blackjack values for each card
 		user (nextcord.User or Member): The user who is playing this game
 		bet (int): The number of BeardlessBucks the user is betting
-		cards (list): The list of cards the user has been dealt
 		dealerUp (int): The card the dealer is showing face-up
 		dealerSum (int): The running count of the dealer's cards
+		deck (list): The cards remaining in the deck
+		hand (list): The list of cards the user has been dealt
 		message (str): The report to be sent in the Discord channel
 
 	Methods:
+		check_bust():
+			Checks if the user has gone over Goal
+		deal_to_player():
+			Deals the user a card
+		deal_top_card():
+			Removes the top card from the deck.
 		perfect():
 			Checks if the user has reached a Blackjack
-		startingHand(debug_blackjack=False, debug_double_aces=False):
+		starting_hand():
 			Deals the user a starting hand of 2 cards
-		deal():
-			Deals the user a card
-		checkBust():
-			Checks if the user has gone over Goal
 		stay():
 			Determines the game result after ending the game
-		cardName(card):
+		card_name(card):
 			Gives the human-friendly name of a given card
 
 	"""
-
-	# TODO: Make the deck consist of 52 cards, with dealing a card popping it
 
 	AceVal = 11
 	DealerSoftGoal = 17
@@ -93,11 +94,11 @@ class BlackjackGame:
 		"""
 		self.user = user
 		self.bet = bet
+		self.deck: list[int] = []
+		self.deck.extend(BlackjackGame.CardVals * 4)
 		self.hand: list[int] = []
-		self.dealerUp = random.randint(2, BlackjackGame.AceVal)
-		self.dealerSum = self.dealerUp
-		while self.dealerSum < BlackjackGame.DealerSoftGoal:
-			self.dealerSum += random.randint(1, BlackjackGame.FaceVal)
+		self.dealerUp = self.deal_top_card()
+		self.dealerSum = self.dealerUp + self.deal_top_card()
 		self.message = self.starting_hand()
 
 	@staticmethod
@@ -120,6 +121,16 @@ class BlackjackGame:
 			return "an Ace"
 		return "an 8" if card == 8 else ("a " + str(card))  # noqa: PLR2004
 
+	def deal_top_card(self) -> int:
+		"""
+		Remove and return the top card from the deck.
+
+		Returns:
+			int: The value of the top card of the deck.
+
+		"""
+		return self.deck.pop(random.randint(0, len(self.deck) - 1))
+
 	def perfect(self) -> bool:
 		"""
 		Check if the user has reached Goal, and therefore gotten Blackjack.
@@ -134,34 +145,23 @@ class BlackjackGame:
 		"""
 		return sum(self.hand) == BlackjackGame.Goal
 
-	def starting_hand(
-		self,
-		*,
-		debug_blackjack: bool = False,
-		debug_double_aces: bool = False,
-	) -> str:
+	def starting_hand(self) -> str:
 		"""
 		Deal the user a starting hand of 2 cards.
-
-		Args:
-			debug_blackjack (bool): Used to test hitting Goal
-				(default is False)
-			debug_double_aces (bool): Used to test dealing two Aces
-				(default is False)
 
 		Returns:
 			str: The message to show the user.
 
 		"""
-		self.hand.append(random.choice(BlackjackGame.CardVals))
-		self.hand.append(random.choice(BlackjackGame.CardVals))
+		self.hand.append(self.deal_top_card())
+		self.hand.append(self.deal_top_card())
 		message = (
 			"Your starting hand consists of"
 			f" {BlackjackGame.card_name(self.hand[0])}"
 			f" and {BlackjackGame.card_name(self.hand[1])}."
 			f" Your total is {sum(self.hand)}. "
 		)
-		if (self.perfect() or debug_blackjack) and not debug_double_aces:
+		if self.perfect():
 			message += (
 				f"You hit {BlackjackGame.Goal}! You win, {self.user.mention}!"
 			)
@@ -170,7 +170,7 @@ class BlackjackGame:
 				f"The dealer is showing {self.dealerUp},"
 				" with one card face down. "
 			)
-			if self.check_bust() or debug_double_aces:
+			if self.check_bust():
 				self.hand[1] = 1
 				self.bet *= -1
 				message = (
@@ -183,7 +183,7 @@ class BlackjackGame:
 			)
 		return message
 
-	def deal(self) -> str:
+	def deal_to_player(self) -> str:
 		"""
 		Deal the user a single card.
 
@@ -191,7 +191,7 @@ class BlackjackGame:
 			str: The message to show the user.
 
 		"""
-		dealt = random.choice(BlackjackGame.CardVals)
+		dealt = self.deal_top_card()
 		self.hand.append(dealt)
 		self.message = (
 			f"You were dealt {BlackjackGame.card_name(dealt)},"
@@ -248,6 +248,8 @@ class BlackjackGame:
 
 		"""
 		change = 1
+		while self.dealerSum < BlackjackGame.DealerSoftGoal:
+			self.dealerSum += self.deal_top_card()
 		self.message = "The dealer has a total of {}."
 		if sum(self.hand) > self.dealerSum and not self.check_bust():
 			self.message += f" You're closer to {BlackjackGame.Goal}"
@@ -614,6 +616,8 @@ def active_game(
 ) -> BlackjackGame | None:
 	"""
 	Check if a user has an active game of Blackjack.
+
+	TODO: convert games list to dict[user_id, BlackJackGame], deprecate this.
 
 	Args:
 		games (list[BlackjackGame]): list of active Blackjack games

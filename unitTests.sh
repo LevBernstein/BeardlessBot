@@ -14,8 +14,8 @@ genbadge coverage -i coverage.xml -o \
 	resources/images/coverage.svg >> /dev/null;
 rm .coverage 2> /dev/null;
 rm coverage.xml 2> /dev/null;
-python3 -m flake8 --exclude="*env/*" --ignore=W191,W503 --statistics \
-	--exit-zero --output-file flake8stats.txt;
+python3 -m flake8 --exclude="*env/*" --ignore=A003,W191,W503 --statistics \
+	--exit-zero --output-file flake8stats.txt --min-python-version 3.12.0;
 genbadge flake8 -i flake8stats.txt -o \
 	resources/images/flake8-badge.svg >> /dev/null;
 rm flake8stats.txt 2> /dev/null;

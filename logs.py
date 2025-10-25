@@ -240,3 +240,15 @@ def log_thread_unarchived(thread: nextcord.Thread) -> nextcord.Embed:
 	return bb_embed(
 		"", f"Thread \"{thread.name}\" unarchived.", 0xFFFF00, show_time=True,
 	).set_author(name="Thread unarchived", icon_url=ProfUrl)
+
+
+def log_thread_locked(thread: nextcord.Thread) -> nextcord.Embed:
+	return bb_embed(
+		"", f"Thread \"{thread.name}\" locked.", 0xFFFF00, show_time=True,
+	).set_author(name="Thread locked", icon_url=ProfUrl)
+
+
+def log_thread_unlocked(thread: nextcord.Thread) -> nextcord.Embed:
+	return bb_embed(
+		"", f"Thread \"{thread.name}\" unlocked.", 0xFFFF00, show_time=True,
+	).set_author(name="Thread unlocked", icon_url=ProfUrl)
