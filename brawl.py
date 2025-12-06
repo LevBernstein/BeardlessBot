@@ -89,6 +89,8 @@ Data = get_brawl_data()
 def brawl_win_rate(j: dict[str, str | int]) -> float:
 	assert isinstance(j["wins"], int)
 	assert isinstance(j["games"], int)
+	if j["games"] == 0:
+		return 0.0
 	return round(j["wins"] / j["games"] * 100, 1)
 
 
@@ -257,10 +259,9 @@ def get_top_legend(
 	top_legend = None
 	for legend in legends:
 		assert isinstance(legend["rating"], int)
-		rating: int = legend["rating"]
-		if not top_legend or top_legend[1] < rating:
+		if not top_legend or top_legend[1] < legend["rating"]:
 			assert isinstance(legend["legend_name_key"], str)
-			top_legend = legend["legend_name_key"], rating
+			top_legend = legend["legend_name_key"], legend["rating"]
 	return top_legend
 
 
@@ -274,7 +275,7 @@ def get_ones_rank(emb: Embed, r: dict[str, Any]) -> Embed:
 			f"\nTop Legend: {top_legend[0].title()}, {top_legend[1]} Elo"
 		)
 	emb.add_field(name="Ranked 1s", value=emb_val)
-	for thumb in RankedThumbnails:
+	for thumb in RankedThumbnails:  # pragma: no branch
 		if thumb[1] in r["tier"]:
 			emb.colour = Colour(RankColors[thumb[1]])
 			emb.set_thumbnail(ThumbBase.format(*thumb))
@@ -304,7 +305,7 @@ def get_twos_rank(emb: Embed, r: dict[str, Any]) -> Embed:
 			or peak_team["rating"] > r["rating"]
 		):
 			# Higher 2s Elo than 1s Elo
-			for thumb in RankedThumbnails:
+			for thumb in RankedThumbnails:  # pragma: no branch
 				if thumb[1] in peak_team["tier"]:
 					emb.colour = Colour(RankColors[thumb[1]])
 					emb.set_thumbnail(ThumbBase.format(*thumb))
@@ -340,13 +341,17 @@ async def get_rank(target: Member | User, brawl_key: str) -> Embed:
 	return emb
 
 
+def get_most_used(legend: dict[str, str | int]) -> tuple[str, int]:
+	assert isinstance(legend["legend_name_key"], str)
+	assert isinstance(legend["xp"], int)
+	return legend["legend_name_key"].title(), legend["xp"]
+
+
 def get_top_dps(legend: dict[str, str | int]) -> tuple[str, float]:
 	assert isinstance(legend["matchtime"], int)
 	assert isinstance(legend["legend_name_key"], str)
-	return (
-		legend["legend_name_key"].title(),
-		round(int(legend["damagedealt"]) / legend["matchtime"], 1),
-	)
+	dps = round(int(legend["damagedealt"]) / legend["matchtime"], 1)
+	return legend["legend_name_key"].title(), dps
 
 
 def get_top_ttk(legend: dict[str, str | int]) -> tuple[str, float]:
@@ -362,32 +367,29 @@ def get_top_ttk(legend: dict[str, str | int]) -> tuple[str, float]:
 def get_top_legend_stats(
 	legends: list[dict[str, str | int]],
 ) -> tuple[tuple[str, float | int] | None, ...]:
-	# TODO: unit test
-	# https://github.com/LevBernstein/BeardlessBot/issues/47
 	most_used: tuple[str, int] | None = None
 	top_winrate: tuple[str, float] | None = None
 	top_dps: tuple[str, float] | None = None
 	lowest_ttk: tuple[str, float] | None = None
 	for legend in legends:
-		assert isinstance(legend["xp"], int)
 		assert isinstance(legend["legend_name_key"], str)
-		if not most_used or most_used[1] < legend["xp"]:
-			most_used = (legend["legend_name_key"].title(), legend["xp"])
-		if legend["games"] and (
-			top_winrate is None
-			or top_winrate[1] < brawl_win_rate(legend)
+		if legend.get("xp", 0) != 0 and (
+			most_used is None or most_used[1] < get_most_used(legend)[1]
+		):
+			most_used = get_most_used(legend)
+		if legend.get("games", 0) != 0 and (
+			top_winrate is None or top_winrate[1] < brawl_win_rate(legend)
 		):
 			top_winrate = (
 				legend["legend_name_key"].title(), brawl_win_rate(legend),
 			)
-		if legend["matchtime"] and (
-			top_dps is None or top_dps[1] < get_top_dps(legend)[1]
-		):
-			top_dps = get_top_dps(legend)
-		if legend["kos"] and (
-			lowest_ttk is None or lowest_ttk[1] > get_top_ttk(legend)[1]
-		):
-			lowest_ttk = get_top_ttk(legend)
+		if legend.get("matchtime", 0) != 0:
+			if top_dps is None or top_dps[1] < get_top_dps(legend)[1]:
+				top_dps = get_top_dps(legend)
+			if legend.get("kos", 0) != 0 and (
+				lowest_ttk is None or lowest_ttk[1] > get_top_ttk(legend)[1]
+			):
+				lowest_ttk = get_top_ttk(legend)
 	return most_used, top_winrate, top_dps, lowest_ttk
 
 
@@ -463,7 +465,7 @@ async def get_clan(target: Member | User, brawl_key: str) -> Embed:
 		r["clan_name"],
 		"**Clan Created:** {}\n**Experience:** {}\n**Members:** {}".format(
 			str(datetime.fromtimestamp(r["clan_create_date"], TimeZone))[:-9],
-			r["clan_xp"],
+			r["clan_lifetime_xp"],
 			len(r["clan"]),
 		),
 	).set_footer(text=f"Clan ID {r["clan_id"]}")
