@@ -262,7 +262,7 @@ def fetch_avatar(
 	user: nextcord.Member | nextcord.User | nextcord.ClientUser,
 ) -> str:
 	"""
-	Pull a given user's avatar url.
+	Pull a given user's avatar url safely.
 
 	Args:
 		user (nextcord.Member or User or ClientUser): The user whose avatar
@@ -296,6 +296,29 @@ class AnimalException(httpx.RequestError):
 
 
 async def fetch_animal(url: str, *args: str | int) -> str | None:
+	"""
+	Pull an animal image URL from a JSON response.
+
+	For each arg in *args, move a layer deeper into the JSON response,
+	eventually returning the image URL. For example, calling fetch_animal
+	with args=["foo", 0, "bar", "url"] will extract the url from the following
+	expected JSON object:
+
+	{"foo": ["bar": {"url": "animal.url"}]}
+
+	This obviously fails horribly if the JSON response in any way does not
+	match what you are expecting.
+
+	Args:
+		url (str): The API endpoint to call
+		*args (str | int): The path to take through the JSON response in order
+			to obtain the animal image URL.
+
+	Returns:
+		str | None: The animal image URL if the called API returned OK;
+			else, None.
+
+	"""
 	async with httpx.AsyncClient(timeout=10) as client:
 		r = await client.get(url)
 	if r.status_code == Ok:
@@ -966,8 +989,6 @@ def get_last_numeric_char(duration: str) -> int:
 async def process_mute_target(
 	ctx: BotContext, target: str | None, bot: commands.Bot,
 ) -> nextcord.Member | None:
-	# TODO: unit test
-	# https://github.com/LevBernstein/BeardlessBot/issues/47
 	assert hasattr(ctx.author, "guild_permissions")
 	if not ctx.author.guild_permissions.manage_messages:
 		await ctx.send(Naughty.format(ctx.author.mention))
@@ -1085,7 +1106,6 @@ async def check_for_spar_channel(ctx: BotContext) -> bool:
 
 
 # Static embeds.
-# TODO: convert these to methods
 
 AdminPermsReasons = (
 	"Beardless Bot requires permissions in order to do just about anything."

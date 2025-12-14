@@ -198,7 +198,7 @@ class BlackjackGame:
 			f" bringing your total to {sum(self.hand)}. "
 		)
 		if BlackjackGame.AceVal in self.hand and self.check_bust():
-			for i, card in enumerate(self.hand):
+			for i, card in enumerate(self.hand):  # pragma: no branch
 				if card == BlackjackGame.AceVal:
 					self.hand[i] = 1
 					self.bet *= -1
