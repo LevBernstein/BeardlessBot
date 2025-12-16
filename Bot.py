@@ -71,7 +71,7 @@ async def on_ready() -> None:
 	triggering an HTTPException.
 
 	The method also initializes sparPings to enable a 2-hour cooldown for the
-	spar command, and chunks all guilds (caches them) to speed up operations.
+	spar command, and chunks (caches) all guilds to speed up operations.
 	This also allows you to get a good idea of how many unique users are in
 	all guilds in which Beardless Bot operates.
 	"""
@@ -91,7 +91,7 @@ async def on_ready() -> None:
 		logger.info("Avatar updated!")
 
 	if len(BeardlessBot.guilds) == 0:
-		logger.exception("Bot is in no servers! Add it to a server.")
+		logger.warning("Bot is in no servers! Add it to a server.")
 	else:
 		for guild in BeardlessBot.guilds:
 			# Do this first so all servers can spar immediately
@@ -457,6 +457,16 @@ async def cmd_dice(ctx: misc.BotContext) -> int | nextcord.Embed:
 
 @BeardlessBot.command(name="reset")
 async def cmd_reset(ctx: misc.BotContext) -> int:
+	"""
+	Reset the user to 200 BeardlessBucks and inform them of this.
+
+	Args:
+		ctx (misc.BotContext): The context in which the command was invoked
+
+	Returns:
+		int: -1 if the message was a thread creation; 1 otherwise.
+
+	"""
 	if misc.ctx_created_thread(ctx):
 		return -1
 	await ctx.send(embed=bucks.reset(ctx.author))
@@ -465,6 +475,18 @@ async def cmd_reset(ctx: misc.BotContext) -> int:
 
 @BeardlessBot.command(name="register")
 async def cmd_register(ctx: misc.BotContext) -> int:
+	"""
+	Attempt to register the user with 300 BeardlessBucks.
+
+	If the user is already registered, send a message to that effect.
+
+	Args:
+		ctx (misc.BotContext): The context in which the command was invoked
+
+	Returns:
+		int: -1 if the message was a thread creation; 1 otherwise.
+
+	"""
 	if misc.ctx_created_thread(ctx):
 		return -1
 	await ctx.send(embed=bucks.register(ctx.author))
@@ -487,6 +509,16 @@ async def cmd_bucks(ctx: misc.BotContext) -> int | nextcord.Embed:
 
 @BeardlessBot.command(name="hello", aliases=("hi",))
 async def cmd_hello(ctx: misc.BotContext) -> int:
+	"""
+	Send a random greeting.
+
+	Args:
+		ctx (misc.BotContext): The context in which the command was invoked
+
+	Returns:
+		int: -1 if the message was a thread creation; 1 otherwise.
+
+	"""
 	if misc.ctx_created_thread(ctx):
 		return -1
 	await ctx.send(random.choice(misc.Greetings))
@@ -495,6 +527,16 @@ async def cmd_hello(ctx: misc.BotContext) -> int:
 
 @BeardlessBot.command(name="source")
 async def cmd_source(ctx: misc.BotContext) -> int:
+	"""
+	Send an embed containing the source of many of the fun facts.
+
+	Args:
+		ctx (misc.BotContext): The context in which the command was invoked
+
+	Returns:
+		int: -1 if the message was a thread creation; 1 otherwise.
+
+	"""
 	if misc.ctx_created_thread(ctx):
 		return -1
 	source = (
@@ -534,6 +576,16 @@ async def cmd_random_brawl(
 
 @BeardlessBot.command(name="fact")
 async def cmd_fact(ctx: misc.BotContext) -> int:
+	"""
+	Send an embed containing a random fun fact.
+
+	Args:
+		ctx (misc.BotContext): The context in which the command was invoked
+
+	Returns:
+		int: -1 if the message was a thread creation; 1 otherwise.
+
+	"""
 	if misc.ctx_created_thread(ctx):
 		return -1
 	await ctx.send(embed=misc.bb_embed(
@@ -817,6 +869,14 @@ async def cmd_buy(
 	return 1
 
 
+@BeardlessBot.command(name="search", aliases=("google", "lmgtfy"))
+async def cmd_search(ctx: misc.BotContext, *, searchterm: str = "") -> int:
+	if misc.ctx_created_thread(ctx):
+		return -1
+	await ctx.send(embed=misc.search(searchterm))
+	return 1
+
+
 @BeardlessBot.command(name="pins", aliases=("sparpins", "howtospar"))
 async def cmd_pins(ctx: misc.BotContext) -> int:
 	if (
@@ -1036,6 +1096,17 @@ async def cmd_tweet(ctx: misc.BotContext) -> int:
 
 @BeardlessBot.command(name="reddit")
 async def cmd_reddit(ctx: misc.BotContext) -> int:
+	"""
+	Send a link to the EggSoup Subreddit, if in the Egg server.
+
+	Args:
+		ctx (misc.BotContext): The context in which the command was invoked
+
+	Returns:
+		int: -1 if the message was a thread creation; 0 if the command was not
+			invoked in the Egg server; 1 otherwise.
+
+	"""
 	if misc.ctx_created_thread(ctx) or not ctx.guild:
 		return -1
 	if ctx.guild.id == EggGuildId:
@@ -1046,6 +1117,17 @@ async def cmd_reddit(ctx: misc.BotContext) -> int:
 
 @BeardlessBot.command(name="guide")
 async def cmd_guide(ctx: misc.BotContext) -> int:
+	"""
+	Send a link to the EggSoup Improvement Guide, if in the Egg server.
+
+	Args:
+		ctx (misc.BotContext): The context in which the command was invoked
+
+	Returns:
+		int: -1 if the message was a thread creation; 0 if the command was not
+			invoked in the Egg server; 1 otherwise.
+
+	"""
 	if misc.ctx_created_thread(ctx) or not ctx.guild:
 		return -1
 	if ctx.guild.id == EggGuildId:
@@ -1055,14 +1137,6 @@ async def cmd_guide(ctx: misc.BotContext) -> int:
 		))
 		return 1
 	return 0
-
-
-@BeardlessBot.command(name="search", aliases=("google", "lmgtfy"))
-async def cmd_search(ctx: misc.BotContext, *, searchterm: str = "") -> int:
-	if misc.ctx_created_thread(ctx):
-		return -1
-	await ctx.send(embed=misc.search(searchterm))
-	return 1
 
 
 # Listeners:
@@ -1087,12 +1161,12 @@ async def on_command_error(
 	misc.logException method.
 
 	Args:
-		ctx (misc.botContext): The context in which the command threw an
-			Exception
+		ctx (misc.botContext): The context in which the command threw
+			an Exception
 		e (commands.errors.CommandError): The Exception that was thrown
 
 	Returns:
-		int: 0 if the Exception was CommandNotFound; otherwise, 0.
+		int: 0 if the Exception was CommandNotFound; otherwise, 1.
 
 	"""
 	if isinstance(e, commands.CommandNotFound):
@@ -1186,7 +1260,8 @@ if __name__ == "__main__":  # pragma: no cover
 		],
 	)
 
-	# HTTPX tends to flood logs with INFO-level calls; set it to >= WARNING
+	# Tendency to flood logs with INFO-level calls; set them to >= WARNING
 	logging.getLogger("httpx").setLevel(logging.WARNING)
+	logging.getLogger("nextcord").setLevel(logging.WARNING)
 
 	launch()

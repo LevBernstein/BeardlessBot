@@ -7,9 +7,6 @@ import nextcord
 
 from misc import ProfUrl, bb_embed, content_check, fetch_avatar, truncate_time
 
-# TODO: Implement log thread locked/unlocked
-# https://github.com/LevBernstein/BeardlessBot/issues/45
-
 MaxPurgedMsgs: Final[int] = 99
 
 
@@ -140,13 +137,9 @@ def log_member_nick_change(
 	).set_author(
 		name=after.name, icon_url=fetch_avatar(after),
 	).add_field(
-		name="Before:",
-		value=before.nick if before.nick else before.name,
-		inline=False,
+		name="Before:", value=before.nick or before.name, inline=False,
 	).add_field(
-		name="After:",
-		value=after.nick if after.nick else after.name,
-		inline=False,
+		name="After:", value=after.nick or after.name, inline=False,
 	)
 
 
