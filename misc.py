@@ -404,7 +404,7 @@ def get_frog_list() -> list[str]:
 		j = loads(
 			soup.find_all("script")[-2].text.replace("\\", "\\\\"),
 		)["payload"]
-	return [i["name"] for i in j["tree"]["items"]]
+	return [i["name"] for i in j["codeViewTreeRoute"]["tree"]["items"]]
 
 
 FrogList = get_frog_list()
@@ -986,6 +986,28 @@ def get_last_numeric_char(duration: str) -> int:
 	return len(duration)
 
 
+# TODO: merge with process_mute_target
+async def process_command_target(
+	ctx: BotContext, target: str | None, bot: commands.Bot,
+) -> nextcord.Member | None:
+	if not target:
+		await ctx.send(f"Please specify a target, {ctx.author.mention}.")
+		return None
+	try:
+		command_target = await commands.MemberConverter().convert(ctx, target)
+	except commands.MemberNotFound:
+		await ctx.send(embed=bb_embed(
+			"Beardless Bot Join",
+			"Invalid target! Target must be a mention or user ID.",
+		))
+		return None
+	if bot.user is not None and command_target.id == bot.user.id:
+		await ctx.send("I'm not in match, idiot.")
+		return None
+	return command_target
+
+
+# TODO: merge with process_command_target
 async def process_mute_target(
 	ctx: BotContext, target: str | None, bot: commands.Bot,
 ) -> nextcord.Member | None:
