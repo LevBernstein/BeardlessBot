@@ -802,5 +802,17 @@
         "dexterity": "7",
         "defense": "8",
         "speed": "4"
+    },
+    {
+        "legend_id": 70,
+        "legend_name_key": "rupture",
+        "bio_name": "Rupture",
+        "bio_aka": "The Nemesis",
+        "weapon_one": "Katar",
+        "weapon_two": "RocketLance",
+        "strength": "9",
+        "dexterity": "3",
+        "defense": "5",
+        "speed": "5"
     }
 ]

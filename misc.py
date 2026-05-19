@@ -686,9 +686,9 @@ class BbHelpCommand(commands.HelpCommand):
 			hasattr(self.context.author, "guild_permissions")
 			and self.context.author.guild_permissions.manage_messages
 		):
-			commands_to_display = 20
+			commands_to_display = 25
 		else:
-			commands_to_display = 17
+			commands_to_display = 22
 		command_list = (
 			("!register", "Registers you with the currency system."),
 			(
@@ -742,6 +742,14 @@ class BbHelpCommand(commands.HelpCommand):
 				"Displays general information about a user."
 				" Write just !info to see your own info.",
 			),
+			("!tablenew", "Create a new multiplayer blackjack game"),
+			("!tablejoin", "Join a multiplayer blackjack game."),
+			("!tablebet", "Place a bet in a multiplayer blackjack game."),
+			(
+				"!tablestart",
+				"Deal the cards in a new multiplayer blackjack game.",
+			),
+			("!tableleave", "Leave a multiplayer blackjack game."),
 			("!purge [number]", "Mass-deletes messages."),
 			(
 				"!mute [target] [duration]",

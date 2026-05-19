@@ -434,7 +434,7 @@ async def cmd_tablebet(ctx: misc.BotContext, bet: str = "10") -> int:
 						)
 						report = (
 							"Your current bet is "
-							f"{bet_number}\n{ctx.author.mention}"
+							f"{bet_number}.\n{ctx.author.mention}"
 						)
 						player.bet = bet_number
 					assert report is not None
@@ -522,10 +522,6 @@ async def cmd_tablejoin(
 		else:
 			report = f"Player {join_target.mention} is not in a blackjack game"
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Join", report))
-	# if channel := misc.get_log_channel(ctx.guild):
-	# 	await channel.send(embed=logs.log_mute(
-	# 		join_target, ctx.message, duration,
-	# 	))
 	return 1
 
 

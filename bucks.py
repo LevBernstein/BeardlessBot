@@ -50,7 +50,7 @@ GameHelpMsg = (
 
 class BlackjackPlayer:
 	"""
-	BlackjackPlayer instantce.
+	BlackjackPlayer instance.
 
 	Attributes:
 		name (Nextcord.User | Nextcord.Member):
@@ -555,7 +555,7 @@ class BlackjackGame:
 				player.name, -player.bet, writing=True, adding=True,
 			)
 			self.advance_turn()
-			report += " You busted. Game over."
+			report += f" You busted. Game over. {LoseMsg}."
 			if not self.round_over():
 				report += (
 					f"\n{self.players[self.turn_idx].name.mention}, "

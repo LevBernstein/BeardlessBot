@@ -3068,8 +3068,8 @@ async def test_bb_help_command(caplog: pytest.LogCaptureFixture) -> None:
 	await help_command.send_bot_help({})
 
 	h = [i async for i in help_command.context.history()]
-	assert len(h[2].embeds[0].fields) == 17
-	assert len(h[1].embeds[0].fields) == 20
+	assert len(h[2].embeds[0].fields) == 22
+	assert len(h[1].embeds[0].fields) == 25
 	assert len(h[0].embeds[0].fields) == 15
 
 	help_command.context.message.type = nextcord.MessageType.thread_created
@@ -4508,7 +4508,8 @@ def test_deal_current_player() -> None:
 			"<@1111> you were dealt a 10, bringing your total to 23",
 		)
 		assert report.endswith(
-			"You busted. Game over.\n<@2222>, it is your turn.\n",
+			"You busted. Game over. You lose! Your losses have been deducted"
+			" from your balance.\n<@2222>, it is your turn.\n",
 		)
 		assert not game.is_turn(game.players[0])
 		assert game.is_turn(game.players[1])
