@@ -50,6 +50,7 @@ from nextcord.types import emoji as emoji_payloads
 from nextcord.types import message as message_payloads
 from nextcord.types.embed import Embed as EmbedPayload
 from nextcord.types.role import Role as RolePayload
+from nextcord.types.role import RoleColors as RoleColorsPayload
 from nextcord.types.user import User as UserPayload
 from pytest_httpx import HTTPXMock
 
@@ -188,10 +189,17 @@ class MockHTTPClient(nextcord.http.HTTPClient):
 		data = dict(fields)
 		if reason:
 			logger.info("Role creation reason: %s", reason)
+		color: int = data.get("color", 0)
+		colors = RoleColorsPayload(
+			primary_color=color,
+			secondary_color=None,
+			tertiary_color=None,
+		)
 		return RolePayload(
 			id=guild_id,
 			name=data["name"],
-			color=data.get("color", 0),
+			color=color,
+			colors=colors,
 			hoist=data.get("hoist", False),
 			position=data.get("position", 0),
 			permissions=data.get("permissions", 0),
@@ -718,7 +726,7 @@ class MockChannel(nextcord.TextChannel):
 	@property
 	def messages(self) -> list[nextcord.Message]:
 		"""
-		Return the channel's sent messages as a list.
+		The list of messages sent in this channel.
 
 		Returns:
 			list[nextcord.Message]: A list of messages.
@@ -838,6 +846,11 @@ class MockRole(nextcord.Role):
 			permissions if isinstance(permissions, int) else permissions.value
 		)
 		self._colour = colour
+		self._colours = RoleColorsPayload(
+			primary_color=colour,
+			secondary_color=None,
+			tertiary_color=None,
+		)
 
 
 class MockGuild(nextcord.Guild):
@@ -976,6 +989,36 @@ class MockGuild(nextcord.Guild):
 	) -> nextcord.Role:
 		...
 
+	@overload
+	@override
+	async def create_role(
+		self,
+		*,
+		reason: str | None = ...,
+		name: str = ...,
+		permissions: nextcord.Permissions = ...,
+		colors: nextcord.RoleColors = ...,
+		hoist: bool = ...,
+		mentionable: bool = ...,
+		icon: str | IconTypes | None = ...,
+	) -> nextcord.Role:
+		...
+
+	@overload
+	@override
+	async def create_role(
+		self,
+		*,
+		reason: str | None = ...,
+		name: str = ...,
+		permissions: nextcord.Permissions = ...,
+		colours: nextcord.RoleColors = ...,
+		hoist: bool = ...,
+		mentionable: bool = ...,
+		icon: str | IconTypes | None = ...,
+	) -> nextcord.Role:
+		...
+
 	@override
 	async def create_role(
 		self,
@@ -984,6 +1027,8 @@ class MockGuild(nextcord.Guild):
 		permissions: nextcord.Permissions | None = None,
 		color: nextcord.Colour | int = 0,
 		colour: nextcord.Colour | int = 0,
+		colors: nextcord.RoleColors | None = None,
+		colours: nextcord.RoleColors | None = None,
 		hoist: bool = False,
 		mentionable: bool = False,
 		icon: str | IconTypes | None = None,
@@ -997,6 +1042,7 @@ class MockGuild(nextcord.Guild):
 			"mentionable": mentionable,
 			"hoist": hoist,
 			"color": col if isinstance(col, int) else col.value,
+			"colors": colors or colours,
 		}
 		if isinstance(icon, str):
 			fields["unicode_emoji"] = icon
@@ -1324,6 +1370,8 @@ def test_with_ruff_for_code_quality() -> None:
 
 	Ruff codes:
 		Invalid:
+			CPY001: Missing copyright notice at top of file
+				(See LICENSE instead)
 			D203: 1 blank line required before class docstring
 				(Incompatible with D211)
 			D206: Spaces instead of tabs in docstrings
@@ -1346,6 +1394,8 @@ def test_with_ruff_for_code_quality() -> None:
 				(I'm working on it...)
 			FIX002: Line contains FIXME/TODO/XXX/HACK
 				(I'm working on it...)
+			ISC004: Unparenthesized implicit string concat in collection
+				(I'm working on it...)
 			S101: Use of assert
 				(Shouldn't be present in production code)
 			TD003: Missing issue link in TODO
@@ -1353,8 +1403,8 @@ def test_with_ruff_for_code_quality() -> None:
 
 	"""
 	version = sys.version_info
-	invalid_codes = "D203,D206,D212,ERA001,Q003,S311,TD002,W191"
-	temporary_ignore_codes = "D103,FIX002,S101,TD003"
+	invalid_codes = "CPY001,D203,D206,D212,ERA001,Q003,S311,TD002,W191"
+	temporary_ignore_codes = "D103,FIX002,ISC004,S101,TD003"
 	assert subprocess.run(
 		[
 			sys.executable,
@@ -1403,11 +1453,10 @@ def test_no_out_of_date_requirements_for_code_quality() -> None:
 	).stdout.decode().lower())
 	outdated = {i["name"]: i["latest_version"] for i in pip_list_outdated}
 
-	with Path("resources/requirements.txt").open("r", encoding="UTF-8") as f:
-		req_lines = {
-			i.split("==")[0].split("[")[0]
-			for i in f.read().lower().split("\n")
-		}
+	reqs = Path("resources/requirements.txt").read_text(encoding="UTF-8")
+	req_lines = {
+		i.split("==")[0].split("[")[0] for i in reqs.lower().split("\n")
+	}
 
 	assert len([
 		lib + version for lib, version in outdated.items() if lib in req_lines
@@ -3107,7 +3156,7 @@ def test_scam_check() -> None:
 
 
 @MarkAsync
-@pytest.mark.flaky(reruns=2, reruns_delay=2)
+@pytest.mark.flaky(reruns=2, reruns_delay=5)
 @pytest.mark.parametrize(
 	"searchterm",
 	["лексика", "spaced words", "/", "'", "'foo'", "\\\"", " "],
@@ -3129,7 +3178,7 @@ async def test_cmd_search_valid(searchterm: str) -> None:
 
 
 @MarkAsync
-@pytest.mark.flaky(reruns=2, reruns_delay=2)
+@pytest.mark.flaky(reruns=2, reruns_delay=5)
 async def test_cmd_search_empty_argument_redirects_to_home() -> None:
 	ctx = MockContext(Bot.BeardlessBot)
 	assert await Bot.cmd_search(ctx, searchterm="") == 1
@@ -3160,7 +3209,7 @@ async def test_moose_failed_connection_raises_animal_exception(
 
 
 @MarkAsync
-@pytest.mark.flaky(reruns=2, reruns_delay=2)
+@pytest.mark.flaky(reruns=2, reruns_delay=5)
 @pytest.mark.parametrize("animal_name", misc.AnimalList)
 async def test_get_animal_with_good_url(animal_name: str) -> None:
 	url = await misc.get_animal(animal_name)

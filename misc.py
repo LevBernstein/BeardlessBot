@@ -567,8 +567,9 @@ def fact() -> str:
 		str: A fun fact.
 
 	"""
-	with Path("resources/facts.txt").open("r", encoding="UTF-8") as f:
-		return random.choice(f.read().splitlines())
+	return random.choice(
+		Path("resources/facts.txt").read_text(encoding="UTF-8").splitlines(),
+	)
 
 
 def truncate_time(member: nextcord.User | nextcord.Member) -> str:
@@ -934,10 +935,9 @@ def tweet() -> str:
 		str: A fake eggsoup tweet.
 
 	"""
-	with Path("resources/eggtweets_clean.txt").open(
-		"r", encoding="UTF-8",
-	) as f:
-		words = f.read().split()
+	words = Path(
+		"resources/eggtweets_clean.txt",
+	).read_text(encoding="UTF-8").split()
 	chains: dict[str, list[str]] = {}
 	key_size = random.randint(1, 2)
 	for i in range(len(words) - key_size):
@@ -1010,7 +1010,7 @@ async def process_command_target(
 		))
 		return None
 	if bot.user is not None and command_target.id == bot.user.id:
-		await ctx.send("I'm not in match, idiot.")
+		await ctx.send("Sadly, I am forbidden from playing Blackjack.")
 		return None
 	return command_target
 

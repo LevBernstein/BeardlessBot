@@ -210,7 +210,7 @@ class BlackjackGame:
 		Takes into accounts Ace overflow.
 
 		Returns:
-			list[int]: the dealers final hand
+			list[int]: the dealer's final hand
 
 		"""
 		assert self.dealerUp is not None
@@ -398,7 +398,13 @@ class BlackjackGame:
 			self.turn_idx = len(self.players)
 
 	def _start_game_blackjack(self) -> str:
-		"""Play players' turns after the dealer draws blackjacks."""
+		"""
+		Play players' turns after the dealer draws a blackjack.
+
+		Returns:
+			str: Human-readable report.
+
+		"""
 		message = "The dealer blackjacked!\n"
 		for p in self.players:
 			message += (
@@ -426,7 +432,7 @@ class BlackjackGame:
 		Handles ace overflows and player blackjacks.
 
 		Returns:
-			str: human readable report message.
+			str: Human-readable report.
 
 		"""
 		message = (
@@ -475,7 +481,7 @@ class BlackjackGame:
 		Deal the user(s) a starting hand of 2 cards.
 
 		Returns:
-			str: Human readable report.
+			str: Human-readable report.
 
 		"""
 		self.turn_idx = 0

@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release 2.7.0 ![Coverage badge](./resources/images/coverage.svg) ![Unit tests badge](./resources/images/tests.svg) ![Docstring coverage badge](./resources/images/docstr-coverage.svg) ![flake8 badge](./resources/images/flake8-badge.svg)
+### Full Release 2.7.1 ![Coverage badge](./resources/images/coverage.svg) ![Unit tests badge](./resources/images/tests.svg) ![Docstring coverage badge](./resources/images/docstr-coverage.svg) ![flake8 badge](./resources/images/flake8-badge.svg)
 
 A Discord bot supporting gambling (coin flips and blackjack),
 a currency system, fun facts, and more.
@@ -24,7 +24,8 @@ Beardless Bot, follow the steps outlined directly below in
 virtualenv, name your virtualenv "venv" and run `source venv/bin/activate`
 before running `pip3 install`. Beardless Bot requires at least Python 3.12, and
 has been tested on 3.12.0, 3.12.6, and 3.13.0. Older versions of Beardless
-Bot--specifically those before 2.5.0--can also run on 3.10 and 3.11.
+Bot--specifically those before version 2.5.0--can also run on Python 3.10 and
+3.11.
 
 3. Create a file named ".env" in the same directory as Bot.py. Insert
 into it the line `DISCORDTOKEN=yourtoken`, where yourtoken is the Discord API

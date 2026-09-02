@@ -22,8 +22,9 @@ import bucks
 import logs
 import misc
 
-with Path("README.MD").open("r", encoding="UTF-8") as readme:
-	__version__ = " ".join(readme.read().split(" ")[3:6])
+__version__ = " ".join(
+	Path("README.MD").read_text(encoding="UTF-8").split(" ")[3:6],
+)
 
 logger = logging.getLogger(__name__)
 
