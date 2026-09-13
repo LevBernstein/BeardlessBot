@@ -994,9 +994,8 @@ def get_last_numeric_char(duration: str) -> int:
 	return len(duration)
 
 
-# TODO: merge with process_mute_target
 async def process_command_target(
-	ctx: BotContext, target: str | None, bot: commands.Bot,
+	ctx: BotContext, target: str | None, verb: str, bot: commands.Bot,
 ) -> nextcord.Member | None:
 	if not target:
 		await ctx.send(f"Please specify a target, {ctx.author.mention}.")
@@ -1005,17 +1004,16 @@ async def process_command_target(
 		command_target = await commands.MemberConverter().convert(ctx, target)
 	except commands.MemberNotFound:
 		await ctx.send(embed=bb_embed(
-			"Beardless Bot Join",
+			f"Beardless Bot {verb}",
 			"Invalid target! Target must be a mention or user ID.",
 		))
 		return None
 	if bot.user is not None and command_target.id == bot.user.id:
-		await ctx.send("Sadly, I am forbidden from playing Blackjack.")
+		await ctx.send("Nope, not me.")
 		return None
 	return command_target
 
 
-# TODO: merge with process_command_target
 async def process_mute_target(
 	ctx: BotContext, target: str | None, bot: commands.Bot,
 ) -> nextcord.Member | None:
@@ -1023,21 +1021,7 @@ async def process_mute_target(
 	if not ctx.author.guild_permissions.manage_messages:
 		await ctx.send(Naughty.format(ctx.author.mention))
 		return None
-	if not target:
-		await ctx.send(f"Please specify a target, {ctx.author.mention}.")
-		return None
-	try:
-		mute_target = await commands.MemberConverter().convert(ctx, target)
-	except commands.MemberNotFound:
-		await ctx.send(embed=bb_embed(
-			"Beardless Bot Mute",
-			"Invalid target! Target must be a mention or user ID.",
-		))
-		return None
-	if bot.user is not None and mute_target.id == bot.user.id:
-		await ctx.send("I am too powerful to be muted. Stop trying.")
-		return None
-	return mute_target
+	return await process_command_target(ctx, target, "Mute", bot)
 
 
 def process_mute_duration(

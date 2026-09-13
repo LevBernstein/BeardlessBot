@@ -26,5 +26,5 @@ docstr-coverage ./ -e ".*bb_test.py/*|.*env/*" -v 0 --badge \
 python3 -c '
 import re, pathlib
 p = pathlib.Path("resources/images/coverage.svg")
-with p.open("r") as f: svg = f.read()
+svg = p.read_text()
 with p.open("w") as g: g.write(re.sub(r"((\.\d{2})%+)", ".00%", svg))'

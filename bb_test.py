@@ -419,7 +419,7 @@ class MockUser(nextcord.User):
 	"""
 
 	class MockUserState(nextcord.state.ConnectionState):
-		"""Drop-in replacement for ConnetionState."""
+		"""Drop-in replacement for ConnectionState."""
 
 		# TODO: move MockUserState out, apply to all classes, make generic
 		# https://github.com/LevBernstein/BeardlessBot/issues/48
@@ -548,7 +548,7 @@ class MockChannel(nextcord.TextChannel):
 	"""Drop-in replacement for TextChannel to enable offline testing."""
 
 	class MockChannelState(nextcord.state.ConnectionState):
-		"""Drop-in replacement for ConnetionState."""
+		"""Drop-in replacement for ConnectionState."""
 
 		@override
 		def __init__(
@@ -741,7 +741,7 @@ class MockMessage(nextcord.Message):
 	"""Drop-in replacement for Message to enable offline testing."""
 
 	class MockMessageState(nextcord.state.ConnectionState):
-		"""Drop-in replacement for ConnetionState."""
+		"""Drop-in replacement for ConnectionState."""
 
 		@override
 		def __init__(
@@ -857,7 +857,7 @@ class MockGuild(nextcord.Guild):
 	"""Drop-in replacement for Guild to enable offline testing."""
 
 	class MockGuildState(nextcord.state.ConnectionState):
-		"""Drop-in replacement for ConnetionState."""
+		"""Drop-in replacement for ConnectionState."""
 
 		@override
 		def __init__(self, guild_id: int = 0) -> None:
@@ -1143,7 +1143,7 @@ class MockContext(misc.BotContext):
 	"""Drop-in replacement for Context to enable offline testing."""
 
 	class MockContextState(nextcord.state.ConnectionState):
-		"""Drop-in replacement for ConnetionState."""
+		"""Drop-in replacement for ConnectionState."""
 
 		# TODO: Inherit state from message, as in actual Context._state
 		@override
@@ -3038,10 +3038,10 @@ def test_blackjack_starting_hand() -> None:
 
 
 def test_active_game() -> None:
-	author = MockMember(MockUser(name="target", user_id=0))
+	author = MockMember(MockUser(name="testname", user_id=0))
 	games = [
 		bucks.BlackjackGame(
-			MockMember(MockUser(name="not", user_id=1)),
+			MockMember(MockUser(name="testname", user_id=1)),
 			multiplayer=False,
 		),
 	] * 9
@@ -3211,21 +3211,47 @@ async def test_moose_failed_connection_raises_animal_exception(
 @MarkAsync
 @pytest.mark.flaky(reruns=2, reruns_delay=5)
 @pytest.mark.parametrize("animal_name", misc.AnimalList)
-async def test_get_animal_with_good_url(animal_name: str) -> None:
-	url = await misc.get_animal(animal_name)
+async def test_cmd_animal_with_good_url(animal_name: str) -> None:
+	ctx = MockContext(
+		Bot.BeardlessBot,
+		MockMessage(content=f"!{animal_name}"),
+		invoked_with=animal_name,
+	)
+	assert (await Bot.cmd_animal(ctx)) == 1
+	latest = await latest_message(ctx)
+	assert latest is not None
+	url = latest.embeds[0].image.url
+	assert url is not None
 	async with httpx.AsyncClient(timeout=10) as client:
 		response = await client.get(url)
 	assert valid_image_url(response)
 
 
 @MarkAsync
-async def test_dog_with_good_url() -> None:
-	url = await misc.get_dog()
+async def test_cmd_dog_with_good_url() -> None:
+	ctx = MockContext(
+		Bot.BeardlessBot, MockMessage(content="!dog"), invoked_with="dog",
+	)
+	assert (await Bot.cmd_dog(ctx)) == 1
+	latest = await latest_message(ctx)
+	assert latest is not None
+	url = latest.embeds[0].image.url
+	assert url is not None
 	async with httpx.AsyncClient(timeout=10) as client:
 		response = await client.get(url)
 	assert valid_image_url(response)
 
-	url = await misc.get_moose()
+
+@MarkAsync
+async def test_cmd_moose_with_good_url() -> None:
+	ctx = MockContext(
+		Bot.BeardlessBot, MockMessage(content="!moose"), invoked_with="moose",
+	)
+	assert (await Bot.cmd_dog(ctx)) == 1
+	latest = await latest_message(ctx)
+	assert latest is not None
+	url = latest.embeds[0].image.url
+	assert url is not None
 	async with httpx.AsyncClient(timeout=10) as client:
 		response = await client.get(url)
 	assert valid_image_url(response)
@@ -3261,18 +3287,30 @@ async def test_invalid_animal_raises_value_error() -> None:
 
 
 @MarkAsync
-async def test_dog_api_down_random_dog_raises_animal_exception(
-	httpx_mock: HTTPXMock,
+async def test_cmd_dog_api_down_random_dog_raises_animal_exception(
+	caplog: pytest.LogCaptureFixture, httpx_mock: HTTPXMock,
 ) -> None:
 	httpx_mock.add_response(
 		url="https://dog.ceo/api/breeds/image/random",
 		status_code=522,
 	)
-
-	with pytest.raises(
-		misc.AnimalException, match="Failed to call Dog Animal API",
-	):
-		await misc.get_dog()
+	ctx = MockContext(
+		Bot.BeardlessBot, MockMessage(content="!dog"), invoked_with="dog",
+	)
+	assert (await Bot.cmd_dog(ctx)) == 0
+	latest = await latest_message(ctx)
+	assert latest is not None
+	assert latest.embeds[0].title == "Something's gone wrong with the Dog API!"
+	assert caplog.records[-1].args is not None
+	arg_list = tuple(caplog.records[-1].args)
+	assert str(arg_list[0]) == "Failed to call Dog Animal API"
+	assert arg_list[1:] == (
+		"dog",
+		ctx.author,
+		"!dog",
+		ctx.guild,
+		misc.AnimalException,
+	)
 
 
 @MarkAsync
@@ -3291,18 +3329,31 @@ async def test_dog_api_down_get_breeds_raises_animal_exception(
 
 
 @MarkAsync
-async def test_animal_api_down_raises_animal_exception(
-	httpx_mock: HTTPXMock,
+async def test_cmd_animal_api_down_raises_animal_exception(
+	caplog: pytest.LogCaptureFixture, httpx_mock: HTTPXMock,
 ) -> None:
 	httpx_mock.add_response(
 		url="https://api.bunnies.io/v2/loop/random/?media=gif",
 		status_code=522,
 	)
 
-	with pytest.raises(
-		misc.AnimalException, match="Failed to call Rabbit Animal API",
-	):
-		await misc.get_animal("rabbit")
+	ctx = MockContext(
+		Bot.BeardlessBot, MockMessage(content="!bunny"), invoked_with="bunny",
+	)
+	assert (await Bot.cmd_animal(ctx)) == 0
+	latest = await latest_message(ctx)
+	assert latest is not None
+	assert latest.embeds[0].title == "Something's gone wrong!"
+	assert caplog.records[-1].args is not None
+	arg_list = tuple(caplog.records[-1].args)
+	assert str(arg_list[0]) == "Failed to call Bunny Animal API"
+	assert arg_list[1:] == (
+		"bunny",
+		ctx.author,
+		"!bunny",
+		ctx.guild,
+		misc.AnimalException,
+	)
 
 
 def test_get_frog_list_standard_layout(httpx_mock: HTTPXMock) -> None:
@@ -4408,13 +4459,13 @@ def make_blackjack_multiplayer_with_unique_user_id(
 	num_of_players: int,
 ) -> bucks.BlackjackGame:
 	"""
-	Create a multiplayer blackjack games with unique user-ids.
+	Create a multiplayer Blackjack game with unique user-ids.
 
 	Args:
 		num_of_players (int): 1-9 inclusive. The number of players in the game.
 
 	Returns:
-		BlackjackGame: the created blackjack game
+		BlackjackGame: the created Blackjack game
 
 	"""
 	assert num_of_players > 0
@@ -4424,9 +4475,7 @@ def make_blackjack_multiplayer_with_unique_user_id(
 		multiplayer=True,
 	)
 	for i in range(num_of_players - 1):
-		d = i + 2
-		new_id = d + d * 10 + d * 100 + d * 1000
-		game.add_player(MockMember(user=MockUser(user_id=new_id)))
+		game.add_player(MockMember(user=MockUser(user_id=1111 * (i + 2))))
 	return game
 
 

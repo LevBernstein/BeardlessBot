@@ -498,7 +498,7 @@ async def cmd_tablejoin(
 		report = bucks.CommaWarn.format(ctx.author.mention)
 	else:
 		if not (join_target := await misc.process_command_target(
-			ctx, target, BeardlessBot,
+			ctx, target, "Join", BeardlessBot,
 		)):
 			return 0
 		if result := bucks.player_in_game(BlackjackGames, ctx.author):
