@@ -675,8 +675,9 @@ class BbHelpCommand(commands.HelpCommand):
 	@override
 	async def send_bot_help(
 		self,
-		_mapping: Mapping[  # type: ignore[type-arg]
-			commands.Cog | None, list[commands.core.Command[Any, Any, Any]],
+		_mapping: Mapping[
+			commands.Cog | None,
+			list[commands.core.Command[Any, Any, Any]],  # type: ignore[type-arg]
 		],
 	) -> None:
 		if ctx_created_thread(self.context):
